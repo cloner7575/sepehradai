@@ -17,7 +17,7 @@
 
       {% for field in form %}
         {% if field.name != 'inline_keyboard' %}
-        <div class="mb-3">
+        <div class="mb-3 {% if field.name == 'jalali_scheduled_date' or field.name == 'jalali_scheduled_time' %}campaign-jalali-fields{% endif %}">
           <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
           {{ field }}
           {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
@@ -27,6 +27,23 @@
       {% endfor %}
 
       {% include "balebot/campaign_keyboard_builder.html" %}
+
+      <script>
+      (function () {
+        var kind = document.getElementById('id_schedule_kind');
+        var boxes = document.querySelectorAll('.campaign-jalali-fields');
+        function sync() {
+          var show = kind && kind.value === 'scheduled';
+          boxes.forEach(function (el) {
+            el.style.display = show ? '' : 'none';
+          });
+        }
+        if (kind) {
+          kind.addEventListener('change', sync);
+          sync();
+        }
+      })();
+      </script>
 
       <div class="d-flex gap-2 flex-wrap pt-2">
         <button type="submit" class="btn btn-panel-primary px-4"><i class="bi bi-save me-2"></i>ذخیره</button>

@@ -137,7 +137,14 @@ class CampaignDetailView(StaffRequiredMixin, DetailView):
                 messages.warning(request, 'این وضعیت کمپین قابل صف‌بندی نیست.')
                 return HttpResponseRedirect(self.object.get_absolute_url())
             self.object.status = Campaign.Status.QUEUED
-            if self.object.scheduled_at is None:
+            if self.object.schedule_kind == Campaign.ScheduleKind.SCHEDULED:
+                if not self.object.scheduled_at:
+                    messages.warning(
+                        request,
+                        'برای کمپین زمان‌بندی‌شده ابتدا تاریخ و ساعت شمسی را در ویرایش کمپین ذخیره کنید.',
+                    )
+                    return HttpResponseRedirect(self.object.get_absolute_url())
+            else:
                 self.object.scheduled_at = timezone.now()
             self.object.save(update_fields=['status', 'scheduled_at', 'updated_at'])
             messages.success(

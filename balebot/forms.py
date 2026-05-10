@@ -3,6 +3,7 @@ import json
 from django import forms
 
 from balebot.models import BotSettings, Campaign
+from balebot.services.jalali_datetime import aware_to_jalali_parts, parse_jalali_date_time
 from balebot.services.keyboard_layout import (
     keyboard_has_any_button,
     normalize_to_sections,
@@ -117,25 +118,76 @@ class CampaignForm(forms.ModelForm):
         label='',
         widget=forms.HiddenInput(attrs={'id': 'id_inline_keyboard'}),
     )
+    jalali_scheduled_date = forms.CharField(
+        required=False,
+        label='تاریخ شمسی ارسال',
+        help_text='مثلاً ۱۴۰۳/۰۸/۱۵ یا ۱۴۰۳-۸-۱۵ (فقط برای کمپین زمان‌بندی‌شده).',
+        widget=forms.TextInput(
+            attrs={
+                'class': 'form-control panel-input',
+                'placeholder': '۱۴۰۳/۰۸/۱۵',
+                'dir': 'ltr',
+                'autocomplete': 'off',
+                'data-scheduled-field': 'date',
+            },
+        ),
+    )
+    jalali_scheduled_time = forms.CharField(
+        required=False,
+        label='ساعت ارسال',
+        help_text='به وقت ایران (منطقهٔ زمانی سرور). مثلاً ۱۴:۳۰.',
+        widget=forms.TextInput(
+            attrs={
+                'class': 'form-control panel-input',
+                'placeholder': '۱۴:۳۰',
+                'dir': 'ltr',
+                'autocomplete': 'off',
+                'data-scheduled-field': 'time',
+            },
+        ),
+    )
 
     class Meta:
         model = Campaign
-        fields = ['title', 'content_type', 'body', 'media', 'inline_keyboard', 'scheduled_at']
+        fields = [
+            'title',
+            'schedule_kind',
+            'content_type',
+            'body',
+            'media',
+            'inline_keyboard',
+        ]
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control panel-input'}),
+            'schedule_kind': forms.Select(attrs={'class': 'form-select panel-input'}),
             'content_type': forms.Select(attrs={'class': 'form-select panel-input'}),
             'body': forms.Textarea(attrs={'class': 'form-control panel-input', 'rows': 5}),
             'media': forms.ClearableFileInput(attrs={'class': 'form-control panel-input'}),
-            'scheduled_at': forms.DateTimeInput(
-                attrs={'class': 'form-control panel-input', 'type': 'datetime-local'},
-            ),
         }
+
+    field_order = [
+        'title',
+        'schedule_kind',
+        'jalali_scheduled_date',
+        'jalali_scheduled_time',
+        'content_type',
+        'body',
+        'media',
+        'inline_keyboard',
+    ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         raw = self.instance.inline_keyboard if self.instance.pk else None
         norm = normalize_to_sections(raw)
         self.fields['inline_keyboard'].initial = json.dumps(norm, ensure_ascii=False)
+
+        # Preserve field order: jalali fields sit after schedule_kind in Meta.fields
+        if self.instance.pk and self.instance.schedule_kind == Campaign.ScheduleKind.SCHEDULED:
+            if self.instance.scheduled_at:
+                dpart, tpart = aware_to_jalali_parts(self.instance.scheduled_at)
+                self.fields['jalali_scheduled_date'].initial = dpart
+                self.fields['jalali_scheduled_time'].initial = tpart
 
     def clean_inline_keyboard(self):
         raw = self.cleaned_data.get('inline_keyboard')
@@ -168,4 +220,29 @@ class CampaignForm(forms.ModelForm):
                 raise forms.ValidationError(
                     'برای «متن + دکمه» حداقل یک دکمه در سازندهٔ صفحه‌کلید اضافه کنید.',
                 )
+
+        kind = cleaned.get('schedule_kind')
+        j_date = (cleaned.get('jalali_scheduled_date') or '').strip()
+        j_time = (cleaned.get('jalali_scheduled_time') or '').strip()
+
+        if kind == Campaign.ScheduleKind.SCHEDULED:
+            if not j_date or not j_time:
+                raise forms.ValidationError(
+                    'برای کمپین زمان‌بندی‌شده، تاریخ و ساعت شمسی را پر کنید.',
+                )
+            try:
+                cleaned['resolved_scheduled_at'] = parse_jalali_date_time(j_date, j_time)
+            except ValueError as e:
+                raise forms.ValidationError(str(e)) from e
+        else:
+            cleaned['resolved_scheduled_at'] = None
+
         return cleaned
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.scheduled_at = self.cleaned_data['resolved_scheduled_at']
+        if commit:
+            obj.save()
+            self._save_m2m()
+        return obj

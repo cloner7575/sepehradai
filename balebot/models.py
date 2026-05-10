@@ -106,6 +106,10 @@ class Campaign(models.Model):
         COMPLETED = 'completed', 'تمام‌شده'
         CANCELLED = 'cancelled', 'لغوشده'
 
+    class ScheduleKind(models.TextChoices):
+        INSTANT = 'instant', 'آنی'
+        SCHEDULED = 'scheduled', 'زمان‌بندی‌شده'
+
     title = models.CharField(max_length=255)
     content_type = models.CharField(max_length=32, choices=ContentType.choices)
     body = models.TextField(blank=True, default='', help_text='متن یا زیرنویس رسانه')
@@ -120,6 +124,13 @@ class Campaign(models.Model):
         choices=Status.choices,
         default=Status.DRAFT,
         db_index=True,
+    )
+    schedule_kind = models.CharField(
+        max_length=16,
+        choices=ScheduleKind.choices,
+        default=ScheduleKind.INSTANT,
+        verbose_name='نوع زمان ارسال',
+        help_text='آنی: بلافاصله پس از قرار گرفتن در صف؛ زمان‌بندی‌شده: در تاریخ و ساعت شمسی تعیین‌شده.',
     )
     scheduled_at = models.DateTimeField(null=True, blank=True)
     started_at = models.DateTimeField(null=True, blank=True)
@@ -137,6 +148,15 @@ class Campaign(models.Model):
         from django.urls import reverse
 
         return reverse('campaign_detail', kwargs={'pk': self.pk})
+
+    @property
+    def scheduled_at_jalali_display(self) -> str:
+        if not self.scheduled_at:
+            return ''
+        from balebot.services.jalali_datetime import aware_to_jalali_parts
+
+        d, t = aware_to_jalali_parts(self.scheduled_at)
+        return f'{d}، ساعت {t}'
 
 
 class CampaignDelivery(models.Model):

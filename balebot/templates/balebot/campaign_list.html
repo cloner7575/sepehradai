@@ -13,19 +13,20 @@
     <div class="table-responsive">
       <table class="table panel-table table-striped mb-0">
         <thead>
-          <tr><th>عنوان</th><th>نوع</th><th>وضعیت</th><th>زمان‌بندی</th><th></th></tr>
+          <tr><th>عنوان</th><th>نوع محتوا</th><th>ارسال</th><th>وضعیت</th><th>زمان شمسی / سرور</th><th></th></tr>
         </thead>
         <tbody>
           {% for c in object_list %}
           <tr>
             <td><a href="{{ c.get_absolute_url }}">{{ c.title }}</a></td>
             <td>{{ c.get_content_type_display }}</td>
+            <td class="small">{{ c.get_schedule_kind_display }}</td>
             <td><span class="badge rounded-pill bg-opacity-25 {% if c.status == 'completed' %}text-bg-success{% elif c.status == 'sending' or c.status == 'queued' %}text-bg-warning{% elif c.status == 'draft' %}text-bg-secondary{% else %}text-bg-danger{% endif %}">{{ c.get_status_display }}</span></td>
-            <td class="small text-muted">{{ c.scheduled_at|default:"—" }}</td>
+            <td class="small text-muted">{% if c.schedule_kind == 'scheduled' and c.scheduled_at_jalali_display %}{{ c.scheduled_at_jalali_display }}{% elif c.scheduled_at %}{{ c.scheduled_at }}{% else %}—{% endif %}</td>
             <td><a href="{% url 'campaign_edit' c.pk %}" class="btn btn-panel-ghost btn-sm">ویرایش</a></td>
           </tr>
           {% empty %}
-          <tr><td colspan="5" class="text-center text-muted py-5">کمپینی نیست.</td></tr>
+          <tr><td colspan="6" class="text-center text-muted py-5">کمپینی نیست.</td></tr>
           {% endfor %}
         </tbody>
       </table>

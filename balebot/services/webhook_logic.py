@@ -198,7 +198,8 @@ def handle_message(msg: dict[str, Any]) -> None:
         welcome = (cfg.welcome_message or '').strip()
         start_markup = build_start_inline_markup(cfg)
         has_inline = start_markup is not None
-        if cfg.collect_contact_on_start:
+        need_contact = cfg.collect_contact_on_start and not sub.is_registered
+        if need_contact:
             if has_inline:
                 bale_api.send_message(
                     sub.chat_id,

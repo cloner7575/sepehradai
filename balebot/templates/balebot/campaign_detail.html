@@ -2,13 +2,29 @@
 {% block title %}{{ object.title }}{% endblock %}
 {% block page_title %}{{ object.title }}{% endblock %}
 {% block page_subtitle %}
-<p class="topbar-meta mb-0 mt-1">{{ object.get_content_type_display }} · {{ object.get_status_display }}</p>
+<p class="topbar-meta mb-0 mt-1">{{ object.get_content_type_display }} · {{ object.get_schedule_kind_display }} · {{ object.get_status_display }}</p>
 {% endblock %}
 
 {% block content %}
 <div class="d-flex flex-wrap gap-2 mb-4">
   <a href="{% url 'campaign_edit' object.pk %}" class="btn btn-panel-primary btn-sm"><i class="bi bi-pencil me-1"></i>ویرایش</a>
   <a href="{% url 'campaign_list' %}" class="btn btn-panel-ghost btn-sm">بازگشت به لیست</a>
+</div>
+
+<div class="panel-card mb-4">
+  <div class="panel-card-header"><h2 class="panel-card-title small text-uppercase opacity-75 mb-0">زمان ارسال</h2></div>
+  <div class="panel-card-body small mb-0">
+    <p class="mb-1"><strong>نوع:</strong> {{ object.get_schedule_kind_display }}</p>
+    {% if object.schedule_kind == 'scheduled' %}
+      {% if object.scheduled_at_jalali_display %}
+      <p class="mb-0 text-secondary"><strong>تاریخ و ساعت شمسی:</strong> {{ object.scheduled_at_jalali_display }}</p>
+      {% else %}
+      <p class="mb-0 text-warning">زمان شمسی ذخیره نشده — پیش از صف، کمپین را ویرایش و تاریخ/ساعت را پر کنید.</p>
+      {% endif %}
+    {% else %}
+      <p class="mb-0 text-secondary">پس از «قرار در صف»، ارسال بلافاصله (پس از اجرای process_campaigns) آغاز می‌شود.</p>
+    {% endif %}
+  </div>
 </div>
 
 {% if object.body %}

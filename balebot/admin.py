@@ -48,8 +48,8 @@ class CallbackLogAdmin(admin.ModelAdmin):
 
 @admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
-    list_display = ('title', 'content_type', 'status', 'scheduled_at', 'created_at')
-    list_filter = ('status', 'content_type')
+    list_display = ('title', 'content_type', 'schedule_kind', 'status', 'scheduled_at', 'created_at')
+    list_filter = ('status', 'content_type', 'schedule_kind')
 
 
 @admin.register(CampaignDelivery)
