@@ -1,0 +1,58 @@
+# محیط مجازی پایتون
+.venv/
+venv/
+env/
+
+# اسرار و محیط محلی (نمونهٔ .env.example را نگه دارید)
+.env
+.env.local
+.env.*.local
+
+# پایگاه دادهٔ محلی (SQLite قدیمی یا فایل‌های موقت)
+*.sqlite3
+db.sqlite3
+
+# جنگو — خروجی جمع‌آوری استاتیک و آپلودهای کاربر
+staticfiles/
+media/
+
+# پایتون
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ابزارها و تست
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# IDE / ویرایشگر
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# سیستم‌عامل
+.DS_Store
+Thumbs.db
+desktop.ini
