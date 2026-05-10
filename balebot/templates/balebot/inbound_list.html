@@ -1,0 +1,30 @@
+{% extends "balebot/base.html" %}
+{% block title %}پیام‌های ورودی{% endblock %}
+{% block page_title %}پیام‌های ورودی کاربران{% endblock %}
+{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">متن، رسانه و مخاطب ذخیره‌شده از وب‌هوک</p>{% endblock %}
+
+{% block content %}
+<div class="panel-card">
+  <div class="panel-table-wrap border-0">
+    <div class="table-responsive">
+      <table class="table panel-table table-striped table-sm mb-0">
+        <thead>
+          <tr><th>زمان</th><th>کاربر</th><th>نوع</th><th>خلاصه</th></tr>
+        </thead>
+        <tbody>
+          {% for row in object_list %}
+          <tr>
+            <td class="small text-muted">{{ row.created_at }}</td>
+            <td>{{ row.subscriber.phone_number|default:row.subscriber.bale_user_id }}</td>
+            <td><span class="badge text-bg-secondary bg-opacity-25">{{ row.get_kind_display }}</span></td>
+            <td class="small">{% if row.text %}{{ row.text|truncatechars:80 }}{% else %}{{ row.file_id|truncatechars:40 }}{% endif %}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center text-muted py-5">موردی نیست.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

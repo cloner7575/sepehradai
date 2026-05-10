@@ -1,0 +1,151 @@
+{% extends "balebot/base.html" %}
+{% block title %}تنظیمات ربات{% endblock %}
+{% block page_title %}تنظیمات ربات{% endblock %}
+{% block page_subtitle %}
+<p class="topbar-meta mb-0 mt-1">ذخیره را بزنید تا از همان لحظه روی وب‌هوک اعمال شود.</p>
+{% endblock %}
+
+{% block content %}
+<form method="post">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger mb-4">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10 col-xxl-9">
+
+      <div class="panel-settings-guide mb-4">
+        <div class="panel-settings-guide-title"><i class="bi bi-signpost-split me-2"></i> ترتیب پیشنهادی</div>
+        <ol class="panel-settings-guide-steps mb-0">
+          <li><strong>سوئیچ‌ها</strong> — مشخص کنید چه چیزهایی در بله فعال باشد.</li>
+          <li><strong>پیام /start</strong> — متن و دکمهٔ اول را بنویسید.</li>
+          <li><strong>تماس و متن‌های بعدی</strong> — در صورت نیاز تکمیل کنید.</li>
+        </ol>
+      </div>
+
+      {# ——— ۱ سوئیچ‌ها ——— #}
+      <div class="panel-card mb-4">
+        <div class="panel-card-header flex-column align-items-stretch gap-1">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="panel-settings-badge">۱</span>
+            <h2 class="panel-card-title mb-0"><i class="bi bi-toggle-on me-2"></i> چه چیزهایی در بله روشن باشد</h2>
+          </div>
+          <p class="panel-card-lead mb-0 small">هر کدام را خاموش کنید؛ همان رفتار در بله غیرفعال می‌شود (بدون حذف متن‌های ذخیره‌شده).</p>
+        </div>
+        <div class="panel-card-body pt-3 d-flex flex-column gap-3">
+          <div class="panel-workflow-row">
+            <div class="panel-workflow-copy">
+              <div class="panel-workflow-title">{{ form.collect_contact_on_start.label }}</div>
+              <p class="panel-workflow-desc">روشن → بعد از <strong>/start</strong> دکمهٔ «ارسال شماره» می‌آید. خاموش → فقط متن خوش‌آمد و در صورت تنظیم، دکمه‌های اینلاین.</p>
+            </div>
+            <div class="form-check form-switch panel-workflow-switch">
+              {{ form.collect_contact_on_start }}
+              <label class="visually-hidden" for="{{ form.collect_contact_on_start.id_for_label }}">{{ form.collect_contact_on_start.label }}</label>
+            </div>
+          </div>
+          <div class="panel-workflow-row">
+            <div class="panel-workflow-copy">
+              <div class="panel-workflow-title">{{ form.enable_help_command.label }}</div>
+              <p class="panel-workflow-desc">روشن → به <strong>/help</strong> با متن راهنما جواب می‌دهد. خاموش → دستور نادیده گرفته می‌شود.</p>
+            </div>
+            <div class="form-check form-switch panel-workflow-switch">
+              {{ form.enable_help_command }}
+              <label class="visually-hidden" for="{{ form.enable_help_command.id_for_label }}">{{ form.enable_help_command.label }}</label>
+            </div>
+          </div>
+          <div class="panel-workflow-row">
+            <div class="panel-workflow-copy">
+              <div class="panel-workflow-title">{{ form.enable_stop_command.label }}</div>
+              <p class="panel-workflow-desc">روشن → <strong>/stop</strong> اشتراک را قطع و پیام خروج می‌فرستد. خاموش → پردازش نمی‌شود.</p>
+            </div>
+            <div class="form-check form-switch panel-workflow-switch">
+              {{ form.enable_stop_command }}
+              <label class="visually-hidden" for="{{ form.enable_stop_command.id_for_label }}">{{ form.enable_stop_command.label }}</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# ——— ۲ پیام شروع ——— #}
+      <div class="panel-card mb-4">
+        <div class="panel-card-header flex-column align-items-stretch gap-1">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="panel-settings-badge">۲</span>
+            <h2 class="panel-card-title mb-0"><i class="bi bi-chat-dots me-2"></i> اولین تجربه کاربر: ‎/start</h2>
+          </div>
+          <p class="panel-card-lead mb-0 small">این متن و دکمه‌ها اولین چیزی است که کاربر بعد از زدن <code class="px-1">/start</code> می‌بیند.</p>
+        </div>
+        <div class="panel-card-body">
+          {% include "balebot/_field.html" with field=form.welcome_message %}
+          {% include "balebot/start_keyboard_builder.html" %}
+        </div>
+      </div>
+
+      {# ——— ۳ تماس ——— #}
+      <div class="panel-card mb-4">
+        <div class="panel-card-header flex-column align-items-stretch gap-1">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="panel-settings-badge">۳</span>
+            <h2 class="panel-card-title mb-0"><i class="bi bi-telephone me-2"></i> دریافت شماره تماس</h2>
+          </div>
+          <p class="panel-card-lead mb-0 small">فقط وقتی در بخش <strong>۱</strong> گزینهٔ تماس را روشن کرده باشید این بخش در بله استفاده می‌شود.</p>
+        </div>
+        <div class="panel-card-body">
+          {% include "balebot/_field.html" with field=form.contact_prompt_message %}
+          {% include "balebot/_field.html" with field=form.contact_button_label %}
+          {% include "balebot/_field.html" with field=form.registration_success_message %}
+        </div>
+      </div>
+
+      {# ——— ۴ متن‌های دستور و کلیک ——— #}
+      <div class="panel-card mb-4">
+        <div class="panel-card-header flex-column align-items-stretch gap-1">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="panel-settings-badge">۴</span>
+            <h2 class="panel-card-title mb-0"><i class="bi bi-reply me-2"></i> پاسخ به دستورها و کلیک دکمه</h2>
+          </div>
+          <p class="panel-card-lead mb-0 small">دو فیلد اول به سوئیچ‌های <strong>/help</strong> و <strong>/stop</strong> در بخش ۱ وابسته‌اند. فیلد آخر برای هر کلیک اینلاین است.</p>
+        </div>
+        <div class="panel-card-body">
+          <div class="panel-field-group">
+            <span class="panel-field-group-label"><i class="bi bi-question-circle me-1"></i> دستور /help</span>
+            {% include "balebot/_field.html" with field=form.help_message %}
+          </div>
+          <div class="panel-field-group">
+            <span class="panel-field-group-label"><i class="bi bi-slash-circle me-1"></i> دستور /stop</span>
+            {% include "balebot/_field.html" with field=form.unsubscribe_message %}
+          </div>
+          <div class="panel-field-group">
+            <span class="panel-field-group-label"><i class="bi bi-hand-index-thumb me-1"></i> کلیک روی دکمهٔ اینلاین</span>
+            {% include "balebot/_field.html" with field=form.callback_ack_message %}
+          </div>
+        </div>
+      </div>
+
+      {# ——— ۵ ظاهر پنل ——— #}
+      <div class="panel-card mb-4">
+        <div class="panel-card-header flex-column align-items-stretch gap-1">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="panel-settings-badge panel-settings-badge-muted">۵</span>
+            <h2 class="panel-card-title mb-0"><i class="bi bi-brush me-2"></i> عنوان همین پنل مدیریت</h2>
+          </div>
+          <p class="panel-card-lead mb-0 small">فقط ظاهر نوار کناری را عوض می‌کند؛ روی پیام‌های بله اثری ندارد.</p>
+        </div>
+        <div class="panel-card-body">
+          {% include "balebot/_field.html" with field=form.panel_brand_title %}
+          {% include "balebot/_field.html" with field=form.panel_brand_subtitle %}
+        </div>
+      </div>
+
+      <div class="panel-settings-footer d-flex flex-wrap align-items-center gap-3 pt-2 pb-4">
+        <button type="submit" class="btn btn-panel-primary px-5 py-2"><i class="bi bi-cloud-check me-2"></i>ذخیرهٔ همهٔ تنظیمات</button>
+        {% if object.updated_at %}
+        <span class="text-muted small"><i class="bi bi-clock-history me-1"></i>آخرین ذخیره: {{ object.updated_at }}</span>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</form>
+{% endblock %}

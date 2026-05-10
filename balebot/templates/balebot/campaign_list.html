@@ -1,0 +1,35 @@
+{% extends "balebot/base.html" %}
+{% block title %}کمپین‌ها{% endblock %}
+{% block page_title %}کمپین‌های تبلیغاتی{% endblock %}
+{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">ایجاد، ویرایش و قرار دادن در صف برای cron</p>{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-4">
+  <a href="{% url 'campaign_create' %}" class="btn btn-panel-primary"><i class="bi bi-plus-circle me-2"></i>کمپین جدید</a>
+</div>
+
+<div class="panel-card">
+  <div class="panel-table-wrap border-0">
+    <div class="table-responsive">
+      <table class="table panel-table table-striped mb-0">
+        <thead>
+          <tr><th>عنوان</th><th>نوع</th><th>وضعیت</th><th>زمان‌بندی</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for c in object_list %}
+          <tr>
+            <td><a href="{{ c.get_absolute_url }}">{{ c.title }}</a></td>
+            <td>{{ c.get_content_type_display }}</td>
+            <td><span class="badge rounded-pill bg-opacity-25 {% if c.status == 'completed' %}text-bg-success{% elif c.status == 'sending' or c.status == 'queued' %}text-bg-warning{% elif c.status == 'draft' %}text-bg-secondary{% else %}text-bg-danger{% endif %}">{{ c.get_status_display }}</span></td>
+            <td class="small text-muted">{{ c.scheduled_at|default:"—" }}</td>
+            <td><a href="{% url 'campaign_edit' c.pk %}" class="btn btn-panel-ghost btn-sm">ویرایش</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-5">کمپینی نیست.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

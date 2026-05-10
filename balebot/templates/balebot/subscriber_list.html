@@ -1,0 +1,68 @@
+{% extends "balebot/base.html" %}
+{% block title %}مشترکین{% endblock %}
+{% block page_title %}مشترکین{% endblock %}
+{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">جستجو بر اساس شماره، نام یا شناسهٔ بله</p>{% endblock %}
+
+{% block content %}
+<div class="panel-card mb-4">
+  <div class="panel-card-body py-3">
+    <form method="get" class="search-bar d-flex flex-wrap gap-2 align-items-center">
+      <input type="search" name="q" value="{{ request.GET.q }}" class="form-control panel-input" placeholder="جستجو…">
+      <button type="submit" class="btn btn-panel-primary btn-sm"><i class="bi bi-search me-1"></i>جستجو</button>
+      {% if request.GET.q %}
+      <a href="{% url 'subscriber_list' %}" class="btn btn-panel-ghost btn-sm">پاک کردن</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<div class="panel-card">
+  <div class="panel-card-header">
+    <h2 class="panel-card-title mb-0">فهرست مشترکین</h2>
+    <span class="text-muted small">{{ page_obj.paginator.count }} نفر</span>
+  </div>
+  <div class="panel-table-wrap rounded-0 border-top-0">
+    <div class="table-responsive">
+      <table class="table panel-table table-striped table-hover mb-0">
+        <thead>
+          <tr>
+            <th>شناسه بله</th>
+            <th>چت</th>
+            <th>شماره</th>
+            <th>نام</th>
+            <th>ثبت</th>
+            <th>فعال</th>
+            <th>به‌روزرسانی</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in object_list %}
+          <tr>
+            <td><code class="text-secondary">{{ s.bale_user_id }}</code></td>
+            <td>{{ s.chat_id }}</td>
+            <td>{{ s.phone_number|default:"—" }}</td>
+            <td>{{ s.first_name }}</td>
+            <td>{% if s.is_registered %}<span class="badge text-bg-success">بله</span>{% else %}<span class="badge text-bg-secondary">خیر</span>{% endif %}</td>
+            <td>{% if s.is_active %}<span class="badge text-bg-primary">بله</span>{% else %}<span class="badge text-bg-danger">خیر</span>{% endif %}</td>
+            <td class="small text-muted">{{ s.updated_at }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="text-center text-muted py-5">موردی نیست.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% if is_paginated %}
+<nav class="mt-4"><ul class="pagination justify-content-center">
+  {% if page_obj.has_previous %}
+  <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ request.GET.q }}">قبلی</a></li>
+  {% endif %}
+  {% if page_obj.has_next %}
+  <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ request.GET.q }}">بعدی</a></li>
+  {% endif %}
+</ul></nav>
+{% endif %}
+{% endblock %}

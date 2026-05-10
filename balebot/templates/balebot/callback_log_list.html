@@ -1,0 +1,30 @@
+{% extends "balebot/base.html" %}
+{% block title %}کلیک دکمه‌ها{% endblock %}
+{% block page_title %}کلیک دکمه‌های اینلاین{% endblock %}
+{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">آخرین تعامل با دکمه‌های کمپین</p>{% endblock %}
+
+{% block content %}
+<div class="panel-card">
+  <div class="panel-table-wrap border-0">
+    <div class="table-responsive">
+      <table class="table panel-table table-striped table-sm mb-0">
+        <thead>
+          <tr><th>زمان</th><th>کاربر</th><th>callback_data</th><th>کمپین</th></tr>
+        </thead>
+        <tbody>
+          {% for row in object_list %}
+          <tr>
+            <td class="small text-muted">{{ row.created_at }}</td>
+            <td>{{ row.subscriber.phone_number|default:row.subscriber.bale_user_id }}</td>
+            <td><code dir="ltr" class="text-secondary small">{{ row.data }}</code></td>
+            <td>{% if row.campaign %}<a href="{{ row.campaign.get_absolute_url }}">{{ row.campaign.title }}</a>{% else %}—{% endif %}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center text-muted py-5">موردی نیست.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

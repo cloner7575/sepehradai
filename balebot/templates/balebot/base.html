@@ -1,0 +1,84 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% if bot_branding %}{{ bot_branding.panel_brand_title }}{% else %}پنل بازو{% endif %}{% endblock %}</title>
+  <link href="{% static 'balebot/vendor/bootstrap/5.3.3/dist/css/bootstrap.rtl.min.css' %}" rel="stylesheet">
+  <link href="{% static 'balebot/vendor/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css' %}" rel="stylesheet">
+  <link href="{% static 'balebot/css/panel.css' %}" rel="stylesheet">
+</head>
+<body class="panel-body">
+  <div class="panel-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand d-flex align-items-center gap-3">
+        <div class="sidebar-brand-mark flex-shrink-0">
+          <i class="bi bi-layout-text-sidebar-reverse"></i>
+        </div>
+        <div>
+          <div class="sidebar-brand-title">{% if bot_branding %}{{ bot_branding.panel_brand_title }}{% else %}کنترل بازو{% endif %}</div>
+          {% if bot_branding and bot_branding.panel_brand_subtitle %}
+          <div class="sidebar-brand-sub">{{ bot_branding.panel_brand_subtitle }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% with name=request.resolver_match.url_name %}
+      <div class="sidebar-section-label">منوی اصلی</div>
+      <nav class="sidebar-nav nav flex-column gap-1 mt-2">
+        <a class="nav-link {% if name == 'panel_dashboard' %}active{% endif %}" href="{% url 'panel_dashboard' %}">
+          <i class="bi bi-grid-1x2-fill"></i> داشبورد
+        </a>
+        <a class="nav-link {% if name == 'bot_settings' %}active{% endif %}" href="{% url 'bot_settings' %}">
+          <i class="bi bi-robot"></i> تنظیمات ربات
+        </a>
+        <a class="nav-link {% if name == 'subscriber_list' %}active{% endif %}" href="{% url 'subscriber_list' %}">
+          <i class="bi bi-people-fill"></i> مشترکین
+        </a>
+        <a class="nav-link {% if name == 'campaign_list' or name == 'campaign_create' or name == 'campaign_detail' or name == 'campaign_edit' %}active{% endif %}" href="{% url 'campaign_list' %}">
+          <i class="bi bi-megaphone-fill"></i> کمپین‌ها
+        </a>
+        <a class="nav-link {% if name == 'callback_log_list' %}active{% endif %}" href="{% url 'callback_log_list' %}">
+          <i class="bi bi-hand-index-thumb-fill"></i> کلیک دکمه‌ها
+        </a>
+        <a class="nav-link {% if name == 'inbound_list' %}active{% endif %}" href="{% url 'inbound_list' %}">
+          <i class="bi bi-inbox-fill"></i> پیام‌های ورودی
+        </a>
+      </nav>
+      {% endwith %}
+
+      <div class="sidebar-footer">
+        <a href="{% url 'admin:index' %}"><i class="bi bi-gear-wide-connected me-1"></i> ادمین جنگو</a>
+        <span class="d-block mt-2 opacity-75">نسخه پنل ۲</span>
+      </div>
+    </aside>
+
+    <div class="panel-main">
+      <header class="topbar">
+        <div>
+          <h1 class="topbar-page-title mb-0">{% block page_title %}داشبورد{% endblock %}</h1>
+          {% block page_subtitle %}{% endblock %}
+        </div>
+        {% if user.is_authenticated %}
+        <div class="topbar-user">
+          <span class="topbar-user-badge"><i class="bi bi-person-fill"></i>{{ user.username }}</span>
+        </div>
+        {% endif %}
+      </header>
+
+      <div class="panel-content">
+        {% if messages %}
+        <div class="panel-alert-global mb-3">
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} mb-2">{{ message }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+  </div>
+  <script src="{% static 'balebot/vendor/bootstrap/5.3.3/dist/js/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>

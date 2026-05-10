@@ -1,0 +1,42 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ورود به پنل</title>
+  <link href="{% static 'balebot/vendor/bootstrap/5.3.3/dist/css/bootstrap.rtl.min.css' %}" rel="stylesheet">
+  <link href="{% static 'balebot/vendor/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css' %}" rel="stylesheet">
+  <link href="{% static 'balebot/css/panel.css' %}" rel="stylesheet">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-card">
+      <div class="text-center mb-4">
+        <div class="d-inline-flex align-items-center justify-content-center rounded-3 mb-3"
+             style="width:56px;height:56px;background:var(--pb-accent-gradient);box-shadow:var(--pb-glow);">
+          <i class="bi bi-lightning-charge-fill text-white fs-4"></i>
+        </div>
+        <h1 class="text-white mb-1">ورود اپراتور</h1>
+        <p class="login-sub mb-0">پنل مدیریت بازوی بله — تم امن با HTTPS توصیه می‌شود.</p>
+      </div>
+      <form method="post" action="">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger mb-3">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <div class="mb-3">
+          <label class="form-label text-secondary small" for="id_username">نام کاربری</label>
+          <input type="text" name="username" class="form-control panel-input" id="id_username" required autofocus autocomplete="username">
+        </div>
+        <div class="mb-4">
+          <label class="form-label text-secondary small" for="id_password">رمز عبور</label>
+          <input type="password" name="password" class="form-control panel-input" id="id_password" required autocomplete="current-password">
+        </div>
+        <input type="hidden" name="next" value="{{ next }}">
+        <button type="submit" class="btn-login-submit"><i class="bi bi-box-arrow-in-right me-2"></i>ورود به داشبورد</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

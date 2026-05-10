@@ -1,0 +1,122 @@
+{% extends "balebot/base.html" %}
+{% block title %}{{ object.title }}{% endblock %}
+{% block page_title %}{{ object.title }}{% endblock %}
+{% block page_subtitle %}
+<p class="topbar-meta mb-0 mt-1">{{ object.get_content_type_display }} · {{ object.get_status_display }}</p>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap gap-2 mb-4">
+  <a href="{% url 'campaign_edit' object.pk %}" class="btn btn-panel-primary btn-sm"><i class="bi bi-pencil me-1"></i>ویرایش</a>
+  <a href="{% url 'campaign_list' %}" class="btn btn-panel-ghost btn-sm">بازگشت به لیست</a>
+</div>
+
+{% if object.body %}
+<div class="panel-card mb-4">
+  <div class="panel-card-header"><h2 class="panel-card-title small text-uppercase opacity-75 mb-0">متن / کپشن</h2></div>
+  <div class="panel-card-body"><pre class="mb-0 text-wrap text-secondary" style="white-space:pre-wrap;font-size:0.92rem;">{{ object.body }}</pre></div>
+</div>
+{% endif %}
+
+{% if object.media %}
+<div class="mb-4">
+  <a href="{{ object.media.url }}" target="_blank" class="btn btn-panel-ghost btn-sm"><i class="bi bi-paperclip me-1"></i>دانلود رسانهٔ کمپین</a>
+</div>
+{% endif %}
+
+{% with kb=object.inline_keyboard %}
+{% if kb %}
+<div class="panel-card mb-4">
+  <div class="panel-card-header"><h2 class="panel-card-title">ساختار دکمه‌های اینلاین</h2></div>
+  <div class="panel-card-body small">
+    {% if kb.sections %}
+      {% for sec in kb.sections %}
+        <div class="kb-preview-section">
+          <div class="kb-preview-section-head">
+            <span class="kb-preview-level">بلوک {{ forloop.counter }}</span>
+            {% if sec.title %}<span class="kb-preview-section-name">{{ sec.title }}</span>{% endif %}
+          </div>
+          <div class="kb-preview-section-rows">
+            {% for row in sec.rows %}
+              <div class="kb-preview-row-meta">└ ردیف {{ forloop.counter }}</div>
+              <div class="kb-preview-row kb-preview-row-nested">{% for btn in row %}<span class="kb-preview-btn">{% if btn.text %}{{ btn.text }}{% else %}{{ btn }}{% endif %}</span>{% endfor %}</div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      {% for row in kb %}
+        <div class="kb-preview-row mb-2">{% for btn in row %}<span class="kb-preview-btn">{% if btn.text %}{{ btn.text }}{% else %}{{ btn }}{% endif %}</span>{% endfor %}</div>
+      {% endfor %}
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endwith %}
+
+<div class="row g-4 mb-4">
+  <div class="col-md-6">
+    <div class="panel-card h-100">
+      <div class="panel-card-header"><h2 class="panel-card-title">آمار تحویل</h2></div>
+      <div class="panel-card-body">
+        <ul class="list-unstyled mb-0">
+          {% for row in delivery_stats %}
+          <li class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-25"><span>{{ row.status }}</span><strong>{{ row.c }}</strong></li>
+          {% empty %}
+          <li class="text-muted">هنوز ارسالی ثبت نشده.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="panel-card h-100">
+      <div class="panel-card-header"><h2 class="panel-card-title">اقدامات</h2></div>
+      <div class="panel-card-body">
+        {% if object.status == 'draft' or object.status == 'cancelled' %}
+        <form method="post" class="mb-3">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="queue">
+          <button type="submit" class="btn btn-panel-primary w-100"><i class="bi bi-play-fill me-2"></i>قرار در صف ارسال</button>
+        </form>
+        {% endif %}
+        {% if object.status == 'queued' or object.status == 'sending' %}
+        <p class="small text-muted mb-3"><i class="bi bi-info-circle me-1"></i>برای ارسال واقعی، روی سرور <code class="text-secondary">python manage.py process_campaigns</code> را زمان‌بندی کنید.</p>
+        {% endif %}
+        {% if object.status != 'cancelled' %}
+        <form method="post" onsubmit="return confirm('کمپین لغو شود؟');">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="cancel">
+          <button type="submit" class="btn btn-outline-danger w-100 border-opacity-50"><i class="bi bi-x-octagon me-2"></i>لغو کمپین</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="panel-card">
+  <div class="panel-card-header">
+    <h2 class="panel-card-title">تحویل‌ها (حداکثر ۵۰۰ ردیف اخیر)</h2>
+  </div>
+  <div class="panel-table-wrap border-0">
+    <div class="table-responsive">
+      <table class="table panel-table table-striped table-sm mb-0">
+        <thead><tr><th>مشترک</th><th>وضعیت</th><th>خطا</th><th>زمان</th></tr></thead>
+        <tbody>
+          {% for d in deliveries %}
+          <tr>
+            <td>{{ d.subscriber.phone_number|default:d.subscriber.bale_user_id }}</td>
+            <td>{{ d.get_status_display }}</td>
+            <td class="small text-danger">{{ d.error_message|truncatechars:80 }}</td>
+            <td class="small text-muted">{{ d.sent_at|default:"—" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center text-muted py-4">موردی نیست.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

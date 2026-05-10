@@ -1,0 +1,97 @@
+{% extends "balebot/base.html" %}
+{% block title %}داشبورد{% endblock %}
+{% block page_title %}داشبورد{% endblock %}
+{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">نمای کلی مخاطبان، کمپین‌ها و تحویل پیام‌ها</p>{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <i class="bi bi-person-check stat-card-icon"></i>
+      <div class="stat-card-label">مشترکین فعال</div>
+      <div class="stat-card-value">{{ subscriber_active }}</div>
+      <div class="small text-muted mt-2">ثبت‌شده با شماره</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <i class="bi bi-people stat-card-icon"></i>
+      <div class="stat-card-label">کل کاربران</div>
+      <div class="stat-card-value">{{ subscriber_total }}</div>
+      <div class="small text-muted mt-2">تماس با بازو</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <i class="bi bi-send-check stat-card-icon"></i>
+      <div class="stat-card-label">تحویل موفق</div>
+      <div class="stat-card-value">{{ delivery_sent }}</div>
+      <div class="small text-muted mt-2">خطا: {{ delivery_failed }}</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <i class="bi bi-lightning-charge stat-card-icon"></i>
+      <div class="stat-card-label">کمپین در جریان</div>
+      <div class="stat-card-value">{{ campaign_running }}</div>
+      <div class="small text-muted mt-2">از {{ campaign_total }} کمپین کل</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="panel-card h-100">
+      <div class="panel-card-header">
+        <h2 class="panel-card-title">آخرین کمپین‌ها</h2>
+        <a href="{% url 'campaign_create' %}" class="btn btn-panel-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>جدید</a>
+      </div>
+      <div class="list-group list-group-panel list-group-flush rounded-0">
+        {% for c in campaign_recent %}
+        <a class="list-group-item list-group-item-action py-3" href="{{ c.get_absolute_url }}">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <span class="fw-semibold">{{ c.title }}</span>
+            <span class="badge rounded-pill text-bg-secondary">{{ c.get_status_display }}</span>
+          </div>
+          <small class="text-muted">{{ c.get_content_type_display }}</small>
+        </a>
+        {% empty %}
+        <div class="panel-card-body text-muted">هنوز کمپینی ثبت نشده.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="panel-card h-100">
+      <div class="panel-card-header">
+        <h2 class="panel-card-title">آخرین پیام‌های ورودی</h2>
+        <a href="{% url 'inbound_list' %}" class="btn btn-panel-ghost btn-sm">همه</a>
+      </div>
+      <div class="panel-card-body p-0">
+        <div class="panel-table-wrap">
+          <table class="table panel-table table-striped mb-0">
+            <thead><tr><th>کاربر</th><th>نوع</th><th>زمان</th></tr></thead>
+            <tbody>
+              {% for m in inbound_recent %}
+              <tr>
+                <td>{{ m.subscriber.phone_number|default:m.subscriber.bale_user_id }}</td>
+                <td>{{ m.get_kind_display }}</td>
+                <td class="text-muted small">{{ m.created_at }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="text-muted px-3 py-4">ورودی ثبت نشده.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mt-4 d-flex flex-wrap gap-2">
+  <a href="{% url 'bot_settings' %}" class="btn btn-panel-primary"><i class="bi bi-robot me-2"></i>تنظیمات ربات</a>
+  <a href="{% url 'subscriber_list' %}" class="btn btn-panel-ghost">مشترکین</a>
+  <a href="{% url 'campaign_list' %}" class="btn btn-panel-ghost">کمپین‌ها</a>
+</div>
+{% endblock %}
