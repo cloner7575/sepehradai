@@ -195,35 +195,36 @@ def handle_message(msg: dict[str, Any]) -> None:
     cfg = BotSettings.get_solo()
 
     if text.startswith('/start'):
-        welcome = (cfg.welcome_message or '').strip()
+        msg_normal = (cfg.start_message_normal or '').strip()
+        msg_contact = (cfg.start_message_contact or '').strip()
         start_markup = build_start_inline_markup(cfg)
         has_inline = start_markup is not None
         need_contact = cfg.collect_contact_on_start and not sub.is_registered
+        body_contact = msg_contact or msg_normal
+
         if need_contact:
             if has_inline:
                 bale_api.send_message(
                     sub.chat_id,
-                    welcome,
+                    body_contact,
                     reply_markup=start_markup,
                 )
-                prompt = (cfg.contact_prompt_message or '').strip() or (
-                    'برای تکمیل ثبت‌نام، شمارهٔ خود را با دکمهٔ زیر ارسال کنید.'
-                )
+                # پیام دوم فقط کیبورد تماس؛ کاراکتر نامرئی تا API متن خالی نپذیرد
                 bale_api.send_message(
                     sub.chat_id,
-                    prompt,
+                    '\u2060',
                     reply_markup=build_contact_keyboard(cfg),
                 )
             else:
                 bale_api.send_message(
                     sub.chat_id,
-                    welcome,
+                    body_contact,
                     reply_markup=build_contact_keyboard(cfg),
                 )
         else:
             bale_api.send_message(
                 sub.chat_id,
-                welcome,
+                msg_normal,
                 reply_markup=start_markup,
             )
         return
@@ -247,7 +248,15 @@ def handle_message(msg: dict[str, Any]) -> None:
         return
 
     if msg.get('contact'):
+        already_registered = sub.is_registered
         store_inbound_from_message(sub, msg)
+        if already_registered:
+            bale_api.send_message(
+                sub.chat_id,
+                'شمارهٔ شما از قبل ثبت شده بود؛ نیازی به ارسال مجدد نیست.',
+                reply_markup=remove_keyboard(),
+            )
+            return
         bale_api.send_message(
             sub.chat_id,
             (cfg.registration_success_message or '').strip(),

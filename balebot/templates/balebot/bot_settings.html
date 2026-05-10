@@ -19,8 +19,9 @@
         <div class="panel-settings-guide-title"><i class="bi bi-signpost-split me-2"></i> ترتیب پیشنهادی</div>
         <ol class="panel-settings-guide-steps mb-0">
           <li><strong>سوئیچ‌ها</strong> — مشخص کنید چه چیزهایی در بله فعال باشد.</li>
-          <li><strong>پیام /start</strong> — متن و دکمهٔ اول را بنویسید.</li>
-          <li><strong>تماس و متن‌های بعدی</strong> — در صورت نیاز تکمیل کنید.</li>
+          <li><strong>پیام استارت معمولی</strong> — برای کاربر ثبت‌نام‌شده یا وقتی دریافت شماره خاموش است؛ به‌همراه منوی اینلاین.</li>
+          <li><strong>پیام دریافت شماره</strong> — فقط برای کسی که هنوز شماره نداده و تماس روشن است.</li>
+          <li><strong>متن‌های /help، /stop و کلیک</strong> — در بخش بعد.</li>
         </ol>
       </div>
 
@@ -37,7 +38,7 @@
           <div class="panel-workflow-row">
             <div class="panel-workflow-copy">
               <div class="panel-workflow-title">{{ form.collect_contact_on_start.label }}</div>
-              <p class="panel-workflow-desc">روشن → بعد از <strong>/start</strong> دکمهٔ «ارسال شماره» می‌آید. خاموش → فقط متن خوش‌آمد و در صورت تنظیم، دکمه‌های اینلاین.</p>
+              <p class="panel-workflow-desc">روشن → کاربر بدون شماره، <strong>پیام دریافت شماره</strong> و دکمهٔ تماس می‌بیند. خاموش → همان <strong>پیام استارت معمولی</strong> و در صورت تنظیم، اینلاین (بدون درخواست شماره).</p>
             </div>
             <div class="form-check form-switch panel-workflow-switch">
               {{ form.collect_contact_on_start }}
@@ -67,32 +68,38 @@
         </div>
       </div>
 
-      {# ——— ۲ پیام شروع ——— #}
+      {# ——— ۲ پیام استارت معمولی + اینلاین ——— #}
       <div class="panel-card mb-4">
         <div class="panel-card-header flex-column align-items-stretch gap-1">
           <div class="d-flex align-items-center gap-2 flex-wrap">
             <span class="panel-settings-badge">۲</span>
-            <h2 class="panel-card-title mb-0"><i class="bi bi-chat-dots me-2"></i> اولین تجربه کاربر: ‎/start</h2>
+            <h2 class="panel-card-title mb-0"><i class="bi bi-chat-heart me-2"></i> استارت معمولی — بعد از ‎/start</h2>
           </div>
-          <p class="panel-card-lead mb-0 small">این متن و دکمه‌ها اولین چیزی است که کاربر بعد از زدن <code class="px-1">/start</code> می‌بیند.</p>
+          <p class="panel-card-lead mb-0 small">
+            برای کسی که <strong>قبلاً شماره داده</strong> یا وقتی گزینهٔ تماس در بخش <strong>۱</strong> خاموش است.
+            منوی اینلاین زیر همین متن نمایش داده می‌شود.
+          </p>
         </div>
         <div class="panel-card-body">
-          {% include "balebot/_field.html" with field=form.welcome_message %}
+          {% include "balebot/_field.html" with field=form.start_message_normal %}
           {% include "balebot/start_keyboard_builder.html" %}
         </div>
       </div>
 
-      {# ——— ۳ تماس ——— #}
+      {# ——— ۳ تماس و پیام دریافت شماره ——— #}
       <div class="panel-card mb-4">
         <div class="panel-card-header flex-column align-items-stretch gap-1">
           <div class="d-flex align-items-center gap-2 flex-wrap">
             <span class="panel-settings-badge">۳</span>
-            <h2 class="panel-card-title mb-0"><i class="bi bi-telephone me-2"></i> دریافت شماره تماس</h2>
+            <h2 class="panel-card-title mb-0"><i class="bi bi-telephone me-2"></i> استارت با درخواست شماره</h2>
           </div>
-          <p class="panel-card-lead mb-0 small">فقط وقتی در بخش <strong>۱</strong> گزینهٔ تماس را روشن کرده باشید این بخش در بله استفاده می‌شود.</p>
+          <p class="panel-card-lead mb-0 small">
+            فقط برای کاربری که هنوز ثبت‌نام نشده و تماس در بخش <strong>۱</strong> روشن است.
+            اگر اینلاین دارید، این متن در پیام اول با اینلاین می‌آید؛ پیام بعد فقط دکمهٔ ارسال شماره است.
+          </p>
         </div>
         <div class="panel-card-body">
-          {% include "balebot/_field.html" with field=form.contact_prompt_message %}
+          {% include "balebot/_field.html" with field=form.start_message_contact %}
           {% include "balebot/_field.html" with field=form.contact_button_label %}
           {% include "balebot/_field.html" with field=form.registration_success_message %}
         </div>

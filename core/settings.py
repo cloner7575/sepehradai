@@ -181,8 +181,8 @@ CAMPAIGN_SEND_DELAY_MS = int(os.environ.get('CAMPAIGN_SEND_DELAY_MS', '80'))
 # حداکثر حجم آپلود ویدیوی کمپین (مگابایت) — در ویوی آپلود بررسی می‌شود
 CAMPAIGN_VIDEO_MAX_UPLOAD_MB = int(os.environ.get('CAMPAIGN_VIDEO_MAX_UPLOAD_MB', '120'))
 
-LOGIN_URL = '/panel/login/'
-LOGIN_REDIRECT_URL = '/panel/'
-LOGOUT_REDIRECT_URL = '/panel/login/'
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/login/'
 
 CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS')

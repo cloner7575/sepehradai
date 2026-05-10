@@ -215,12 +215,15 @@ class BotSettings(models.Model):
         verbose_name='زیرعنوان پنل',
     )
 
-    welcome_message = models.TextField(
+    start_message_normal = models.TextField(
         default=(
-            'سلام! برای ثبت‌نام و دریافت اطلاعیه‌ها، شمارهٔ خود را '
-            'با دکمهٔ زیر ارسال کنید.'
+            'سلام! خوش آمدید.\n'
+            'می‌توانید از منوی زیر استفاده کنید و اطلاعیه‌ها را دریافت کنید.'
         ),
-        verbose_name='پیام خوش‌آمدگویی (/start)',
+        verbose_name='پیام /start معمولی',
+        help_text=(
+            'برای کاربرانی که قبلاً شماره داده‌اند، یا وقتی گزینهٔ «دریافت شماره بعد از /start» خاموش است.'
+        ),
     )
     contact_button_label = models.CharField(
         max_length=64,
@@ -257,13 +260,15 @@ class BotSettings(models.Model):
         blank=True,
         help_text='دکمه‌های اینلاین پس از /start: بخش‌ها و ردیف‌ها (همان ساختار کمپین) + نوع اکشن برای هر دکمه.',
     )
-    contact_prompt_message = models.TextField(
-        blank=True,
-        default='',
-        verbose_name='پیام جدا برای درخواست شماره',
+    start_message_contact = models.TextField(
+        default=(
+            'سلام! برای تکمیل ثبت‌نام و دریافت اطلاعیه‌ها، شمارهٔ خود را '
+            'با دکمهٔ زیر ارسال کنید.'
+        ),
+        verbose_name='پیام /start هنگام درخواست شماره',
         help_text=(
-            'وقتی هم دکمهٔ اینلاین /start و هم دکمهٔ تماس فعال باشد، این متن در پیام دوم '
-            'قبل از صفحه‌کلید تماس ارسال می‌شود.'
+            'فقط برای کاربرانی که هنوز شماره نداده‌اند، وقتی گزینهٔ دریافت شماره روشن باشد. '
+            'اگر منوی اینلاین هم دارید، این متن در پیام اول با اینلاین می‌آید؛ پیام بعد فقط دکمهٔ تماس است.'
         ),
     )
 

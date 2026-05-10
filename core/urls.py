@@ -3,16 +3,6 @@ URL configuration for core project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.conf import settings
 from django.conf.urls.static import static
@@ -21,20 +11,23 @@ from django.http import HttpResponseRedirect
 from django.urls import include, path
 
 
-def _redirect_panel_root(_request):
-    return HttpResponseRedirect('/bale/panel/')
+def redirect_panel_root(_request):
+    return HttpResponseRedirect('/')
 
 
-def _redirect_panel_sub(_request, subpath):
-    return HttpResponseRedirect(f'/bale/panel/{subpath}/')
+def redirect_panel_nested(_request, subpath):
+    subpath = (subpath or '').strip('/')
+    if subpath:
+        return HttpResponseRedirect(f'/{subpath}/')
+    return HttpResponseRedirect('/')
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # دسترسی میان‌بر: /panel/ همان /bale/panel/
-    path('panel/', _redirect_panel_root),
-    path('panel/<path:subpath>/', _redirect_panel_sub),
-    path('bale/', include('balebot.urls')),
+    # مسیرهای قدیمی /panel/… برای نشانک‌ها
+    path('panel/', redirect_panel_root),
+    path('panel/<path:subpath>/', redirect_panel_nested),
+    path('', include('balebot.urls')),
 ]
 
 if settings.DEBUG:

@@ -5,10 +5,10 @@ from django.core.files import File
 from django.core.files.storage import default_storage
 
 from balebot.models import BotSettings, Campaign
+from balebot.services.jalali_datetime import aware_to_jalali_parts, parse_jalali_date_time
 
 # هم‌نام با مقدار سشن در views_panel (آپلود ویدیو)
 _CAMPAIGN_PENDING_MEDIA_SESSION_KEY = 'campaign_pending_media'
-from balebot.services.jalali_datetime import aware_to_jalali_parts, parse_jalali_date_time
 from balebot.services.keyboard_layout import (
     keyboard_has_any_button,
     normalize_to_sections,
@@ -29,9 +29,9 @@ class BotSettingsForm(forms.ModelForm):
         fields = [
             'panel_brand_title',
             'panel_brand_subtitle',
-            'welcome_message',
+            'start_message_normal',
+            'start_message_contact',
             'contact_button_label',
-            'contact_prompt_message',
             'registration_success_message',
             'unsubscribe_message',
             'callback_ack_message',
@@ -48,18 +48,22 @@ class BotSettingsForm(forms.ModelForm):
             'panel_brand_subtitle': forms.TextInput(
                 attrs={'class': 'form-control panel-input'},
             ),
-            'welcome_message': forms.Textarea(
-                attrs={'class': 'form-control panel-input', 'rows': 4},
+            'start_message_normal': forms.Textarea(
+                attrs={
+                    'class': 'form-control panel-input',
+                    'rows': 4,
+                    'placeholder': 'کاربر ثبت‌نام‌شده یا بدون اجبار تماس',
+                },
+            ),
+            'start_message_contact': forms.Textarea(
+                attrs={
+                    'class': 'form-control panel-input',
+                    'rows': 4,
+                    'placeholder': 'کاربر بدون شماره وقتی دکمهٔ تماس روشن است',
+                },
             ),
             'contact_button_label': forms.TextInput(
                 attrs={'class': 'form-control panel-input'},
-            ),
-            'contact_prompt_message': forms.Textarea(
-                attrs={
-                    'class': 'form-control panel-input',
-                    'rows': 2,
-                    'placeholder': 'فقط وقتی هم اینلاین و هم تماس فعال است — پیام دوم قبل از کیبورد تماس',
-                },
             ),
             'registration_success_message': forms.Textarea(
                 attrs={'class': 'form-control panel-input', 'rows': 4},
@@ -102,11 +106,13 @@ class BotSettingsForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
+        if not (cleaned.get('start_message_normal') or '').strip():
+            raise forms.ValidationError('پیام /start معمولی را پر کنید.')
         if cleaned.get('collect_contact_on_start') and not (
-            cleaned.get('welcome_message') or ''
+            cleaned.get('start_message_contact') or ''
         ).strip():
             raise forms.ValidationError(
-                'وقتی دکمهٔ تماس فعال است، پیام خوش‌آمد نباید خالی باشد.'
+                'وقتی دریافت شماره بعد از /start روشن است، پیام مخصوص آن را هم پر کنید.'
             )
         if cleaned.get('enable_help_command') and not (
             cleaned.get('help_message') or ''
