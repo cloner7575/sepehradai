@@ -5,7 +5,10 @@ from balebot import views_panel, views_webhook
 
 urlpatterns = [
     path('health/', views_webhook.webhook_health, name='bale_health'),
-    path('webhook/<str:secret>/', views_webhook.bale_webhook, name='bale_webhook'),
+    # بدون اسلش انتهایی: بله اغلب POST را بدون / می‌فرستد؛ ریدایرکت APPEND_SLASH
+    # POST را به GET تبدیل می‌کند و بدنه از بین می‌رود → وب‌هوک سکوت می‌کند.
+    path('webhook/<str:secret>', views_webhook.bale_webhook, name='bale_webhook'),
+    path('webhook/<str:secret>/', views_webhook.bale_webhook, name='bale_webhook_slash'),
     path(
         'panel/login/',
         auth_views.LoginView.as_view(template_name='balebot/login.html'),
