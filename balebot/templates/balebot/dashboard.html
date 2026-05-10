@@ -23,14 +23,6 @@
   </div>
   <div class="col-sm-6 col-xl-3">
     <div class="stat-card">
-      <i class="bi bi-send-check stat-card-icon"></i>
-      <div class="stat-card-label">تحویل موفق</div>
-      <div class="stat-card-value">{{ delivery_sent }}</div>
-      <div class="small text-muted mt-2">خطا: {{ delivery_failed }}</div>
-    </div>
-  </div>
-  <div class="col-sm-6 col-xl-3">
-    <div class="stat-card">
       <i class="bi bi-lightning-charge stat-card-icon"></i>
       <div class="stat-card-label">کمپین در جریان</div>
       <div class="stat-card-value">{{ campaign_running }}</div>
@@ -58,34 +50,6 @@
         {% empty %}
         <div class="panel-card-body text-muted">هنوز کمپینی ثبت نشده.</div>
         {% endfor %}
-      </div>
-    </div>
-  </div>
-  <div class="col-lg-6">
-    <div class="panel-card h-100">
-      <div class="panel-card-header">
-        <h2 class="panel-card-title">آخرین پیام‌های ورودی</h2>
-        <a href="{% url 'inbound_list' %}" class="btn btn-panel-ghost btn-sm">همه</a>
-      </div>
-      <div class="panel-card-body p-0">
-        <div class="panel-table-wrap">
-          <div class="table-responsive">
-          <table class="table panel-table table-striped mb-0">
-            <thead><tr><th>کاربر</th><th>نوع</th><th>زمان</th></tr></thead>
-            <tbody>
-              {% for m in inbound_recent %}
-              <tr>
-                <td>{{ m.subscriber.phone_number|default:m.subscriber.bale_user_id }}</td>
-                <td>{{ m.get_kind_display }}</td>
-                <td class="text-muted small">{{ m.created_at }}</td>
-              </tr>
-              {% empty %}
-              <tr><td colspan="3" class="text-muted px-3 py-4">ورودی ثبت نشده.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          </div>
-        </div>
       </div>
     </div>
   </div>

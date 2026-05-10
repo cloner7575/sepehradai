@@ -40,12 +40,6 @@
         <a class="nav-link {% if name == 'campaign_list' or name == 'campaign_create' or name == 'campaign_detail' or name == 'campaign_edit' %}active{% endif %}" href="{% url 'campaign_list' %}">
           <i class="bi bi-megaphone-fill"></i> کمپین‌ها
         </a>
-        <a class="nav-link {% if name == 'callback_log_list' %}active{% endif %}" href="{% url 'callback_log_list' %}">
-          <i class="bi bi-hand-index-thumb-fill"></i> کلیک دکمه‌ها
-        </a>
-        <a class="nav-link {% if name == 'inbound_list' %}active{% endif %}" href="{% url 'inbound_list' %}">
-          <i class="bi bi-inbox-fill"></i> پیام‌های ورودی
-        </a>
       </nav>
       {% endwith %}
 
