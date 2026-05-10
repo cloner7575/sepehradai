@@ -1,8 +1,13 @@
 import json
 
 from django import forms
+from django.core.files import File
+from django.core.files.storage import default_storage
 
 from balebot.models import BotSettings, Campaign
+
+# هم‌نام با مقدار سشن در views_panel (آپلود ویدیو)
+_CAMPAIGN_PENDING_MEDIA_SESSION_KEY = 'campaign_pending_media'
 from balebot.services.jalali_datetime import aware_to_jalali_parts, parse_jalali_date_time
 from balebot.services.keyboard_layout import (
     keyboard_has_any_button,
@@ -176,7 +181,8 @@ class CampaignForm(forms.ModelForm):
         'inline_keyboard',
     ]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, request=None, **kwargs):
+        self.request = request
         super().__init__(*args, **kwargs)
         raw = self.instance.inline_keyboard if self.instance.pk else None
         norm = normalize_to_sections(raw)
@@ -188,6 +194,31 @@ class CampaignForm(forms.ModelForm):
                 dpart, tpart = aware_to_jalali_parts(self.instance.scheduled_at)
                 self.fields['jalali_scheduled_date'].initial = dpart
                 self.fields['jalali_scheduled_time'].initial = tpart
+
+        self._discard_stale_pending_media_session()
+
+    def _discard_stale_pending_media_session(self) -> None:
+        req = self.request
+        if not req:
+            return
+        pending = req.session.get(_CAMPAIGN_PENDING_MEDIA_SESSION_KEY)
+        if not pending:
+            return
+        cid = pending.get('campaign_id')
+        my_pk = self.instance.pk
+        if my_pk:
+            if cid is not None and int(cid) != int(my_pk):
+                req.session.pop(_CAMPAIGN_PENDING_MEDIA_SESSION_KEY, None)
+        elif cid is not None:
+            req.session.pop(_CAMPAIGN_PENDING_MEDIA_SESSION_KEY, None)
+
+    def _pending_video_ready(self) -> bool:
+        req = self.request
+        if not req:
+            return False
+        pending = req.session.get(_CAMPAIGN_PENDING_MEDIA_SESSION_KEY)
+        path = (pending or {}).get('path')
+        return bool(path and default_storage.exists(path))
 
     def clean_inline_keyboard(self):
         raw = self.cleaned_data.get('inline_keyboard')
@@ -202,8 +233,27 @@ class CampaignForm(forms.ModelForm):
     def clean(self):
         cleaned = super().clean()
         ct = cleaned.get('content_type')
-        media = cleaned.get('media')
-        has_media = bool(media) or bool(getattr(self.instance, 'media', None) and self.instance.media)
+        media_val = cleaned.get('media')
+        cleared = media_val is False
+        has_new_upload = media_val not in (None, False) and bool(media_val)
+        has_existing = (
+            bool(getattr(self.instance, 'media', None) and getattr(self.instance.media, 'name', ''))
+            and not cleared
+        )
+
+        req = self.request
+        if ct != Campaign.ContentType.VIDEO and req:
+            req.session.pop(_CAMPAIGN_PENDING_MEDIA_SESSION_KEY, None)
+
+        pending_ok = ct == Campaign.ContentType.VIDEO and self._pending_video_ready()
+
+        if has_new_upload and req:
+            req.session.pop(_CAMPAIGN_PENDING_MEDIA_SESSION_KEY, None)
+
+        if cleared and req:
+            req.session.pop(_CAMPAIGN_PENDING_MEDIA_SESSION_KEY, None)
+
+        has_media = has_new_upload or has_existing or pending_ok
 
         if ct in (
             Campaign.ContentType.PHOTO,
@@ -245,4 +295,25 @@ class CampaignForm(forms.ModelForm):
         if commit:
             obj.save()
             self._save_m2m()
+            self._apply_pending_video_upload(obj)
         return obj
+
+    def _apply_pending_video_upload(self, obj: Campaign) -> None:
+        req = self.request
+        if not req or obj.content_type != Campaign.ContentType.VIDEO:
+            return
+        pending = req.session.pop(_CAMPAIGN_PENDING_MEDIA_SESSION_KEY, None)
+        if not pending:
+            return
+        path = pending.get('path')
+        if not path or not default_storage.exists(path):
+            return
+        try:
+            with default_storage.open(path, 'rb') as fh:
+                obj.media.save(pending['original_name'], File(fh), save=False)
+            obj.save(update_fields=['media', 'updated_at'])
+        finally:
+            try:
+                default_storage.delete(path)
+            except OSError:
+                pass

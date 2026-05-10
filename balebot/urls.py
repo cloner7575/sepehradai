@@ -34,6 +34,16 @@ urlpatterns = [
         views_panel.CampaignUpdateView.as_view(),
         name='campaign_edit',
     ),
+    path(
+        'panel/campaigns/media-upload/',
+        views_panel.CampaignMediaUploadView.as_view(),
+        name='campaign_media_upload',
+    ),
+    path(
+        'panel/campaigns/media-upload/clear/',
+        views_panel.CampaignMediaClearView.as_view(),
+        name='campaign_media_clear',
+    ),
     path('panel/callbacks/', views_panel.CallbackLogListView.as_view(), name='callback_log_list'),
     path('panel/inbound/', views_panel.InboundListView.as_view(), name='inbound_list'),
 ]

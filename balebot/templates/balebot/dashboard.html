@@ -69,6 +69,7 @@
       </div>
       <div class="panel-card-body p-0">
         <div class="panel-table-wrap">
+          <div class="table-responsive">
           <table class="table panel-table table-striped mb-0">
             <thead><tr><th>کاربر</th><th>نوع</th><th>زمان</th></tr></thead>
             <tbody>
@@ -83,13 +84,14 @@
               {% endfor %}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<div class="mt-4 d-flex flex-wrap gap-2">
+<div class="mt-4 d-flex flex-wrap gap-2 dashboard-quick-actions">
   <a href="{% url 'bot_settings' %}" class="btn btn-panel-primary"><i class="bi bi-robot me-2"></i>تنظیمات ربات</a>
   <a href="{% url 'subscriber_list' %}" class="btn btn-panel-ghost">مشترکین</a>
   <a href="{% url 'campaign_list' %}" class="btn btn-panel-ghost">کمپین‌ها</a>

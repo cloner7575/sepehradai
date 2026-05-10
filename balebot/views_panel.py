@@ -1,14 +1,21 @@
+import uuid
+from pathlib import Path
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.core.files.storage import default_storage
 from django.db.models import Count, Q
-from django.http import HttpResponseRedirect
-from django.shortcuts import get_object_or_404
+from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 
 from balebot.forms import BotSettingsForm, CampaignForm
+from balebot.services.campaign_runner import run_single_campaign_web
+from balebot.services.keyboard_layout import keyboard_has_any_button, normalize_to_sections
 from balebot.models import (
     BotSettings,
     CallbackLog,
@@ -18,12 +25,39 @@ from balebot.models import (
     Subscriber,
 )
 
+CAMPAIGN_PENDING_MEDIA_SESSION_KEY = 'campaign_pending_media'
+
+CAMPAIGN_VIDEO_UPLOAD_EXTENSIONS = frozenset(
+    {'.mp4', '.webm', '.mov', '.mkv', '.mpeg', '.mpg', '.m4v', '.avi'},
+)
+
 
 class StaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     """فقط کاربران staff."""
 
     def test_func(self):
         return self.request.user.is_staff
+
+
+def campaign_form_media_context(request, campaign_obj=None):
+    """متغیرهای مشترک قالب فرم کمپین (آپلود ویدیو)."""
+    pending_key = CAMPAIGN_PENDING_MEDIA_SESSION_KEY
+    ctx = {
+        'CAMPAIGN_VIDEO_MAX_UPLOAD_MB': getattr(settings, 'CAMPAIGN_VIDEO_MAX_UPLOAD_MB', 120),
+        'campaign_pending_video_ready': bool(request.session.get(pending_key)),
+        'campaign_media_campaign_pk': ''
+        if not (campaign_obj and getattr(campaign_obj, 'pk', None))
+        else str(campaign_obj.pk),
+        'campaign_has_saved_media': False,
+        'campaign_saved_media_url': '',
+    }
+    if campaign_obj and getattr(campaign_obj, 'pk', None):
+        media_f = getattr(campaign_obj, 'media', None)
+        name = getattr(media_f, 'name', '') if media_f else ''
+        if name:
+            ctx['campaign_has_saved_media'] = True
+            ctx['campaign_saved_media_url'] = media_f.url
+    return ctx
 
 
 class DashboardView(StaffRequiredMixin, TemplateView):
@@ -92,11 +126,33 @@ class CampaignListView(StaffRequiredMixin, ListView):
     template_name = 'balebot/campaign_list.html'
     paginate_by = 30
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        qs = Campaign.objects.all()
+        ctx['campaign_stat_total'] = qs.count()
+        ctx['campaign_stat_draft'] = qs.filter(status=Campaign.Status.DRAFT).count()
+        ctx['campaign_stat_running'] = qs.filter(
+            status__in=(Campaign.Status.QUEUED, Campaign.Status.SENDING),
+        ).count()
+        ctx['campaign_stat_done'] = qs.filter(status=Campaign.Status.COMPLETED).count()
+        return ctx
+
 
 class CampaignCreateView(StaffRequiredMixin, CreateView):
     model = Campaign
     form_class = CampaignForm
     template_name = 'balebot/campaign_form.html'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['campaign_keyboard_expanded'] = False
+        ctx.update(campaign_form_media_context(self.request, None))
+        return ctx
 
     def form_valid(self, form):
         form.instance.status = Campaign.Status.DRAFT
@@ -111,8 +167,94 @@ class CampaignUpdateView(StaffRequiredMixin, UpdateView):
     form_class = CampaignForm
     template_name = 'balebot/campaign_form.html'
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['campaign_keyboard_expanded'] = keyboard_has_any_button(
+            normalize_to_sections(self.object.inline_keyboard),
+        )
+        ctx.update(campaign_form_media_context(self.request, self.object))
+        return ctx
+
     def get_success_url(self):
         return reverse_lazy('campaign_detail', kwargs={'pk': self.object.pk})
+
+
+class CampaignMediaUploadView(StaffRequiredMixin, View):
+    """آپلود جداگانهٔ ویدیو برای کمپین؛ فایل موقت در MEDIA و کلید در سشن."""
+
+    http_method_names = ['post']
+
+    def post(self, request, *args, **kwargs):
+        upload = request.FILES.get('file')
+        if not upload:
+            return JsonResponse({'ok': False, 'error': 'فایلی ارسال نشد.'}, status=400)
+
+        ext = Path(upload.name).suffix.lower()
+        if ext not in CAMPAIGN_VIDEO_UPLOAD_EXTENSIONS:
+            return JsonResponse(
+                {'ok': False, 'error': 'پسوند ویدیو مجاز نیست.'},
+                status=400,
+            )
+
+        ct = (upload.content_type or '').lower()
+        if ct and not ct.startswith('video/') and ct != 'application/octet-stream':
+            return JsonResponse(
+                {'ok': False, 'error': 'نوع فایل به‌عنوان ویدیو شناخته نشد.'},
+                status=400,
+            )
+
+        max_bytes = max(1, int(getattr(settings, 'CAMPAIGN_VIDEO_MAX_UPLOAD_MB', 120))) * 1024 * 1024
+        if getattr(upload, 'size', 0) and upload.size > max_bytes:
+            return JsonResponse(
+                {
+                    'ok': False,
+                    'error': f'حجم فایل از حد مجاز ({settings.CAMPAIGN_VIDEO_MAX_UPLOAD_MB} مگابایت) بیشتر است.',
+                },
+                status=400,
+            )
+
+        uid = uuid.uuid4().hex
+        rel_path = f'campaigns/tmp/{uid}{ext}'
+        save_name = default_storage.save(rel_path, upload)
+
+        cid_raw = (request.POST.get('campaign_id') or '').strip()
+        campaign_id = int(cid_raw) if cid_raw.isdigit() else None
+
+        request.session[CAMPAIGN_PENDING_MEDIA_SESSION_KEY] = {
+            'path': save_name,
+            'original_name': Path(upload.name).name[:255],
+            'size': getattr(upload, 'size', 0),
+            'campaign_id': campaign_id,
+        }
+
+        return JsonResponse(
+            {
+                'ok': True,
+                'name': Path(upload.name).name,
+                'size': getattr(upload, 'size', 0),
+            },
+        )
+
+
+class CampaignMediaClearView(StaffRequiredMixin, View):
+    """حذف آپلود موقت ویدیو از سشن و دیسک."""
+
+    http_method_names = ['post']
+
+    def post(self, request, *args, **kwargs):
+        pending = request.session.pop(CAMPAIGN_PENDING_MEDIA_SESSION_KEY, None)
+        path = (pending or {}).get('path')
+        if path and default_storage.exists(path):
+            try:
+                default_storage.delete(path)
+            except OSError:
+                pass
+        return JsonResponse({'ok': True})
 
 
 class CampaignDetailView(StaffRequiredMixin, DetailView):
@@ -124,6 +266,13 @@ class CampaignDetailView(StaffRequiredMixin, DetailView):
         d = self.object.deliveries.select_related('subscriber').order_by('-created_at')
         ctx['deliveries'] = d[:500]
         ctx['delivery_stats'] = self.object.deliveries.values('status').annotate(c=Count('id'))
+        obj = self.object
+        ctx['campaign_waiting_future_schedule'] = (
+            obj.status == Campaign.Status.QUEUED
+            and obj.schedule_kind == Campaign.ScheduleKind.SCHEDULED
+            and obj.scheduled_at is not None
+            and obj.scheduled_at > timezone.now()
+        )
         return ctx
 
     def post(self, request, *args, **kwargs):
@@ -147,10 +296,27 @@ class CampaignDetailView(StaffRequiredMixin, DetailView):
             else:
                 self.object.scheduled_at = timezone.now()
             self.object.save(update_fields=['status', 'scheduled_at', 'updated_at'])
-            messages.success(
-                request,
-                'کمپین در صف قرار گرفت. ارسال با cron و دستور process_campaigns انجام می‌شود.',
+
+            should_send_now = (
+                self.object.schedule_kind == Campaign.ScheduleKind.INSTANT
+                or (
+                    self.object.schedule_kind == Campaign.ScheduleKind.SCHEDULED
+                    and self.object.scheduled_at
+                    and self.object.scheduled_at <= timezone.now()
+                )
             )
+
+            if should_send_now:
+                ok, msg = run_single_campaign_web(self.object.pk)
+                if ok:
+                    messages.success(request, msg)
+                else:
+                    messages.error(request, msg)
+            else:
+                messages.success(
+                    request,
+                    'کمپین زمان‌بندی‌شده در صف قرار گرفت و در زمان مقرّر ارسال می‌شود.',
+                )
         elif action == 'cancel':
             self.object.status = Campaign.Status.CANCELLED
             self.object.save(update_fields=['status', 'updated_at'])

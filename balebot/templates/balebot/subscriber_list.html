@@ -7,7 +7,7 @@
 <div class="panel-card mb-4">
   <div class="panel-card-body py-3">
     <form method="get" class="search-bar d-flex flex-wrap gap-2 align-items-center">
-      <input type="search" name="q" value="{{ request.GET.q }}" class="form-control panel-input" placeholder="جستجو…">
+      <input type="search" name="q" value="{{ request.GET.q }}" class="form-control panel-input search-bar-input flex-grow-1 min-w-0" placeholder="جستجو…">
       <button type="submit" class="btn btn-panel-primary btn-sm"><i class="bi bi-search me-1"></i>جستجو</button>
       {% if request.GET.q %}
       <a href="{% url 'subscriber_list' %}" class="btn btn-panel-ghost btn-sm">پاک کردن</a>

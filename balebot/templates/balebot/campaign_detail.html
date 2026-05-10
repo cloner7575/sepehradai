@@ -6,9 +6,9 @@
 {% endblock %}
 
 {% block content %}
-<div class="d-flex flex-wrap gap-2 mb-4">
-  <a href="{% url 'campaign_edit' object.pk %}" class="btn btn-panel-primary btn-sm"><i class="bi bi-pencil me-1"></i>ویرایش</a>
-  <a href="{% url 'campaign_list' %}" class="btn btn-panel-ghost btn-sm">بازگشت به لیست</a>
+<div class="d-grid d-sm-flex flex-wrap gap-2 mb-4">
+  <a href="{% url 'campaign_edit' object.pk %}" class="btn btn-panel-primary btn-sm justify-content-center"><i class="bi bi-pencil me-1"></i>ویرایش</a>
+  <a href="{% url 'campaign_list' %}" class="btn btn-panel-ghost btn-sm justify-content-center">بازگشت به لیست</a>
 </div>
 
 <div class="panel-card mb-4">
@@ -21,8 +21,11 @@
       {% else %}
       <p class="mb-0 text-warning">زمان شمسی ذخیره نشده — پیش از صف، کمپین را ویرایش و تاریخ/ساعت را پر کنید.</p>
       {% endif %}
-    {% else %}
-      <p class="mb-0 text-secondary">پس از «قرار در صف»، ارسال بلافاصله (پس از اجرای process_campaigns) آغاز می‌شود.</p>
+    {% elif object.schedule_kind == 'instant' %}
+      <p class="mb-0 text-secondary">کمپین <strong>آنی</strong> با یک کلیک از همین صفحه بلافاصله برای مخاطبان ارسال می‌شود.</p>
+    {% endif %}
+    {% if campaign_waiting_future_schedule %}
+    <p class="mb-0 mt-2 small text-muted">تا رسیدن به زمان مقرّر، کمپین در صف می‌ماند و سررسید به‌صورت خودکار پردازش می‌شود.</p>
     {% endif %}
   </div>
 </div>
@@ -93,11 +96,14 @@
         <form method="post" class="mb-3">
           {% csrf_token %}
           <input type="hidden" name="action" value="queue">
-          <button type="submit" class="btn btn-panel-primary w-100"><i class="bi bi-play-fill me-2"></i>قرار در صف ارسال</button>
+          <button type="submit" class="btn btn-panel-primary w-100">
+            {% if object.schedule_kind == 'instant' %}
+            <i class="bi bi-lightning-charge-fill me-2"></i>شروع فوری ارسال
+            {% else %}
+            <i class="bi bi-calendar-event me-2"></i>قرار در صف زمان‌بندی
+            {% endif %}
+          </button>
         </form>
-        {% endif %}
-        {% if object.status == 'queued' or object.status == 'sending' %}
-        <p class="small text-muted mb-3"><i class="bi bi-info-circle me-1"></i>برای ارسال واقعی، روی سرور <code class="text-secondary">python manage.py process_campaigns</code> را زمان‌بندی کنید.</p>
         {% endif %}
         {% if object.status != 'cancelled' %}
         <form method="post" onsubmit="return confirm('کمپین لغو شود؟');">

@@ -112,7 +112,17 @@
     return { sections: [{ title: '', rows: [[defaultBtn(mode)]] }] };
   }
 
-  function ensureShape(state, mode) {
+  function ensureShape(state, mode, opts) {
+    opts = opts || {};
+    var allowEmptyCampaign =
+      mode === 'campaign' &&
+      opts.allowEmptyCampaignSections === true &&
+      state &&
+      Array.isArray(state.sections) &&
+      state.sections.length === 0;
+    if (allowEmptyCampaign) {
+      return { sections: [] };
+    }
     if (!state.sections || !state.sections.length) return defaultState(mode);
     state.sections.forEach(function (sec) {
       if (!sec.rows || !sec.rows.length) sec.rows = [[defaultBtn(mode)]];
@@ -317,7 +327,15 @@
     var previewInnerId = opts.previewInnerId || 'kb-preview-inner';
     var sectionsHostId = opts.sectionsHostId || 'kb-sections';
 
-    var state = ensureShape(parseHidden(hiddenId, mode), mode);
+    var state = ensureShape(parseHidden(hiddenId, mode), mode, opts);
+
+    function expandCollapsiblePanel() {
+      if (!opts.collapsiblePanelId) return;
+      var panel = $(opts.collapsiblePanelId);
+      if (panel && panel.classList.contains('d-none')) {
+        panel.classList.remove('d-none');
+      }
+    }
 
     function doSync() {
       sync(state, hiddenId);
@@ -643,13 +661,18 @@
     }
 
     function render() {
-      state = ensureShape(state, mode);
+      state = ensureShape(state, mode, opts);
       var host = $(sectionsHostId);
       if (!host) return;
       host.innerHTML = '';
 
       if (mode === 'start') {
         renderStartLevel(state, host, 0);
+        doSync();
+        return;
+      }
+
+      if (mode === 'campaign' && (!state.sections || !state.sections.length)) {
         doSync();
         return;
       }
@@ -685,7 +708,12 @@
         rmSec.title = 'حذف بلوک';
         rmSec.addEventListener('click', function () {
           state.sections.splice(si, 1);
-          if (!state.sections.length) state = defaultState(mode);
+          if (!state.sections.length) {
+            state =
+              mode === 'campaign' && opts.allowEmptyCampaignSections
+                ? { sections: [] }
+                : defaultState(mode);
+          }
           render();
           doSync();
         });
@@ -800,6 +828,7 @@
     var addSecBtn = $(opts.addSectionBtnId || 'kb-add-section');
     if (addSecBtn) {
       addSecBtn.addEventListener('click', function () {
+        expandCollapsiblePanel();
         if (mode === 'start') {
           state.sections.push({ title: '', rows: [[defaultBtn(mode)]] });
           render();
@@ -817,7 +846,17 @@
       });
     }
 
-    render();
+    var collapsedInitially =
+      mode === 'campaign' &&
+      opts.collapsiblePanelId &&
+      opts.allowEmptyCampaignSections === true &&
+      !opts.startExpanded;
+
+    if (collapsedInitially) {
+      doSync();
+    } else {
+      render();
+    }
   }
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -829,6 +868,10 @@
         sectionsHostId: 'kb-sections',
         previewInnerId: 'kb-preview-inner',
         addSectionBtnId: 'kb-add-section',
+        allowEmptyCampaignSections: true,
+        collapsiblePanelId: 'kb-builder-collapsible',
+        startExpanded:
+          campaignRoot.getAttribute('data-keyboard-expanded') === 'true',
       });
     }
     var startRoot = $('keyboard-builder-root-start');

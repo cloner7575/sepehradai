@@ -1,12 +1,15 @@
 {% load static %}
 <div class="keyboard-builder-wrap mb-4">
-  <div id="keyboard-builder-root">
+  <div
+    id="keyboard-builder-root"
+    data-keyboard-expanded="{% if campaign_keyboard_expanded %}true{% else %}false{% endif %}"
+  >
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
-      <div>
-        <h3 class="h6 mb-1">سازندهٔ دکمه‌ها</h3>
-        <p class="panel-help-text mb-0">
-          ساختار <strong>۳ لایه</strong> است: <strong>بلوک</strong> → چند <strong>ردیف</strong> → چند <strong>دکمه</strong> در هر ردیف.
-          بلوک‌ها فقط برای نظم در پنل هستند؛ در پیام بله همهٔ ردیف‌ها به‌ترتیب زیر هم می‌آیند و در هر ردیف دکمه‌ها کنار هم قرار می‌گیرند.
+      <div class="min-w-0">
+        <h3 class="h6 mb-1">دکمه‌های اینلاین (اختیاری)</h3>
+        <p class="panel-help-text mb-0 small">
+          تا وقتی «بلوک جدید» را نمی‌زنید، ناحیهٔ ویرایش بلوک و پیش‌نمایش نشان داده نمی‌شود.
+          برای شروع، دکمهٔ زیر را بزنید.
         </p>
       </div>
       <button type="button" class="btn btn-panel-primary btn-sm flex-shrink-0" id="kb-add-section">
@@ -14,14 +17,21 @@
       </button>
     </div>
 
-    <div id="kb-sections"></div>
+    <div id="kb-builder-collapsible" class="{% if not campaign_keyboard_expanded %}d-none{% endif %}">
+      <p class="panel-help-text small mb-3 mb-lg-4">
+        ساختار <strong>۳ لایه</strong> است: <strong>بلوک</strong> → چند <strong>ردیف</strong> → چند <strong>دکمه</strong> در هر ردیف.
+        بلوک‌ها فقط برای نظم در پنل هستند؛ در پیام بله همهٔ ردیف‌ها به‌ترتیب زیر هم می‌آیند و در هر ردیف دکمه‌ها کنار هم قرار می‌گیرند.
+      </p>
 
-    <div class="panel-card mt-4">
-      <div class="panel-card-header py-2">
-        <span class="small fw-semibold"><i class="bi bi-phone me-1"></i> پیش‌نمایش (ترتیب نهایی در پیام بله)</span>
-      </div>
-      <div class="panel-card-body py-3">
-        <div id="kb-preview-inner" class="kb-preview-host"></div>
+      <div id="kb-sections"></div>
+
+      <div class="panel-card mt-4">
+        <div class="panel-card-header py-2">
+          <span class="small fw-semibold"><i class="bi bi-phone me-1"></i> پیش‌نمایش (ترتیب نهایی در پیام بله)</span>
+        </div>
+        <div class="panel-card-body py-3">
+          <div id="kb-preview-inner" class="kb-preview-host"></div>
+        </div>
       </div>
     </div>
   </div>

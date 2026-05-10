@@ -1,0 +1,63 @@
+{% load static %}
+<div
+  id="campaign-media-widget"
+  class="campaign-media-widget-root"
+  data-upload-url="{% url 'campaign_media_upload' %}"
+  data-clear-url="{% url 'campaign_media_clear' %}"
+  data-campaign-id="{{ campaign_media_campaign_pk }}"
+  data-max-mb="{{ CAMPAIGN_VIDEO_MAX_UPLOAD_MB|default:120 }}"
+  data-has-existing-video="{% if campaign_has_saved_media %}true{% else %}false{% endif %}"
+  data-pending-ready="{% if campaign_pending_video_ready %}true{% else %}false{% endif %}"
+  data-upload-ok="false"
+>
+  <label class="form-label" for="{{ media_field.id_for_label }}">{{ media_field.label }}</label>
+
+  <div id="campaign-media-video-panel" class="d-none">
+    <p class="form-text small mb-2">
+      برای کمپین ویدیویی ابتدا فایل را اینجا بارگذاری کنید؛ نوار پیشرفت تا اتمام آپلود نمایش داده می‌شود.
+      وقتی پیام «آپلود انجام شد» دیدید، دکمهٔ «ذخیرهٔ کمپین» را بزنید.
+    </p>
+    <input
+      type="file"
+      id="campaign-video-file-input"
+      class="form-control panel-input mb-2"
+      accept="video/*,.mkv,.mov,.webm,.mpeg,.mpg,.m4v,.avi"
+      autocomplete="off"
+    >
+    <button type="button" class="btn btn-panel-primary btn-sm mb-2" id="campaign-video-upload-btn">
+      <i class="bi bi-cloud-upload me-1"></i> شروع آپلود ویدیو
+    </button>
+    <div id="campaign-video-progress-wrap" class="mb-2 d-none">
+      <div class="progress rounded-pill overflow-hidden" style="height: 10px">
+        <div
+          id="campaign-video-progress-bar"
+          class="progress-bar progress-bar-striped progress-bar-animated"
+          role="progressbar"
+          style="width: 0%"
+        ></div>
+      </div>
+      <span id="campaign-video-progress-text" class="small text-muted mt-2 d-block"></span>
+    </div>
+    <div id="campaign-video-status" class="small fw-semibold mb-2" aria-live="polite"></div>
+    <div id="campaign-video-remove-row" class="d-none mb-2">
+      <button type="button" class="btn btn-outline-danger btn-sm border-opacity-50" id="campaign-video-remove-pending">
+        حذف فایل آپلودشدهٔ موقت
+      </button>
+    </div>
+    {% if campaign_has_saved_media %}
+    <div class="small text-muted mb-2">
+      فایل ذخیره‌شده در کمپین:
+      <a href="{{ campaign_saved_media_url }}" target="_blank" rel="noopener">دانلود / مشاهده</a>
+      (با آپلود جدید جایگزین می‌شود)
+    </div>
+    {% endif %}
+  </div>
+
+  <div id="campaign-media-standard-panel">
+    {{ media_field }}
+  </div>
+
+  {% if media_field.help_text %}<div class="form-text">{{ media_field.help_text }}</div>{% endif %}
+  {% for err in media_field.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+</div>
+<script src="{% static 'balebot/js/campaign_media_upload.js' %}"></script>

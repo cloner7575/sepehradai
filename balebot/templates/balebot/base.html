@@ -11,7 +11,8 @@
 </head>
 <body class="panel-body">
   <div class="panel-shell">
-    <aside class="sidebar">
+    <button type="button" class="sidebar-backdrop" tabindex="-1" aria-hidden="true" aria-label="بستن منو"></button>
+    <aside class="sidebar" id="panel-sidebar">
       <div class="sidebar-brand d-flex align-items-center gap-3">
         <div class="sidebar-brand-mark flex-shrink-0">
           <i class="bi bi-layout-text-sidebar-reverse"></i>
@@ -56,13 +57,24 @@
 
     <div class="panel-main">
       <header class="topbar">
-        <div>
-          <h1 class="topbar-page-title mb-0">{% block page_title %}داشبورد{% endblock %}</h1>
-          {% block page_subtitle %}{% endblock %}
+        <div class="topbar-leading d-flex align-items-start gap-2 flex-grow-1 min-w-0">
+          <button
+            type="button"
+            class="btn btn-panel-ghost panel-sidebar-toggle d-lg-none flex-shrink-0"
+            aria-controls="panel-sidebar"
+            aria-expanded="false"
+            aria-label="باز و بسته کردن منوی کناری"
+          >
+            <i class="bi bi-layout-text-sidebar-reverse fs-4 lh-1"></i>
+          </button>
+          <div class="topbar-title-wrap min-w-0 flex-grow-1">
+            <h1 class="topbar-page-title mb-0 text-break">{% block page_title %}داشبورد{% endblock %}</h1>
+            {% block page_subtitle %}{% endblock %}
+          </div>
         </div>
         {% if user.is_authenticated %}
-        <div class="topbar-user">
-          <span class="topbar-user-badge"><i class="bi bi-person-fill"></i>{{ user.username }}</span>
+        <div class="topbar-user flex-shrink-0 align-self-start">
+          <span class="topbar-user-badge"><i class="bi bi-person-fill"></i><span class="topbar-user-name">{{ user.username }}</span></span>
         </div>
         {% endif %}
       </header>
@@ -80,5 +92,45 @@
     </div>
   </div>
   <script src="{% static 'balebot/vendor/bootstrap/5.3.3/dist/js/bootstrap.bundle.min.js' %}"></script>
+  <script>
+    (function () {
+      function navIsDrawer() {
+        return window.matchMedia('(max-width: 991.98px)').matches;
+      }
+      function syncAria() {
+        var open = document.body.classList.contains('panel-sidebar-open');
+        var btn = document.querySelector('.panel-sidebar-toggle');
+        if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      }
+      function setSidebarOpen(open) {
+        document.body.classList.toggle('panel-sidebar-open', open);
+        document.body.style.overflow = open ? 'hidden' : '';
+        syncAria();
+      }
+      var toggle = document.querySelector('.panel-sidebar-toggle');
+      var backdrop = document.querySelector('.sidebar-backdrop');
+      if (toggle) {
+        toggle.addEventListener('click', function () {
+          setSidebarOpen(!document.body.classList.contains('panel-sidebar-open'));
+        });
+      }
+      if (backdrop) {
+        backdrop.addEventListener('click', function () {
+          setSidebarOpen(false);
+        });
+      }
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') setSidebarOpen(false);
+      });
+      document.querySelectorAll('#panel-sidebar a').forEach(function (link) {
+        link.addEventListener('click', function () {
+          if (navIsDrawer()) setSidebarOpen(false);
+        });
+      });
+      window.addEventListener('resize', function () {
+        if (!navIsDrawer()) setSidebarOpen(false);
+      });
+    })();
+  </script>
 </body>
 </html>
