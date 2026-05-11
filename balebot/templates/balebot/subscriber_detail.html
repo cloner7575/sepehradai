@@ -55,6 +55,26 @@
     <h2 class="panel-card-title mb-0">پیام‌های ورودی کاربر</h2>
     <span class="text-muted small">{{ inbound_messages|length }} پیام اخیر</span>
   </div>
+  <div class="panel-card-body border-bottom d-flex flex-wrap gap-2">
+    <a
+      href="{% url 'subscriber_detail' object.pk %}?kind=support"
+      class="btn btn-sm {% if message_kind == 'support' %}btn-panel-primary{% else %}btn-panel-ghost{% endif %}"
+    >
+      پشتیبانی ({{ support_messages_count }})
+    </a>
+    <a
+      href="{% url 'subscriber_detail' object.pk %}?kind=normal"
+      class="btn btn-sm {% if message_kind == 'normal' %}btn-panel-primary{% else %}btn-panel-ghost{% endif %}"
+    >
+      عادی ({{ normal_messages_count }})
+    </a>
+    <a
+      href="{% url 'subscriber_detail' object.pk %}?kind=all"
+      class="btn btn-sm {% if message_kind == 'all' %}btn-panel-primary{% else %}btn-panel-ghost{% endif %}"
+    >
+      همه ({{ all_messages_count }})
+    </a>
+  </div>
   <div class="panel-table-wrap border-0">
     <div class="table-responsive">
       <table class="table panel-table table-striped table-sm mb-0">

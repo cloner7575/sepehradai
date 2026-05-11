@@ -108,7 +108,15 @@ class SubscriberListView(StaffRequiredMixin, ListView):
     paginate_by = 40
 
     def get_queryset(self):
-        qs = Subscriber.objects.all().order_by('-updated_at')
+        qs = Subscriber.objects.annotate(
+            unread_support_count=Count(
+                'inbound_messages',
+                filter=Q(
+                    inbound_messages__is_support_request=True,
+                    inbound_messages__is_support_read=False,
+                ),
+            ),
+        ).order_by('-updated_at')
         q = self.request.GET.get('q', '').strip()
         if q:
             cond = (
@@ -129,9 +137,27 @@ class SubscriberDetailView(StaffRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        qs = InboundMessage.objects.filter(subscriber=self.object).order_by('-created_at')
-        ctx['inbound_messages'] = qs[:200]
-        ctx['support_messages_count'] = qs.filter(is_support_request=True).count()
+        selected_filter = (self.request.GET.get('kind') or 'support').strip().lower()
+        if selected_filter not in {'support', 'normal', 'all'}:
+            selected_filter = 'support'
+
+        base_qs = InboundMessage.objects.filter(subscriber=self.object)
+        support_qs = base_qs.filter(is_support_request=True)
+        if selected_filter == 'support':
+            filtered_qs = support_qs
+        elif selected_filter == 'normal':
+            filtered_qs = base_qs.filter(is_support_request=False)
+        else:
+            filtered_qs = base_qs
+
+        if selected_filter in {'support', 'all'}:
+            support_qs.filter(is_support_read=False).update(is_support_read=True)
+
+        ctx['inbound_messages'] = filtered_qs.order_by('-created_at')[:200]
+        ctx['support_messages_count'] = support_qs.count()
+        ctx['normal_messages_count'] = base_qs.filter(is_support_request=False).count()
+        ctx['all_messages_count'] = base_qs.count()
+        ctx['message_kind'] = selected_filter
         return ctx
 
     def post(self, request, *args, **kwargs):

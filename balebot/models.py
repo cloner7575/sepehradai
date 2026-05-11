@@ -66,6 +66,10 @@ class InboundMessage(models.Model):
         default=False,
         help_text='اگر این پیام در جریان «پیام به پشتیبانی» ثبت شده باشد روشن است.',
     )
+    is_support_read = models.BooleanField(
+        default=False,
+        help_text='فقط برای پیام‌های پشتیبانی: آیا توسط ادمین دیده شده است؟',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
