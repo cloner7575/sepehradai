@@ -1,5 +1,6 @@
 import uuid
 from pathlib import Path
+import tempfile
 
 from django.conf import settings
 from django.contrib import messages
@@ -14,6 +15,7 @@ from django.views.generic import DetailView, ListView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 
 from balebot.forms import BotSettingsForm, CampaignForm
+from balebot.services import bale_api
 from balebot.services.campaign_runner import run_single_campaign_web
 from balebot.services.keyboard_layout import keyboard_has_any_button, normalize_to_sections
 from balebot.models import (
@@ -119,6 +121,67 @@ class SubscriberListView(StaffRequiredMixin, ListView):
                 cond |= Q(bale_user_id=n) | Q(chat_id=n)
             qs = qs.filter(cond)
         return qs
+
+
+class SubscriberDetailView(StaffRequiredMixin, DetailView):
+    model = Subscriber
+    template_name = 'balebot/subscriber_detail.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        qs = InboundMessage.objects.filter(subscriber=self.object).order_by('-created_at')
+        ctx['inbound_messages'] = qs[:200]
+        ctx['support_messages_count'] = qs.filter(is_support_request=True).count()
+        return ctx
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        msg = (request.POST.get('personal_message') or '').strip()
+        media = request.FILES.get('personal_media')
+        if not msg and not media:
+            messages.error(request, 'برای ارسال، متن پیام یا فایل مدیا را وارد کنید.')
+            return HttpResponseRedirect(self.request.path)
+
+        try:
+            if media:
+                self._send_personal_media(media, msg)
+            else:
+                bale_api.send_message(self.object.chat_id, msg[:4096])
+        except bale_api.BaleAPIError as e:
+            messages.error(request, f'ارسال پیام ناموفق بود: {e}')
+            return HttpResponseRedirect(self.request.path)
+        messages.success(request, 'پیام شخصی با موفقیت ارسال شد.')
+        return HttpResponseRedirect(self.request.path)
+
+    def _send_personal_media(self, media, caption_text: str) -> None:
+        suffix = Path(media.name or '').suffix
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix or '.bin') as tmp:
+            for chunk in media.chunks():
+                tmp.write(chunk)
+            temp_path = Path(tmp.name)
+
+        caption = (caption_text or '').strip()[:1024]
+        content_type = (getattr(media, 'content_type', '') or '').lower()
+        try:
+            if content_type.startswith('image/'):
+                bale_api.send_photo(self.object.chat_id, photo_path=temp_path, caption=caption)
+                return
+            if content_type.startswith('video/'):
+                bale_api.send_video(self.object.chat_id, video_path=temp_path, caption=caption)
+                return
+            if content_type in {'audio/ogg', 'audio/opus'}:
+                bale_api.send_voice(self.object.chat_id, voice_path=temp_path, caption=caption)
+                return
+            bale_api.send_document(
+                self.object.chat_id,
+                document_path=temp_path,
+                caption=caption,
+            )
+        finally:
+            try:
+                temp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
 
 
 class CampaignListView(StaffRequiredMixin, ListView):

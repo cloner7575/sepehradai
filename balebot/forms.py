@@ -40,6 +40,10 @@ class BotSettingsForm(forms.ModelForm):
             'collect_contact_on_start',
             'enable_help_command',
             'enable_stop_command',
+            'enable_support',
+            'support_button_label',
+            'support_start_prompt_message',
+            'support_waiting_message',
         ]
         widgets = {
             'panel_brand_title': forms.TextInput(
@@ -86,6 +90,18 @@ class BotSettingsForm(forms.ModelForm):
             'enable_stop_command': forms.CheckboxInput(
                 attrs={'class': 'form-check-input', 'role': 'switch'},
             ),
+            'enable_support': forms.CheckboxInput(
+                attrs={'class': 'form-check-input', 'role': 'switch'},
+            ),
+            'support_button_label': forms.TextInput(
+                attrs={'class': 'form-control panel-input'},
+            ),
+            'support_start_prompt_message': forms.Textarea(
+                attrs={'class': 'form-control panel-input', 'rows': 3},
+            ),
+            'support_waiting_message': forms.Textarea(
+                attrs={'class': 'form-control panel-input', 'rows': 3},
+            ),
         }
 
     def __init__(self, *args, **kwargs):
@@ -120,6 +136,19 @@ class BotSettingsForm(forms.ModelForm):
             raise forms.ValidationError(
                 'وقتی /help فعال است، متن راهنما را پر کنید.'
             )
+        if cleaned.get('enable_support'):
+            if not (cleaned.get('support_button_label') or '').strip():
+                raise forms.ValidationError(
+                    'وقتی پشتیبانی فعال است، برچسب دکمهٔ پشتیبانی را پر کنید.'
+                )
+            if not (cleaned.get('support_start_prompt_message') or '').strip():
+                raise forms.ValidationError(
+                    'وقتی پشتیبانی فعال است، متن راهنمای شروع پشتیبانی را پر کنید.'
+                )
+            if not (cleaned.get('support_waiting_message') or '').strip():
+                raise forms.ValidationError(
+                    'وقتی پشتیبانی فعال است، پیام ثبت درخواست پشتیبانی را پر کنید.'
+                )
         return cleaned
 
 

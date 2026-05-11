@@ -65,6 +65,16 @@
               <label class="visually-hidden" for="{{ form.enable_stop_command.id_for_label }}">{{ form.enable_stop_command.label }}</label>
             </div>
           </div>
+          <div class="panel-workflow-row">
+            <div class="panel-workflow-copy">
+              <div class="panel-workflow-title">{{ form.enable_support.label }}</div>
+              <p class="panel-workflow-desc">روشن → بعد از <strong>/start</strong> دکمهٔ «پیام به پشتیبانی» نمایش داده می‌شود و کاربر می‌تواند پیامش را ثبت کند.</p>
+            </div>
+            <div class="form-check form-switch panel-workflow-switch">
+              {{ form.enable_support }}
+              <label class="visually-hidden" for="{{ form.enable_support.id_for_label }}">{{ form.enable_support.label }}</label>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -126,6 +136,12 @@
           <div class="panel-field-group">
             <span class="panel-field-group-label"><i class="bi bi-hand-index-thumb me-1"></i> کلیک روی دکمهٔ اینلاین</span>
             {% include "balebot/_field.html" with field=form.callback_ack_message %}
+          </div>
+          <div class="panel-field-group">
+            <span class="panel-field-group-label"><i class="bi bi-life-preserver me-1"></i> پشتیبانی</span>
+            {% include "balebot/_field.html" with field=form.support_button_label %}
+            {% include "balebot/_field.html" with field=form.support_start_prompt_message %}
+            {% include "balebot/_field.html" with field=form.support_waiting_message %}
           </div>
         </div>
       </div>

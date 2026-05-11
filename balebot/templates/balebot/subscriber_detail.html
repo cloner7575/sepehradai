@@ -1,0 +1,91 @@
+{% extends "balebot/base.html" %}
+{% block title %}جزئیات کاربر{% endblock %}
+{% block page_title %}جزئیات کاربر{% endblock %}
+{% block page_subtitle %}
+<p class="topbar-meta mb-0 mt-1">مشاهده پیام‌های ورودی و ارسال پیام شخصی</p>
+{% endblock %}
+
+{% block content %}
+<div class="panel-card mb-4">
+  <div class="panel-card-header">
+    <h2 class="panel-card-title mb-0">اطلاعات کاربر</h2>
+    <a href="{% url 'subscriber_list' %}" class="btn btn-panel-ghost btn-sm">بازگشت به لیست</a>
+  </div>
+  <div class="panel-card-body">
+    <div class="row g-3">
+      <div class="col-md-6"><strong>شناسه بله:</strong> <code>{{ object.bale_user_id }}</code></div>
+      <div class="col-md-6"><strong>شناسه چت:</strong> <code>{{ object.chat_id }}</code></div>
+      <div class="col-md-6"><strong>نام:</strong> {{ object.first_name|default:"—" }}</div>
+      <div class="col-md-6"><strong>شماره:</strong> {{ object.phone_number|default:"—" }}</div>
+      <div class="col-md-6"><strong>تعداد پیام پشتیبانی:</strong> {{ support_messages_count }}</div>
+      <div class="col-md-6"><strong>آخرین به‌روزرسانی:</strong> {{ object.updated_at }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel-card mb-4">
+  <div class="panel-card-header">
+    <h2 class="panel-card-title mb-0">ارسال پیام شخصی</h2>
+  </div>
+  <div class="panel-card-body">
+    <form method="post" enctype="multipart/form-data" class="d-flex flex-column gap-3">
+      {% csrf_token %}
+      <textarea
+        name="personal_message"
+        rows="4"
+        class="form-control panel-input"
+        placeholder="متن پیام برای ارسال مستقیم (اختیاری اگر مدیا دارید)"
+      ></textarea>
+      <input
+        type="file"
+        name="personal_media"
+        class="form-control panel-input"
+        accept="image/*,video/*,audio/*,.pdf,.zip,.rar,.doc,.docx,.xls,.xlsx,.txt"
+      >
+      <small class="text-muted">می‌توانید فقط متن، فقط مدیا، یا مدیا همراه متن (caption) ارسال کنید.</small>
+      <div>
+        <button type="submit" class="btn btn-panel-primary">ارسال پیام</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="panel-card">
+  <div class="panel-card-header">
+    <h2 class="panel-card-title mb-0">پیام‌های ورودی کاربر</h2>
+    <span class="text-muted small">{{ inbound_messages|length }} پیام اخیر</span>
+  </div>
+  <div class="panel-table-wrap border-0">
+    <div class="table-responsive">
+      <table class="table panel-table table-striped table-sm mb-0">
+        <thead>
+          <tr>
+            <th>زمان</th>
+            <th>نوع</th>
+            <th>پشتیبانی</th>
+            <th>خلاصه</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in inbound_messages %}
+          <tr>
+            <td class="small text-muted">{{ row.created_at }}</td>
+            <td><span class="badge text-bg-secondary bg-opacity-25">{{ row.get_kind_display }}</span></td>
+            <td>
+              {% if row.is_support_request %}
+              <span class="badge text-bg-warning">بله</span>
+              {% else %}
+              <span class="badge text-bg-light">خیر</span>
+              {% endif %}
+            </td>
+            <td class="small">{% if row.text %}{{ row.text|truncatechars:100 }}{% else %}{{ row.file_id|truncatechars:60 }}{% endif %}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center text-muted py-5">پیامی ثبت نشده است.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

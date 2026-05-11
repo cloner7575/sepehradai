@@ -33,6 +33,7 @@
             <th>ثبت</th>
             <th>فعال</th>
             <th>به‌روزرسانی</th>
+            <th>اقدام</th>
           </tr>
         </thead>
         <tbody>
@@ -45,9 +46,10 @@
             <td>{% if s.is_registered %}<span class="badge text-bg-success">بله</span>{% else %}<span class="badge text-bg-secondary">خیر</span>{% endif %}</td>
             <td>{% if s.is_active %}<span class="badge text-bg-primary">بله</span>{% else %}<span class="badge text-bg-danger">خیر</span>{% endif %}</td>
             <td class="small text-muted">{{ s.updated_at }}</td>
+            <td><a href="{% url 'subscriber_detail' s.pk %}" class="btn btn-panel-ghost btn-sm">پیام‌ها و ارسال پیام</a></td>
           </tr>
           {% empty %}
-          <tr><td colspan="7" class="text-center text-muted py-5">موردی نیست.</td></tr>
+          <tr><td colspan="8" class="text-center text-muted py-5">موردی نیست.</td></tr>
           {% endfor %}
         </tbody>
       </table>

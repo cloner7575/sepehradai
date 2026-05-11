@@ -28,6 +28,10 @@ class Subscriber(models.Model):
         blank=True,
         help_text='پاسخ‌های نام‌دار (flow_key) از دکمه‌های منو.',
     )
+    awaiting_support_message = models.BooleanField(
+        default=False,
+        help_text='اگر روشن باشد، پیام بعدی کاربر به عنوان پیام پشتیبانی ثبت می‌شود.',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -58,6 +62,10 @@ class InboundMessage(models.Model):
     file_id = models.CharField(max_length=512, blank=True, default='')
     local_file = models.FileField(upload_to='inbound/%Y/%m/', blank=True, null=True)
     bale_message_id = models.BigIntegerField(null=True, blank=True)
+    is_support_request = models.BooleanField(
+        default=False,
+        help_text='اگر این پیام در جریان «پیام به پشتیبانی» ثبت شده باشد روشن است.',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -283,6 +291,23 @@ class BotSettings(models.Model):
     enable_stop_command = models.BooleanField(
         default=True,
         verbose_name='فعال بودن دستور /stop',
+    )
+    enable_support = models.BooleanField(
+        default=False,
+        verbose_name='فعال بودن پشتیبانی',
+    )
+    support_button_label = models.CharField(
+        max_length=64,
+        default='پیام به پشتیبانی',
+        verbose_name='برچسب دکمهٔ پشتیبانی',
+    )
+    support_start_prompt_message = models.TextField(
+        default='برای ارسال پیام به پشتیبانی روی دکمهٔ زیر بزنید.',
+        verbose_name='متن راهنمای شروع پشتیبانی',
+    )
+    support_waiting_message = models.TextField(
+        default='پیام شما ثبت شد. لطفاً منتظر پاسخ پشتیبانی باشید.',
+        verbose_name='پیام ثبت درخواست پشتیبانی',
     )
 
     updated_at = models.DateTimeField(auto_now=True)

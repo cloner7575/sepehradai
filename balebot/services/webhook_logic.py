@@ -35,8 +35,13 @@ def get_or_create_subscriber(from_user: dict[str, Any], chat: dict[str, Any]) ->
 
 def build_contact_keyboard(settings_obj: BotSettings) -> dict[str, Any]:
     label = (settings_obj.contact_button_label or 'تماس').strip()[:64]
+    rows: list[list[dict[str, Any]]] = [[{'text': label, 'request_contact': True}]]
+    if settings_obj.enable_support:
+        support_label = (settings_obj.support_button_label or 'پیام به پشتیبانی').strip()[:64]
+        if support_label:
+            rows.append([{'text': support_label}])
     return {
-        'keyboard': [[{'text': label, 'request_contact': True}]],
+        'keyboard': rows,
         'resize_keyboard': True,
         'one_time_keyboard': True,
     }
@@ -44,6 +49,31 @@ def build_contact_keyboard(settings_obj: BotSettings) -> dict[str, Any]:
 
 def remove_keyboard() -> dict[str, Any]:
     return {'remove_keyboard': True}
+
+
+def _support_inline_row(settings_obj: BotSettings) -> list[dict[str, Any]] | None:
+    if not settings_obj.enable_support:
+        return None
+    support_label = (settings_obj.support_button_label or 'پیام به پشتیبانی').strip()[:64]
+    if not support_label:
+        return None
+    return [{'text': support_label, 'callback_data': 'bsup'}]
+
+
+def build_start_markup_with_support(
+    settings_obj: BotSettings,
+    base_markup: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    support_row = _support_inline_row(settings_obj)
+    if not support_row:
+        return base_markup
+    if base_markup and isinstance(base_markup, dict):
+        rows = list(base_markup.get('inline_keyboard') or [])
+        rows.append(support_row)
+        merged = dict(base_markup)
+        merged['inline_keyboard'] = rows
+        return merged
+    return {'inline_keyboard': [support_row]}
 
 
 def _append_menu_flow(
@@ -85,6 +115,7 @@ def _try_edit_start_markup(
     mk = build_view_markup(cfg, view_path)
     if mk is None:
         mk = build_start_inline_markup(cfg)
+    mk = build_start_markup_with_support(cfg, mk)
     if not mk:
         return
     try:
@@ -106,7 +137,12 @@ def parse_campaign_callback(data: str) -> Campaign | None:
     return Campaign.objects.filter(pk=pk).first()
 
 
-def store_inbound_from_message(sub: Subscriber, msg: dict[str, Any]) -> None:
+def store_inbound_from_message(
+    sub: Subscriber,
+    msg: dict[str, Any],
+    *,
+    is_support_request: bool = False,
+) -> None:
     mid = msg.get('message_id')
     if msg.get('contact'):
         c = msg['contact']
@@ -116,6 +152,7 @@ def store_inbound_from_message(sub: Subscriber, msg: dict[str, Any]) -> None:
             kind=InboundMessage.MessageKind.CONTACT,
             text=ph,
             bale_message_id=mid,
+            is_support_request=is_support_request,
         )
         sub.phone_number = ph[:32]
         sub.is_registered = True
@@ -128,6 +165,7 @@ def store_inbound_from_message(sub: Subscriber, msg: dict[str, Any]) -> None:
             kind=InboundMessage.MessageKind.TEXT,
             text=msg.get('text') or '',
             bale_message_id=mid,
+            is_support_request=is_support_request,
         )
         return
 
@@ -139,6 +177,7 @@ def store_inbound_from_message(sub: Subscriber, msg: dict[str, Any]) -> None:
             file_id=fid,
             text=msg.get('caption') or '',
             bale_message_id=mid,
+            is_support_request=is_support_request,
         )
         return
 
@@ -151,6 +190,7 @@ def store_inbound_from_message(sub: Subscriber, msg: dict[str, Any]) -> None:
             file_id=fid or '',
             text=msg.get('caption') or '',
             bale_message_id=mid,
+            is_support_request=is_support_request,
         )
         return
 
@@ -162,6 +202,7 @@ def store_inbound_from_message(sub: Subscriber, msg: dict[str, Any]) -> None:
             file_id=fid,
             text=msg.get('caption') or '',
             bale_message_id=mid,
+            is_support_request=is_support_request,
         )
         return
 
@@ -173,6 +214,7 @@ def store_inbound_from_message(sub: Subscriber, msg: dict[str, Any]) -> None:
             file_id=fid,
             text=msg.get('caption') or '',
             bale_message_id=mid,
+            is_support_request=is_support_request,
         )
         return
 
@@ -181,6 +223,7 @@ def store_inbound_from_message(sub: Subscriber, msg: dict[str, Any]) -> None:
         kind=InboundMessage.MessageKind.OTHER,
         text='',
         bale_message_id=mid,
+        is_support_request=is_support_request,
     )
 
 
@@ -197,7 +240,7 @@ def handle_message(msg: dict[str, Any]) -> None:
     if text.startswith('/start'):
         msg_normal = (cfg.start_message_normal or '').strip()
         msg_contact = (cfg.start_message_contact or '').strip()
-        start_markup = build_start_inline_markup(cfg)
+        start_markup = build_start_markup_with_support(cfg, build_start_inline_markup(cfg))
         has_inline = start_markup is not None
         need_contact = cfg.collect_contact_on_start and not sub.is_registered
         body_contact = msg_contact or msg_normal
@@ -247,6 +290,29 @@ def handle_message(msg: dict[str, Any]) -> None:
         )
         return
 
+    support_button_label = (cfg.support_button_label or '').strip()
+    if (
+        cfg.enable_support
+        and support_button_label
+        and text
+        and text == support_button_label
+    ):
+        sub.awaiting_support_message = True
+        sub.save(update_fields=['awaiting_support_message', 'updated_at'])
+        prompt = (cfg.support_start_prompt_message or '').strip()
+        if prompt:
+            bale_api.send_message(sub.chat_id, prompt)
+        return
+
+    if sub.awaiting_support_message:
+        store_inbound_from_message(sub, msg, is_support_request=True)
+        sub.awaiting_support_message = False
+        sub.save(update_fields=['awaiting_support_message', 'updated_at'])
+        wait_msg = (cfg.support_waiting_message or '').strip()
+        if wait_msg:
+            bale_api.send_message(sub.chat_id, wait_msg)
+        return
+
     if msg.get('contact'):
         already_registered = sub.is_registered
         store_inbound_from_message(sub, msg)
@@ -292,6 +358,16 @@ def handle_callback(cb: dict[str, Any]) -> None:
         if data_stripped == 'bz':
             _try_edit_start_markup(cfg, [], chat_id, mid)
             flow_kind = 'root'
+        elif data_stripped == 'bsup':
+            sub.awaiting_support_message = True
+            sub.save(update_fields=['awaiting_support_message', 'updated_at'])
+            prompt = (cfg.support_start_prompt_message or '').strip()
+            if prompt and chat_id:
+                try:
+                    bale_api.send_message(chat_id, prompt)
+                except bale_api.BaleAPIError:
+                    pass
+            flow_kind = 'support'
         elif data_stripped.startswith('bb'):
             parent = parse_back_callback(data_stripped)
             if parent is not None:
