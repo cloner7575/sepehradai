@@ -7,11 +7,23 @@ from typing import Any
 
 from django.utils import timezone
 
-from balebot.models import BotSettings, CallbackLog, Campaign, InboundMessage, Subscriber
+from balebot.models import (
+    BotSettings,
+    CallbackLog,
+    Campaign,
+    ClassEnrollmentRequest,
+    InboundMessage,
+    Subscriber,
+    SubscriberTag,
+    SupportTicketMessage,
+    Tag,
+)
 from balebot.services import bale_api
 from balebot.services.start_keyboard import (
+    build_class_enrollment_markup,
     build_start_inline_markup,
     build_view_markup,
+    parse_class_enroll_callback,
     parse_back_callback,
     parse_start_nav_segments,
     resolve_button_by_path,
@@ -60,20 +72,34 @@ def _support_inline_row(settings_obj: BotSettings) -> list[dict[str, Any]] | Non
     return [{'text': support_label, 'callback_data': 'bsup'}]
 
 
+def _enrollment_inline_row() -> list[dict[str, Any]] | None:
+    has_any_class = Tag.objects.filter(
+        is_active=True,
+        tag_type=Tag.TagType.CLASS,
+    ).exists()
+    if not has_any_class:
+        return None
+    return [{'text': 'ثبت‌نام کلاس‌ها', 'callback_data': 'benroll'}]
+
+
 def build_start_markup_with_support(
     settings_obj: BotSettings,
     base_markup: dict[str, Any] | None,
 ) -> dict[str, Any] | None:
     support_row = _support_inline_row(settings_obj)
     if not support_row:
+        support_row = []
+    enrollment_row = _enrollment_inline_row() or []
+    extra_rows = [r for r in [enrollment_row, support_row] if r]
+    if not extra_rows:
         return base_markup
     if base_markup and isinstance(base_markup, dict):
         rows = list(base_markup.get('inline_keyboard') or [])
-        rows.append(support_row)
+        rows.extend(extra_rows)
         merged = dict(base_markup)
         merged['inline_keyboard'] = rows
         return merged
-    return {'inline_keyboard': [support_row]}
+    return {'inline_keyboard': extra_rows}
 
 
 def _append_menu_flow(
@@ -142,12 +168,12 @@ def store_inbound_from_message(
     msg: dict[str, Any],
     *,
     is_support_request: bool = False,
-) -> None:
+) -> InboundMessage:
     mid = msg.get('message_id')
     if msg.get('contact'):
         c = msg['contact']
         ph = (c.get('phone_number') or '').strip()
-        InboundMessage.objects.create(
+        rec = InboundMessage.objects.create(
             subscriber=sub,
             kind=InboundMessage.MessageKind.CONTACT,
             text=ph,
@@ -157,21 +183,20 @@ def store_inbound_from_message(
         sub.phone_number = ph[:32]
         sub.is_registered = True
         sub.save(update_fields=['phone_number', 'is_registered', 'updated_at'])
-        return
+        return rec
 
     if msg.get('text'):
-        InboundMessage.objects.create(
+        return InboundMessage.objects.create(
             subscriber=sub,
             kind=InboundMessage.MessageKind.TEXT,
             text=msg.get('text') or '',
             bale_message_id=mid,
             is_support_request=is_support_request,
         )
-        return
 
     if msg.get('voice'):
         fid = msg['voice'].get('file_id') or ''
-        InboundMessage.objects.create(
+        return InboundMessage.objects.create(
             subscriber=sub,
             kind=InboundMessage.MessageKind.VOICE,
             file_id=fid,
@@ -179,12 +204,11 @@ def store_inbound_from_message(
             bale_message_id=mid,
             is_support_request=is_support_request,
         )
-        return
 
     if msg.get('photo'):
         photos = msg['photo']
         fid = photos[-1].get('file_id') if photos else ''
-        InboundMessage.objects.create(
+        return InboundMessage.objects.create(
             subscriber=sub,
             kind=InboundMessage.MessageKind.PHOTO,
             file_id=fid or '',
@@ -192,11 +216,10 @@ def store_inbound_from_message(
             bale_message_id=mid,
             is_support_request=is_support_request,
         )
-        return
 
     if msg.get('video'):
         fid = (msg.get('video') or {}).get('file_id') or ''
-        InboundMessage.objects.create(
+        return InboundMessage.objects.create(
             subscriber=sub,
             kind=InboundMessage.MessageKind.VIDEO,
             file_id=fid,
@@ -204,11 +227,10 @@ def store_inbound_from_message(
             bale_message_id=mid,
             is_support_request=is_support_request,
         )
-        return
 
     if msg.get('document'):
         fid = (msg.get('document') or {}).get('file_id') or ''
-        InboundMessage.objects.create(
+        return InboundMessage.objects.create(
             subscriber=sub,
             kind=InboundMessage.MessageKind.DOCUMENT,
             file_id=fid,
@@ -216,9 +238,8 @@ def store_inbound_from_message(
             bale_message_id=mid,
             is_support_request=is_support_request,
         )
-        return
 
-    InboundMessage.objects.create(
+    return InboundMessage.objects.create(
         subscriber=sub,
         kind=InboundMessage.MessageKind.OTHER,
         text='',
@@ -305,7 +326,15 @@ def handle_message(msg: dict[str, Any]) -> None:
         return
 
     if sub.awaiting_support_message:
-        store_inbound_from_message(sub, msg, is_support_request=True)
+        inbound = store_inbound_from_message(sub, msg, is_support_request=True)
+        SupportTicketMessage.objects.create(
+            subscriber=sub,
+            sender=SupportTicketMessage.Sender.USER,
+            kind=inbound.kind,
+            text=inbound.text,
+            file_id=inbound.file_id,
+            inbound_message=inbound,
+        )
         sub.awaiting_support_message = False
         sub.save(update_fields=['awaiting_support_message', 'updated_at'])
         wait_msg = (cfg.support_waiting_message or '').strip()
@@ -358,6 +387,54 @@ def handle_callback(cb: dict[str, Any]) -> None:
         if data_stripped == 'bz':
             _try_edit_start_markup(cfg, [], chat_id, mid)
             flow_kind = 'root'
+        elif data_stripped == 'benroll':
+            mk = build_class_enrollment_markup()
+            if mk and chat_id:
+                try:
+                    bale_api.send_message(chat_id, 'کلاس موردنظر را انتخاب کنید:', reply_markup=mk)
+                except bale_api.BaleAPIError:
+                    pass
+            flow_kind = 'class_menu'
+        elif parse_class_enroll_callback(data_stripped) is not None:
+            tag_id = parse_class_enroll_callback(data_stripped)
+            tag = Tag.objects.filter(
+                id=tag_id,
+                is_active=True,
+                tag_type=Tag.TagType.CLASS,
+            ).first()
+            if tag is None:
+                flow_kind = 'class_unknown'
+            elif SubscriberTag.objects.filter(subscriber=sub, tag=tag).exists():
+                flow_kind = 'class_already_member'
+                if chat_id:
+                    try:
+                        bale_api.send_message(chat_id, f'شما قبلا در «{tag.name}» ثبت‌نام شده‌اید.')
+                    except bale_api.BaleAPIError:
+                        pass
+            else:
+                req, created = ClassEnrollmentRequest.objects.get_or_create(
+                    subscriber=sub,
+                    tag=tag,
+                    status=ClassEnrollmentRequest.Status.PENDING,
+                )
+                flow_kind = 'class_pending'
+                if chat_id:
+                    try:
+                        if created:
+                            bale_api.send_message(
+                                chat_id,
+                                f'درخواست ثبت‌نام شما برای «{tag.name}» ثبت شد و پس از تایید ادمین فعال می‌شود.',
+                            )
+                        else:
+                            bale_api.send_message(
+                                chat_id,
+                                f'درخواست «{tag.name}» شما در حال بررسی است.',
+                            )
+                    except bale_api.BaleAPIError:
+                        pass
+                fk_store = 'class_enrollment_request'
+                fv_store = tag.slug
+                flow_label = tag.name
         elif data_stripped == 'bsup':
             sub.awaiting_support_message = True
             sub.save(update_fields=['awaiting_support_message', 'updated_at'])

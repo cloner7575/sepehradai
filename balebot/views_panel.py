@@ -16,6 +16,7 @@ from django.views.generic.edit import CreateView, UpdateView
 
 from balebot.forms import BotSettingsForm, CampaignForm
 from balebot.services import bale_api
+from balebot.services.audience import snapshot_campaign_audience
 from balebot.services.campaign_runner import run_single_campaign_web
 from balebot.services.keyboard_layout import keyboard_has_any_button, normalize_to_sections
 from balebot.models import (
@@ -23,8 +24,12 @@ from balebot.models import (
     CallbackLog,
     Campaign,
     CampaignDelivery,
+    ClassEnrollmentRequest,
     InboundMessage,
     Subscriber,
+    SubscriberTag,
+    SupportTicketMessage,
+    Tag,
 )
 
 CAMPAIGN_PENDING_MEDIA_SESSION_KEY = 'campaign_pending_media'
@@ -128,7 +133,16 @@ class SubscriberListView(StaffRequiredMixin, ListView):
                 n = int(q)
                 cond |= Q(bale_user_id=n) | Q(chat_id=n)
             qs = qs.filter(cond)
+        tag_raw = (self.request.GET.get('tag') or '').strip()
+        if tag_raw.isdigit():
+            qs = qs.filter(tags__id=int(tag_raw)).distinct()
         return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['available_tags'] = Tag.objects.filter(is_active=True).order_by('name')
+        ctx['selected_tag_id'] = (self.request.GET.get('tag') or '').strip()
+        return ctx
 
 
 class SubscriberDetailView(StaffRequiredMixin, DetailView):
@@ -152,8 +166,59 @@ class SubscriberDetailView(StaffRequiredMixin, DetailView):
 
         if selected_filter in {'support', 'all'}:
             support_qs.filter(is_support_read=False).update(is_support_read=True)
+            self._sync_support_inbound_into_ticket(support_qs)
 
         ctx['inbound_messages'] = filtered_qs.order_by('-created_at')[:200]
+        user_tickets = list(
+            SupportTicketMessage.objects.filter(
+                subscriber=self.object,
+                sender=SupportTicketMessage.Sender.USER,
+            ).order_by('-created_at')[:120]
+        )
+        ticket_ids = [row.id for row in user_tickets]
+        reply_counts = {}
+        if ticket_ids:
+            grouped = (
+                SupportTicketMessage.objects.filter(
+                    subscriber=self.object,
+                    sender=SupportTicketMessage.Sender.ADMIN,
+                    parent_user_message_id__in=ticket_ids,
+                )
+                .values('parent_user_message_id')
+                .annotate(c=Count('id'))
+            )
+            reply_counts = {int(row['parent_user_message_id']): int(row['c']) for row in grouped}
+        selected_ticket_id_raw = (self.request.GET.get('ticket') or '').strip()
+        selected_ticket_id = int(selected_ticket_id_raw) if selected_ticket_id_raw.isdigit() else None
+        selected_ticket = None
+        if selected_ticket_id:
+            selected_ticket = next((row for row in user_tickets if row.id == selected_ticket_id), None)
+        if selected_ticket is None and user_tickets:
+            selected_ticket = user_tickets[0]
+
+        chat_messages = []
+        if selected_ticket is not None:
+            chat_messages = [selected_ticket] + list(
+                SupportTicketMessage.objects.filter(
+                    subscriber=self.object,
+                    sender=SupportTicketMessage.Sender.ADMIN,
+                    parent_user_message=selected_ticket,
+                ).order_by('created_at')[:200]
+            )
+            inbound = selected_ticket.inbound_message
+            if inbound and inbound.is_support_request and not inbound.is_support_read:
+                inbound.is_support_read = True
+                inbound.save(update_fields=['is_support_read'])
+
+        ctx['ticket_list'] = user_tickets
+        ctx['ticket_reply_counts'] = reply_counts
+        ctx['selected_ticket'] = selected_ticket
+        ctx['ticket_chat_messages'] = chat_messages
+        ctx['normal_outbound_messages'] = SupportTicketMessage.objects.filter(
+            subscriber=self.object,
+            sender=SupportTicketMessage.Sender.ADMIN,
+            parent_user_message__isnull=True,
+        ).order_by('-created_at')[:120]
         ctx['support_messages_count'] = support_qs.count()
         ctx['normal_messages_count'] = base_qs.filter(is_support_request=False).count()
         ctx['all_messages_count'] = base_qs.count()
@@ -162,6 +227,7 @@ class SubscriberDetailView(StaffRequiredMixin, DetailView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
+        action = (request.POST.get('action') or '').strip()
         msg = (request.POST.get('personal_message') or '').strip()
         media = request.FILES.get('personal_media')
         if not msg and not media:
@@ -170,16 +236,48 @@ class SubscriberDetailView(StaffRequiredMixin, DetailView):
 
         try:
             if media:
-                self._send_personal_media(media, msg)
+                kind, text_body, file_id = self._send_personal_media(media, msg)
             else:
                 bale_api.send_message(self.object.chat_id, msg[:4096])
+                kind = SupportTicketMessage.MessageKind.TEXT
+                text_body = msg[:4096]
+                file_id = ''
         except bale_api.BaleAPIError as e:
             messages.error(request, f'ارسال پیام ناموفق بود: {e}')
             return HttpResponseRedirect(self.request.path)
-        messages.success(request, 'پیام شخصی با موفقیت ارسال شد.')
-        return HttpResponseRedirect(self.request.path)
 
-    def _send_personal_media(self, media, caption_text: str) -> None:
+        parent_user_message = None
+        redirect_url = self.request.path
+        if action == 'reply_ticket':
+            ticket_raw = (request.POST.get('ticket_id') or '').strip()
+            if not ticket_raw.isdigit():
+                messages.error(request, 'تیکت انتخاب‌شده نامعتبر است.')
+                return HttpResponseRedirect(self.request.path)
+            parent_user_message = SupportTicketMessage.objects.filter(
+                id=int(ticket_raw),
+                subscriber=self.object,
+                sender=SupportTicketMessage.Sender.USER,
+            ).first()
+            if parent_user_message is None:
+                messages.error(request, 'تیکت انتخاب‌شده پیدا نشد.')
+                return HttpResponseRedirect(self.request.path)
+            redirect_url = f'{self.request.path}?ticket={parent_user_message.id}'
+
+        SupportTicketMessage.objects.create(
+            subscriber=self.object,
+            sender=SupportTicketMessage.Sender.ADMIN,
+            kind=kind,
+            text=text_body,
+            file_id=file_id,
+            parent_user_message=parent_user_message,
+        )
+        if action == 'reply_ticket':
+            messages.success(request, 'پاسخ تیکت با موفقیت ارسال شد.')
+        else:
+            messages.success(request, 'پیام عادی با موفقیت ارسال شد.')
+        return HttpResponseRedirect(redirect_url)
+
+    def _send_personal_media(self, media, caption_text: str) -> tuple[str, str, str]:
         suffix = Path(media.name or '').suffix
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix or '.bin') as tmp:
             for chunk in media.chunks():
@@ -190,24 +288,79 @@ class SubscriberDetailView(StaffRequiredMixin, DetailView):
         content_type = (getattr(media, 'content_type', '') or '').lower()
         try:
             if content_type.startswith('image/'):
-                bale_api.send_photo(self.object.chat_id, photo_path=temp_path, caption=caption)
-                return
+                resp = bale_api.send_photo(self.object.chat_id, photo_path=temp_path, caption=caption)
+                return (
+                    SupportTicketMessage.MessageKind.PHOTO,
+                    caption,
+                    self._extract_file_id(resp, 'photo'),
+                )
             if content_type.startswith('video/'):
-                bale_api.send_video(self.object.chat_id, video_path=temp_path, caption=caption)
-                return
+                resp = bale_api.send_video(self.object.chat_id, video_path=temp_path, caption=caption)
+                return (
+                    SupportTicketMessage.MessageKind.VIDEO,
+                    caption,
+                    self._extract_file_id(resp, 'video'),
+                )
             if content_type in {'audio/ogg', 'audio/opus'}:
-                bale_api.send_voice(self.object.chat_id, voice_path=temp_path, caption=caption)
-                return
-            bale_api.send_document(
+                resp = bale_api.send_voice(self.object.chat_id, voice_path=temp_path, caption=caption)
+                return (
+                    SupportTicketMessage.MessageKind.VOICE,
+                    caption,
+                    self._extract_file_id(resp, 'voice'),
+                )
+            resp = bale_api.send_document(
                 self.object.chat_id,
                 document_path=temp_path,
                 caption=caption,
+            )
+            return (
+                SupportTicketMessage.MessageKind.DOCUMENT,
+                caption,
+                self._extract_file_id(resp, 'document'),
             )
         finally:
             try:
                 temp_path.unlink(missing_ok=True)
             except OSError:
                 pass
+
+    @staticmethod
+    def _extract_file_id(api_response: dict, key: str) -> str:
+        result = (api_response or {}).get('result') or {}
+        payload = result.get(key)
+        if isinstance(payload, list):
+            last = payload[-1] if payload else {}
+            return str((last or {}).get('file_id') or '')
+        if isinstance(payload, dict):
+            return str(payload.get('file_id') or '')
+        return ''
+
+    def _sync_support_inbound_into_ticket(self, support_qs) -> None:
+        inbound_ids = set(
+            SupportTicketMessage.objects.filter(
+                subscriber=self.object,
+                sender=SupportTicketMessage.Sender.USER,
+                inbound_message__isnull=False,
+            ).values_list('inbound_message_id', flat=True)
+        )
+        missing = support_qs.exclude(id__in=inbound_ids).order_by('created_at')[:300]
+        if not missing:
+            return
+        SupportTicketMessage.objects.bulk_create(
+            [
+                SupportTicketMessage(
+                    subscriber=self.object,
+                    sender=SupportTicketMessage.Sender.USER,
+                    kind=row.kind,
+                    text=row.text,
+                    file_id=row.file_id,
+                    inbound_message=row,
+                    created_at=row.created_at,
+                )
+                for row in missing
+            ]
+        )
+
 
 
 class CampaignListView(StaffRequiredMixin, ListView):
@@ -362,6 +515,8 @@ class CampaignDetailView(StaffRequiredMixin, DetailView):
             and obj.scheduled_at is not None
             and obj.scheduled_at > timezone.now()
         )
+        ctx['target_tags'] = self.object.target_tags.order_by('name')
+        ctx['audience_snapshot_count'] = len(self.object.audience_snapshot or [])
         return ctx
 
     def post(self, request, *args, **kwargs):
@@ -385,6 +540,7 @@ class CampaignDetailView(StaffRequiredMixin, DetailView):
             else:
                 self.object.scheduled_at = timezone.now()
             self.object.save(update_fields=['status', 'scheduled_at', 'updated_at'])
+            snapshot_ids = snapshot_campaign_audience(self.object)
 
             should_send_now = (
                 self.object.schedule_kind == Campaign.ScheduleKind.INSTANT
@@ -398,19 +554,85 @@ class CampaignDetailView(StaffRequiredMixin, DetailView):
             if should_send_now:
                 ok, msg = run_single_campaign_web(self.object.pk)
                 if ok:
-                    messages.success(request, msg)
+                    messages.success(request, f'{msg} (مخاطب Snapshot: {len(snapshot_ids)} نفر)')
                 else:
                     messages.error(request, msg)
             else:
                 messages.success(
                     request,
-                    'کمپین زمان‌بندی‌شده در صف قرار گرفت و در زمان مقرّر ارسال می‌شود.',
+                    f'کمپین زمان‌بندی‌شده در صف قرار گرفت (Snapshot: {len(snapshot_ids)} نفر).',
                 )
         elif action == 'cancel':
             self.object.status = Campaign.Status.CANCELLED
             self.object.save(update_fields=['status', 'updated_at'])
             messages.warning(request, 'کمپین لغو شد.')
         return HttpResponseRedirect(self.object.get_absolute_url())
+
+
+class EnrollmentRequestListView(StaffRequiredMixin, ListView):
+    model = ClassEnrollmentRequest
+    template_name = 'balebot/enrollment_request_list.html'
+    paginate_by = 40
+
+    def get_queryset(self):
+        qs = ClassEnrollmentRequest.objects.select_related('subscriber', 'tag', 'reviewed_by')
+        status_q = (self.request.GET.get('status') or '').strip().lower()
+        if status_q in {
+            ClassEnrollmentRequest.Status.PENDING,
+            ClassEnrollmentRequest.Status.APPROVED,
+            ClassEnrollmentRequest.Status.REJECTED,
+        }:
+            qs = qs.filter(status=status_q)
+        return qs.order_by('-requested_at')
+
+    def post(self, request, *args, **kwargs):
+        action = (request.POST.get('action') or '').strip().lower()
+        req_id = (request.POST.get('request_id') or '').strip()
+        if not req_id.isdigit():
+            messages.error(request, 'درخواست نامعتبر است.')
+            return HttpResponseRedirect(request.path)
+        enrollment = ClassEnrollmentRequest.objects.select_related('subscriber', 'tag').filter(
+            id=int(req_id)
+        ).first()
+        if enrollment is None:
+            messages.error(request, 'درخواست پیدا نشد.')
+            return HttpResponseRedirect(request.path)
+        if enrollment.status != ClassEnrollmentRequest.Status.PENDING:
+            messages.warning(request, 'این درخواست قبلا بررسی شده است.')
+            return HttpResponseRedirect(request.path)
+
+        if action == 'approve':
+            SubscriberTag.objects.get_or_create(
+                subscriber=enrollment.subscriber,
+                tag=enrollment.tag,
+                defaults={'assigned_by': request.user},
+            )
+            enrollment.status = ClassEnrollmentRequest.Status.APPROVED
+            enrollment.reviewed_at = timezone.now()
+            enrollment.reviewed_by = request.user
+            enrollment.save(update_fields=['status', 'reviewed_at', 'reviewed_by'])
+            try:
+                bale_api.send_message(
+                    enrollment.subscriber.chat_id,
+                    f'ثبت‌نام شما در کلاس «{enrollment.tag.name}» تایید شد.',
+                )
+            except bale_api.BaleAPIError:
+                pass
+            messages.success(request, 'درخواست ثبت‌نام تایید شد.')
+        elif action == 'reject':
+            enrollment.status = ClassEnrollmentRequest.Status.REJECTED
+            enrollment.reviewed_at = timezone.now()
+            enrollment.reviewed_by = request.user
+            enrollment.save(update_fields=['status', 'reviewed_at', 'reviewed_by'])
+            try:
+                bale_api.send_message(
+                    enrollment.subscriber.chat_id,
+                    f'درخواست ثبت‌نام شما برای کلاس «{enrollment.tag.name}» رد شد.',
+                )
+            except bale_api.BaleAPIError:
+                pass
+            messages.warning(request, 'درخواست ثبت‌نام رد شد.')
+        return HttpResponseRedirect(request.path)
 
 
 class CallbackLogListView(StaffRequiredMixin, ListView):

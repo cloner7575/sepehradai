@@ -5,8 +5,11 @@ from .models import (
     CallbackLog,
     Campaign,
     CampaignDelivery,
+    ClassEnrollmentRequest,
     InboundMessage,
     Subscriber,
+    SubscriberTag,
+    Tag,
 )
 
 
@@ -50,9 +53,31 @@ class CallbackLogAdmin(admin.ModelAdmin):
 class CampaignAdmin(admin.ModelAdmin):
     list_display = ('title', 'content_type', 'schedule_kind', 'status', 'scheduled_at', 'created_at')
     list_filter = ('status', 'content_type', 'schedule_kind')
+    filter_horizontal = ('target_tags',)
 
 
 @admin.register(CampaignDelivery)
 class CampaignDeliveryAdmin(admin.ModelAdmin):
     list_display = ('campaign', 'subscriber', 'status', 'sent_at', 'created_at')
     list_filter = ('status',)
+
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'tag_type', 'is_active', 'updated_at')
+    list_filter = ('tag_type', 'is_active')
+    search_fields = ('name', 'slug')
+
+
+@admin.register(SubscriberTag)
+class SubscriberTagAdmin(admin.ModelAdmin):
+    list_display = ('subscriber', 'tag', 'assigned_by', 'assigned_at')
+    list_filter = ('tag',)
+    search_fields = ('subscriber__phone_number', 'subscriber__username', 'tag__name')
+
+
+@admin.register(ClassEnrollmentRequest)
+class ClassEnrollmentRequestAdmin(admin.ModelAdmin):
+    list_display = ('subscriber', 'tag', 'status', 'requested_at', 'reviewed_at', 'reviewed_by')
+    list_filter = ('status', 'tag')
+    search_fields = ('subscriber__phone_number', 'subscriber__username', 'tag__name')

@@ -8,8 +8,14 @@
   <div class="panel-card-body py-3">
     <form method="get" class="search-bar d-flex flex-wrap gap-2 align-items-center">
       <input type="search" name="q" value="{{ request.GET.q }}" class="form-control panel-input search-bar-input flex-grow-1 min-w-0" placeholder="جستجو…">
+      <select name="tag" class="form-select panel-input" style="max-width: 280px;">
+        <option value="">همه دسته‌بندی‌ها</option>
+        {% for tag in available_tags %}
+        <option value="{{ tag.id }}" {% if selected_tag_id == tag.id|stringformat:'s' %}selected{% endif %}>{{ tag.name }}</option>
+        {% endfor %}
+      </select>
       <button type="submit" class="btn btn-panel-primary btn-sm"><i class="bi bi-search me-1"></i>جستجو</button>
-      {% if request.GET.q %}
+      {% if request.GET.q or request.GET.tag %}
       <a href="{% url 'subscriber_list' %}" class="btn btn-panel-ghost btn-sm">پاک کردن</a>
       {% endif %}
     </form>
@@ -65,10 +71,10 @@
 {% if is_paginated %}
 <nav class="mt-4"><ul class="pagination justify-content-center">
   {% if page_obj.has_previous %}
-  <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ request.GET.q }}">قبلی</a></li>
+  <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ request.GET.q }}&tag={{ request.GET.tag }}">قبلی</a></li>
   {% endif %}
   {% if page_obj.has_next %}
-  <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ request.GET.q }}">بعدی</a></li>
+  <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ request.GET.q }}&tag={{ request.GET.tag }}">بعدی</a></li>
   {% endif %}
 </ul></nav>
 {% endif %}

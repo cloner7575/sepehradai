@@ -24,6 +24,11 @@ urlpatterns = [
     path('bot/', views_panel.BotSettingsView.as_view(), name='bot_settings'),
     path('subscribers/', views_panel.SubscriberListView.as_view(), name='subscriber_list'),
     path('subscribers/<int:pk>/', views_panel.SubscriberDetailView.as_view(), name='subscriber_detail'),
+    path(
+        'enrollments/',
+        views_panel.EnrollmentRequestListView.as_view(),
+        name='enrollment_request_list',
+    ),
     path('campaigns/', views_panel.CampaignListView.as_view(), name='campaign_list'),
     path('campaigns/new/', views_panel.CampaignCreateView.as_view(), name='campaign_create'),
     path(

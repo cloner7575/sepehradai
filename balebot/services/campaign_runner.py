@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from balebot.models import Campaign, CampaignDelivery, Subscriber
 from balebot.services import bale_api
+from balebot.services.audience import resolve_campaign_subscribers_qs
 from balebot.services.campaign_send import ignore_setting_delay, send_campaign_to_chat
 
 logger = logging.getLogger(__name__)
@@ -43,7 +44,11 @@ def run_delivery_pass_for_campaign(
     """
     sent_here = 0
     fail_here = 0
-    subs = Subscriber.objects.filter(is_active=True, is_registered=True).order_by('id')
+    snapshot_ids = [int(sid) for sid in (campaign.audience_snapshot or []) if str(sid).isdigit()]
+    if snapshot_ids:
+        subs = Subscriber.objects.filter(id__in=snapshot_ids).order_by('id')
+    else:
+        subs = resolve_campaign_subscribers_qs(campaign)
 
     for sub in subs.iterator():
         deliv, _ = CampaignDelivery.objects.get_or_create(

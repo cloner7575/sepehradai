@@ -5,12 +5,13 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from balebot.models import BotSettings
+from balebot.models import BotSettings, Tag
 from balebot.services.keyboard_layout import normalize_to_sections
 
 _BOT_NAV = re.compile(r'^b((?:\d+:\d+:\d+)(?:\|\d+:\d+:\d+)*)$')
 _BOT_LEGACY = re.compile(r'^b(\d+)_(\d+)_(\d+)$')
 _MAX_CB_LEN = 64
+_CLASS_ENROLL_CB = re.compile(r'^be:(\d+)$')
 
 
 def parse_nav_callback(data: str) -> list[tuple[int, int, int]] | None:
@@ -204,3 +205,24 @@ def build_start_inline_markup(settings_obj: BotSettings) -> dict[str, Any] | Non
     """اولین پیام /start — فقط ریشه، بدون ردیف بازگشت."""
     secs = get_sections_root(settings_obj)
     return build_markup_for_sections(secs, [])
+
+
+def build_class_enrollment_markup() -> dict[str, Any] | None:
+    rows: list[list[dict[str, str]]] = []
+    class_tags = Tag.objects.filter(
+        is_active=True,
+        tag_type=Tag.TagType.CLASS,
+    ).order_by('name')
+    for tag in class_tags:
+        rows.append([{'text': tag.name[:64], 'callback_data': f'be:{tag.id}'}])
+    if not rows:
+        return None
+    rows.insert(0, [{'text': '« بازگشت', 'callback_data': 'bz'}])
+    return {'inline_keyboard': rows}
+
+
+def parse_class_enroll_callback(data: str) -> int | None:
+    m = _CLASS_ENROLL_CB.match((data or '').strip())
+    if not m:
+        return None
+    return int(m.group(1))

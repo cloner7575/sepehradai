@@ -30,6 +30,25 @@
   </div>
 </div>
 
+<div class="panel-card mb-4">
+  <div class="panel-card-header"><h2 class="panel-card-title small text-uppercase opacity-75 mb-0">مخاطب کمپین</h2></div>
+  <div class="panel-card-body small mb-0">
+    {% if target_tags %}
+      <p class="mb-2"><strong>فیلتر دسته‌بندی:</strong></p>
+      <div class="d-flex flex-wrap gap-2 mb-2">
+        {% for tag in target_tags %}
+          <span class="badge text-bg-primary">{{ tag.name }}</span>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="mb-2 text-secondary">این کمپین بدون فیلتر Tag تنظیم شده و برای همه کاربران فعال/ثبت‌نام‌شده ارسال می‌شود.</p>
+    {% endif %}
+    {% if audience_snapshot_count %}
+      <p class="mb-0 text-secondary"><strong>Snapshot ذخیره‌شده:</strong> {{ audience_snapshot_count }} کاربر</p>
+    {% endif %}
+  </div>
+</div>
+
 {% if object.body %}
 <div class="panel-card mb-4">
   <div class="panel-card-header"><h2 class="panel-card-title small text-uppercase opacity-75 mb-0">متن / کپشن</h2></div>

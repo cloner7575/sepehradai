@@ -4,35 +4,53 @@
 {% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">نمای کلی مخاطبان، کمپین‌ها و تحویل پیام‌ها</p>{% endblock %}
 
 {% block content %}
-<div class="row g-4 mb-4">
-  <div class="col-sm-6 col-xl-3">
-    <div class="stat-card">
-      <i class="bi bi-person-check stat-card-icon"></i>
-      <div class="stat-card-label">مشترکین فعال</div>
-      <div class="stat-card-value">{{ subscriber_active }}</div>
-      <div class="small text-muted mt-2">ثبت‌شده با شماره</div>
+<div class="dashboard-overview mb-4">
+  <div class="row g-3 g-xl-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card stat-card-compact">
+        <div class="stat-card-head">
+          <div class="stat-card-label text-center w-100 d-block">مشترکین فعال</div>
+          <i class="bi bi-person-check stat-card-icon"></i>
+        </div>
+        <div class="stat-card-value">{{ subscriber_active }}</div>
+        <div class="small text-muted mt-2">ثبت‌شده با شماره</div>
+      </div>
     </div>
-  </div>
-  <div class="col-sm-6 col-xl-3">
-    <div class="stat-card">
-      <i class="bi bi-people stat-card-icon"></i>
-      <div class="stat-card-label">کل کاربران</div>
-      <div class="stat-card-value">{{ subscriber_total }}</div>
-      <div class="small text-muted mt-2">تماس با بازو</div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card stat-card-compact">
+        <div class="stat-card-head">
+          <div class="stat-card-label text-center w-100 d-block">کل کاربران</div>
+          <i class="bi bi-people stat-card-icon"></i>
+        </div>
+        <div class="stat-card-value">{{ subscriber_total }}</div>
+        <div class="small text-muted mt-2">تماس با بازو</div>
+      </div>
     </div>
-  </div>
-  <div class="col-sm-6 col-xl-3">
-    <div class="stat-card">
-      <i class="bi bi-lightning-charge stat-card-icon"></i>
-      <div class="stat-card-label">کمپین در جریان</div>
-      <div class="stat-card-value">{{ campaign_running }}</div>
-      <div class="small text-muted mt-2">از {{ campaign_total }} کمپین کل</div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card stat-card-compact">
+        <div class="stat-card-head">
+          <div class="stat-card-label text-center w-100 d-block">کمپین در جریان</div>
+          <i class="bi bi-lightning-charge stat-card-icon"></i>
+        </div>
+        <div class="stat-card-value">{{ campaign_running }}</div>
+        <div class="small text-muted mt-2">از {{ campaign_total }} کمپین کل</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card stat-card-compact">
+        <div class="stat-card-head">
+          <div class="stat-card-label text-center w-100 d-block">ارسال موفق</div>
+          <i class="bi bi-check2-circle stat-card-icon"></i>
+        </div>
+        <div class="stat-card-value">{{ delivery_sent }}</div>
+        <div class="small text-muted mt-2">موفق در تحویل پیام</div>
+      </div>
     </div>
   </div>
 </div>
 
 <div class="row g-4">
-  <div class="col-lg-6">
+  <div class="col-12">
     <div class="panel-card h-100">
       <div class="panel-card-header">
         <h2 class="panel-card-title">آخرین کمپین‌ها</h2>

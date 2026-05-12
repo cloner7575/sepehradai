@@ -4,7 +4,7 @@ from django import forms
 from django.core.files import File
 from django.core.files.storage import default_storage
 
-from balebot.models import BotSettings, Campaign
+from balebot.models import BotSettings, Campaign, Tag
 from balebot.services.jalali_datetime import aware_to_jalali_parts, parse_jalali_date_time
 
 # هم‌نام با مقدار سشن در views_panel (آپلود ویدیو)
@@ -186,6 +186,13 @@ class CampaignForm(forms.ModelForm):
             },
         ),
     )
+    target_tags = forms.ModelMultipleChoiceField(
+        required=False,
+        queryset=Tag.objects.filter(is_active=True).order_by('name'),
+        label='دسته‌بندی مخاطب (Tag)',
+        help_text='اگر انتخاب نکنید، کمپین برای همه کاربران فعال و ثبت‌نام‌شده ارسال می‌شود.',
+        widget=forms.SelectMultiple(attrs={'class': 'form-select panel-input', 'size': 6}),
+    )
 
     class Meta:
         model = Campaign
@@ -193,6 +200,7 @@ class CampaignForm(forms.ModelForm):
             'title',
             'schedule_kind',
             'content_type',
+            'target_tags',
             'body',
             'media',
             'inline_keyboard',
@@ -211,6 +219,7 @@ class CampaignForm(forms.ModelForm):
         'jalali_scheduled_date',
         'jalali_scheduled_time',
         'content_type',
+        'target_tags',
         'body',
         'media',
         'inline_keyboard',

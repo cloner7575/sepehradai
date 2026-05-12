@@ -1,6 +1,30 @@
 from django.db import models
 
 
+class Tag(models.Model):
+    class TagType(models.TextChoices):
+        CLASS = 'class', 'کلاس'
+        GENERIC = 'generic', 'عمومی'
+
+    name = models.CharField(max_length=120, unique=True)
+    slug = models.SlugField(max_length=140, unique=True)
+    tag_type = models.CharField(
+        max_length=16,
+        choices=TagType.choices,
+        default=TagType.GENERIC,
+        db_index=True,
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class Subscriber(models.Model):
     """کاربرانی که با بازو تعامل دارند."""
 
@@ -34,6 +58,12 @@ class Subscriber(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    tags = models.ManyToManyField(
+        Tag,
+        through='SubscriberTag',
+        related_name='subscribers',
+        blank=True,
+    )
 
     class Meta:
         ordering = ['-updated_at']
@@ -77,6 +107,52 @@ class InboundMessage(models.Model):
 
     def __str__(self):
         return f'{self.kind} @ {self.created_at}'
+
+
+class SupportTicketMessage(models.Model):
+    class Sender(models.TextChoices):
+        USER = 'user', 'کاربر'
+        ADMIN = 'admin', 'ادمین'
+
+    class MessageKind(models.TextChoices):
+        TEXT = 'text', 'متن'
+        PHOTO = 'photo', 'عکس'
+        VIDEO = 'video', 'ویدیو'
+        VOICE = 'voice', 'صدا'
+        DOCUMENT = 'document', 'فایل'
+        OTHER = 'other', 'سایر'
+
+    subscriber = models.ForeignKey(
+        Subscriber,
+        on_delete=models.CASCADE,
+        related_name='support_ticket_messages',
+    )
+    sender = models.CharField(max_length=16, choices=Sender.choices)
+    kind = models.CharField(max_length=32, choices=MessageKind.choices, default=MessageKind.TEXT)
+    text = models.TextField(blank=True, default='')
+    file_id = models.CharField(max_length=512, blank=True, default='')
+    inbound_message = models.ForeignKey(
+        InboundMessage,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='support_ticket_items',
+    )
+    parent_user_message = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='admin_replies',
+        help_text='برای پاسخ ادمین: پیام کاربرِ مبنای این تیکت.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'{self.subscriber_id}:{self.sender}:{self.kind}'
 
 
 class CallbackLog(models.Model):
@@ -131,6 +207,18 @@ class Campaign(models.Model):
         blank=True,
         help_text='لیست ردیف‌ها: هر ردیف آرایه‌ای از {text, callback_data}',
     )
+    target_tags = models.ManyToManyField(
+        Tag,
+        related_name='campaigns',
+        blank=True,
+        help_text='اگر انتخاب شود، کمپین فقط برای اعضای همین برچسب‌ها صف می‌شود.',
+    )
+    audience_snapshot = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='شناسهٔ مشترکین نهایی این کمپین در زمان صف‌بندی.',
+    )
+    audience_snapshot_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(
         max_length=32,
         choices=Status.choices,
@@ -208,6 +296,83 @@ class CampaignDelivery(models.Model):
 
     def __str__(self):
         return f'{self.campaign_id} → {self.subscriber_id} ({self.status})'
+
+
+class SubscriberTag(models.Model):
+    subscriber = models.ForeignKey(
+        Subscriber,
+        on_delete=models.CASCADE,
+        related_name='subscriber_tags',
+    )
+    tag = models.ForeignKey(
+        Tag,
+        on_delete=models.CASCADE,
+        related_name='subscriber_tags',
+    )
+    assigned_by = models.ForeignKey(
+        'auth.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_subscriber_tags',
+    )
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-assigned_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['subscriber', 'tag'],
+                name='unique_subscriber_tag',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.subscriber_id}:{self.tag_id}'
+
+
+class ClassEnrollmentRequest(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'در انتظار'
+        APPROVED = 'approved', 'تایید شده'
+        REJECTED = 'rejected', 'رد شده'
+
+    subscriber = models.ForeignKey(
+        Subscriber,
+        on_delete=models.CASCADE,
+        related_name='enrollment_requests',
+    )
+    tag = models.ForeignKey(
+        Tag,
+        on_delete=models.CASCADE,
+        related_name='enrollment_requests',
+        limit_choices_to={'tag_type': Tag.TagType.CLASS},
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
+    )
+    note = models.CharField(max_length=500, blank=True, default='')
+    requested_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        'auth.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_enrollment_requests',
+    )
+
+    class Meta:
+        ordering = ['-requested_at']
+        indexes = [
+            models.Index(fields=['status', 'requested_at']),
+        ]
+
+    def __str__(self):
+        return f'{self.subscriber_id}:{self.tag_id}:{self.status}'
 
 
 class BotSettings(models.Model):

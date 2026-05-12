@@ -1,4 +1,5 @@
 {% extends "balebot/base.html" %}
+{% load jalali_extras %}
 {% block title %}جزئیات کاربر{% endblock %}
 {% block page_title %}جزئیات کاربر{% endblock %}
 {% block page_subtitle %}
@@ -6,54 +7,240 @@
 {% endblock %}
 
 {% block content %}
-<div class="panel-card mb-4">
-  <div class="panel-card-header">
-    <h2 class="panel-card-title mb-0">اطلاعات کاربر</h2>
-    <a href="{% url 'subscriber_list' %}" class="btn btn-panel-ghost btn-sm">بازگشت به لیست</a>
-  </div>
+<div class="subscriber-hero panel-card mb-4">
   <div class="panel-card-body">
-    <div class="row g-3">
-      <div class="col-md-6"><strong>شناسه بله:</strong> <code>{{ object.bale_user_id }}</code></div>
-      <div class="col-md-6"><strong>شناسه چت:</strong> <code>{{ object.chat_id }}</code></div>
-      <div class="col-md-6"><strong>نام:</strong> {{ object.first_name|default:"—" }}</div>
-      <div class="col-md-6"><strong>شماره:</strong> {{ object.phone_number|default:"—" }}</div>
-      <div class="col-md-6"><strong>تعداد پیام پشتیبانی:</strong> {{ support_messages_count }}</div>
-      <div class="col-md-6"><strong>آخرین به‌روزرسانی:</strong> {{ object.updated_at }}</div>
+    <div class="subscriber-hero-top">
+      <div class="subscriber-id-block">
+        <div class="subscriber-avatar">
+          {{ object.first_name|default:"U"|slice:":1" }}
+        </div>
+        <div>
+          <h2 class="subscriber-name mb-1">{{ object.first_name|default:"کاربر بدون نام" }}</h2>
+          <div class="subscriber-meta-line">
+            <span>شناسه بله: <code>{{ object.bale_user_id }}</code></span>
+            <span>چت: <code>{{ object.chat_id }}</code></span>
+          </div>
+        </div>
+      </div>
+      <a href="{% url 'subscriber_list' %}" class="btn btn-panel-ghost btn-sm">
+        <i class="bi bi-arrow-right-short me-1"></i>بازگشت به لیست
+      </a>
+    </div>
+    <div class="subscriber-stat-grid mt-3">
+      <div class="subscriber-stat-chip">
+        <span class="label">شماره</span>
+        <span class="value">{{ object.phone_number|default:"—" }}</span>
+      </div>
+      <div class="subscriber-stat-chip">
+        <span class="label">پیام پشتیبانی</span>
+        <span class="value">{{ support_messages_count }}</span>
+      </div>
+      <div class="subscriber-stat-chip">
+        <span class="label">پیام عادی</span>
+        <span class="value">{{ normal_messages_count }}</span>
+      </div>
+      <div class="subscriber-stat-chip">
+        <span class="label">آخرین بروزرسانی</span>
+        <span class="value">{{ object.updated_at|jalali_datetime }}</span>
+      </div>
     </div>
   </div>
 </div>
 
-<div class="panel-card mb-4">
-  <div class="panel-card-header">
-    <h2 class="panel-card-title mb-0">ارسال پیام شخصی</h2>
-  </div>
-  <div class="panel-card-body">
-    <form method="post" enctype="multipart/form-data" class="d-flex flex-column gap-3">
-      {% csrf_token %}
-      <textarea
-        name="personal_message"
-        rows="4"
-        class="form-control panel-input"
-        placeholder="متن پیام برای ارسال مستقیم (اختیاری اگر مدیا دارید)"
-      ></textarea>
-      <input
-        type="file"
-        name="personal_media"
-        class="form-control panel-input"
-        accept="image/*,video/*,audio/*,.pdf,.zip,.rar,.doc,.docx,.xls,.xlsx,.txt"
-      >
-      <small class="text-muted">می‌توانید فقط متن، فقط مدیا، یا مدیا همراه متن (caption) ارسال کنید.</small>
-      <div>
-        <button type="submit" class="btn btn-panel-primary">ارسال پیام</button>
+<div class="support-workspace mb-4">
+  <aside class="support-sidebar panel-card">
+    <div class="panel-card-header">
+      <h3 class="panel-card-title mb-0">تیکت‌ها</h3>
+      <span class="text-muted small">{{ ticket_list|length }} مورد</span>
+    </div>
+    <div class="panel-card-body pt-2">
+      <div class="ticket-list">
+        {% for t in ticket_list %}
+        <form method="get" class="m-0">
+          <input type="hidden" name="ticket" value="{{ t.id }}">
+          <button
+            type="submit"
+            class="ticket-list-item ticket-list-btn {% if selected_ticket and selected_ticket.id == t.id %}active{% endif %}"
+          >
+            <div class="ticket-list-top">
+              <div class="ticket-list-meta">
+                <span class="ticket-list-dot"></span>
+                <span class="ticket-list-time">{{ t.created_at|jalali_datetime }}</span>
+              </div>
+              {% with cnt=ticket_reply_counts|get_item:t.id %}
+              <span class="ticket-pill {% if cnt %}ticket-pill-answered{% else %}ticket-pill-pending{% endif %}">
+                {% if cnt %}{{ cnt }} پاسخ{% else %}بی‌پاسخ{% endif %}
+              </span>
+              {% endwith %}
+            </div>
+            <div class="ticket-list-text">
+              {% if t.text %}{{ t.text|truncatechars:95 }}{% elif t.file_id %}فایل: {{ t.file_id|truncatechars:60 }}{% else %}—{% endif %}
+            </div>
+            <div class="ticket-list-open"><i class="bi bi-chat-left-text me-1"></i>مشاهده مکالمه</div>
+          </button>
+        </form>
+        {% empty %}
+        <div class="ticket-empty-state">هنوز تیکتی ثبت نشده است.</div>
+        {% endfor %}
       </div>
-    </form>
+    </div>
+  </aside>
+
+  <section class="support-main panel-card">
+    <div class="panel-card-header">
+      <h3 class="panel-card-title mb-0">مکالمه تیکت</h3>
+      {% if selected_ticket %}
+      <span class="text-muted small">{{ selected_ticket.created_at|jalali_datetime }}</span>
+      {% else %}
+      <span class="text-muted small">تیکت انتخاب نشده</span>
+      {% endif %}
+    </div>
+    <div class="panel-card-body">
+      {% if selected_ticket %}
+      <div class="ticket-active-summary">
+        <div>
+          <div class="ticket-subsection-title">خلاصه پیام کاربر</div>
+          <div class="ticket-active-time">
+            {% if selected_ticket.text %}
+              {{ selected_ticket.text|truncatechars:140 }}
+            {% elif selected_ticket.file_id %}
+              فایل: {{ selected_ticket.file_id|truncatechars:80 }}
+            {% else %}
+              —
+            {% endif %}
+          </div>
+        </div>
+        {% with cnt=ticket_reply_counts|get_item:selected_ticket.id %}
+        <span class="badge {% if cnt %}text-bg-primary{% else %}text-bg-warning{% endif %}">
+          {% if cnt %}{{ cnt }} پاسخ ثبت‌شده{% else %}بدون پاسخ{% endif %}
+        </span>
+        {% endwith %}
+      </div>
+
+      <div class="ticket-chat-thread ticket-chat-panel">
+        {% for row in ticket_chat_messages %}
+        <div class="ticket-msg-row {% if row.sender == 'admin' %}admin{% else %}user{% endif %}">
+          <div class="ticket-msg-bubble">
+            <div class="ticket-msg-meta">
+              {% if row.sender == 'admin' %}
+              <span class="badge text-bg-primary">پاسخ من</span>
+              {% else %}
+              <span class="badge text-bg-warning">پیام کاربر</span>
+              {% endif %}
+              <span class="ticket-msg-time">{{ row.created_at|jalali_datetime }}</span>
+            </div>
+            <div class="ticket-msg-text">
+              {% if row.text %}
+                {{ row.text }}
+              {% elif row.file_id %}
+                فایل: {{ row.file_id|truncatechars:80 }}
+              {% else %}
+                —
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <form method="post" enctype="multipart/form-data" class="ticket-reply-form mt-3">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="reply_ticket">
+        <input type="hidden" name="ticket_id" value="{{ selected_ticket.id }}">
+        <textarea
+          name="personal_message"
+          rows="3"
+          class="form-control panel-input"
+          placeholder="پاسخ به همین تیکت..."
+        ></textarea>
+        <div class="ticket-reply-actions">
+          <input
+            type="file"
+            name="personal_media"
+            class="form-control panel-input"
+            accept="image/*,video/*,audio/*,.pdf,.zip,.rar,.doc,.docx,.xls,.xlsx,.txt"
+          >
+          <button type="submit" class="btn btn-panel-primary">ارسال پاسخ تیکت</button>
+        </div>
+      </form>
+      {% else %}
+      <div class="ticket-empty-state">یک تیکت از ستون کناری انتخاب کن تا مکالمه باز شود.</div>
+      {% endif %}
+    </div>
+  </section>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="panel-card h-100">
+      <div class="panel-card-header">
+        <h3 class="panel-card-title mb-0">ارسال پیام عادی (خارج از تیکت)</h3>
+        <span class="text-muted small">{{ normal_outbound_messages|length }} پیام اخیر</span>
+      </div>
+      <div class="panel-card-body">
+        <form method="post" enctype="multipart/form-data" class="d-flex flex-column gap-3">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="send_personal">
+          <textarea
+            name="personal_message"
+            rows="4"
+            class="form-control panel-input"
+            placeholder="متن پیام عادی به کاربر (اختیاری اگر مدیا دارید)"
+          ></textarea>
+          <input
+            type="file"
+            name="personal_media"
+            class="form-control panel-input"
+            accept="image/*,video/*,audio/*,.pdf,.zip,.rar,.doc,.docx,.xls,.xlsx,.txt"
+          >
+          <small class="text-muted">ارسال متن، مدیا، یا مدیا همراه کپشن.</small>
+          <div>
+            <button type="submit" class="btn btn-panel-primary">ارسال پیام عادی</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="panel-card h-100">
+      <div class="panel-card-header">
+        <h3 class="panel-card-title mb-0">تاریخچه پیام‌های عادی من</h3>
+        <span class="text-muted small">{{ normal_outbound_messages|length }} پیام</span>
+      </div>
+      <div class="panel-card-body">
+        <div class="ticket-chat-thread ticket-chat-compact">
+          {% for row in normal_outbound_messages %}
+          <div class="ticket-msg-row admin">
+            <div class="ticket-msg-bubble">
+              <div class="ticket-msg-meta">
+                <span class="badge text-bg-primary">پیام عادی من</span>
+                <span class="ticket-msg-time">{{ row.created_at|jalali_datetime }}</span>
+              </div>
+              <div class="ticket-msg-text">
+                {% if row.text %}
+                  {{ row.text }}
+                {% elif row.file_id %}
+                  فایل: {{ row.file_id|truncatechars:90 }}
+                {% else %}
+                  —
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% empty %}
+          <div class="ticket-empty-state">هنوز پیام عادی ارسال نشده است.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
-<div class="panel-card">
+<div class="panel-card mt-4">
   <div class="panel-card-header">
-    <h2 class="panel-card-title mb-0">پیام‌های ورودی کاربر</h2>
-    <span class="text-muted small">{{ inbound_messages|length }} پیام اخیر</span>
+    <h3 class="panel-card-title mb-0">پیام‌های ورودی کاربر</h3>
+    <span class="text-muted small">{{ inbound_messages|length }} پیام</span>
   </div>
   <div class="panel-card-body border-bottom d-flex flex-wrap gap-2">
     <a
@@ -89,7 +276,7 @@
         <tbody>
           {% for row in inbound_messages %}
           <tr>
-            <td class="small text-muted">{{ row.created_at }}</td>
+            <td class="small text-muted">{{ row.created_at|jalali_datetime }}</td>
             <td><span class="badge text-bg-secondary bg-opacity-25">{{ row.get_kind_display }}</span></td>
             <td>
               {% if row.is_support_request %}
