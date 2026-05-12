@@ -24,6 +24,7 @@ urlpatterns = [
     path('bot/', views_panel.BotSettingsView.as_view(), name='bot_settings'),
     path('subscribers/', views_panel.SubscriberListView.as_view(), name='subscriber_list'),
     path('subscribers/<int:pk>/', views_panel.SubscriberDetailView.as_view(), name='subscriber_detail'),
+    path('classes/', views_panel.ClassTagListView.as_view(), name='class_tag_list'),
     path(
         'enrollments/',
         views_panel.EnrollmentRequestListView.as_view(),

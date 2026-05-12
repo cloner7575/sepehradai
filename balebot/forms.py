@@ -1,8 +1,10 @@
 import json
+import uuid
 
 from django import forms
 from django.core.files import File
 from django.core.files.storage import default_storage
+from django.utils.text import slugify
 
 from balebot.models import BotSettings, Campaign, Tag
 from balebot.services.jalali_datetime import aware_to_jalali_parts, parse_jalali_date_time
@@ -361,3 +363,35 @@ class CampaignForm(forms.ModelForm):
                 default_storage.delete(path)
             except OSError:
                 pass
+
+
+class ClassTagForm(forms.ModelForm):
+    class Meta:
+        model = Tag
+        fields = ['name', 'slug', 'is_active']
+        widgets = {
+            'name': forms.TextInput(
+                attrs={'class': 'form-control panel-input', 'placeholder': 'مثلاً کلاس هوش مصنوعی'}
+            ),
+            'slug': forms.TextInput(
+                attrs={'class': 'form-control panel-input', 'placeholder': 'ai-class'}
+            ),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
+        }
+
+    def clean_slug(self):
+        slug = (self.cleaned_data.get('slug') or '').strip()
+        if slug:
+            return slugify(slug) or slug
+        name = (self.cleaned_data.get('name') or '').strip()
+        generated = slugify(name)
+        if generated:
+            return generated
+        return f'class-{uuid.uuid4().hex[:8]}'
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.tag_type = Tag.TagType.CLASS
+        if commit:
+            obj.save()
+        return obj

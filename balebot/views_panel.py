@@ -14,7 +14,7 @@ from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 
-from balebot.forms import BotSettingsForm, CampaignForm
+from balebot.forms import BotSettingsForm, CampaignForm, ClassTagForm
 from balebot.services import bale_api
 from balebot.services.audience import snapshot_campaign_audience
 from balebot.services.campaign_runner import run_single_campaign_web
@@ -632,6 +632,48 @@ class EnrollmentRequestListView(StaffRequiredMixin, ListView):
             except bale_api.BaleAPIError:
                 pass
             messages.warning(request, 'درخواست ثبت‌نام رد شد.')
+        return HttpResponseRedirect(request.path)
+
+
+class ClassTagListView(StaffRequiredMixin, ListView):
+    model = Tag
+    template_name = 'balebot/class_tag_list.html'
+    paginate_by = 30
+
+    def get_queryset(self):
+        return Tag.objects.filter(tag_type=Tag.TagType.CLASS).order_by('name')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['class_form'] = ClassTagForm()
+        return ctx
+
+    def post(self, request, *args, **kwargs):
+        action = (request.POST.get('action') or '').strip().lower()
+        if action == 'create':
+            form = ClassTagForm(request.POST)
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'کلاس جدید ساخته شد.')
+                return HttpResponseRedirect(request.path)
+            ctx = self.get_context_data()
+            ctx['class_form'] = form
+            return self.render_to_response(ctx)
+        if action in {'toggle_active', 'toggle_inactive'}:
+            tag_id = (request.POST.get('tag_id') or '').strip()
+            if not tag_id.isdigit():
+                messages.error(request, 'شناسه کلاس نامعتبر است.')
+                return HttpResponseRedirect(request.path)
+            tag = Tag.objects.filter(id=int(tag_id), tag_type=Tag.TagType.CLASS).first()
+            if tag is None:
+                messages.error(request, 'کلاس پیدا نشد.')
+                return HttpResponseRedirect(request.path)
+            tag.is_active = action == 'toggle_active'
+            tag.save(update_fields=['is_active', 'updated_at'])
+            messages.success(
+                request,
+                'کلاس فعال شد.' if tag.is_active else 'کلاس غیرفعال شد.',
+            )
         return HttpResponseRedirect(request.path)
 
 

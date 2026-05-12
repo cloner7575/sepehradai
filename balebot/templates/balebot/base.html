@@ -37,6 +37,9 @@
         <a class="nav-link {% if name == 'subscriber_list' %}active{% endif %}" href="{% url 'subscriber_list' %}">
           <i class="bi bi-people-fill"></i> مشترکین
         </a>
+        <a class="nav-link {% if name == 'class_tag_list' %}active{% endif %}" href="{% url 'class_tag_list' %}">
+          <i class="bi bi-journal-check"></i> کلاس‌ها
+        </a>
         <a class="nav-link {% if name == 'enrollment_request_list' %}active{% endif %}" href="{% url 'enrollment_request_list' %}">
           <i class="bi bi-person-check-fill"></i> درخواست ثبت‌نام کلاس
         </a>

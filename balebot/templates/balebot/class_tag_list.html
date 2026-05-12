@@ -1,0 +1,85 @@
+{% extends "balebot/base.html" %}
+{% block title %}مدیریت کلاس‌ها{% endblock %}
+{% block page_title %}کلاس‌ها{% endblock %}
+{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">کلاس تعریف کنید تا گزینه ثبت‌نام آن در ربات نمایش داده شود.</p>{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="panel-card">
+      <div class="panel-card-header">
+        <h2 class="panel-card-title mb-0">تعریف کلاس جدید</h2>
+      </div>
+      <div class="panel-card-body">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="create">
+          {% include "balebot/_field.html" with field=class_form.name %}
+          {% include "balebot/_field.html" with field=class_form.slug %}
+          <div class="mb-3 form-check form-switch">
+            {{ class_form.is_active }} <label class="form-check-label" for="{{ class_form.is_active.id_for_label }}">فعال باشد</label>
+          </div>
+          {% for err in class_form.non_field_errors %}<div class="text-danger small mb-2">{{ err }}</div>{% endfor %}
+          <button type="submit" class="btn btn-panel-primary">ایجاد کلاس</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="panel-card">
+      <div class="panel-card-header">
+        <h2 class="panel-card-title mb-0">لیست کلاس‌ها</h2>
+      </div>
+      <div class="panel-table-wrap rounded-0 border-top-0">
+        <div class="table-responsive">
+          <table class="table panel-table table-striped mb-0">
+            <thead>
+              <tr>
+                <th>نام کلاس</th>
+                <th>Slug</th>
+                <th>وضعیت</th>
+                <th>عملیات</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for tag in object_list %}
+              <tr>
+                <td>{{ tag.name }}</td>
+                <td><code>{{ tag.slug }}</code></td>
+                <td>{% if tag.is_active %}<span class="badge text-bg-success">فعال</span>{% else %}<span class="badge text-bg-secondary">غیرفعال</span>{% endif %}</td>
+                <td>
+                  <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="tag_id" value="{{ tag.id }}">
+                    {% if tag.is_active %}
+                    <input type="hidden" name="action" value="toggle_inactive">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">غیرفعال‌سازی</button>
+                    {% else %}
+                    <input type="hidden" name="action" value="toggle_active">
+                    <button type="submit" class="btn btn-success btn-sm">فعال‌سازی</button>
+                    {% endif %}
+                  </form>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-center text-muted py-4">هنوز کلاسی تعریف نشده است.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if is_paginated %}
+<nav class="mt-4"><ul class="pagination justify-content-center">
+  {% if page_obj.has_previous %}
+  <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">قبلی</a></li>
+  {% endif %}
+  {% if page_obj.has_next %}
+  <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">بعدی</a></li>
+  {% endif %}
+</ul></nav>
+{% endif %}
+{% endblock %}
