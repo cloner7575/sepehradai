@@ -1,8 +1,14 @@
-<div class="mb-3">
+<div class="mb-3{% if field_depth is not None %} field-depth-wrap{% endif %}">
   {% if field.field.widget.input_type != 'checkbox' %}
   <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
   {% endif %}
+  {% if field_depth is not None %}
+  <div class="panel-input-depth-{{ field_depth|default:0 }}">
+    {{ field }}
+  </div>
+  {% else %}
   {{ field }}
+  {% endif %}
   {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
   {% for err in field.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
 </div>

@@ -1,0 +1,10 @@
+<div class="settings-switch-row">
+  <div class="settings-switch-copy">
+    <div class="settings-switch-title">{{ title }}</div>
+    {% if desc %}<p class="settings-switch-desc mb-0">{{ desc }}</p>{% endif %}
+  </div>
+  <div class="form-check form-switch settings-switch-control flex-shrink-0">
+    {{ field }}
+    <label class="visually-hidden" for="{{ field.id_for_label }}">{{ title }}</label>
+  </div>
+</div>

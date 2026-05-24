@@ -1,29 +1,29 @@
 import json
-import uuid
 
 from django import forms
 from django.core.files import File
 from django.core.files.storage import default_storage
-from django.utils.text import slugify
 
 from balebot.models import BotSettings, Campaign, Tag
 from balebot.services.jalali_datetime import aware_to_jalali_parts, parse_jalali_date_time
 
 # هم‌نام با مقدار سشن در views_panel (آپلود ویدیو)
 _CAMPAIGN_PENDING_MEDIA_SESSION_KEY = 'campaign_pending_media'
+from balebot.services.flow_sanitize import empty_start_flow, sanitize_start_flow
 from balebot.services.keyboard_layout import (
     keyboard_has_any_button,
     normalize_to_sections,
     sanitize_keyboard_for_storage,
-    sanitize_start_keyboard_for_storage,
 )
+
+_SETTINGS_INPUT_CLASS = 'form-control panel-input'
 
 
 class BotSettingsForm(forms.ModelForm):
-    start_inline_keyboard = forms.CharField(
+    start_flow = forms.CharField(
         required=False,
         label='',
-        widget=forms.HiddenInput(attrs={'id': 'id_start_inline_keyboard'}),
+        widget=forms.HiddenInput(attrs={'id': 'id_start_flow'}),
     )
 
     class Meta:
@@ -35,10 +35,11 @@ class BotSettingsForm(forms.ModelForm):
             'start_message_contact',
             'contact_button_label',
             'registration_success_message',
+            'start_flow',
+            'start_flow_default_text',
             'unsubscribe_message',
             'callback_ack_message',
             'help_message',
-            'start_inline_keyboard',
             'collect_contact_on_start',
             'enable_help_command',
             'enable_stop_command',
@@ -49,39 +50,46 @@ class BotSettingsForm(forms.ModelForm):
         ]
         widgets = {
             'panel_brand_title': forms.TextInput(
-                attrs={'class': 'form-control panel-input'},
+                attrs={'class': _SETTINGS_INPUT_CLASS},
             ),
             'panel_brand_subtitle': forms.TextInput(
-                attrs={'class': 'form-control panel-input'},
+                attrs={'class': _SETTINGS_INPUT_CLASS},
             ),
             'start_message_normal': forms.Textarea(
                 attrs={
-                    'class': 'form-control panel-input',
+                    'class': _SETTINGS_INPUT_CLASS,
                     'rows': 4,
                     'placeholder': 'کاربر ثبت‌نام‌شده یا بدون اجبار تماس',
                 },
             ),
             'start_message_contact': forms.Textarea(
                 attrs={
-                    'class': 'form-control panel-input',
+                    'class': _SETTINGS_INPUT_CLASS,
                     'rows': 4,
                     'placeholder': 'کاربر بدون شماره وقتی دکمهٔ تماس روشن است',
                 },
             ),
             'contact_button_label': forms.TextInput(
-                attrs={'class': 'form-control panel-input'},
+                attrs={'class': _SETTINGS_INPUT_CLASS},
             ),
             'registration_success_message': forms.Textarea(
-                attrs={'class': 'form-control panel-input', 'rows': 4},
+                attrs={'class': _SETTINGS_INPUT_CLASS, 'rows': 4},
             ),
             'unsubscribe_message': forms.Textarea(
-                attrs={'class': 'form-control panel-input', 'rows': 3},
+                attrs={'class': _SETTINGS_INPUT_CLASS, 'rows': 3},
             ),
             'callback_ack_message': forms.TextInput(
-                attrs={'class': 'form-control panel-input'},
+                attrs={'class': _SETTINGS_INPUT_CLASS},
             ),
             'help_message': forms.Textarea(
-                attrs={'class': 'form-control panel-input', 'rows': 3},
+                attrs={'class': _SETTINGS_INPUT_CLASS, 'rows': 3},
+            ),
+            'start_flow_default_text': forms.Textarea(
+                attrs={
+                    'class': _SETTINGS_INPUT_CLASS,
+                    'rows': 2,
+                    'placeholder': 'وقتی مسیر دکمه به جایی وصل نیست',
+                },
             ),
             'collect_contact_on_start': forms.CheckboxInput(
                 attrs={'class': 'form-check-input', 'role': 'switch'},
@@ -96,31 +104,34 @@ class BotSettingsForm(forms.ModelForm):
                 attrs={'class': 'form-check-input', 'role': 'switch'},
             ),
             'support_button_label': forms.TextInput(
-                attrs={'class': 'form-control panel-input'},
+                attrs={'class': _SETTINGS_INPUT_CLASS},
             ),
             'support_start_prompt_message': forms.Textarea(
-                attrs={'class': 'form-control panel-input', 'rows': 3},
+                attrs={'class': _SETTINGS_INPUT_CLASS, 'rows': 3},
             ),
             'support_waiting_message': forms.Textarea(
-                attrs={'class': 'form-control panel-input', 'rows': 3},
+                attrs={'class': _SETTINGS_INPUT_CLASS, 'rows': 3},
             ),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        raw = getattr(self.instance, 'start_inline_keyboard', None)
-        norm = sanitize_start_keyboard_for_storage(normalize_to_sections(raw))
-        self.fields['start_inline_keyboard'].initial = json.dumps(norm, ensure_ascii=False)
+        raw = getattr(self.instance, 'start_flow', None)
+        if raw and isinstance(raw, dict) and raw.get('version') == 2:
+            norm = sanitize_start_flow(raw)
+        else:
+            norm = empty_start_flow()
+        self.fields['start_flow'].initial = json.dumps(norm, ensure_ascii=False)
 
-    def clean_start_inline_keyboard(self):
-        raw = self.cleaned_data.get('start_inline_keyboard')
+    def clean_start_flow(self):
+        raw = self.cleaned_data.get('start_flow')
         if raw is None or (isinstance(raw, str) and not raw.strip()):
-            return sanitize_start_keyboard_for_storage(None)
+            return empty_start_flow()
         try:
             data = json.loads(raw) if isinstance(raw, str) else raw
         except json.JSONDecodeError as e:
             raise forms.ValidationError(f'دادهٔ نامعتبر: {e}') from e
-        return sanitize_start_keyboard_for_storage(data)
+        return sanitize_start_flow(data)
 
     def clean(self):
         cleaned = super().clean()
@@ -365,33 +376,3 @@ class CampaignForm(forms.ModelForm):
                 pass
 
 
-class ClassTagForm(forms.ModelForm):
-    class Meta:
-        model = Tag
-        fields = ['name', 'slug', 'is_active']
-        widgets = {
-            'name': forms.TextInput(
-                attrs={'class': 'form-control panel-input', 'placeholder': 'مثلاً کلاس هوش مصنوعی'}
-            ),
-            'slug': forms.TextInput(
-                attrs={'class': 'form-control panel-input', 'placeholder': 'ai-class'}
-            ),
-            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
-        }
-
-    def clean_slug(self):
-        slug = (self.cleaned_data.get('slug') or '').strip()
-        if slug:
-            return slugify(slug) or slug
-        name = (self.cleaned_data.get('name') or '').strip()
-        generated = slugify(name)
-        if generated:
-            return generated
-        return f'class-{uuid.uuid4().hex[:8]}'
-
-    def save(self, commit=True):
-        obj = super().save(commit=False)
-        obj.tag_type = Tag.TagType.CLASS
-        if commit:
-            obj.save()
-        return obj

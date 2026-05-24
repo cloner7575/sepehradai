@@ -14,7 +14,7 @@ from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 
-from balebot.forms import BotSettingsForm, CampaignForm, ClassTagForm
+from balebot.forms import BotSettingsForm, CampaignForm
 from balebot.services import bale_api
 from balebot.services.audience import snapshot_campaign_audience
 from balebot.services.campaign_runner import run_single_campaign_web
@@ -24,10 +24,9 @@ from balebot.models import (
     CallbackLog,
     Campaign,
     CampaignDelivery,
-    ClassEnrollmentRequest,
+    FlowMedia,
     InboundMessage,
     Subscriber,
-    SubscriberTag,
     SupportTicketMessage,
     Tag,
 )
@@ -499,6 +498,50 @@ class CampaignMediaClearView(StaffRequiredMixin, View):
         return JsonResponse({'ok': True})
 
 
+FLOW_IMAGE_EXTENSIONS = frozenset({'.jpg', '.jpeg', '.png', '.gif', '.webp'})
+
+
+class FlowMediaUploadView(StaffRequiredMixin, View):
+    """آپلود عکس برای نودهای جریان /start."""
+
+    http_method_names = ['post']
+
+    def post(self, request, *args, **kwargs):
+        upload = request.FILES.get('file')
+        if not upload:
+            return JsonResponse({'ok': False, 'error': 'فایلی ارسال نشد.'}, status=400)
+
+        ext = Path(upload.name).suffix.lower()
+        if ext not in FLOW_IMAGE_EXTENSIONS:
+            return JsonResponse(
+                {'ok': False, 'error': 'فقط تصویر (jpg, png, gif, webp) مجاز است.'},
+                status=400,
+            )
+
+        ct = (upload.content_type or '').lower()
+        if ct and not ct.startswith('image/') and ct != 'application/octet-stream':
+            return JsonResponse(
+                {'ok': False, 'error': 'نوع فایل به‌عنوان تصویر شناخته نشد.'},
+                status=400,
+            )
+
+        max_bytes = 10 * 1024 * 1024
+        if getattr(upload, 'size', 0) and upload.size > max_bytes:
+            return JsonResponse(
+                {'ok': False, 'error': 'حجم فایل از ۱۰ مگابایت بیشتر است.'},
+                status=400,
+            )
+
+        media = FlowMedia.objects.create(file=upload)
+        return JsonResponse(
+            {
+                'ok': True,
+                'media_id': str(media.pk),
+                'name': Path(upload.name).name,
+            },
+        )
+
+
 class CampaignDetailView(StaffRequiredMixin, DetailView):
     model = Campaign
     template_name = 'balebot/campaign_detail.html'
@@ -567,114 +610,6 @@ class CampaignDetailView(StaffRequiredMixin, DetailView):
             self.object.save(update_fields=['status', 'updated_at'])
             messages.warning(request, 'کمپین لغو شد.')
         return HttpResponseRedirect(self.object.get_absolute_url())
-
-
-class EnrollmentRequestListView(StaffRequiredMixin, ListView):
-    model = ClassEnrollmentRequest
-    template_name = 'balebot/enrollment_request_list.html'
-    paginate_by = 40
-
-    def get_queryset(self):
-        qs = ClassEnrollmentRequest.objects.select_related('subscriber', 'tag', 'reviewed_by')
-        status_q = (self.request.GET.get('status') or '').strip().lower()
-        if status_q in {
-            ClassEnrollmentRequest.Status.PENDING,
-            ClassEnrollmentRequest.Status.APPROVED,
-            ClassEnrollmentRequest.Status.REJECTED,
-        }:
-            qs = qs.filter(status=status_q)
-        return qs.order_by('-requested_at')
-
-    def post(self, request, *args, **kwargs):
-        action = (request.POST.get('action') or '').strip().lower()
-        req_id = (request.POST.get('request_id') or '').strip()
-        if not req_id.isdigit():
-            messages.error(request, 'درخواست نامعتبر است.')
-            return HttpResponseRedirect(request.path)
-        enrollment = ClassEnrollmentRequest.objects.select_related('subscriber', 'tag').filter(
-            id=int(req_id)
-        ).first()
-        if enrollment is None:
-            messages.error(request, 'درخواست پیدا نشد.')
-            return HttpResponseRedirect(request.path)
-        if enrollment.status != ClassEnrollmentRequest.Status.PENDING:
-            messages.warning(request, 'این درخواست قبلا بررسی شده است.')
-            return HttpResponseRedirect(request.path)
-
-        if action == 'approve':
-            SubscriberTag.objects.get_or_create(
-                subscriber=enrollment.subscriber,
-                tag=enrollment.tag,
-                defaults={'assigned_by': request.user},
-            )
-            enrollment.status = ClassEnrollmentRequest.Status.APPROVED
-            enrollment.reviewed_at = timezone.now()
-            enrollment.reviewed_by = request.user
-            enrollment.save(update_fields=['status', 'reviewed_at', 'reviewed_by'])
-            try:
-                bale_api.send_message(
-                    enrollment.subscriber.chat_id,
-                    f'ثبت‌نام شما در کلاس «{enrollment.tag.name}» تایید شد.',
-                )
-            except bale_api.BaleAPIError:
-                pass
-            messages.success(request, 'درخواست ثبت‌نام تایید شد.')
-        elif action == 'reject':
-            enrollment.status = ClassEnrollmentRequest.Status.REJECTED
-            enrollment.reviewed_at = timezone.now()
-            enrollment.reviewed_by = request.user
-            enrollment.save(update_fields=['status', 'reviewed_at', 'reviewed_by'])
-            try:
-                bale_api.send_message(
-                    enrollment.subscriber.chat_id,
-                    f'درخواست ثبت‌نام شما برای کلاس «{enrollment.tag.name}» رد شد.',
-                )
-            except bale_api.BaleAPIError:
-                pass
-            messages.warning(request, 'درخواست ثبت‌نام رد شد.')
-        return HttpResponseRedirect(request.path)
-
-
-class ClassTagListView(StaffRequiredMixin, ListView):
-    model = Tag
-    template_name = 'balebot/class_tag_list.html'
-    paginate_by = 30
-
-    def get_queryset(self):
-        return Tag.objects.filter(tag_type=Tag.TagType.CLASS).order_by('name')
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['class_form'] = ClassTagForm()
-        return ctx
-
-    def post(self, request, *args, **kwargs):
-        action = (request.POST.get('action') or '').strip().lower()
-        if action == 'create':
-            form = ClassTagForm(request.POST)
-            if form.is_valid():
-                form.save()
-                messages.success(request, 'کلاس جدید ساخته شد.')
-                return HttpResponseRedirect(request.path)
-            ctx = self.get_context_data()
-            ctx['class_form'] = form
-            return self.render_to_response(ctx)
-        if action in {'toggle_active', 'toggle_inactive'}:
-            tag_id = (request.POST.get('tag_id') or '').strip()
-            if not tag_id.isdigit():
-                messages.error(request, 'شناسه کلاس نامعتبر است.')
-                return HttpResponseRedirect(request.path)
-            tag = Tag.objects.filter(id=int(tag_id), tag_type=Tag.TagType.CLASS).first()
-            if tag is None:
-                messages.error(request, 'کلاس پیدا نشد.')
-                return HttpResponseRedirect(request.path)
-            tag.is_active = action == 'toggle_active'
-            tag.save(update_fields=['is_active', 'updated_at'])
-            messages.success(
-                request,
-                'کلاس فعال شد.' if tag.is_active else 'کلاس غیرفعال شد.',
-            )
-        return HttpResponseRedirect(request.path)
 
 
 class CallbackLogListView(StaffRequiredMixin, ListView):

@@ -6,11 +6,18 @@ from .models import (
     Campaign,
     CampaignDelivery,
     ClassEnrollmentRequest,
+    FlowMedia,
     InboundMessage,
     Subscriber,
     SubscriberTag,
     Tag,
 )
+
+
+@admin.register(FlowMedia)
+class FlowMediaAdmin(admin.ModelAdmin):
+    list_display = ('id', 'uploaded_at', 'bale_file_id')
+    readonly_fields = ('id', 'uploaded_at')
 
 
 @admin.register(BotSettings)

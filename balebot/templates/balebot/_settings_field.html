@@ -1,0 +1,9 @@
+<div class="settings-field mb-3">
+  {% if field.field.widget.input_type != 'checkbox' %}
+  <label class="form-label settings-field-label" for="{{ field.id_for_label }}">{{ label|default:field.label }}</label>
+  {% if hint %}<p class="settings-field-hint mb-2">{{ hint }}</p>{% endif %}
+  {% endif %}
+  {{ field }}
+  {% if field.help_text and not hint %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+  {% for err in field.errors %}<div class="text-danger small mt-1">{{ err }}</div>{% endfor %}
+</div>

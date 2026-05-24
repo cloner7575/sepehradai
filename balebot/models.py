@@ -1,4 +1,21 @@
+import uuid
+
 from django.db import models
+
+
+class FlowMedia(models.Model):
+    """رسانهٔ آپلودشده برای نود عکس در جریان /start."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    file = models.FileField(upload_to='flow_media/%Y/%m/')
+    bale_file_id = models.CharField(max_length=512, blank=True, default='')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return str(self.id)
 
 
 class Tag(models.Model):
@@ -435,7 +452,18 @@ class BotSettings(models.Model):
     start_inline_keyboard = models.JSONField(
         default=dict,
         blank=True,
-        help_text='دکمه‌های اینلاین پس از /start: بخش‌ها و ردیف‌ها (همان ساختار کمپین) + نوع اکشن برای هر دکمه.',
+        help_text='(منسوخ) — از start_flow استفاده کنید.',
+    )
+    start_flow = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='جریان پس از /start: sequence از متن، عکس و دکمه با اکشن‌های تو در تو.',
+    )
+    start_flow_default_text = models.TextField(
+        blank=True,
+        default='گزینه‌ای برای ادامه در دسترس نیست.',
+        verbose_name='متن پیش‌فرض جریان (بن‌بست)',
+        help_text='وقتی مسیر دکمه به جایی وصل نیست یا اکشن نامعتبر است.',
     )
     start_message_contact = models.TextField(
         default=(
