@@ -84,21 +84,38 @@ def send_photo(
     *,
     photo_path: Path | None = None,
     photo_file_id: str | None = None,
+    photo_file: Any | None = None,
+    photo_filename: str | None = None,
     caption: str = '',
     reply_markup: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    cap = (caption or '').strip()
     if photo_file_id:
         payload: dict[str, Any] = {
             'chat_id': chat_id,
             'photo': photo_file_id,
-            'caption': caption,
         }
+        if cap:
+            payload['caption'] = cap
         if reply_markup is not None:
             payload['reply_markup'] = reply_markup
         return call_method('sendPhoto', json_body=payload)
+    if photo_file is not None:
+        data: dict[str, Any] = {'chat_id': str(chat_id)}
+        if cap:
+            data['caption'] = cap
+        if reply_markup is not None:
+            data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
+        fname = photo_filename or getattr(photo_file, 'name', None) or 'photo.jpg'
+        if isinstance(fname, str) and '/' in fname:
+            fname = Path(fname).name
+        files = {'photo': (fname, photo_file)}
+        return call_method('sendPhoto', data=data, files=files)
     if not photo_path or not photo_path.is_file():
         raise BaleAPIError('مسیر عکس برای ارسال نامعتبر است.')
-    data = {'chat_id': str(chat_id), 'caption': caption}
+    data = {'chat_id': str(chat_id)}
+    if cap:
+        data['caption'] = cap
     if reply_markup is not None:
         data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
     with photo_path.open('rb') as f:

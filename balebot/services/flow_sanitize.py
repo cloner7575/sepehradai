@@ -6,6 +6,8 @@ import re
 import uuid
 from typing import Any
 
+from balebot.models import FlowMedia
+
 _MAX_DEPTH = 20
 _SLUG_RE = re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$')
 _NODE_ID_RE = re.compile(r'^n_[a-f0-9]{8}$')
@@ -49,6 +51,8 @@ def _sanitize_image_node(item: dict[str, Any]) -> dict[str, Any] | None:
         uuid.UUID(media_id)
     except ValueError:
         return None
+    if not FlowMedia.objects.filter(pk=media_id).exists():
+        return None
     caption = str(item.get('caption', '') or '').strip()[:1024]
     return {'type': 'image', 'media_id': media_id, 'caption': caption}
 
@@ -69,6 +73,8 @@ def _sanitize_action(action: Any, depth: int) -> dict[str, Any] | None:
         try:
             uuid.UUID(media_id)
         except ValueError:
+            return None
+        if not FlowMedia.objects.filter(pk=media_id).exists():
             return None
         caption = str(action.get('caption', '') or '').strip()[:1024]
         return {'type': 'image', 'media_id': media_id, 'caption': caption}

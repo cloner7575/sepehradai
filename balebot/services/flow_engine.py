@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import Any
 
 from balebot.models import BotSettings, FlowMedia, Subscriber, SubscriberTag, Tag
@@ -179,50 +180,68 @@ def _extract_photo_file_id(resp: dict[str, Any]) -> str:
     if not isinstance(resp, dict):
         return ''
     result = resp.get('result') or resp
-    photos = result.get('photo') or []
-    if photos:
-        return str(photos[-1].get('file_id') or '')
+    payload = result.get('photo')
+    if isinstance(payload, list):
+        if payload:
+            return str(payload[-1].get('file_id') or '')
+        return ''
+    if isinstance(payload, dict):
+        return str(payload.get('file_id') or '')
     return ''
 
 
-def _cache_bale_file_id(media: FlowMedia, chat_id: int) -> str | None:
-    if media.bale_file_id:
-        return media.bale_file_id
+def _send_flow_media_upload(
+    media: FlowMedia,
+    chat_id: int,
+    *,
+    caption: str = '',
+) -> dict[str, Any]:
+    """آپلود فایل FlowMedia به بله (بدون وابستگی به مسیر محلی روی دیسک)."""
     if not media.file or not media.file.name:
-        return None
-    try:
-        resp = bale_api.send_photo(
+        raise bale_api.BaleAPIError('فایل عکس در سرور یافت نشد.')
+    with media.file.open('rb') as f:
+        return bale_api.send_photo(
             chat_id,
-            photo_path=media.file.path,
-            caption='',
+            photo_file=f,
+            photo_filename=Path(media.file.name).name,
+            caption=caption,
         )
-        fid = _extract_photo_file_id(resp)
-        if fid:
-            media.bale_file_id = fid[:512]
-            media.save(update_fields=['bale_file_id'])
-        return fid or None
-    except bale_api.BaleAPIError:
-        return media.bale_file_id or None
 
 
-def send_image_node(chat_id: int, node: dict[str, Any]) -> None:
-    media_id = str(node.get('media_id', '') or '')
+def _store_bale_file_id(media: FlowMedia, resp: dict[str, Any]) -> None:
+    fid = _extract_photo_file_id(resp)
+    if fid and fid != media.bale_file_id:
+        media.bale_file_id = fid[:512]
+        media.save(update_fields=['bale_file_id'])
+
+
+def send_image_node(chat_id: int, node: dict[str, Any]) -> bool:
+    media_id = str(node.get('media_id', '') or '').strip()
     caption = (node.get('caption') or '').strip()[:1024]
+    if not media_id:
+        return False
     media = FlowMedia.objects.filter(pk=media_id).first()
-    if not media or not media.file:
-        return
+    if not media or not media.file or not media.file.name:
+        return False
+
     if media.bale_file_id:
         try:
-            bale_api.send_photo(chat_id, photo_file_id=media.bale_file_id, caption=caption)
-            return
+            bale_api.send_photo(
+                chat_id,
+                photo_file_id=media.bale_file_id,
+                caption=caption,
+            )
+            return True
         except bale_api.BaleAPIError:
-            pass
+            media.bale_file_id = ''
+            media.save(update_fields=['bale_file_id'])
+
     try:
-        bale_api.send_photo(chat_id, photo_path=media.file.path, caption=caption)
-        if not media.bale_file_id:
-            _cache_bale_file_id(media, chat_id)
+        resp = _send_flow_media_upload(media, chat_id, caption=caption)
+        _store_bale_file_id(media, resp)
+        return True
     except bale_api.BaleAPIError:
-        pass
+        return False
 
 
 def _append_markup_rows(
@@ -326,7 +345,9 @@ def execute_button_action(
         return 'text'
 
     if atype == 'image':
-        send_image_node(chat_id, action)
+        if not send_image_node(chat_id, action):
+            send_default_text(cfg, chat_id)
+            return 'image_failed'
         return 'image'
 
     if atype == 'url':
