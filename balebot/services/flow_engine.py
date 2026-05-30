@@ -225,9 +225,20 @@ def send_image_node(chat_id: int, node: dict[str, Any]) -> None:
         pass
 
 
+def _append_markup_rows(
+    merged_rows: list[list[dict[str, str]]],
+    markup: dict[str, Any] | None,
+) -> None:
+    if not markup:
+        return
+    for row in markup.get('inline_keyboard') or []:
+        if row:
+            merged_rows.append(row)
+
+
 def send_sequence(chat_id: int, sequence: dict[str, Any]) -> dict[str, Any] | None:
-    """ارسال آیتم‌های sequence؛ آخرین markup دکمه‌ها را برمی‌گرداند."""
-    last_markup: dict[str, Any] | None = None
+    """ارسال آیتم‌های sequence؛ ردیف‌های همهٔ بلوک‌های دکمه را ادغام و برمی‌گرداند."""
+    merged_rows: list[list[dict[str, str]]] = []
     items = sequence.get('items') or []
     for item in items:
         if not isinstance(item, dict):
@@ -243,10 +254,10 @@ def send_sequence(chat_id: int, sequence: dict[str, Any]) -> dict[str, Any] | No
         elif itype == 'image':
             send_image_node(chat_id, item)
         elif itype == 'buttons':
-            mk = build_markup_for_buttons_node(item)
-            if mk:
-                last_markup = mk
-    return last_markup
+            _append_markup_rows(merged_rows, build_markup_for_buttons_node(item))
+    if merged_rows:
+        return {'inline_keyboard': merged_rows}
+    return None
 
 
 def render_root_flow(cfg: BotSettings, chat_id: int) -> None:

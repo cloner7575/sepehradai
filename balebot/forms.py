@@ -121,7 +121,10 @@ class BotSettingsForm(forms.ModelForm):
             norm = sanitize_start_flow(raw)
         else:
             norm = empty_start_flow()
-        self.fields['start_flow'].initial = json.dumps(norm, ensure_ascii=False)
+        # ModelForm puts JSONField dict in self.initial; CharField needs a JSON string.
+        dumped = json.dumps(norm, ensure_ascii=False)
+        self.initial['start_flow'] = dumped
+        self.fields['start_flow'].initial = dumped
 
     def clean_start_flow(self):
         raw = self.cleaned_data.get('start_flow')
@@ -243,7 +246,9 @@ class CampaignForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         raw = self.instance.inline_keyboard if self.instance.pk else None
         norm = normalize_to_sections(raw)
-        self.fields['inline_keyboard'].initial = json.dumps(norm, ensure_ascii=False)
+        dumped = json.dumps(norm, ensure_ascii=False)
+        self.initial['inline_keyboard'] = dumped
+        self.fields['inline_keyboard'].initial = dumped
 
         # Preserve field order: jalali fields sit after schedule_kind in Meta.fields
         if self.instance.pk and self.instance.schedule_kind == Campaign.ScheduleKind.SCHEDULED:
