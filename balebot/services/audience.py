@@ -7,7 +7,11 @@ from balebot.models import Campaign, Subscriber
 
 
 def resolve_campaign_subscribers_qs(campaign: Campaign) -> QuerySet[Subscriber]:
-    qs = Subscriber.objects.filter(is_active=True, is_registered=True)
+    qs = Subscriber.objects.filter(
+        platform=campaign.platform,
+        is_active=True,
+        is_registered=True,
+    )
     tag_ids = list(campaign.target_tags.values_list('id', flat=True))
     if tag_ids:
         qs = qs.filter(tags__id__in=tag_ids).distinct()

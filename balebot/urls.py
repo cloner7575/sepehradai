@@ -5,11 +5,21 @@ from balebot import views_panel, views_webhook
 
 urlpatterns = [
     path('health/', views_webhook.webhook_health, name='bale_health'),
-    path('webhook/<str:secret>', views_webhook.bale_webhook, name='bale_webhook'),
-    path('webhook/<str:secret>/', views_webhook.bale_webhook, name='bale_webhook_slash'),
+    path(
+        'webhook/<str:platform>/<str:secret>',
+        views_webhook.platform_webhook,
+        name='platform_webhook',
+    ),
+    path(
+        'webhook/<str:platform>/<str:secret>/',
+        views_webhook.platform_webhook,
+        name='platform_webhook_slash',
+    ),
+    path('webhook/<str:secret>', views_webhook.bale_webhook_legacy, name='bale_webhook'),
+    path('webhook/<str:secret>/', views_webhook.bale_webhook_legacy, name='bale_webhook_slash'),
     # آدرس قدیمی وب‌هوک وقتی پروژه زیر /bale/ بود
-    path('bale/webhook/<str:secret>', views_webhook.bale_webhook),
-    path('bale/webhook/<str:secret>/', views_webhook.bale_webhook),
+    path('bale/webhook/<str:secret>', views_webhook.bale_webhook_legacy),
+    path('bale/webhook/<str:secret>/', views_webhook.bale_webhook_legacy),
     path(
         'login/',
         auth_views.LoginView.as_view(template_name='balebot/login.html'),
@@ -21,6 +31,11 @@ urlpatterns = [
         name='panel_logout',
     ),
     path('', views_panel.DashboardView.as_view(), name='panel_dashboard'),
+    path(
+        'switch-platform/',
+        views_panel.SwitchPlatformView.as_view(),
+        name='panel_switch_platform',
+    ),
     path('bot/', views_panel.BotSettingsView.as_view(), name='bot_settings'),
     path('subscribers/', views_panel.SubscriberListView.as_view(), name='subscriber_list'),
     path('subscribers/<int:pk>/', views_panel.SubscriberDetailView.as_view(), name='subscriber_detail'),

@@ -8,6 +8,7 @@ from .models import (
     ClassEnrollmentRequest,
     FlowMedia,
     InboundMessage,
+    Platform,
     Subscriber,
     SubscriberTag,
     Tag,
@@ -16,14 +17,18 @@ from .models import (
 
 @admin.register(FlowMedia)
 class FlowMediaAdmin(admin.ModelAdmin):
-    list_display = ('id', 'uploaded_at', 'bale_file_id')
+    list_display = ('id', 'platform', 'uploaded_at', 'messenger_file_id')
+    list_filter = ('platform',)
     readonly_fields = ('id', 'uploaded_at')
 
 
 @admin.register(BotSettings)
 class BotSettingsAdmin(admin.ModelAdmin):
+    list_display = ('platform', 'is_enabled', 'masked_bot_token', 'updated_at')
+    list_filter = ('platform', 'is_enabled')
+
     def has_add_permission(self, request):
-        return not BotSettings.objects.exists()
+        return BotSettings.objects.count() < len(Platform.values)
 
     def has_delete_permission(self, request, obj=None):
         return False
@@ -32,7 +37,8 @@ class BotSettingsAdmin(admin.ModelAdmin):
 @admin.register(Subscriber)
 class SubscriberAdmin(admin.ModelAdmin):
     list_display = (
-        'bale_user_id',
+        'platform',
+        'messenger_user_id',
         'chat_id',
         'phone_number',
         'first_name',
@@ -40,8 +46,8 @@ class SubscriberAdmin(admin.ModelAdmin):
         'is_active',
         'updated_at',
     )
-    list_filter = ('is_registered', 'is_active')
-    search_fields = ('phone_number', 'username', 'first_name', 'bale_user_id', 'chat_id')
+    list_filter = ('platform', 'is_registered', 'is_active')
+    search_fields = ('phone_number', 'username', 'first_name', 'messenger_user_id', 'chat_id')
 
 
 @admin.register(InboundMessage)
@@ -58,8 +64,8 @@ class CallbackLogAdmin(admin.ModelAdmin):
 
 @admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
-    list_display = ('title', 'content_type', 'schedule_kind', 'status', 'scheduled_at', 'created_at')
-    list_filter = ('status', 'content_type', 'schedule_kind')
+    list_display = ('title', 'platform', 'content_type', 'schedule_kind', 'status', 'scheduled_at', 'created_at')
+    list_filter = ('platform', 'status', 'content_type', 'schedule_kind')
     filter_horizontal = ('target_tags',)
 
 
@@ -71,8 +77,8 @@ class CampaignDeliveryAdmin(admin.ModelAdmin):
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug', 'tag_type', 'is_active', 'updated_at')
-    list_filter = ('tag_type', 'is_active')
+    list_display = ('name', 'platform', 'slug', 'tag_type', 'is_active', 'updated_at')
+    list_filter = ('platform', 'tag_type', 'is_active')
     search_fields = ('name', 'slug')
 
 

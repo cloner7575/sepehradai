@@ -147,7 +147,7 @@
         <tbody>
           {% for d in deliveries %}
           <tr>
-            <td>{{ d.subscriber.phone_number|default:d.subscriber.bale_user_id }}</td>
+            <td>{{ d.subscriber.phone_number|default:d.subscriber.messenger_user_id }}</td>
             <td>{{ d.get_status_display }}</td>
             <td class="small text-danger">{{ d.error_message|truncatechars:80 }}</td>
             <td class="small text-muted">{{ d.sent_at|default:"—" }}</td>

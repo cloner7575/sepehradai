@@ -7,9 +7,9 @@
   <title>{% block title %}{% if bot_branding %}{{ bot_branding.panel_brand_title }}{% else %}پنل بازو{% endif %}{% endblock %}</title>
   <link href="{% static 'balebot/vendor/bootstrap/5.3.3/dist/css/bootstrap.rtl.min.css' %}" rel="stylesheet">
   <link href="{% static 'balebot/vendor/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css' %}" rel="stylesheet">
-  <link href="{% static 'balebot/css/panel.css' %}" rel="stylesheet">
+  <link href="{% static 'balebot/css/panel.css' %}?v=platform-theme-4" rel="stylesheet">
 </head>
-<body class="panel-body">
+<body class="panel-body panel-theme-{{ active_platform|default:'bale' }}">
   <div class="panel-shell">
     <button type="button" class="sidebar-backdrop" tabindex="-1" aria-hidden="true" aria-label="بستن منو"></button>
     <aside class="sidebar" id="panel-sidebar">
@@ -67,7 +67,32 @@
           </div>
         </div>
         {% if user.is_authenticated %}
-        <div class="topbar-user flex-shrink-0 align-self-start">
+        <div class="topbar-actions d-flex align-items-center gap-2 flex-shrink-0 align-self-start">
+          {% if available_platforms %}
+          <span class="platform-badge d-none d-sm-inline-flex" title="پلتفرم فعال">
+            {% if active_platform == 'telegram' %}
+            <i class="bi bi-send-fill"></i>
+            {% else %}
+            <i class="bi bi-chat-dots-fill"></i>
+            {% endif %}
+            {{ active_platform_label }}
+          </span>
+          <form method="post" action="{% url 'panel_switch_platform' %}" class="platform-switch-form">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <label class="visually-hidden" for="platform-switch-select">پلتفرم</label>
+            <select
+              id="platform-switch-select"
+              name="platform"
+              class="form-select form-select-sm platform-switch-select"
+              onchange="this.form.submit()"
+            >
+              {% for value, label in available_platforms %}
+              <option value="{{ value }}" {% if value == active_platform %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </form>
+          {% endif %}
           <span class="topbar-user-badge"><i class="bi bi-person-fill"></i><span class="topbar-user-name">{{ user.username }}</span></span>
         </div>
         {% endif %}

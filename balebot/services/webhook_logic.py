@@ -1,4 +1,4 @@
-"""پردازش بدنهٔ آپدیت بله (بدون وابستگی به HttpRequest)."""
+"""پردازش بدنهٔ آپدیت (بدون وابستگی به HttpRequest)."""
 
 from __future__ import annotations
 
@@ -12,10 +12,11 @@ from balebot.models import (
     CallbackLog,
     Campaign,
     InboundMessage,
+    Platform,
     Subscriber,
     SupportTicketMessage,
 )
-from balebot.services import bale_api
+from balebot.services import messenger_api
 from balebot.services.flow_engine import (
     get_flow,
     handle_flow_callback,
@@ -26,11 +27,16 @@ from balebot.services.flow_engine import (
 )
 
 
-def get_or_create_subscriber(from_user: dict[str, Any], chat: dict[str, Any]) -> Subscriber:
+def get_or_create_subscriber(
+    platform: str,
+    from_user: dict[str, Any],
+    chat: dict[str, Any],
+) -> Subscriber:
     uid = int(from_user['id'])
     cid = int(chat['id'])
     sub, _ = Subscriber.objects.update_or_create(
-        bale_user_id=uid,
+        platform=platform,
+        messenger_user_id=uid,
         defaults={
             'chat_id': cid,
             'first_name': (from_user.get('first_name') or '')[:255],
@@ -94,13 +100,13 @@ def _append_menu_flow(
     sub.save(update_fields=update_fields)
 
 
-def parse_campaign_callback(data: str) -> Campaign | None:
+def parse_campaign_callback(data: str, platform: str) -> Campaign | None:
     """فرمت دکمه‌ها: c{campaign_id}_{row}_{col}"""
     m = re.match(r'^c(\d+)_(\d+)_(\d+)$', (data or '').strip())
     if not m:
         return None
     pk = int(m.group(1))
-    return Campaign.objects.filter(pk=pk).first()
+    return Campaign.objects.filter(pk=pk, platform=platform).first()
 
 
 def store_inbound_from_message(
@@ -117,7 +123,7 @@ def store_inbound_from_message(
             subscriber=sub,
             kind=InboundMessage.MessageKind.CONTACT,
             text=ph,
-            bale_message_id=mid,
+            messenger_message_id=mid,
             is_support_request=is_support_request,
         )
         sub.phone_number = ph[:32]
@@ -130,7 +136,7 @@ def store_inbound_from_message(
             subscriber=sub,
             kind=InboundMessage.MessageKind.TEXT,
             text=msg.get('text') or '',
-            bale_message_id=mid,
+            messenger_message_id=mid,
             is_support_request=is_support_request,
         )
 
@@ -141,7 +147,7 @@ def store_inbound_from_message(
             kind=InboundMessage.MessageKind.VOICE,
             file_id=fid,
             text=msg.get('caption') or '',
-            bale_message_id=mid,
+            messenger_message_id=mid,
             is_support_request=is_support_request,
         )
 
@@ -153,7 +159,7 @@ def store_inbound_from_message(
             kind=InboundMessage.MessageKind.PHOTO,
             file_id=fid or '',
             text=msg.get('caption') or '',
-            bale_message_id=mid,
+            messenger_message_id=mid,
             is_support_request=is_support_request,
         )
 
@@ -164,7 +170,7 @@ def store_inbound_from_message(
             kind=InboundMessage.MessageKind.VIDEO,
             file_id=fid,
             text=msg.get('caption') or '',
-            bale_message_id=mid,
+            messenger_message_id=mid,
             is_support_request=is_support_request,
         )
 
@@ -175,7 +181,7 @@ def store_inbound_from_message(
             kind=InboundMessage.MessageKind.DOCUMENT,
             file_id=fid,
             text=msg.get('caption') or '',
-            bale_message_id=mid,
+            messenger_message_id=mid,
             is_support_request=is_support_request,
         )
 
@@ -183,38 +189,40 @@ def store_inbound_from_message(
         subscriber=sub,
         kind=InboundMessage.MessageKind.OTHER,
         text='',
-        bale_message_id=mid,
+        messenger_message_id=mid,
         is_support_request=is_support_request,
     )
 
 
 def _send_start_with_flow(cfg: BotSettings, sub: Subscriber) -> None:
+    platform = cfg.platform
     msg_normal = (cfg.start_message_normal or '').strip()
     if msg_normal:
-        bale_api.send_message(sub.chat_id, msg_normal)
+        messenger_api.send_message(platform, sub.chat_id, msg_normal)
     if _flow_has_content(cfg):
         render_root_flow(cfg, sub.chat_id)
     elif cfg.enable_support:
         mk = merge_support_into_markup(cfg, None)
         if mk:
-            bale_api.send_message(sub.chat_id, '\u2060', reply_markup=mk)
+            messenger_api.send_message(platform, sub.chat_id, '\u2060', reply_markup=mk)
 
 
-def handle_message(msg: dict[str, Any]) -> None:
+def handle_message(platform: str, msg: dict[str, Any]) -> None:
     from_user = msg.get('from') or {}
     chat = msg.get('chat') or {}
     if not from_user or not chat:
         return
 
-    sub = get_or_create_subscriber(from_user, chat)
+    sub = get_or_create_subscriber(platform, from_user, chat)
     text = (msg.get('text') or '').strip()
-    cfg = BotSettings.get_solo()
+    cfg = BotSettings.get_for_platform(platform)
 
     if text.startswith('/start'):
         need_contact = cfg.collect_contact_on_start and not sub.is_registered
         if need_contact:
             body_contact = (cfg.start_message_contact or cfg.start_message_normal or '').strip()
-            bale_api.send_message(
+            messenger_api.send_message(
+                platform,
                 sub.chat_id,
                 body_contact,
                 reply_markup=build_contact_keyboard(cfg),
@@ -226,7 +234,7 @@ def handle_message(msg: dict[str, Any]) -> None:
     if cfg.enable_help_command and text.startswith('/help'):
         hm = (cfg.help_message or '').strip()
         if hm:
-            bale_api.send_message(sub.chat_id, hm)
+            messenger_api.send_message(platform, sub.chat_id, hm)
         return
 
     if text.startswith('/stop'):
@@ -234,7 +242,8 @@ def handle_message(msg: dict[str, Any]) -> None:
             return
         sub.is_active = False
         sub.save(update_fields=['is_active', 'updated_at'])
-        bale_api.send_message(
+        messenger_api.send_message(
+            platform,
             sub.chat_id,
             (cfg.unsubscribe_message or '').strip(),
             reply_markup=remove_keyboard(),
@@ -252,7 +261,7 @@ def handle_message(msg: dict[str, Any]) -> None:
         sub.save(update_fields=['awaiting_support_message', 'updated_at'])
         prompt = (cfg.support_start_prompt_message or '').strip()
         if prompt:
-            bale_api.send_message(sub.chat_id, prompt)
+            messenger_api.send_message(platform, sub.chat_id, prompt)
         return
 
     if sub.awaiting_support_message:
@@ -269,20 +278,22 @@ def handle_message(msg: dict[str, Any]) -> None:
         sub.save(update_fields=['awaiting_support_message', 'updated_at'])
         wait_msg = (cfg.support_waiting_message or '').strip()
         if wait_msg:
-            bale_api.send_message(sub.chat_id, wait_msg)
+            messenger_api.send_message(platform, sub.chat_id, wait_msg)
         return
 
     if msg.get('contact'):
         already_registered = sub.is_registered
         store_inbound_from_message(sub, msg)
         if already_registered:
-            bale_api.send_message(
+            messenger_api.send_message(
+                platform,
                 sub.chat_id,
                 'شمارهٔ شما از قبل ثبت شده بود؛ نیازی به ارسال مجدد نیست.',
                 reply_markup=remove_keyboard(),
             )
             return
-        bale_api.send_message(
+        messenger_api.send_message(
+            platform,
             sub.chat_id,
             (cfg.registration_success_message or '').strip(),
             reply_markup=remove_keyboard(),
@@ -294,7 +305,7 @@ def handle_message(msg: dict[str, Any]) -> None:
     store_inbound_from_message(sub, msg)
 
 
-def handle_callback(cb: dict[str, Any]) -> None:
+def handle_callback(platform: str, cb: dict[str, Any]) -> None:
     from_user = cb.get('from') or {}
     if not from_user:
         return
@@ -304,13 +315,13 @@ def handle_callback(cb: dict[str, Any]) -> None:
     chat = msg.get('chat') or {}
     if not chat.get('id'):
         chat = {'id': from_user.get('id')}
-    sub = get_or_create_subscriber(from_user, chat)
+    sub = get_or_create_subscriber(platform, from_user, chat)
     data_stripped = (data or '').strip()
     chat_id = int(chat.get('id') or from_user.get('id') or 0)
     mid = msg.get('message_id')
 
     if data_stripped.startswith('f') or data_stripped == 'bsup':
-        cfg = BotSettings.get_solo()
+        cfg = BotSettings.get_for_platform(platform)
         flow_kind = ''
         flow_label = ''
         fk_store: str | None = None
@@ -322,8 +333,8 @@ def handle_callback(cb: dict[str, Any]) -> None:
             prompt = (cfg.support_start_prompt_message or '').strip()
             if prompt and chat_id:
                 try:
-                    bale_api.send_message(chat_id, prompt)
-                except bale_api.BaleAPIError:
+                    messenger_api.send_message(platform, chat_id, prompt)
+                except messenger_api.MessengerAPIError:
                     pass
             flow_kind = 'support'
         elif parse_flow_callback(data_stripped) or parse_flow_back_callback(data_stripped):
@@ -355,14 +366,14 @@ def handle_callback(cb: dict[str, Any]) -> None:
         try:
             ack = (cfg.callback_ack_message or '').strip()
             if ack:
-                bale_api.answer_callback_query(str(cid_raw), text=ack[:200])
+                messenger_api.answer_callback_query(platform, str(cid_raw), text=ack[:200])
             else:
-                bale_api.answer_callback_query(str(cid_raw))
-        except bale_api.BaleAPIError:
+                messenger_api.answer_callback_query(platform, str(cid_raw))
+        except messenger_api.MessengerAPIError:
             pass
         return
 
-    camp = parse_campaign_callback(data)
+    camp = parse_campaign_callback(data, platform)
 
     CallbackLog.objects.create(
         subscriber=sub,
@@ -372,11 +383,11 @@ def handle_callback(cb: dict[str, Any]) -> None:
     )
 
     try:
-        cfg = BotSettings.get_solo()
+        cfg = BotSettings.get_for_platform(platform)
         ack = (cfg.callback_ack_message or '').strip()
         if ack:
-            bale_api.answer_callback_query(str(cid_raw), text=ack[:200])
+            messenger_api.answer_callback_query(platform, str(cid_raw), text=ack[:200])
         else:
-            bale_api.answer_callback_query(str(cid_raw))
-    except bale_api.BaleAPIError:
+            messenger_api.answer_callback_query(platform, str(cid_raw))
+    except messenger_api.MessengerAPIError:
         pass

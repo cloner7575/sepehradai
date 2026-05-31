@@ -4,7 +4,7 @@ from django import forms
 from django.core.files import File
 from django.core.files.storage import default_storage
 
-from balebot.models import BotSettings, Campaign, Tag
+from balebot.models import BotSettings, Campaign, Platform, Tag
 from balebot.services.jalali_datetime import aware_to_jalali_parts, parse_jalali_date_time
 
 # هم‌نام با مقدار سشن در views_panel (آپلود ویدیو)
@@ -25,10 +25,26 @@ class BotSettingsForm(forms.ModelForm):
         label='',
         widget=forms.HiddenInput(attrs={'id': 'id_start_flow'}),
     )
+    bot_token = forms.CharField(
+        required=False,
+        label='توکن ربات',
+        help_text='از BotFather دریافت کنید. برای حفظ توکن قبلی خالی بگذارید.',
+        widget=forms.PasswordInput(
+            attrs={
+                'class': _SETTINGS_INPUT_CLASS,
+                'autocomplete': 'new-password',
+                'placeholder': 'توکن جدید (اختیاری)',
+            },
+        ),
+    )
 
     class Meta:
         model = BotSettings
         fields = [
+            'bot_token',
+            'webhook_secret',
+            'webhook_public_url',
+            'is_enabled',
             'panel_brand_title',
             'panel_brand_subtitle',
             'start_message_normal',
@@ -49,6 +65,19 @@ class BotSettingsForm(forms.ModelForm):
             'support_waiting_message',
         ]
         widgets = {
+            'webhook_secret': forms.TextInput(
+                attrs={'class': _SETTINGS_INPUT_CLASS, 'dir': 'ltr', 'autocomplete': 'off'},
+            ),
+            'webhook_public_url': forms.URLInput(
+                attrs={
+                    'class': _SETTINGS_INPUT_CLASS,
+                    'dir': 'ltr',
+                    'placeholder': 'https://example.com',
+                },
+            ),
+            'is_enabled': forms.CheckboxInput(
+                attrs={'class': 'form-check-input', 'role': 'switch'},
+            ),
             'panel_brand_title': forms.TextInput(
                 attrs={'class': _SETTINGS_INPUT_CLASS},
             ),
@@ -116,6 +145,10 @@ class BotSettingsForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.has_bot_token():
+            self.fields['bot_token'].help_text = (
+                f'توکن فعلی: {self.instance.masked_bot_token()} — برای تغییر، توکن جدید وارد کنید.'
+            )
         raw = getattr(self.instance, 'start_flow', None)
         if raw and isinstance(raw, dict) and raw.get('version') == 2:
             norm = sanitize_start_flow(raw)
@@ -166,6 +199,14 @@ class BotSettingsForm(forms.ModelForm):
                     'وقتی پشتیبانی فعال است، پیام ثبت درخواست پشتیبانی را پر کنید.'
                 )
         return cleaned
+
+    def save(self, commit=True):
+        token = (self.cleaned_data.get('bot_token') or '').strip()
+        if not token and self.instance.pk:
+            self.cleaned_data['bot_token'] = self.instance.bot_token
+        elif token:
+            self.cleaned_data['bot_token'] = token
+        return super().save(commit=commit)
 
 
 class CampaignForm(forms.ModelForm):
@@ -241,9 +282,14 @@ class CampaignForm(forms.ModelForm):
         'inline_keyboard',
     ]
 
-    def __init__(self, *args, request=None, **kwargs):
+    def __init__(self, *args, request=None, platform=None, **kwargs):
         self.request = request
+        self.platform = platform or Platform.BALE
         super().__init__(*args, **kwargs)
+        self.fields['target_tags'].queryset = Tag.objects.filter(
+            platform=self.platform,
+            is_active=True,
+        ).order_by('name')
         raw = self.instance.inline_keyboard if self.instance.pk else None
         norm = normalize_to_sections(raw)
         dumped = json.dumps(norm, ensure_ascii=False)

@@ -167,17 +167,12 @@ STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
 
-# Bale bot (load from environment in production)
-BALE_BOT_TOKEN = os.environ.get('BALE_BOT_TOKEN', '')
-BALE_WEBHOOK_SECRET = os.environ.get('BALE_WEBHOOK_SECRET', 'change-me-in-production')
-BALE_WEBHOOK_PUBLIC_URL = os.environ.get(
-    'BALE_WEBHOOK_PUBLIC_URL',
-    '',
-).strip()
-BALE_API_BASE = os.environ.get('BALE_API_BASE', 'https://tapi.bale.ai').rstrip('/')
-
 # Campaign sending
 CAMPAIGN_SEND_DELAY_MS = int(os.environ.get('CAMPAIGN_SEND_DELAY_MS', '80'))
+# Legacy env vars (migrated to BotSettings in DB on first migrate)
+_LEGACY_BALE_BOT_TOKEN = os.environ.get('BALE_BOT_TOKEN', '')
+_LEGACY_BALE_WEBHOOK_SECRET = os.environ.get('BALE_WEBHOOK_SECRET', '')
+_LEGACY_BALE_WEBHOOK_PUBLIC_URL = os.environ.get('BALE_WEBHOOK_PUBLIC_URL', '').strip()
 # حداکثر حجم آپلود ویدیوی کمپین (مگابایت) — در ویوی آپلود بررسی می‌شود
 CAMPAIGN_VIDEO_MAX_UPLOAD_MB = int(os.environ.get('CAMPAIGN_VIDEO_MAX_UPLOAD_MB', '120'))
 

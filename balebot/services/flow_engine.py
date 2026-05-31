@@ -6,8 +6,8 @@ import re
 from pathlib import Path
 from typing import Any
 
-from balebot.models import BotSettings, FlowMedia, Subscriber, SubscriberTag, Tag
-from balebot.services import bale_api
+from balebot.models import BotSettings, FlowMedia, Platform, Subscriber, SubscriberTag, Tag
+from balebot.services import messenger_api
 from balebot.services.flow_sanitize import empty_start_flow, sanitize_start_flow
 
 _FLOW_CB = re.compile(r'^f(n_[a-f0-9]{8})$')
@@ -116,15 +116,16 @@ def label_slugs_for_button(ref: _ButtonRef) -> list[str]:
     return slugs
 
 
-def get_or_create_tag_for_slug(slug: str, display_hint: str = '') -> Tag:
+def get_or_create_tag_for_slug(slug: str, platform: str, display_hint: str = '') -> Tag:
     slug = slug.strip()[:140]
-    tag = Tag.objects.filter(slug=slug).first()
+    tag = Tag.objects.filter(platform=platform, slug=slug).first()
     if tag:
         return tag
     name = (display_hint or slug).strip()[:120] or slug
     return Tag.objects.create(
         name=name,
         slug=slug,
+        platform=platform,
         tag_type=Tag.TagType.GENERIC,
         is_active=True,
     )
@@ -133,7 +134,7 @@ def get_or_create_tag_for_slug(slug: str, display_hint: str = '') -> Tag:
 def assign_path_tags(sub: Subscriber, slugs: list[str], ref: _ButtonRef) -> None:
     hint = str(ref.button.get('text') or '')
     for slug in slugs:
-        tag = get_or_create_tag_for_slug(slug, hint)
+        tag = get_or_create_tag_for_slug(slug, sub.platform, hint)
         SubscriberTag.objects.get_or_create(subscriber=sub, tag=tag)
 
 
@@ -191,6 +192,7 @@ def _extract_photo_file_id(resp: dict[str, Any]) -> str:
 
 
 def _send_flow_media_upload(
+    platform: str,
     media: FlowMedia,
     chat_id: int,
     *,
@@ -198,9 +200,10 @@ def _send_flow_media_upload(
 ) -> dict[str, Any]:
     """آپلود فایل FlowMedia به بله (بدون وابستگی به مسیر محلی روی دیسک)."""
     if not media.file or not media.file.name:
-        raise bale_api.BaleAPIError('فایل عکس در سرور یافت نشد.')
+        raise messenger_api.MessengerAPIError('فایل عکس در سرور یافت نشد.')
     with media.file.open('rb') as f:
-        return bale_api.send_photo(
+        return messenger_api.send_photo(
+            platform,
             chat_id,
             photo_file=f,
             photo_filename=Path(media.file.name).name,
@@ -208,39 +211,41 @@ def _send_flow_media_upload(
         )
 
 
-def _store_bale_file_id(media: FlowMedia, resp: dict[str, Any]) -> None:
+def _store_messenger_file_id(media: FlowMedia, resp: dict[str, Any]) -> None:
     fid = _extract_photo_file_id(resp)
-    if fid and fid != media.bale_file_id:
-        media.bale_file_id = fid[:512]
-        media.save(update_fields=['bale_file_id'])
+    if fid and fid != media.messenger_file_id:
+        media.messenger_file_id = fid[:512]
+        media.save(update_fields=['messenger_file_id'])
 
 
-def send_image_node(chat_id: int, node: dict[str, Any]) -> bool:
+def send_image_node(cfg: BotSettings, chat_id: int, node: dict[str, Any]) -> bool:
+    platform = cfg.platform
     media_id = str(node.get('media_id', '') or '').strip()
     caption = (node.get('caption') or '').strip()[:1024]
     if not media_id:
         return False
-    media = FlowMedia.objects.filter(pk=media_id).first()
+    media = FlowMedia.objects.filter(pk=media_id, platform=platform).first()
     if not media or not media.file or not media.file.name:
         return False
 
-    if media.bale_file_id:
+    if media.messenger_file_id:
         try:
-            bale_api.send_photo(
+            messenger_api.send_photo(
+                platform,
                 chat_id,
-                photo_file_id=media.bale_file_id,
+                photo_file_id=media.messenger_file_id,
                 caption=caption,
             )
             return True
-        except bale_api.BaleAPIError:
-            media.bale_file_id = ''
-            media.save(update_fields=['bale_file_id'])
+        except messenger_api.MessengerAPIError:
+            media.messenger_file_id = ''
+            media.save(update_fields=['messenger_file_id'])
 
     try:
-        resp = _send_flow_media_upload(media, chat_id, caption=caption)
-        _store_bale_file_id(media, resp)
+        resp = _send_flow_media_upload(platform, media, chat_id, caption=caption)
+        _store_messenger_file_id(media, resp)
         return True
-    except bale_api.BaleAPIError:
+    except messenger_api.MessengerAPIError:
         return False
 
 
@@ -255,8 +260,9 @@ def _append_markup_rows(
             merged_rows.append(row)
 
 
-def send_sequence(chat_id: int, sequence: dict[str, Any]) -> dict[str, Any] | None:
+def send_sequence(cfg: BotSettings, chat_id: int, sequence: dict[str, Any]) -> dict[str, Any] | None:
     """ارسال آیتم‌های sequence؛ ردیف‌های همهٔ بلوک‌های دکمه را ادغام و برمی‌گرداند."""
+    platform = cfg.platform
     merged_rows: list[list[dict[str, str]]] = []
     items = sequence.get('items') or []
     for item in items:
@@ -267,11 +273,11 @@ def send_sequence(chat_id: int, sequence: dict[str, Any]) -> dict[str, Any] | No
             body = (item.get('body') or '').strip()
             if body:
                 try:
-                    bale_api.send_message(chat_id, body[:4096])
-                except bale_api.BaleAPIError:
+                    messenger_api.send_message(platform, chat_id, body[:4096])
+                except messenger_api.MessengerAPIError:
                     pass
         elif itype == 'image':
-            send_image_node(chat_id, item)
+            send_image_node(cfg, chat_id, item)
         elif itype == 'buttons':
             _append_markup_rows(merged_rows, build_markup_for_buttons_node(item))
     if merged_rows:
@@ -280,32 +286,34 @@ def send_sequence(chat_id: int, sequence: dict[str, Any]) -> dict[str, Any] | No
 
 
 def render_root_flow(cfg: BotSettings, chat_id: int) -> None:
+    platform = cfg.platform
     flow = get_flow(cfg)
     root = flow.get('root') or {}
     if str(root.get('type', '')).lower() != 'sequence':
         return
-    markup = send_sequence(chat_id, root)
+    markup = send_sequence(cfg, chat_id, root)
     if markup:
         markup = merge_support_into_markup(cfg, markup) or markup
         try:
-            bale_api.send_message(chat_id, '\u2060', reply_markup=markup)
-        except bale_api.BaleAPIError:
+            messenger_api.send_message(platform, chat_id, '\u2060', reply_markup=markup)
+        except messenger_api.MessengerAPIError:
             pass
     elif cfg.enable_support:
         mk = merge_support_into_markup(cfg, None)
         if mk:
             try:
-                bale_api.send_message(chat_id, '\u2060', reply_markup=mk)
-            except bale_api.BaleAPIError:
+                messenger_api.send_message(platform, chat_id, '\u2060', reply_markup=mk)
+            except messenger_api.MessengerAPIError:
                 pass
 
 
 def send_default_text(cfg: BotSettings, chat_id: int) -> None:
+    platform = cfg.platform
     txt = (cfg.start_flow_default_text or '').strip()
     if txt:
         try:
-            bale_api.send_message(chat_id, txt[:4096])
-        except bale_api.BaleAPIError:
+            messenger_api.send_message(platform, chat_id, txt[:4096])
+        except messenger_api.MessengerAPIError:
             pass
 
 
@@ -333,19 +341,20 @@ def execute_button_action(
         return 'default'
 
     atype = str(action.get('type', '')).lower()
+    platform = cfg.platform
     if atype == 'text':
         body = (action.get('body') or btn.get('text') or '').strip()
         if body:
             try:
-                bale_api.send_message(chat_id, body[:4096])
-            except bale_api.BaleAPIError:
+                messenger_api.send_message(platform, chat_id, body[:4096])
+            except messenger_api.MessengerAPIError:
                 pass
         else:
             send_default_text(cfg, chat_id)
         return 'text'
 
     if atype == 'image':
-        if not send_image_node(chat_id, action):
+        if not send_image_node(cfg, chat_id, action):
             send_default_text(cfg, chat_id)
             return 'image_failed'
         return 'image'
@@ -357,15 +366,17 @@ def execute_button_action(
         mk = build_markup_for_buttons_node(action, parent_button_id=btn_id)
         if mk and message_id:
             try:
-                bale_api.edit_message_reply_markup(chat_id, int(message_id), reply_markup=mk)
+                messenger_api.edit_message_reply_markup(
+                    platform, chat_id, int(message_id), reply_markup=mk,
+                )
                 return 'buttons_edit'
-            except bale_api.BaleAPIError:
+            except messenger_api.MessengerAPIError:
                 pass
         if mk:
             try:
-                bale_api.send_message(chat_id, '\u2060', reply_markup=mk)
+                messenger_api.send_message(platform, chat_id, '\u2060', reply_markup=mk)
                 return 'buttons'
-            except bale_api.BaleAPIError:
+            except messenger_api.MessengerAPIError:
                 pass
         send_default_text(cfg, chat_id)
         return 'default'
@@ -398,10 +409,10 @@ def handle_flow_callback(
                 )
                 if mk and message_id:
                     try:
-                        bale_api.edit_message_reply_markup(
-                            chat_id, int(message_id), reply_markup=mk,
+                        messenger_api.edit_message_reply_markup(
+                            cfg.platform, chat_id, int(message_id), reply_markup=mk,
                         )
-                    except bale_api.BaleAPIError:
+                    except messenger_api.MessengerAPIError:
                         pass
                 return 'back', str(parent.get('text') or '')[:128]
         render_root_flow(cfg, chat_id)

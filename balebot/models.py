@@ -3,12 +3,23 @@ import uuid
 from django.db import models
 
 
+class Platform(models.TextChoices):
+    BALE = 'bale', 'بله'
+    TELEGRAM = 'telegram', 'تلگرام'
+
+
 class FlowMedia(models.Model):
     """رسانهٔ آپلودشده برای نود عکس در جریان /start."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    platform = models.CharField(
+        max_length=16,
+        choices=Platform.choices,
+        default=Platform.BALE,
+        db_index=True,
+    )
     file = models.FileField(upload_to='flow_media/%Y/%m/')
-    bale_file_id = models.CharField(max_length=512, blank=True, default='')
+    messenger_file_id = models.CharField(max_length=512, blank=True, default='')
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -23,8 +34,14 @@ class Tag(models.Model):
         CLASS = 'class', 'کلاس'
         GENERIC = 'generic', 'عمومی'
 
-    name = models.CharField(max_length=120, unique=True)
-    slug = models.SlugField(max_length=140, unique=True)
+    platform = models.CharField(
+        max_length=16,
+        choices=Platform.choices,
+        default=Platform.BALE,
+        db_index=True,
+    )
+    name = models.CharField(max_length=120)
+    slug = models.SlugField(max_length=140)
     tag_type = models.CharField(
         max_length=16,
         choices=TagType.choices,
@@ -37,6 +54,10 @@ class Tag(models.Model):
 
     class Meta:
         ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['platform', 'slug'], name='unique_tag_platform_slug'),
+            models.UniqueConstraint(fields=['platform', 'name'], name='unique_tag_platform_name'),
+        ]
 
     def __str__(self):
         return self.name
@@ -45,7 +66,13 @@ class Tag(models.Model):
 class Subscriber(models.Model):
     """کاربرانی که با بازو تعامل دارند."""
 
-    bale_user_id = models.BigIntegerField(unique=True, db_index=True)
+    platform = models.CharField(
+        max_length=16,
+        choices=Platform.choices,
+        default=Platform.BALE,
+        db_index=True,
+    )
+    messenger_user_id = models.BigIntegerField(db_index=True)
     chat_id = models.BigIntegerField(db_index=True)
     phone_number = models.CharField(max_length=32, blank=True, default='')
     first_name = models.CharField(max_length=255, blank=True, default='')
@@ -84,9 +111,15 @@ class Subscriber(models.Model):
 
     class Meta:
         ordering = ['-updated_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['platform', 'messenger_user_id'],
+                name='unique_subscriber_platform_user',
+            ),
+        ]
 
     def __str__(self):
-        return f'{self.phone_number or self.bale_user_id}'
+        return f'{self.phone_number or self.messenger_user_id}'
 
 
 class InboundMessage(models.Model):
@@ -108,7 +141,7 @@ class InboundMessage(models.Model):
     text = models.TextField(blank=True, default='')
     file_id = models.CharField(max_length=512, blank=True, default='')
     local_file = models.FileField(upload_to='inbound/%Y/%m/', blank=True, null=True)
-    bale_message_id = models.BigIntegerField(null=True, blank=True)
+    messenger_message_id = models.BigIntegerField(null=True, blank=True)
     is_support_request = models.BooleanField(
         default=False,
         help_text='اگر این پیام در جریان «پیام به پشتیبانی» ثبت شده باشد روشن است.',
@@ -215,6 +248,12 @@ class Campaign(models.Model):
         INSTANT = 'instant', 'آنی'
         SCHEDULED = 'scheduled', 'زمان‌بندی‌شده'
 
+    platform = models.CharField(
+        max_length=16,
+        choices=Platform.choices,
+        default=Platform.BALE,
+        db_index=True,
+    )
     title = models.CharField(max_length=255)
     content_type = models.CharField(max_length=32, choices=ContentType.choices)
     body = models.TextField(blank=True, default='', help_text='متن یا زیرنویس رسانه')
@@ -393,9 +432,39 @@ class ClassEnrollmentRequest(models.Model):
 
 
 class BotSettings(models.Model):
-    """یک رکورد ثابت (pk=1): متن‌ها و رفتار بازو از پنل قابل ویرایش است."""
+    """تنظیمات هر پلتفرم (بله / تلگرام) — یک رکورد به ازای هر پلتفرم."""
 
-    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    platform = models.CharField(
+        max_length=16,
+        choices=Platform.choices,
+        unique=True,
+        db_index=True,
+    )
+    bot_token = models.CharField(
+        max_length=256,
+        blank=True,
+        default='',
+        verbose_name='توکن ربات',
+        help_text='از BotFather دریافت می‌شود.',
+    )
+    webhook_secret = models.CharField(
+        max_length=128,
+        blank=True,
+        default='',
+        verbose_name='رمز وب‌هوک',
+        help_text='بخش secret در URL وب‌هوک.',
+    )
+    webhook_public_url = models.URLField(
+        blank=True,
+        default='',
+        verbose_name='آدرس عمومی سرور',
+        help_text='مثلاً https://example.com — بدون اسلش پایانی.',
+    )
+    is_enabled = models.BooleanField(
+        default=True,
+        verbose_name='فعال',
+        help_text='اگر خاموش باشد وب‌هوک پاسخ نمی‌دهد.',
+    )
 
     panel_brand_title = models.CharField(
         max_length=120,
@@ -514,9 +583,45 @@ class BotSettings(models.Model):
         verbose_name_plural = 'تنظیمات بازو'
 
     def __str__(self):
-        return 'تنظیمات بازو'
+        return f'تنظیمات {self.get_platform_display()}'
+
+    @classmethod
+    def _defaults_for_platform(cls, platform: str) -> dict:
+        brand = 'کنترل بازو' if platform == Platform.BALE else 'کنترل تلگرام'
+        return {
+            'platform': platform,
+            'panel_brand_title': brand,
+            'panel_brand_subtitle': 'مدیریت کمپین و مخاطبان',
+        }
+
+    @classmethod
+    def get_for_platform(cls, platform: str):
+        platform = Platform.TELEGRAM if platform == Platform.TELEGRAM else Platform.BALE
+        obj, _ = cls.objects.get_or_create(
+            platform=platform,
+            defaults=cls._defaults_for_platform(platform),
+        )
+        return obj
 
     @classmethod
     def get_solo(cls):
-        obj, _ = cls.objects.get_or_create(id=1)
-        return obj
+        """سازگاری با کد قدیمی — همان تنظیمات بله."""
+        return cls.get_for_platform(Platform.BALE)
+
+    def masked_bot_token(self) -> str:
+        token = (self.bot_token or '').strip()
+        if not token:
+            return ''
+        if len(token) <= 8:
+            return '••••••••'
+        return f'{token[:4]}…{token[-4:]}'
+
+    def build_webhook_url(self) -> str:
+        base = (self.webhook_public_url or '').strip().rstrip('/')
+        secret = (self.webhook_secret or '').strip()
+        if not base or not secret:
+            return ''
+        return f'{base}/webhook/{self.platform}/{secret}/'
+
+    def has_bot_token(self) -> bool:
+        return bool((self.bot_token or '').strip())

@@ -15,7 +15,7 @@
           {% for row in object_list %}
           <tr>
             <td class="small text-muted">{{ row.created_at }}</td>
-            <td>{{ row.subscriber.phone_number|default:row.subscriber.bale_user_id }}</td>
+            <td>{{ row.subscriber.phone_number|default:row.subscriber.messenger_user_id }}</td>
             <td><span class="badge text-bg-secondary bg-opacity-25">{{ row.get_kind_display }}</span></td>
             <td class="small">{% if row.text %}{{ row.text|truncatechars:80 }}{% else %}{{ row.file_id|truncatechars:40 }}{% endif %}</td>
           </tr>

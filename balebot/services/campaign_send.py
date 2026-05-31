@@ -1,4 +1,4 @@
-"""ارسال یک پیام کمپین به یک چت (شناسهٔ بله)."""
+"""ارسال یک پیام کمپین به یک چت."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from pathlib import Path
 from django.conf import settings
 
 from balebot.models import Campaign
-from balebot.services import bale_api
+from balebot.services import messenger_api
 from balebot.services.keyboard_layout import flatten_rows
 
 
@@ -30,6 +30,7 @@ def build_inline_markup(campaign: Campaign) -> dict | None:
 
 
 def send_campaign_to_chat(chat_id: int | str, campaign: Campaign) -> dict:
+    platform = campaign.platform
     markup = build_inline_markup(campaign)
     ct = campaign.content_type
     body = campaign.body or ''
@@ -39,17 +40,18 @@ def send_campaign_to_chat(chat_id: int | str, campaign: Campaign) -> dict:
         media_path = Path(campaign.media.path)
 
     if ct == Campaign.ContentType.TEXT:
-        return bale_api.send_message(chat_id, body, reply_markup=markup)
+        return messenger_api.send_message(platform, chat_id, body, reply_markup=markup)
 
     if ct == Campaign.ContentType.TEXT_BUTTONS:
         if not markup:
-            return bale_api.send_message(chat_id, body)
-        return bale_api.send_message(chat_id, body, reply_markup=markup)
+            return messenger_api.send_message(platform, chat_id, body)
+        return messenger_api.send_message(platform, chat_id, body, reply_markup=markup)
 
     if ct == Campaign.ContentType.PHOTO:
         if not media_path or not media_path.is_file():
-            raise bale_api.BaleAPIError('فایل تصویر کمپین یافت نشد.')
-        return bale_api.send_photo(
+            raise messenger_api.MessengerAPIError('فایل تصویر کمپین یافت نشد.')
+        return messenger_api.send_photo(
+            platform,
             chat_id,
             photo_path=media_path,
             caption=body,
@@ -58,8 +60,9 @@ def send_campaign_to_chat(chat_id: int | str, campaign: Campaign) -> dict:
 
     if ct == Campaign.ContentType.VIDEO:
         if not media_path or not media_path.is_file():
-            raise bale_api.BaleAPIError('فایل ویدیوی کمپین یافت نشد.')
-        return bale_api.send_video(
+            raise messenger_api.MessengerAPIError('فایل ویدیوی کمپین یافت نشد.')
+        return messenger_api.send_video(
+            platform,
             chat_id,
             video_path=media_path,
             caption=body,
@@ -68,8 +71,9 @@ def send_campaign_to_chat(chat_id: int | str, campaign: Campaign) -> dict:
 
     if ct == Campaign.ContentType.VOICE:
         if not media_path or not media_path.is_file():
-            raise bale_api.BaleAPIError('فایل صوتی کمپین یافت نشد.')
-        return bale_api.send_voice(
+            raise messenger_api.MessengerAPIError('فایل صوتی کمپین یافت نشد.')
+        return messenger_api.send_voice(
+            platform,
             chat_id,
             voice_path=media_path,
             caption=body,
@@ -78,15 +82,16 @@ def send_campaign_to_chat(chat_id: int | str, campaign: Campaign) -> dict:
 
     if ct == Campaign.ContentType.DOCUMENT:
         if not media_path or not media_path.is_file():
-            raise bale_api.BaleAPIError('فایل سند کمپین یافت نشد.')
-        return bale_api.send_document(
+            raise messenger_api.MessengerAPIError('فایل سند کمپین یافت نشد.')
+        return messenger_api.send_document(
+            platform,
             chat_id,
             document_path=media_path,
             caption=body,
             reply_markup=markup,
         )
 
-    raise bale_api.BaleAPIError(f'نوع محتوای نامعتبر: {ct}')
+    raise messenger_api.MessengerAPIError(f'نوع محتوای نامعتبر: {ct}')
 
 
 def ignore_setting_delay() -> float:

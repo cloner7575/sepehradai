@@ -16,6 +16,10 @@
   <div class="settings-page-layout">
     <nav class="settings-nav panel-card" aria-label="بخش‌های تنظیمات">
       <div class="settings-nav-title">برو به</div>
+      <a href="#sec-connection" class="settings-nav-link" data-settings-nav="sec-connection">
+        <i class="bi bi-plug"></i>
+        <span>اتصال ربات</span>
+      </a>
       <a href="#sec-start" class="settings-nav-link active" data-settings-nav="sec-start">
         <i class="bi bi-play-circle"></i>
         <span>استارت و منو</span>
@@ -36,9 +40,46 @@
 
     <div class="settings-main">
 
+      <section id="sec-connection" class="settings-section panel-card mb-4">
+        <header class="panel-card-header settings-section-header">
+          <div>
+            <h2 class="panel-card-title mb-1"><i class="bi bi-plug me-2"></i>اتصال ربات ({{ active_platform_label }})</h2>
+            <p class="panel-card-lead mb-0">توکن و وب‌هوک را برای همین پلتفرم تنظیم کنید.</p>
+          </div>
+        </header>
+        <div class="panel-card-body">
+          {% include "balebot/_settings_switch.html" with field=form.is_enabled title=form.is_enabled.label desc="اگر خاموش باشد وب‌هوک پاسخ نمی‌دهد." %}
+          {% include "balebot/_settings_field.html" with field=form.bot_token hint=form.bot_token.help_text %}
+          {% include "balebot/_settings_field.html" with field=form.webhook_secret hint="رشتهٔ تصادفی برای بخش secret در URL وب‌هوک." %}
+          {% include "balebot/_settings_field.html" with field=form.webhook_public_url hint="آدرس HTTPS عمومی سرور، بدون اسلش پایانی." %}
+
+          {% if webhook_url_preview %}
+          <div class="alert alert-secondary small mb-3">
+            <strong>URL وب‌هوک:</strong>
+            <code dir="ltr" class="user-select-all">{{ webhook_url_preview }}</code>
+          </div>
+          {% endif %}
+
+          <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+            <button type="submit" name="action" value="register_webhook" class="btn btn-outline-primary">
+              <i class="bi bi-broadcast me-1"></i>ثبت وب‌هوک
+            </button>
+          </div>
+
+          <div class="settings-connection-status small">
+            <div>توکن: {% if connection_status.has_token %}<span class="text-success">تنظیم شده</span>{% else %}<span class="text-danger">تنظیم نشده</span>{% endif %}</div>
+            <div>اتصال API: {% if connection_status.bot_ok %}<span class="text-success">موفق{% if connection_status.bot_username %} (@{{ connection_status.bot_username }}){% endif %}</span>{% else %}<span class="text-muted">—</span>{% endif %}</div>
+            <div>وب‌هوک: {% if connection_status.webhook_ok %}<span class="text-success">ثبت شده</span>{% elif connection_status.webhook_url %}<span class="text-warning">URL متفاوت</span>{% else %}<span class="text-muted">ثبت نشده</span>{% endif %}</div>
+            {% if connection_status.error %}
+            <div class="text-danger mt-1">{{ connection_status.error }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+
       <div class="settings-flow-map panel-card mb-4">
         <div class="panel-card-body py-3">
-          <div class="settings-flow-map-title"><i class="bi bi-diagram-2 me-2"></i>کاربر در بله چه می‌بیند؟</div>
+          <div class="settings-flow-map-title"><i class="bi bi-diagram-2 me-2"></i>کاربر در {{ active_platform_label }} چه می‌بیند؟</div>
           <div class="settings-flow-map-grid">
             <div class="settings-flow-map-col">
               <span class="settings-flow-map-badge settings-flow-map-badge--first">بار اول</span>

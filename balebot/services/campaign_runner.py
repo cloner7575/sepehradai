@@ -9,8 +9,8 @@ from collections.abc import Callable
 from django.conf import settings
 from django.utils import timezone
 
-from balebot.models import Campaign, CampaignDelivery, Subscriber
-from balebot.services import bale_api
+from balebot.models import BotSettings, Campaign, CampaignDelivery, Subscriber
+from balebot.services import messenger_api
 from balebot.services.audience import resolve_campaign_subscribers_qs
 from balebot.services.campaign_send import ignore_setting_delay, send_campaign_to_chat
 
@@ -70,10 +70,10 @@ def run_delivery_pass_for_campaign(
                 err_line(line)
             else:
                 logger.warning('%s', line)
-            if isinstance(e, bale_api.BaleAPIError) and getattr(e, 'payload', None):
-                bale_api.sleep_after_rate_limit(e.payload)
-            if isinstance(e, bale_api.BaleAPIError):
-                logger.warning('Bale API error: %s', e)
+            if isinstance(e, messenger_api.MessengerAPIError) and getattr(e, 'payload', None):
+                messenger_api.sleep_after_rate_limit(e.payload)
+            if isinstance(e, messenger_api.MessengerAPIError):
+                logger.warning('Messenger API error: %s', e)
             else:
                 logger.exception('Unexpected campaign send error')
             time.sleep(delay)
@@ -138,8 +138,9 @@ def run_single_campaign_web(campaign_id: int) -> tuple[bool, str]:
     یک کمپین را بلافاصله پردازش می‌کند (پس از قرار گرفتن در صف از پنل).
     برای زمان‌بندی‌شدهٔ آینده فراخوانی نشود.
     """
-    if not settings.BALE_BOT_TOKEN:
-        return False, 'توکن بازو (BALE_BOT_TOKEN) تنظیم نشده است.'
+    if not BotSettings.get_for_platform(campaign.platform).has_bot_token():
+        label = 'تلگرام' if campaign.platform == 'telegram' else 'بله'
+        return False, f'توکن ربات {label} در پنل تنظیم نشده است.'
 
     try:
         campaign = Campaign.objects.get(pk=campaign_id)

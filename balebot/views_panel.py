@@ -15,7 +15,14 @@ from django.views.generic import DetailView, ListView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 
 from balebot.forms import BotSettingsForm, CampaignForm
-from balebot.services import bale_api
+from balebot.platform import (
+    all_platforms,
+    get_active_platform,
+    get_bot_settings_for_request,
+    platform_label,
+    set_active_platform,
+)
+from balebot.services import messenger_api
 from balebot.services.audience import snapshot_campaign_audience
 from balebot.services.campaign_runner import run_single_campaign_web
 from balebot.services.keyboard_layout import keyboard_has_any_button, normalize_to_sections
@@ -26,6 +33,7 @@ from balebot.models import (
     CampaignDelivery,
     FlowMedia,
     InboundMessage,
+    Platform,
     Subscriber,
     SupportTicketMessage,
     Tag,
@@ -66,34 +74,143 @@ def campaign_form_media_context(request, campaign_obj=None):
     return ctx
 
 
-class DashboardView(StaffRequiredMixin, TemplateView):
+class StaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """فقط کاربران staff."""
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+
+class PlatformScopedMixin:
+    """فیلتر داده‌ها بر اساس پلتفرم فعال در session."""
+
+    def get_active_platform(self) -> str:
+        return get_active_platform(self.request)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['active_platform'] = self.get_active_platform()
+        ctx['active_platform_label'] = platform_label(ctx['active_platform'])
+        ctx['available_platforms'] = all_platforms()
+        return ctx
+
+
+class SwitchPlatformView(StaffRequiredMixin, View):
+    http_method_names = ['get', 'post']
+
+    def get(self, request, *args, **kwargs):
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER') or '/')
+
+    def post(self, request, *args, **kwargs):
+        platform = (request.POST.get('platform') or '').strip()
+        set_active_platform(request, platform)
+        next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or '/'
+        return HttpResponseRedirect(next_url)
+
+
+class DashboardView(PlatformScopedMixin, StaffRequiredMixin, TemplateView):
     template_name = 'balebot/dashboard.html'
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['subscriber_active'] = Subscriber.objects.filter(is_active=True, is_registered=True).count()
-        ctx['subscriber_total'] = Subscriber.objects.count()
-        ctx['campaign_recent'] = Campaign.objects.order_by('-created_at')[:8]
-        sent = CampaignDelivery.objects.filter(status=CampaignDelivery.DeliveryStatus.SENT).count()
-        failed = CampaignDelivery.objects.filter(status=CampaignDelivery.DeliveryStatus.FAILED).count()
+        platform = self.get_active_platform()
+        ctx['subscriber_active'] = Subscriber.objects.filter(
+            platform=platform, is_active=True, is_registered=True,
+        ).count()
+        ctx['subscriber_total'] = Subscriber.objects.filter(platform=platform).count()
+        ctx['campaign_recent'] = Campaign.objects.filter(platform=platform).order_by('-created_at')[:8]
+        sent = CampaignDelivery.objects.filter(
+            campaign__platform=platform,
+            status=CampaignDelivery.DeliveryStatus.SENT,
+        ).count()
+        failed = CampaignDelivery.objects.filter(
+            campaign__platform=platform,
+            status=CampaignDelivery.DeliveryStatus.FAILED,
+        ).count()
         ctx['delivery_sent'] = sent
         ctx['delivery_failed'] = failed
-        ctx['inbound_recent'] = InboundMessage.objects.select_related('subscriber').order_by('-created_at')[:15]
-        ctx['campaign_total'] = Campaign.objects.count()
+        ctx['inbound_recent'] = (
+            InboundMessage.objects.filter(subscriber__platform=platform)
+            .select_related('subscriber')
+            .order_by('-created_at')[:15]
+        )
+        ctx['campaign_total'] = Campaign.objects.filter(platform=platform).count()
         ctx['campaign_running'] = Campaign.objects.filter(
+            platform=platform,
             status__in=(Campaign.Status.QUEUED, Campaign.Status.SENDING),
         ).count()
-        ctx['callback_recent_count'] = CallbackLog.objects.count()
+        ctx['callback_recent_count'] = CallbackLog.objects.filter(
+            subscriber__platform=platform,
+        ).count()
         return ctx
 
 
-class BotSettingsView(StaffRequiredMixin, UpdateView):
+class BotSettingsView(PlatformScopedMixin, StaffRequiredMixin, UpdateView):
     model = BotSettings
     form_class = BotSettingsForm
     template_name = 'balebot/bot_settings.html'
 
     def get_object(self, queryset=None):
-        return BotSettings.get_solo()
+        return get_bot_settings_for_request(self.request)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        obj = self.object
+        ctx['webhook_url_preview'] = obj.build_webhook_url() if obj else ''
+        ctx['connection_status'] = self._connection_status(obj)
+        return ctx
+
+    def _connection_status(self, obj: BotSettings) -> dict:
+        status = {
+            'has_token': obj.has_bot_token(),
+            'webhook_ok': False,
+            'bot_ok': False,
+            'webhook_url': '',
+            'bot_username': '',
+            'error': '',
+        }
+        if not status['has_token']:
+            return status
+        try:
+            me = messenger_api.get_me(obj.platform)
+            result = me.get('result') or {}
+            status['bot_ok'] = True
+            status['bot_username'] = result.get('username') or ''
+        except messenger_api.MessengerAPIError as e:
+            status['error'] = str(e)
+            return status
+        try:
+            info = messenger_api.get_webhook_info(obj.platform)
+            result = info.get('result') or {}
+            expected = obj.build_webhook_url()
+            actual = (result.get('url') or '').strip()
+            status['webhook_url'] = actual
+            status['webhook_ok'] = bool(expected and actual == expected)
+        except messenger_api.MessengerAPIError as e:
+            status['error'] = str(e)
+        return status
+
+    def post(self, request, *args, **kwargs):
+        action = (request.POST.get('action') or '').strip()
+        if action == 'register_webhook':
+            return self._register_webhook(request)
+        return super().post(request, *args, **kwargs)
+
+    def _register_webhook(self, request):
+        obj = self.get_object()
+        url = obj.build_webhook_url()
+        if not obj.has_bot_token():
+            messages.error(request, 'ابتدا توکن ربات را ذخیره کنید.')
+            return HttpResponseRedirect(reverse_lazy('bot_settings'))
+        if not url:
+            messages.error(request, 'آدرس عمومی سرور و رمز وب‌هوک را پر کنید.')
+            return HttpResponseRedirect(reverse_lazy('bot_settings'))
+        try:
+            messenger_api.set_webhook(obj.platform, url)
+            messages.success(request, f'وب‌هوک ثبت شد: {url}')
+        except messenger_api.MessengerAPIError as e:
+            messages.error(request, f'ثبت وب‌هوک ناموفق: {e}')
+        return HttpResponseRedirect(reverse_lazy('bot_settings'))
 
     def get_success_url(self):
         return reverse_lazy('bot_settings')
@@ -106,13 +223,14 @@ class BotSettingsView(StaffRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
-class SubscriberListView(StaffRequiredMixin, ListView):
+class SubscriberListView(PlatformScopedMixin, StaffRequiredMixin, ListView):
     model = Subscriber
     template_name = 'balebot/subscriber_list.html'
     paginate_by = 40
 
     def get_queryset(self):
-        qs = Subscriber.objects.annotate(
+        platform = self.get_active_platform()
+        qs = Subscriber.objects.filter(platform=platform).annotate(
             unread_support_count=Count(
                 'inbound_messages',
                 filter=Q(
@@ -130,7 +248,7 @@ class SubscriberListView(StaffRequiredMixin, ListView):
             )
             if q.isdigit():
                 n = int(q)
-                cond |= Q(bale_user_id=n) | Q(chat_id=n)
+                cond |= Q(messenger_user_id=n) | Q(chat_id=n)
             qs = qs.filter(cond)
         tag_raw = (self.request.GET.get('tag') or '').strip()
         if tag_raw.isdigit():
@@ -139,14 +257,19 @@ class SubscriberListView(StaffRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['available_tags'] = Tag.objects.filter(is_active=True).order_by('name')
+        ctx['available_tags'] = Tag.objects.filter(
+            platform=self.get_active_platform(), is_active=True,
+        ).order_by('name')
         ctx['selected_tag_id'] = (self.request.GET.get('tag') or '').strip()
         return ctx
 
 
-class SubscriberDetailView(StaffRequiredMixin, DetailView):
+class SubscriberDetailView(PlatformScopedMixin, StaffRequiredMixin, DetailView):
     model = Subscriber
     template_name = 'balebot/subscriber_detail.html'
+
+    def get_queryset(self):
+        return Subscriber.objects.filter(platform=self.get_active_platform())
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -234,14 +357,15 @@ class SubscriberDetailView(StaffRequiredMixin, DetailView):
             return HttpResponseRedirect(self.request.path)
 
         try:
+            platform = self.object.platform
             if media:
-                kind, text_body, file_id = self._send_personal_media(media, msg)
+                kind, text_body, file_id = self._send_personal_media(platform, media, msg)
             else:
-                bale_api.send_message(self.object.chat_id, msg[:4096])
+                messenger_api.send_message(platform, self.object.chat_id, msg[:4096])
                 kind = SupportTicketMessage.MessageKind.TEXT
                 text_body = msg[:4096]
                 file_id = ''
-        except bale_api.BaleAPIError as e:
+        except messenger_api.MessengerAPIError as e:
             messages.error(request, f'ارسال پیام ناموفق بود: {e}')
             return HttpResponseRedirect(self.request.path)
 
@@ -276,7 +400,7 @@ class SubscriberDetailView(StaffRequiredMixin, DetailView):
             messages.success(request, 'پیام عادی با موفقیت ارسال شد.')
         return HttpResponseRedirect(redirect_url)
 
-    def _send_personal_media(self, media, caption_text: str) -> tuple[str, str, str]:
+    def _send_personal_media(self, platform: str, media, caption_text: str) -> tuple[str, str, str]:
         suffix = Path(media.name or '').suffix
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix or '.bin') as tmp:
             for chunk in media.chunks():
@@ -287,27 +411,34 @@ class SubscriberDetailView(StaffRequiredMixin, DetailView):
         content_type = (getattr(media, 'content_type', '') or '').lower()
         try:
             if content_type.startswith('image/'):
-                resp = bale_api.send_photo(self.object.chat_id, photo_path=temp_path, caption=caption)
+                resp = messenger_api.send_photo(
+                    platform, self.object.chat_id, photo_path=temp_path, caption=caption,
+                )
                 return (
                     SupportTicketMessage.MessageKind.PHOTO,
                     caption,
                     self._extract_file_id(resp, 'photo'),
                 )
             if content_type.startswith('video/'):
-                resp = bale_api.send_video(self.object.chat_id, video_path=temp_path, caption=caption)
+                resp = messenger_api.send_video(
+                    platform, self.object.chat_id, video_path=temp_path, caption=caption,
+                )
                 return (
                     SupportTicketMessage.MessageKind.VIDEO,
                     caption,
                     self._extract_file_id(resp, 'video'),
                 )
             if content_type in {'audio/ogg', 'audio/opus'}:
-                resp = bale_api.send_voice(self.object.chat_id, voice_path=temp_path, caption=caption)
+                resp = messenger_api.send_voice(
+                    platform, self.object.chat_id, voice_path=temp_path, caption=caption,
+                )
                 return (
                     SupportTicketMessage.MessageKind.VOICE,
                     caption,
                     self._extract_file_id(resp, 'voice'),
                 )
-            resp = bale_api.send_document(
+            resp = messenger_api.send_document(
+                platform,
                 self.object.chat_id,
                 document_path=temp_path,
                 caption=caption,
@@ -362,14 +493,17 @@ class SubscriberDetailView(StaffRequiredMixin, DetailView):
 
 
 
-class CampaignListView(StaffRequiredMixin, ListView):
+class CampaignListView(PlatformScopedMixin, StaffRequiredMixin, ListView):
     model = Campaign
     template_name = 'balebot/campaign_list.html'
     paginate_by = 30
 
+    def get_queryset(self):
+        return Campaign.objects.filter(platform=self.get_active_platform()).order_by('-created_at')
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        qs = Campaign.objects.all()
+        qs = Campaign.objects.filter(platform=self.get_active_platform())
         ctx['campaign_stat_total'] = qs.count()
         ctx['campaign_stat_draft'] = qs.filter(status=Campaign.Status.DRAFT).count()
         ctx['campaign_stat_running'] = qs.filter(
@@ -379,7 +513,7 @@ class CampaignListView(StaffRequiredMixin, ListView):
         return ctx
 
 
-class CampaignCreateView(StaffRequiredMixin, CreateView):
+class CampaignCreateView(PlatformScopedMixin, StaffRequiredMixin, CreateView):
     model = Campaign
     form_class = CampaignForm
     template_name = 'balebot/campaign_form.html'
@@ -387,6 +521,7 @@ class CampaignCreateView(StaffRequiredMixin, CreateView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['request'] = self.request
+        kwargs['platform'] = self.get_active_platform()
         return kwargs
 
     def get_context_data(self, **kwargs):
@@ -397,13 +532,14 @@ class CampaignCreateView(StaffRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.status = Campaign.Status.DRAFT
+        form.instance.platform = self.get_active_platform()
         return super().form_valid(form)
 
     def get_success_url(self):
         return reverse_lazy('campaign_detail', kwargs={'pk': self.object.pk})
 
 
-class CampaignUpdateView(StaffRequiredMixin, UpdateView):
+class CampaignUpdateView(PlatformScopedMixin, StaffRequiredMixin, UpdateView):
     model = Campaign
     form_class = CampaignForm
     template_name = 'balebot/campaign_form.html'
@@ -411,6 +547,7 @@ class CampaignUpdateView(StaffRequiredMixin, UpdateView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['request'] = self.request
+        kwargs['platform'] = self.get_active_platform()
         return kwargs
 
     def get_context_data(self, **kwargs):
@@ -420,6 +557,9 @@ class CampaignUpdateView(StaffRequiredMixin, UpdateView):
         )
         ctx.update(campaign_form_media_context(self.request, self.object))
         return ctx
+
+    def get_queryset(self):
+        return Campaign.objects.filter(platform=self.get_active_platform())
 
     def get_success_url(self):
         return reverse_lazy('campaign_detail', kwargs={'pk': self.object.pk})
@@ -501,7 +641,7 @@ class CampaignMediaClearView(StaffRequiredMixin, View):
 FLOW_IMAGE_EXTENSIONS = frozenset({'.jpg', '.jpeg', '.png', '.gif', '.webp'})
 
 
-class FlowMediaUploadView(StaffRequiredMixin, View):
+class FlowMediaUploadView(PlatformScopedMixin, StaffRequiredMixin, View):
     """آپلود عکس برای نودهای جریان /start."""
 
     http_method_names = ['post']
@@ -532,7 +672,7 @@ class FlowMediaUploadView(StaffRequiredMixin, View):
                 status=400,
             )
 
-        media = FlowMedia.objects.create(file=upload)
+        media = FlowMedia.objects.create(file=upload, platform=self.get_active_platform())
         return JsonResponse(
             {
                 'ok': True,
@@ -542,9 +682,12 @@ class FlowMediaUploadView(StaffRequiredMixin, View):
         )
 
 
-class CampaignDetailView(StaffRequiredMixin, DetailView):
+class CampaignDetailView(PlatformScopedMixin, StaffRequiredMixin, DetailView):
     model = Campaign
     template_name = 'balebot/campaign_detail.html'
+
+    def get_queryset(self):
+        return Campaign.objects.filter(platform=self.get_active_platform())
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -612,19 +755,27 @@ class CampaignDetailView(StaffRequiredMixin, DetailView):
         return HttpResponseRedirect(self.object.get_absolute_url())
 
 
-class CallbackLogListView(StaffRequiredMixin, ListView):
+class CallbackLogListView(PlatformScopedMixin, StaffRequiredMixin, ListView):
     model = CallbackLog
     template_name = 'balebot/callback_log_list.html'
     paginate_by = 50
 
     def get_queryset(self):
-        return CallbackLog.objects.select_related('subscriber', 'campaign').order_by('-created_at')
+        return (
+            CallbackLog.objects.filter(subscriber__platform=self.get_active_platform())
+            .select_related('subscriber', 'campaign')
+            .order_by('-created_at')
+        )
 
 
-class InboundListView(StaffRequiredMixin, ListView):
+class InboundListView(PlatformScopedMixin, StaffRequiredMixin, ListView):
     model = InboundMessage
     template_name = 'balebot/inbound_list.html'
     paginate_by = 50
 
     def get_queryset(self):
-        return InboundMessage.objects.select_related('subscriber').order_by('-created_at')
+        return (
+            InboundMessage.objects.filter(subscriber__platform=self.get_active_platform())
+            .select_related('subscriber')
+            .order_by('-created_at')
+        )
