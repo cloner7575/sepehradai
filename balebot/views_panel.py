@@ -23,6 +23,11 @@ from balebot.platform import (
     set_active_platform,
 )
 from balebot.services import messenger_api
+from balebot.services.webhook_setup import (
+    explain_telegram_webhook_error,
+    normalize_public_url,
+    validate_webhook_url,
+)
 from balebot.services.audience import snapshot_campaign_audience
 from balebot.services.campaign_runner import run_single_campaign_web
 from balebot.services.keyboard_layout import keyboard_has_any_button, normalize_to_sections
@@ -198,6 +203,18 @@ class BotSettingsView(PlatformScopedMixin, StaffRequiredMixin, UpdateView):
 
     def _register_webhook(self, request):
         obj = self.get_object()
+        posted_url = (request.POST.get('webhook_public_url') or '').strip()
+        posted_secret = (request.POST.get('webhook_secret') or '').strip()
+        update_fields = ['updated_at']
+        if posted_url:
+            obj.webhook_public_url = normalize_public_url(posted_url, platform=obj.platform)
+            update_fields.append('webhook_public_url')
+        if posted_secret:
+            obj.webhook_secret = posted_secret
+            update_fields.append('webhook_secret')
+        if len(update_fields) > 1:
+            obj.save(update_fields=update_fields)
+
         url = obj.build_webhook_url()
         if not obj.has_bot_token():
             messages.error(request, 'ابتدا توکن ربات را ذخیره کنید.')
@@ -205,11 +222,18 @@ class BotSettingsView(PlatformScopedMixin, StaffRequiredMixin, UpdateView):
         if not url:
             messages.error(request, 'آدرس عمومی سرور و رمز وب‌هوک را پر کنید.')
             return HttpResponseRedirect(reverse_lazy('bot_settings'))
+
+        ok, err = validate_webhook_url(url, platform=obj.platform)
+        if not ok:
+            messages.error(request, err)
+            return HttpResponseRedirect(reverse_lazy('bot_settings'))
+
         try:
             messenger_api.set_webhook(obj.platform, url)
             messages.success(request, f'وب‌هوک ثبت شد: {url}')
         except messenger_api.MessengerAPIError as e:
-            messages.error(request, f'ثبت وب‌هوک ناموفق: {e}')
+            detail = explain_telegram_webhook_error(str(e)) if obj.platform == Platform.TELEGRAM else str(e)
+            messages.error(request, f'ثبت وب‌هوک ناموفق: {detail}')
         return HttpResponseRedirect(reverse_lazy('bot_settings'))
 
     def get_success_url(self):

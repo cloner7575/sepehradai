@@ -51,7 +51,7 @@
           {% include "balebot/_settings_switch.html" with field=form.is_enabled title=form.is_enabled.label desc="اگر خاموش باشد وب‌هوک پاسخ نمی‌دهد." %}
           {% include "balebot/_settings_field.html" with field=form.bot_token hint=form.bot_token.help_text %}
           {% include "balebot/_settings_field.html" with field=form.webhook_secret hint="رشتهٔ تصادفی برای بخش secret در URL وب‌هوک." %}
-          {% include "balebot/_settings_field.html" with field=form.webhook_public_url hint="آدرس HTTPS عمومی سرور، بدون اسلش پایانی." %}
+          {% include "balebot/_settings_field.html" with field=form.webhook_public_url hint="فقط دامنهٔ HTTPS عمومی، بدون مسیر — مثلاً https://sepehradbot.runflare.run" %}
 
           {% if webhook_url_preview %}
           <div class="alert alert-secondary small mb-3">

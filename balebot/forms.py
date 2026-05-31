@@ -5,6 +5,7 @@ from django.core.files import File
 from django.core.files.storage import default_storage
 
 from balebot.models import BotSettings, Campaign, Platform, Tag
+from balebot.services.webhook_setup import normalize_public_url
 from balebot.services.jalali_datetime import aware_to_jalali_parts, parse_jalali_date_time
 
 # هم‌نام با مقدار سشن در views_panel (آپلود ویدیو)
@@ -152,6 +153,12 @@ class BotSettingsForm(forms.ModelForm):
             self.fields['bot_token'].help_text = (
                 f'توکن فعلی: {self.instance.masked_bot_token()} — برای تغییر، توکن جدید وارد کنید.'
             )
+        platform = getattr(self.instance, 'platform', Platform.BALE) or Platform.BALE
+        self.fields['webhook_public_url'].help_text = (
+            'فقط دامنهٔ HTTPS عمومی، بدون مسیر. '
+            + ('تلگرام حتماً https:// لازم دارد. ' if platform == Platform.TELEGRAM else '')
+            + 'مثلاً https://example.com'
+        )
         raw = getattr(self.instance, 'start_flow', None)
         if raw and isinstance(raw, dict) and raw.get('version') == 2:
             norm = sanitize_start_flow(raw)
@@ -169,6 +176,16 @@ class BotSettingsForm(forms.ModelForm):
         if self._initial_bot_token:
             return self._initial_bot_token
         return ''
+
+    def clean_webhook_public_url(self):
+        raw = self.cleaned_data.get('webhook_public_url') or ''
+        platform = getattr(self.instance, 'platform', Platform.BALE) or Platform.BALE
+        normalized = normalize_public_url(raw, platform=platform)
+        if raw.strip() and not normalized:
+            raise forms.ValidationError('آدرس عمومی سرور نامعتبر است.')
+        if platform == Platform.TELEGRAM and normalized and not normalized.startswith('https://'):
+            raise forms.ValidationError('برای تلگرام آدرس عمومی باید با https:// باشد.')
+        return normalized
 
     def clean_start_flow(self):
         raw = self.cleaned_data.get('start_flow')
