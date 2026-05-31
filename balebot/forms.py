@@ -145,7 +145,10 @@ class BotSettingsForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance and self.instance.pk and self.instance.has_bot_token():
+        self._initial_bot_token = ''
+        if self.instance and self.instance.pk:
+            self._initial_bot_token = (self.instance.bot_token or '').strip()
+        if self._initial_bot_token:
             self.fields['bot_token'].help_text = (
                 f'توکن فعلی: {self.instance.masked_bot_token()} — برای تغییر، توکن جدید وارد کنید.'
             )
@@ -158,6 +161,14 @@ class BotSettingsForm(forms.ModelForm):
         dumped = json.dumps(norm, ensure_ascii=False)
         self.initial['start_flow'] = dumped
         self.fields['start_flow'].initial = dumped
+
+    def clean_bot_token(self):
+        token = (self.cleaned_data.get('bot_token') or '').strip()
+        if token:
+            return token
+        if self._initial_bot_token:
+            return self._initial_bot_token
+        return ''
 
     def clean_start_flow(self):
         raw = self.cleaned_data.get('start_flow')
@@ -201,11 +212,6 @@ class BotSettingsForm(forms.ModelForm):
         return cleaned
 
     def save(self, commit=True):
-        token = (self.cleaned_data.get('bot_token') or '').strip()
-        if not token and self.instance.pk:
-            self.cleaned_data['bot_token'] = self.instance.bot_token
-        elif token:
-            self.cleaned_data['bot_token'] = token
         return super().save(commit=commit)
 
 
