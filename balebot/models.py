@@ -434,6 +434,12 @@ class ClassEnrollmentRequest(models.Model):
 class BotSettings(models.Model):
     """تنظیمات هر پلتفرم (بله / تلگرام) — یک رکورد به ازای هر پلتفرم."""
 
+    PLATFORM_PK = {
+        Platform.BALE: 1,
+        Platform.TELEGRAM: 2,
+    }
+
+    id = models.PositiveSmallIntegerField(primary_key=True, editable=False)
     platform = models.CharField(
         max_length=16,
         choices=Platform.choices,
@@ -597,8 +603,9 @@ class BotSettings(models.Model):
     @classmethod
     def get_for_platform(cls, platform: str):
         platform = Platform.TELEGRAM if platform == Platform.TELEGRAM else Platform.BALE
+        pk = cls.PLATFORM_PK[platform]
         obj, _ = cls.objects.get_or_create(
-            platform=platform,
+            pk=pk,
             defaults=cls._defaults_for_platform(platform),
         )
         return obj
