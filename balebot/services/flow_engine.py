@@ -6,6 +6,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from django.db import IntegrityError
+
 from balebot.models import BotSettings, FlowMedia, Platform, Subscriber, SubscriberTag, Tag
 from balebot.services import messenger_api
 from balebot.services.flow_sanitize import empty_start_flow, sanitize_start_flow
@@ -121,14 +123,40 @@ def get_or_create_tag_for_slug(slug: str, platform: str, display_hint: str = '')
     tag = Tag.objects.filter(platform=platform, slug=slug).first()
     if tag:
         return tag
-    name = (display_hint or slug).strip()[:120] or slug
-    return Tag.objects.create(
-        name=name,
-        slug=slug,
-        platform=platform,
-        tag_type=Tag.TagType.GENERIC,
-        is_active=True,
-    )
+    base_name = (display_hint or slug).strip()[:120] or slug
+    name = base_name
+
+    # نام تگ روی (platform, name) یکتا است؛ اگر label تکراری باشد،
+    # نام کاندید را با slug متمایز می‌کنیم تا خطای unique رخ ندهد.
+    existing_same_name = Tag.objects.filter(platform=platform, name=name).exclude(slug=slug).exists()
+    if existing_same_name:
+        suffix = f' - {slug}'
+        max_base = max(1, 120 - len(suffix))
+        name = f'{base_name[:max_base]}{suffix}'[:120]
+
+    for i in range(3):
+        try:
+            return Tag.objects.create(
+                name=name,
+                slug=slug,
+                platform=platform,
+                tag_type=Tag.TagType.GENERIC,
+                is_active=True,
+            )
+        except IntegrityError:
+            # اگر در همین لحظه توسط یک درخواست دیگر ساخته شده باشد.
+            tag = Tag.objects.filter(platform=platform, slug=slug).first()
+            if tag:
+                return tag
+
+            # در برخورد روی name، suffix پایدار اضافه می‌کنیم.
+            name = f'{base_name[:112]}-{i + 2}'[:120]
+
+    # fallback نهایی: اگر هنوز نساخته‌ایم، احتمالاً slug همزمان ساخته شده است.
+    tag = Tag.objects.filter(platform=platform, slug=slug).first()
+    if tag:
+        return tag
+    raise IntegrityError('Could not create tag without violating unique constraints')
 
 
 def assign_path_tags(sub: Subscriber, slugs: list[str], ref: _ButtonRef) -> None:
