@@ -16,18 +16,24 @@ export interface WebAppAdapter {
   isSupported: boolean;
 }
 
+function platformMetaHint(): PlatformKind | null {
+  const raw = document.querySelector('meta[name="miniapp-platform"]')?.getAttribute('content');
+  if (raw === 'bale' || raw === 'telegram') {
+    return raw;
+  }
+  return null;
+}
+
 function detectKind(): PlatformKind {
+  const hint = platformMetaHint();
   const w = window as Window & {
     Bale?: { WebApp?: unknown };
     Telegram?: { WebApp?: { initData?: string } };
   };
-  if (w.Bale?.WebApp && (w.Bale.WebApp as { initData?: string }).initData !== undefined) {
+  if (hint === 'bale' || (w.Bale?.WebApp && (w.Bale.WebApp as { initData?: string }).initData !== undefined)) {
     return 'bale';
   }
-  if (w.Telegram?.WebApp?.initData) {
-    return 'telegram';
-  }
-  if (w.Telegram?.WebApp) {
+  if (hint === 'telegram' || w.Telegram?.WebApp?.initData || w.Telegram?.WebApp) {
     return 'telegram';
   }
   return 'browser';
