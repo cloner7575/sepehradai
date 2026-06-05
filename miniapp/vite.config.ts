@@ -8,5 +8,6 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, '../static/miniapp'),
     emptyOutDir: true,
+    target: ['es2018', 'chrome64', 'safari12'],
   },
 });

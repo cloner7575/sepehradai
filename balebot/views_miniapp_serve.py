@@ -29,6 +29,17 @@ _MINIAPP_SDK_BLOCK_RE = re.compile(
     re.DOTALL,
 )
 
+MINIAPP_FRAME_CSP = (
+    "frame-ancestors 'self' https://*.bale.ai https://web.bale.ai https://*.telegram.org;"
+)
+
+
+def _apply_miniapp_headers(response: HttpResponse | FileResponse) -> HttpResponse | FileResponse:
+    response['Content-Security-Policy'] = MINIAPP_FRAME_CSP
+    if 'X-Frame-Options' in response:
+        del response['X-Frame-Options']
+    return response
+
 MINIAPP_INDEX_CANDIDATES = [
     Path(settings.BASE_DIR) / 'static' / 'miniapp' / 'index.html',
     Path(settings.BASE_DIR) / 'miniapp' / 'dist' / 'index.html',
@@ -77,32 +88,26 @@ def _inject_platform_sdk(html: str, platform: str) -> str:
 def serve_miniapp(request, public_id=None, path=''):
     index = _find_index()
     if not index:
-        return HttpResponse(
+        return _apply_miniapp_headers(HttpResponse(
             '<html dir="rtl"><body style="font-family:sans-serif;padding:2rem">'
             '<h1>مینی‌اپ در حال آماده‌سازی است</h1>'
             '<p>ابتدا <code>npm run build</code> را در پوشه miniapp اجرا کنید.</p>'
             '</body></html>',
             content_type='text/html; charset=utf-8',
-            headers={
-                'Content-Security-Policy': "frame-src https://*.bale.ai https://*.telegram.org;",
-            },
-        )
+        ))
     if path:
         static_root = index.parent
         asset = (static_root / path).resolve()
         if not str(asset).startswith(str(static_root.resolve())):
             raise Http404
         if asset.is_file():
-            return FileResponse(asset.open('rb'))
+            return _apply_miniapp_headers(FileResponse(asset.open('rb')))
     content = index.read_text(encoding='utf-8')
     content = _inject_platform_sdk(content, _catalog_platform(public_id))
-    return HttpResponse(
+    return _apply_miniapp_headers(HttpResponse(
         content,
         content_type='text/html; charset=utf-8',
-        headers={
-            'Content-Security-Policy': "frame-src https://*.bale.ai https://*.telegram.org;",
-        },
-    )
+    ))
 
 
 @require_http_methods(['GET'])

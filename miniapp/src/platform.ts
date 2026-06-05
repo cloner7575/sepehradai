@@ -16,83 +16,99 @@ export interface WebAppAdapter {
   isSupported: boolean;
 }
 
-function platformMetaHint(): PlatformKind | null {
-  const raw = document.querySelector('meta[name="miniapp-platform"]')?.getAttribute('content');
-  if (raw === 'bale' || raw === 'telegram') {
-    return raw;
+type MiniAppLike = {
+  initData?: string;
+  initDataUnsafe?: { user?: { id?: number } };
+};
+
+function hasMiniAppSession(app?: MiniAppLike | null): boolean {
+  if (!app) return false;
+  if ((app.initData || '').trim()) return true;
+  const user = app.initDataUnsafe?.user;
+  return Boolean(user && user.id);
+}
+
+function safeCall(fn?: () => void) {
+  try {
+    fn?.();
+  } catch {
+    /* SDK ممکن است خارج از کلاینت بله/تلگرام ناقص باشد */
   }
-  return null;
 }
 
 function detectKind(): PlatformKind {
-  const hint = platformMetaHint();
   const w = window as Window & {
-    Bale?: { WebApp?: unknown };
-    Telegram?: { WebApp?: { initData?: string } };
+    Bale?: { WebApp?: BaleWebApp };
+    Telegram?: { WebApp?: TelegramWebApp };
   };
-  if (hint === 'bale' || (w.Bale?.WebApp && (w.Bale.WebApp as { initData?: string }).initData !== undefined)) {
-    return 'bale';
-  }
-  if (hint === 'telegram' || w.Telegram?.WebApp?.initData || w.Telegram?.WebApp) {
-    return 'telegram';
-  }
+  if (hasMiniAppSession(w.Bale?.WebApp)) return 'bale';
+  if (hasMiniAppSession(w.Telegram?.WebApp)) return 'telegram';
   return 'browser';
 }
 
-export function createWebAppAdapter(platformHint?: string): WebAppAdapter {
+function baleAdapter(app: BaleWebApp): WebAppAdapter {
+  const back = app.BackButton;
+  return {
+    kind: 'bale',
+    initData: app.initData || '',
+    colorScheme: app.colorScheme || 'light',
+    themeParams: (app.themeParams as Record<string, string>) || {},
+    ready: () => safeCall(() => app.ready()),
+    expand: () => safeCall(() => app.expand()),
+    close: () => safeCall(() => app.close()),
+    openInvoice: (params, cb) => safeCall(() => app.openInvoice(params, cb)),
+    openLink: (url) => safeCall(() => app.openLink(url)),
+    sendData: (data) => safeCall(() => app.sendData(data)),
+    showBackButton: (onClick) => {
+      if (!back?.onClick || !back?.show) return;
+      safeCall(() => {
+        back.onClick(onClick);
+        back.show();
+      });
+    },
+    hideBackButton: () => safeCall(() => back?.hide?.()),
+    isSupported: app.isMiniAppSupported !== false,
+  };
+}
+
+function telegramAdapter(app: TelegramWebApp): WebAppAdapter {
+  const back = app.BackButton;
+  return {
+    kind: 'telegram',
+    initData: app.initData || '',
+    colorScheme: app.colorScheme || 'light',
+    themeParams: (app.themeParams as Record<string, string>) || {},
+    ready: () => safeCall(() => app.ready()),
+    expand: () => safeCall(() => app.expand()),
+    close: () => safeCall(() => app.close()),
+    openInvoice: () => {},
+    openLink: (url) => safeCall(() => app.openLink(url)),
+    sendData: (data) => safeCall(() => app.sendData(data)),
+    showBackButton: (onClick) => {
+      if (!back?.onClick || !back?.show) return;
+      safeCall(() => {
+        back.onClick(onClick);
+        back.show();
+      });
+    },
+    hideBackButton: () => safeCall(() => back?.hide?.()),
+    isSupported: true,
+  };
+}
+
+export function createWebAppAdapter(_platformHint?: string): WebAppAdapter {
   const w = window as Window & {
     Bale?: { WebApp: BaleWebApp };
     Telegram?: { WebApp: TelegramWebApp };
   };
-  const kind: PlatformKind =
-    platformHint === 'telegram'
-      ? 'telegram'
-      : platformHint === 'bale'
-        ? 'bale'
-        : detectKind();
+  const kind = detectKind();
 
   if (kind === 'bale' && w.Bale?.WebApp) {
-    const app = w.Bale.WebApp;
-    return {
-      kind: 'bale',
-      initData: app.initData || '',
-      colorScheme: app.colorScheme || 'light',
-      themeParams: (app.themeParams as Record<string, string>) || {},
-      ready: () => app.ready(),
-      expand: () => app.expand(),
-      close: () => app.close(),
-      openInvoice: (params, cb) => app.openInvoice(params, cb),
-      openLink: (url) => app.openLink(url),
-      sendData: (data) => app.sendData(data),
-      showBackButton: (onClick) => {
-        app.BackButton.onClick(onClick);
-        app.BackButton.show();
-      },
-      hideBackButton: () => app.BackButton.hide(),
-      isSupported: app.isMiniAppSupported !== false,
-    };
+    return baleAdapter(w.Bale.WebApp);
   }
 
-  if (w.Telegram?.WebApp) {
-    const app = w.Telegram.WebApp;
-    return {
-      kind: 'telegram',
-      initData: app.initData || '',
-      colorScheme: app.colorScheme || 'light',
-      themeParams: (app.themeParams as Record<string, string>) || {},
-      ready: () => app.ready(),
-      expand: () => app.expand(),
-      close: () => app.close(),
-      openInvoice: () => {},
-      openLink: (url) => app.openLink(url),
-      sendData: (data) => app.sendData(data),
-      showBackButton: (onClick) => {
-        app.BackButton.onClick(onClick);
-        app.BackButton.show();
-      },
-      hideBackButton: () => app.BackButton.hide(),
-      isSupported: true,
-    };
+  if (kind === 'telegram' && w.Telegram?.WebApp) {
+    return telegramAdapter(w.Telegram.WebApp);
   }
 
   return {
@@ -114,6 +130,7 @@ export function createWebAppAdapter(platformHint?: string): WebAppAdapter {
 
 interface BaleWebApp {
   initData: string;
+  initDataUnsafe?: { user?: { id?: number } };
   colorScheme: string;
   themeParams: unknown;
   isMiniAppSupported?: boolean;
@@ -123,11 +140,12 @@ interface BaleWebApp {
   openInvoice: (params: string, cb?: (s: { status: string }) => void) => void;
   openLink: (url: string) => void;
   sendData: (data: string) => void;
-  BackButton: { show: () => void; hide: () => void; onClick: (fn: () => void) => void };
+  BackButton?: { show: () => void; hide: () => void; onClick: (fn: () => void) => void };
 }
 
 interface TelegramWebApp {
   initData: string;
+  initDataUnsafe?: { user?: { id?: number } };
   colorScheme: string;
   themeParams: unknown;
   ready: () => void;
@@ -135,7 +153,7 @@ interface TelegramWebApp {
   close: () => void;
   openLink: (url: string) => void;
   sendData: (data: string) => void;
-  BackButton: { show: () => void; hide: () => void; onClick: (fn: () => void) => void };
+  BackButton?: { show: () => void; hide: () => void; onClick: (fn: () => void) => void };
 }
 
 export function applyTheme(configTheme: Record<string, string>, adapter: WebAppAdapter) {

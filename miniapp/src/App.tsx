@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { Component, createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import { Link, MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { fetchCart, fetchConfig } from './api';
 import { applyTheme, createWebAppAdapter, type WebAppAdapter } from './platform';
@@ -17,6 +18,30 @@ interface AppContextValue {
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
+
+class AppErrorBoundary extends Component<{ children: ReactNode }, { error: string }> {
+  state = { error: '' };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error: error.message || 'خطای نمایش مینی‌اپ' };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('miniapp render error', error, info);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-8 text-center">
+          <div className="text-4xl">⚠️</div>
+          <p className="text-sm text-muted">{this.state.error}</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 export function useApp() {
   const ctx = useContext(AppContext);
@@ -104,7 +129,7 @@ export default function App() {
       .then((cfg) => {
         setLoadError('');
         setConfig(cfg);
-        const platformAdapter = createWebAppAdapter(cfg.platform);
+        const platformAdapter = createWebAppAdapter();
         setAdapter(platformAdapter);
         if (!platformAdapter.isSupported) setUnsupported(true);
         applyTheme(cfg.theme || {}, platformAdapter);
@@ -148,22 +173,24 @@ export default function App() {
   }
 
   return (
-    <AppContext.Provider value={value}>
-      {config && config.is_enabled === false && (
-        <div className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900">
-          فروشگاه در حال آماده‌سازی است — مشاهده محصولات ممکن است، خرید هنوز فعال نشده.
-        </div>
-      )}
-      {unsupported && (
-        <div className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900">
-          لطفاً اپلیکیشن بله/تلگرام را به‌روزرسانی کنید.
-        </div>
-      )}
-      <MemoryRouter>
-        <Shell>
-          <AppRoutes />
-        </Shell>
-      </MemoryRouter>
-    </AppContext.Provider>
+    <AppErrorBoundary>
+      <AppContext.Provider value={value}>
+        {config && config.is_enabled === false && (
+          <div className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900">
+            فروشگاه در حال آماده‌سازی است — مشاهده محصولات ممکن است، خرید هنوز فعال نشده.
+          </div>
+        )}
+        {unsupported && (
+          <div className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900">
+            لطفاً اپلیکیشن بله/تلگرام را به‌روزرسانی کنید.
+          </div>
+        )}
+        <MemoryRouter>
+          <Shell>
+            <AppRoutes />
+          </Shell>
+        </MemoryRouter>
+      </AppContext.Provider>
+    </AppErrorBoundary>
   );
 }
