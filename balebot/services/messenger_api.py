@@ -29,12 +29,14 @@ def get_api_base(platform: str) -> str:
     return 'https://tapi.bale.ai'
 
 
-def _get_settings(platform: str) -> BotSettings:
-    return BotSettings.get_for_platform(platform)
+def _resolve_settings(platform: str, settings: BotSettings | None) -> BotSettings:
+    if settings is not None:
+        return settings
+    raise MessengerAPIError('تنظیمات ربات (BotSettings) برای فراخوانی API مشخص نشده است.')
 
 
-def _bot_base_url(platform: str) -> str:
-    cfg = _get_settings(platform)
+def _bot_base_url(platform: str, settings: BotSettings | None = None) -> str:
+    cfg = _resolve_settings(platform, settings)
     token = (cfg.bot_token or '').strip()
     if not token:
         label = 'تلگرام' if platform == Platform.TELEGRAM else 'بله'
@@ -47,13 +49,14 @@ def call_method(
     platform: str,
     method: str,
     *,
+    settings: BotSettings | None = None,
     json_body: dict[str, Any] | None = None,
     data: dict[str, Any] | None = None,
     files: dict[str, Any] | None = None,
     timeout: int = 120,
 ) -> dict[str, Any]:
     """فراخوانی متد API؛ در خطای منطقی MessengerAPIError می‌اندازد."""
-    url = urljoin(_bot_base_url(platform), method)
+    url = urljoin(_bot_base_url(platform, settings=settings), method)
     try:
         if files:
             r = requests.post(url, data=data or {}, files=files, timeout=timeout)
@@ -80,8 +83,8 @@ def call_method(
     return body
 
 
-def get_me(platform: str) -> dict[str, Any]:
-    return call_method(platform, 'getMe')
+def get_me(platform: str, *, settings: BotSettings | None = None) -> dict[str, Any]:
+    return call_method(platform, 'getMe', settings=settings)
 
 
 def send_message(
@@ -89,18 +92,20 @@ def send_message(
     chat_id: int | str,
     text: str,
     *,
+    settings: BotSettings | None = None,
     reply_markup: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {'chat_id': chat_id, 'text': text}
     if reply_markup is not None:
         payload['reply_markup'] = reply_markup
-    return call_method(platform, 'sendMessage', json_body=payload)
+    return call_method(platform, 'sendMessage', settings=settings, json_body=payload)
 
 
 def send_photo(
     platform: str,
     chat_id: int | str,
     *,
+    settings: BotSettings | None = None,
     photo_path: Path | None = None,
     photo_file_id: str | None = None,
     photo_file: Any | None = None,
@@ -118,7 +123,7 @@ def send_photo(
             payload['caption'] = cap
         if reply_markup is not None:
             payload['reply_markup'] = reply_markup
-        return call_method(platform, 'sendPhoto', json_body=payload)
+        return call_method(platform, 'sendPhoto', settings=settings, json_body=payload)
     if photo_file is not None:
         data: dict[str, Any] = {'chat_id': str(chat_id)}
         if cap:
@@ -129,7 +134,7 @@ def send_photo(
         if isinstance(fname, str) and '/' in fname:
             fname = Path(fname).name
         files = {'photo': (fname, photo_file)}
-        return call_method(platform, 'sendPhoto', data=data, files=files)
+        return call_method(platform, 'sendPhoto', settings=settings, data=data, files=files)
     if not photo_path or not photo_path.is_file():
         raise MessengerAPIError('مسیر عکس برای ارسال نامعتبر است.')
     data = {'chat_id': str(chat_id)}
@@ -139,13 +144,14 @@ def send_photo(
         data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
     with photo_path.open('rb') as f:
         files = {'photo': (photo_path.name, f)}
-        return call_method(platform, 'sendPhoto', data=data, files=files)
+        return call_method(platform, 'sendPhoto', settings=settings, data=data, files=files)
 
 
 def send_video(
     platform: str,
     chat_id: int | str,
     *,
+    settings: BotSettings | None = None,
     video_path: Path | None = None,
     video_file_id: str | None = None,
     caption: str = '',
@@ -159,7 +165,7 @@ def send_video(
         }
         if reply_markup is not None:
             payload['reply_markup'] = reply_markup
-        return call_method(platform, 'sendVideo', json_body=payload)
+        return call_method(platform, 'sendVideo', settings=settings, json_body=payload)
     if not video_path or not video_path.is_file():
         raise MessengerAPIError('مسیر ویدیو برای ارسال نامعتبر است.')
     data = {'chat_id': str(chat_id), 'caption': caption}
@@ -167,13 +173,14 @@ def send_video(
         data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
     with video_path.open('rb') as f:
         files = {'video': (video_path.name, f)}
-        return call_method(platform, 'sendVideo', data=data, files=files)
+        return call_method(platform, 'sendVideo', settings=settings, data=data, files=files)
 
 
 def send_voice(
     platform: str,
     chat_id: int | str,
     *,
+    settings: BotSettings | None = None,
     voice_path: Path | None = None,
     voice_file_id: str | None = None,
     caption: str = '',
@@ -187,7 +194,7 @@ def send_voice(
         }
         if reply_markup is not None:
             payload['reply_markup'] = reply_markup
-        return call_method(platform, 'sendVoice', json_body=payload)
+        return call_method(platform, 'sendVoice', settings=settings, json_body=payload)
     if not voice_path or not voice_path.is_file():
         raise MessengerAPIError('مسیر صدا برای ارسال نامعتبر است.')
     data = {'chat_id': str(chat_id), 'caption': caption}
@@ -195,13 +202,14 @@ def send_voice(
         data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
     with voice_path.open('rb') as f:
         files = {'voice': (voice_path.name, f)}
-        return call_method(platform, 'sendVoice', data=data, files=files)
+        return call_method(platform, 'sendVoice', settings=settings, data=data, files=files)
 
 
 def send_document(
     platform: str,
     chat_id: int | str,
     *,
+    settings: BotSettings | None = None,
     document_path: Path | None = None,
     document_file_id: str | None = None,
     caption: str = '',
@@ -215,7 +223,7 @@ def send_document(
         }
         if reply_markup is not None:
             payload['reply_markup'] = reply_markup
-        return call_method(platform, 'sendDocument', json_body=payload)
+        return call_method(platform, 'sendDocument', settings=settings, json_body=payload)
     if not document_path or not document_path.is_file():
         raise MessengerAPIError('مسیر سند برای ارسال نامعتبر است.')
     data = {'chat_id': str(chat_id), 'caption': caption}
@@ -223,7 +231,7 @@ def send_document(
         data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
     with document_path.open('rb') as f:
         files = {'document': (document_path.name, f)}
-        return call_method(platform, 'sendDocument', data=data, files=files)
+        return call_method(platform, 'sendDocument', settings=settings, data=data, files=files)
 
 
 def edit_message_reply_markup(
@@ -231,6 +239,7 @@ def edit_message_reply_markup(
     chat_id: int | str,
     message_id: int,
     *,
+    settings: BotSettings | None = None,
     reply_markup: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
@@ -239,13 +248,14 @@ def edit_message_reply_markup(
     }
     if reply_markup is not None:
         payload['reply_markup'] = reply_markup
-    return call_method(platform, 'editMessageReplyMarkup', json_body=payload)
+    return call_method(platform, 'editMessageReplyMarkup', settings=settings, json_body=payload)
 
 
 def answer_callback_query(
     platform: str,
     callback_query_id: str,
     *,
+    settings: BotSettings | None = None,
     text: str | None = None,
     show_alert: bool = False,
 ) -> dict[str, Any]:
@@ -255,15 +265,15 @@ def answer_callback_query(
     }
     if text is not None:
         payload['text'] = text
-    return call_method(platform, 'answerCallbackQuery', json_body=payload)
+    return call_method(platform, 'answerCallbackQuery', settings=settings, json_body=payload)
 
 
-def get_file(platform: str, file_id: str) -> dict[str, Any]:
-    return call_method(platform, 'getFile', json_body={'file_id': file_id})
+def get_file(platform: str, file_id: str, *, settings: BotSettings | None = None) -> dict[str, Any]:
+    return call_method(platform, 'getFile', settings=settings, json_body={'file_id': file_id})
 
 
-def file_download_url(platform: str, file_path: str) -> str:
-    cfg = _get_settings(platform)
+def file_download_url(platform: str, file_path: str, *, settings: BotSettings | None = None) -> str:
+    cfg = _resolve_settings(platform, settings)
     token = (cfg.bot_token or '').strip()
     base = get_api_base(platform).rstrip('/')
     parts = [p for p in file_path.replace('\\', '/').split('/') if p]
@@ -271,14 +281,20 @@ def file_download_url(platform: str, file_path: str) -> str:
     return f'{base}/file/bot{token}/{enc}'
 
 
-def download_file_to_path(platform: str, file_id: str, dest: Path) -> Path:
+def download_file_to_path(
+    platform: str,
+    file_id: str,
+    dest: Path,
+    *,
+    settings: BotSettings | None = None,
+) -> Path:
     """getFile + دانلود باینری به مسیر."""
-    info = get_file(platform, file_id)
+    info = get_file(platform, file_id, settings=settings)
     fobj = info.get('result') or {}
     path = fobj.get('file_path')
     if not path:
         raise MessengerAPIError('file_path در پاسخ getFile نیست.')
-    url = file_download_url(platform, path)
+    url = file_download_url(platform, path, settings=settings)
     dest.parent.mkdir(parents=True, exist_ok=True)
     r = requests.get(url, timeout=120)
     r.raise_for_status()
@@ -286,16 +302,16 @@ def download_file_to_path(platform: str, file_id: str, dest: Path) -> Path:
     return dest
 
 
-def set_webhook(platform: str, url: str) -> dict[str, Any]:
-    return call_method(platform, 'setWebhook', json_body={'url': url})
+def set_webhook(platform: str, url: str, *, settings: BotSettings | None = None) -> dict[str, Any]:
+    return call_method(platform, 'setWebhook', settings=settings, json_body={'url': url})
 
 
-def delete_webhook(platform: str) -> dict[str, Any]:
-    return call_method(platform, 'deleteWebhook', json_body={})
+def delete_webhook(platform: str, *, settings: BotSettings | None = None) -> dict[str, Any]:
+    return call_method(platform, 'deleteWebhook', settings=settings, json_body={})
 
 
-def get_webhook_info(platform: str) -> dict[str, Any]:
-    return call_method(platform, 'getWebhookInfo')
+def get_webhook_info(platform: str, *, settings: BotSettings | None = None) -> dict[str, Any]:
+    return call_method(platform, 'getWebhookInfo', settings=settings)
 
 
 def sleep_after_rate_limit(payload: dict[str, Any]) -> None:

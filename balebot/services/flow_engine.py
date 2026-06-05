@@ -220,7 +220,7 @@ def _extract_photo_file_id(resp: dict[str, Any]) -> str:
 
 
 def _send_flow_media_upload(
-    platform: str,
+    cfg: BotSettings,
     media: FlowMedia,
     chat_id: int,
     *,
@@ -231,8 +231,9 @@ def _send_flow_media_upload(
         raise messenger_api.MessengerAPIError('فایل عکس در سرور یافت نشد.')
     with media.file.open('rb') as f:
         return messenger_api.send_photo(
-            platform,
+            cfg.platform,
             chat_id,
+            settings=cfg,
             photo_file=f,
             photo_filename=Path(media.file.name).name,
             caption=caption,
@@ -252,7 +253,11 @@ def send_image_node(cfg: BotSettings, chat_id: int, node: dict[str, Any]) -> boo
     caption = (node.get('caption') or '').strip()[:1024]
     if not media_id:
         return False
-    media = FlowMedia.objects.filter(pk=media_id, platform=platform).first()
+    media = FlowMedia.objects.filter(
+        pk=media_id,
+        platform=platform,
+        workspace=cfg.workspace,
+    ).first()
     if not media or not media.file or not media.file.name:
         return False
 
@@ -261,6 +266,7 @@ def send_image_node(cfg: BotSettings, chat_id: int, node: dict[str, Any]) -> boo
             messenger_api.send_photo(
                 platform,
                 chat_id,
+                settings=cfg,
                 photo_file_id=media.messenger_file_id,
                 caption=caption,
             )
@@ -270,7 +276,7 @@ def send_image_node(cfg: BotSettings, chat_id: int, node: dict[str, Any]) -> boo
             media.save(update_fields=['messenger_file_id'])
 
     try:
-        resp = _send_flow_media_upload(platform, media, chat_id, caption=caption)
+        resp = _send_flow_media_upload(cfg, media, chat_id, caption=caption)
         _store_messenger_file_id(media, resp)
         return True
     except messenger_api.MessengerAPIError:
@@ -301,7 +307,7 @@ def send_sequence(cfg: BotSettings, chat_id: int, sequence: dict[str, Any]) -> d
             body = (item.get('body') or '').strip()
             if body:
                 try:
-                    messenger_api.send_message(platform, chat_id, body[:4096])
+                    messenger_api.send_message(platform, chat_id, body[:4096], settings=cfg)
                 except messenger_api.MessengerAPIError:
                     pass
         elif itype == 'image':
@@ -323,14 +329,14 @@ def render_root_flow(cfg: BotSettings, chat_id: int) -> None:
     if markup:
         markup = merge_support_into_markup(cfg, markup) or markup
         try:
-            messenger_api.send_message(platform, chat_id, '\u2060', reply_markup=markup)
+            messenger_api.send_message(platform, chat_id, '\u2060', settings=cfg, reply_markup=markup)
         except messenger_api.MessengerAPIError:
             pass
     elif cfg.enable_support:
         mk = merge_support_into_markup(cfg, None)
         if mk:
             try:
-                messenger_api.send_message(platform, chat_id, '\u2060', reply_markup=mk)
+                messenger_api.send_message(platform, chat_id, '\u2060', settings=cfg, reply_markup=mk)
             except messenger_api.MessengerAPIError:
                 pass
 
@@ -340,7 +346,7 @@ def send_default_text(cfg: BotSettings, chat_id: int) -> None:
     txt = (cfg.start_flow_default_text or '').strip()
     if txt:
         try:
-            messenger_api.send_message(platform, chat_id, txt[:4096])
+            messenger_api.send_message(platform, chat_id, txt[:4096], settings=cfg)
         except messenger_api.MessengerAPIError:
             pass
 
@@ -374,7 +380,7 @@ def execute_button_action(
         body = (action.get('body') or btn.get('text') or '').strip()
         if body:
             try:
-                messenger_api.send_message(platform, chat_id, body[:4096])
+                messenger_api.send_message(platform, chat_id, body[:4096], settings=cfg)
             except messenger_api.MessengerAPIError:
                 pass
         else:
@@ -395,14 +401,14 @@ def execute_button_action(
         if mk and message_id:
             try:
                 messenger_api.edit_message_reply_markup(
-                    platform, chat_id, int(message_id), reply_markup=mk,
+                    platform, chat_id, int(message_id), settings=cfg, reply_markup=mk,
                 )
                 return 'buttons_edit'
             except messenger_api.MessengerAPIError:
                 pass
         if mk:
             try:
-                messenger_api.send_message(platform, chat_id, '\u2060', reply_markup=mk)
+                messenger_api.send_message(platform, chat_id, '\u2060', settings=cfg, reply_markup=mk)
                 return 'buttons'
             except messenger_api.MessengerAPIError:
                 pass
@@ -438,7 +444,7 @@ def handle_flow_callback(
                 if mk and message_id:
                     try:
                         messenger_api.edit_message_reply_markup(
-                            cfg.platform, chat_id, int(message_id), reply_markup=mk,
+                            cfg.platform, chat_id, int(message_id), settings=cfg, reply_markup=mk,
                         )
                     except messenger_api.MessengerAPIError:
                         pass

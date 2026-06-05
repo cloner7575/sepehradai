@@ -305,14 +305,15 @@ class CampaignForm(forms.ModelForm):
         'inline_keyboard',
     ]
 
-    def __init__(self, *args, request=None, platform=None, **kwargs):
+    def __init__(self, *args, request=None, platform=None, workspace=None, **kwargs):
         self.request = request
         self.platform = platform or Platform.BALE
+        self.workspace = workspace
         super().__init__(*args, **kwargs)
-        self.fields['target_tags'].queryset = Tag.objects.filter(
-            platform=self.platform,
-            is_active=True,
-        ).order_by('name')
+        tag_filter = {'platform': self.platform, 'is_active': True}
+        if self.workspace is not None:
+            tag_filter['workspace'] = self.workspace
+        self.fields['target_tags'].queryset = Tag.objects.filter(**tag_filter).order_by('name')
         raw = self.instance.inline_keyboard if self.instance.pk else None
         norm = normalize_to_sections(raw)
         dumped = json.dumps(norm, ensure_ascii=False)

@@ -40,12 +40,16 @@
         <a class="nav-link {% if name == 'campaign_list' or name == 'campaign_create' or name == 'campaign_detail' or name == 'campaign_edit' %}active{% endif %}" href="{% url 'campaign_list' %}">
           <i class="bi bi-megaphone-fill"></i> کمپین‌ها
         </a>
+        {% if user.is_superuser %}
+        <a class="nav-link {% if name == 'panel_user_list' or name == 'panel_user_create' or name == 'panel_user_edit' %}active{% endif %}" href="{% url 'panel_user_list' %}">
+          <i class="bi bi-people-fill"></i> مدیریت کاربران
+        </a>
+        {% endif %}
       </nav>
       {% endwith %}
 
       <div class="sidebar-footer">
-        <a href="{% url 'admin:index' %}"><i class="bi bi-gear-wide-connected me-1"></i> ادمین جنگو</a>
-        <span class="d-block mt-2 opacity-75">نسخه پنل ۲</span>
+        <span class="d-block opacity-75">نسخه پنل ۲</span>
       </div>
     </aside>
 
@@ -94,6 +98,13 @@
           </form>
           {% endif %}
           <span class="topbar-user-badge"><i class="bi bi-person-fill"></i><span class="topbar-user-name">{{ user.username }}</span></span>
+          <form method="post" action="{% url 'panel_logout' %}" class="panel-logout-form m-0">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-panel-ghost btn-sm panel-logout-btn" title="خروج از پنل">
+              <i class="bi bi-box-arrow-right"></i>
+              <span class="d-none d-sm-inline">خروج</span>
+            </button>
+          </form>
         </div>
         {% endif %}
       </header>

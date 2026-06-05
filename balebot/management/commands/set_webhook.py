@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from balebot.models import BotSettings, Platform
+from balebot.models import BotSettings, Platform, Workspace
 from balebot.services import messenger_api
 
 
@@ -13,6 +13,12 @@ class Command(BaseCommand):
             choices=[Platform.BALE, Platform.TELEGRAM],
             default=Platform.BALE,
             help='پلتفرم (پیش‌فرض: bale)',
+        )
+        parser.add_argument(
+            '--workspace',
+            type=int,
+            default=None,
+            help='شناسه workspace (پیش‌فرض: اولین workspace)',
         )
         parser.add_argument(
             'url',
@@ -28,13 +34,24 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         platform = options['platform']
-        cfg = BotSettings.objects.filter(platform=platform).first()
+        ws_id = options['workspace']
+        if ws_id:
+            workspace = Workspace.objects.filter(pk=ws_id).first()
+        else:
+            workspace = Workspace.objects.order_by('id').first()
+        if workspace is None:
+            self.stderr.write(self.style.ERROR('هیچ workspaceای یافت نشد.'))
+            return
+
+        cfg = BotSettings.objects.filter(workspace=workspace, platform=platform).first()
         if cfg is None or not cfg.has_bot_token():
-            self.stderr.write(self.style.ERROR(f'توکن ربات {platform} در پنل تنظیم نشده است.'))
+            self.stderr.write(
+                self.style.ERROR(f'توکن ربات {platform} برای workspace {workspace.id} تنظیم نشده است.'),
+            )
             return
 
         if options['delete']:
-            messenger_api.delete_webhook(platform)
+            messenger_api.delete_webhook(platform, settings=cfg)
             self.stdout.write(self.style.SUCCESS('وب‌هوک حذف شد.'))
             return
 
@@ -42,10 +59,10 @@ class Command(BaseCommand):
         if not url:
             self.stderr.write(
                 self.style.ERROR(
-                    'آدرس وب‌هوک را به صورت آرگومنت بدهید یا webhook_public_url و webhook_secret را در پنل تنظیم کنید.'
-                )
+                    'آدرس وب‌هوک را به صورت آرگومنت بدهید یا webhook_public_url و webhook_secret را در پنل تنظیم کنید.',
+                ),
             )
             return
 
-        messenger_api.set_webhook(platform, url)
+        messenger_api.set_webhook(platform, url, settings=cfg)
         self.stdout.write(self.style.SUCCESS(f'وب‌هوک تنظیم شد: {url}'))

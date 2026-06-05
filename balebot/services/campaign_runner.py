@@ -138,7 +138,7 @@ def run_single_campaign_web(campaign_id: int) -> tuple[bool, str]:
     یک کمپین را بلافاصله پردازش می‌کند (پس از قرار گرفتن در صف از پنل).
     برای زمان‌بندی‌شدهٔ آینده فراخوانی نشود.
     """
-    if not BotSettings.get_for_platform(campaign.platform).has_bot_token():
+    if not BotSettings.get_for_platform(campaign.workspace, campaign.platform).has_bot_token():
         label = 'تلگرام' if campaign.platform == 'telegram' else 'بله'
         return False, f'توکن ربات {label} در پنل تنظیم نشده است.'
 

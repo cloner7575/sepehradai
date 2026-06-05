@@ -1,5 +1,7 @@
+import secrets
 import uuid
 
+from django.conf import settings as django_settings
 from django.db import models
 
 
@@ -8,10 +10,41 @@ class Platform(models.TextChoices):
     TELEGRAM = 'telegram', 'تلگرام'
 
 
+def generate_webhook_secret() -> str:
+    return secrets.token_urlsafe(32)[:64]
+
+
+class Workspace(models.Model):
+    """فضای کاری اختصاصی هر کاربر پنل — داده‌های ربات از هم جدا می‌شوند."""
+
+    name = models.CharField(max_length=120, verbose_name='نام پنل')
+    owner = models.OneToOneField(
+        django_settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='workspace',
+    )
+    is_active = models.BooleanField(default=True, verbose_name='فعال')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'فضای کاری'
+        verbose_name_plural = 'فضاهای کاری'
+
+    def __str__(self):
+        return self.name
+
+
 class FlowMedia(models.Model):
     """رسانهٔ آپلودشده برای نود عکس در جریان /start."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name='flow_media',
+        db_index=True,
+    )
     platform = models.CharField(
         max_length=16,
         choices=Platform.choices,
@@ -34,6 +67,12 @@ class Tag(models.Model):
         CLASS = 'class', 'کلاس'
         GENERIC = 'generic', 'عمومی'
 
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name='tags',
+        db_index=True,
+    )
     platform = models.CharField(
         max_length=16,
         choices=Platform.choices,
@@ -55,8 +94,14 @@ class Tag(models.Model):
     class Meta:
         ordering = ['name']
         constraints = [
-            models.UniqueConstraint(fields=['platform', 'slug'], name='unique_tag_platform_slug'),
-            models.UniqueConstraint(fields=['platform', 'name'], name='unique_tag_platform_name'),
+            models.UniqueConstraint(
+                fields=['workspace', 'platform', 'slug'],
+                name='unique_tag_workspace_platform_slug',
+            ),
+            models.UniqueConstraint(
+                fields=['workspace', 'platform', 'name'],
+                name='unique_tag_workspace_platform_name',
+            ),
         ]
 
     def __str__(self):
@@ -66,6 +111,12 @@ class Tag(models.Model):
 class Subscriber(models.Model):
     """کاربرانی که با بازو تعامل دارند."""
 
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name='subscribers',
+        db_index=True,
+    )
     platform = models.CharField(
         max_length=16,
         choices=Platform.choices,
@@ -113,8 +164,8 @@ class Subscriber(models.Model):
         ordering = ['-updated_at']
         constraints = [
             models.UniqueConstraint(
-                fields=['platform', 'messenger_user_id'],
-                name='unique_subscriber_platform_user',
+                fields=['workspace', 'platform', 'messenger_user_id'],
+                name='unique_subscriber_workspace_platform_user',
             ),
         ]
 
@@ -248,6 +299,12 @@ class Campaign(models.Model):
         INSTANT = 'instant', 'آنی'
         SCHEDULED = 'scheduled', 'زمان‌بندی‌شده'
 
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name='campaigns',
+        db_index=True,
+    )
     platform = models.CharField(
         max_length=16,
         choices=Platform.choices,
@@ -432,18 +489,17 @@ class ClassEnrollmentRequest(models.Model):
 
 
 class BotSettings(models.Model):
-    """تنظیمات هر پلتفرم (بله / تلگرام) — یک رکورد به ازای هر پلتفرم."""
+    """تنظیمات هر پلتفرم (بله / تلگرام) — یک رکورد به ازای هر workspace+platform."""
 
-    PLATFORM_PK = {
-        Platform.BALE: 1,
-        Platform.TELEGRAM: 2,
-    }
-
-    id = models.PositiveSmallIntegerField(primary_key=True, editable=False)
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name='bot_settings',
+        db_index=True,
+    )
     platform = models.CharField(
         max_length=16,
         choices=Platform.choices,
-        unique=True,
         db_index=True,
     )
     bot_token = models.CharField(
@@ -457,6 +513,7 @@ class BotSettings(models.Model):
         max_length=128,
         blank=True,
         default='',
+        unique=True,
         verbose_name='رمز وب‌هوک',
         help_text='بخش secret در URL وب‌هوک.',
     )
@@ -587,9 +644,15 @@ class BotSettings(models.Model):
     class Meta:
         verbose_name = 'تنظیمات بازو'
         verbose_name_plural = 'تنظیمات بازو'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['workspace', 'platform'],
+                name='unique_botsettings_workspace_platform',
+            ),
+        ]
 
     def __str__(self):
-        return f'تنظیمات {self.get_platform_display()}'
+        return f'{self.workspace_id} — {self.get_platform_display()}'
 
     @classmethod
     def _defaults_for_platform(cls, platform: str) -> dict:
@@ -601,19 +664,30 @@ class BotSettings(models.Model):
         }
 
     @classmethod
-    def get_for_platform(cls, platform: str):
+    def get_for_platform(cls, workspace: Workspace, platform: str):
         platform = Platform.TELEGRAM if platform == Platform.TELEGRAM else Platform.BALE
-        pk = cls.PLATFORM_PK[platform]
+        defaults = cls._defaults_for_platform(platform)
+        if not defaults.get('webhook_secret'):
+            defaults['webhook_secret'] = generate_webhook_secret()
         obj, _ = cls.objects.get_or_create(
-            pk=pk,
-            defaults=cls._defaults_for_platform(platform),
+            workspace=workspace,
+            platform=platform,
+            defaults=defaults,
         )
         return obj
 
     @classmethod
+    def ensure_for_workspace(cls, workspace: Workspace) -> None:
+        for platform in (Platform.BALE, Platform.TELEGRAM):
+            cls.get_for_platform(workspace, platform)
+
+    @classmethod
     def get_solo(cls):
-        """سازگاری با کد قدیمی — همان تنظیمات بله."""
-        return cls.get_for_platform(Platform.BALE)
+        """سازگاری با کد قدیمی — اولین workspace و تنظیمات بله."""
+        ws = Workspace.objects.order_by('id').first()
+        if ws is None:
+            raise cls.DoesNotExist('هیچ workspaceای وجود ندارد.')
+        return cls.get_for_platform(ws, Platform.BALE)
 
     def masked_bot_token(self) -> str:
         token = (self.bot_token or '').strip()

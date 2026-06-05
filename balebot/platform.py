@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest
 
-from balebot.models import BotSettings, Platform
+from balebot.models import BotSettings, Platform, Workspace
+from balebot.workspace import get_workspace_for_user
 
 SESSION_ACTIVE_PLATFORM_KEY = 'panel_active_platform'
 
@@ -26,8 +28,16 @@ def set_active_platform(request: HttpRequest, platform: str) -> str:
     return platform
 
 
+def require_workspace_for_request(request: HttpRequest) -> Workspace:
+    ws = get_workspace_for_user(request.user)
+    if ws is None or not ws.is_active:
+        raise PermissionDenied
+    return ws
+
+
 def get_bot_settings_for_request(request: HttpRequest) -> BotSettings:
-    return BotSettings.get_for_platform(get_active_platform(request))
+    workspace = require_workspace_for_request(request)
+    return BotSettings.get_for_platform(workspace, get_active_platform(request))
 
 
 def platform_label(platform: str) -> str:

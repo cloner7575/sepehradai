@@ -6,7 +6,7 @@ from pathlib import Path
 
 from django.conf import settings
 
-from balebot.models import Campaign
+from balebot.models import BotSettings, Campaign
 from balebot.services import messenger_api
 from balebot.services.keyboard_layout import flatten_rows
 
@@ -31,6 +31,7 @@ def build_inline_markup(campaign: Campaign) -> dict | None:
 
 def send_campaign_to_chat(chat_id: int | str, campaign: Campaign) -> dict:
     platform = campaign.platform
+    settings = BotSettings.get_for_platform(campaign.workspace, platform)
     markup = build_inline_markup(campaign)
     ct = campaign.content_type
     body = campaign.body or ''
@@ -40,12 +41,16 @@ def send_campaign_to_chat(chat_id: int | str, campaign: Campaign) -> dict:
         media_path = Path(campaign.media.path)
 
     if ct == Campaign.ContentType.TEXT:
-        return messenger_api.send_message(platform, chat_id, body, reply_markup=markup)
+        return messenger_api.send_message(
+            platform, chat_id, body, settings=settings, reply_markup=markup,
+        )
 
     if ct == Campaign.ContentType.TEXT_BUTTONS:
         if not markup:
-            return messenger_api.send_message(platform, chat_id, body)
-        return messenger_api.send_message(platform, chat_id, body, reply_markup=markup)
+            return messenger_api.send_message(platform, chat_id, body, settings=settings)
+        return messenger_api.send_message(
+            platform, chat_id, body, settings=settings, reply_markup=markup,
+        )
 
     if ct == Campaign.ContentType.PHOTO:
         if not media_path or not media_path.is_file():
@@ -53,6 +58,7 @@ def send_campaign_to_chat(chat_id: int | str, campaign: Campaign) -> dict:
         return messenger_api.send_photo(
             platform,
             chat_id,
+            settings=settings,
             photo_path=media_path,
             caption=body,
             reply_markup=markup,
@@ -64,6 +70,7 @@ def send_campaign_to_chat(chat_id: int | str, campaign: Campaign) -> dict:
         return messenger_api.send_video(
             platform,
             chat_id,
+            settings=settings,
             video_path=media_path,
             caption=body,
             reply_markup=markup,
@@ -75,6 +82,7 @@ def send_campaign_to_chat(chat_id: int | str, campaign: Campaign) -> dict:
         return messenger_api.send_voice(
             platform,
             chat_id,
+            settings=settings,
             voice_path=media_path,
             caption=body,
             reply_markup=markup,
@@ -86,6 +94,7 @@ def send_campaign_to_chat(chat_id: int | str, campaign: Campaign) -> dict:
         return messenger_api.send_document(
             platform,
             chat_id,
+            settings=settings,
             document_path=media_path,
             caption=body,
             reply_markup=markup,

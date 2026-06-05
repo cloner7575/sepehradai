@@ -8,6 +8,7 @@ from balebot.models import Campaign, Subscriber
 
 def resolve_campaign_subscribers_qs(campaign: Campaign) -> QuerySet[Subscriber]:
     qs = Subscriber.objects.filter(
+        workspace=campaign.workspace,
         platform=campaign.platform,
         is_active=True,
         is_registered=True,

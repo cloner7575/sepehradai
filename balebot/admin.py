@@ -12,23 +12,31 @@ from .models import (
     Subscriber,
     SubscriberTag,
     Tag,
+    Workspace,
 )
+
+
+@admin.register(Workspace)
+class WorkspaceAdmin(admin.ModelAdmin):
+    list_display = ('name', 'owner', 'is_active', 'created_at')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'owner__username')
 
 
 @admin.register(FlowMedia)
 class FlowMediaAdmin(admin.ModelAdmin):
-    list_display = ('id', 'platform', 'uploaded_at', 'messenger_file_id')
-    list_filter = ('platform',)
+    list_display = ('id', 'workspace', 'platform', 'uploaded_at', 'messenger_file_id')
+    list_filter = ('workspace', 'platform')
     readonly_fields = ('id', 'uploaded_at')
 
 
 @admin.register(BotSettings)
 class BotSettingsAdmin(admin.ModelAdmin):
-    list_display = ('platform', 'is_enabled', 'masked_bot_token', 'updated_at')
-    list_filter = ('platform', 'is_enabled')
+    list_display = ('workspace', 'platform', 'is_enabled', 'masked_bot_token', 'updated_at')
+    list_filter = ('workspace', 'platform', 'is_enabled')
 
     def has_add_permission(self, request):
-        return BotSettings.objects.count() < len(Platform.values)
+        return request.user.is_superuser
 
     def has_delete_permission(self, request, obj=None):
         return False
@@ -37,6 +45,7 @@ class BotSettingsAdmin(admin.ModelAdmin):
 @admin.register(Subscriber)
 class SubscriberAdmin(admin.ModelAdmin):
     list_display = (
+        'workspace',
         'platform',
         'messenger_user_id',
         'chat_id',
@@ -46,7 +55,7 @@ class SubscriberAdmin(admin.ModelAdmin):
         'is_active',
         'updated_at',
     )
-    list_filter = ('platform', 'is_registered', 'is_active')
+    list_filter = ('workspace', 'platform', 'is_registered', 'is_active')
     search_fields = ('phone_number', 'username', 'first_name', 'messenger_user_id', 'chat_id')
 
 
@@ -64,8 +73,8 @@ class CallbackLogAdmin(admin.ModelAdmin):
 
 @admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
-    list_display = ('title', 'platform', 'content_type', 'schedule_kind', 'status', 'scheduled_at', 'created_at')
-    list_filter = ('platform', 'status', 'content_type', 'schedule_kind')
+    list_display = ('title', 'workspace', 'platform', 'content_type', 'schedule_kind', 'status', 'scheduled_at', 'created_at')
+    list_filter = ('workspace', 'platform', 'status', 'content_type', 'schedule_kind')
     filter_horizontal = ('target_tags',)
 
 
@@ -77,8 +86,8 @@ class CampaignDeliveryAdmin(admin.ModelAdmin):
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
-    list_display = ('name', 'platform', 'slug', 'tag_type', 'is_active', 'updated_at')
-    list_filter = ('platform', 'tag_type', 'is_active')
+    list_display = ('name', 'workspace', 'platform', 'slug', 'tag_type', 'is_active', 'updated_at')
+    list_filter = ('workspace', 'platform', 'tag_type', 'is_active')
     search_fields = ('name', 'slug')
 
 

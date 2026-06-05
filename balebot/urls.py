@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
-from balebot import views_panel, views_webhook
+from balebot import views_panel, views_panel_users, views_webhook
 
 urlpatterns = [
     path('health/', views_webhook.webhook_health, name='bale_health'),
@@ -68,4 +68,7 @@ urlpatterns = [
     ),
     path('callbacks/', views_panel.CallbackLogListView.as_view(), name='callback_log_list'),
     path('inbound/', views_panel.InboundListView.as_view(), name='inbound_list'),
+    path('users/', views_panel_users.PanelUserListView.as_view(), name='panel_user_list'),
+    path('users/new/', views_panel_users.PanelUserCreateView.as_view(), name='panel_user_create'),
+    path('users/<int:pk>/edit/', views_panel_users.PanelUserUpdateView.as_view(), name='panel_user_edit'),
 ]

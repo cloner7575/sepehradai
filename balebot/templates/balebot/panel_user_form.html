@@ -1,0 +1,46 @@
+{% extends "balebot/base.html" %}
+{% block title %}{{ form_title }}{% endblock %}
+{% block page_title %}{{ form_title }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="panel-card p-4">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="mb-3">
+          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          {% for err in field.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+        </div>
+        {% endfor %}
+        <div class="d-flex gap-2 flex-wrap">
+          <button type="submit" class="btn btn-panel-primary">ذخیره</button>
+          <a href="{% url 'panel_user_list' %}" class="btn btn-panel-ghost">بازگشت</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if not is_create and bot_settings_list %}
+  <div class="col-lg-5">
+    <div class="panel-card p-4">
+      <h2 class="h6 mb-3">رمز وب‌هوک (برای تنظیم در سرور)</h2>
+      {% for cfg in bot_settings_list %}
+      <div class="mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+        <div class="fw-semibold mb-1">{{ cfg.get_platform_display }}</div>
+        <div class="small text-muted mb-1">رمز:</div>
+        <code class="d-block text-break user-select-all">{{ cfg.webhook_secret }}</code>
+        {% if cfg.build_webhook_url %}
+        <div class="small text-muted mt-2 mb-1">URL وب‌هوک:</div>
+        <code class="d-block text-break small user-select-all">{{ cfg.build_webhook_url }}</code>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
