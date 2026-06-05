@@ -1,7 +1,14 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
-from balebot import views_panel, views_panel_users, views_webhook
+from balebot import (
+    views_miniapp_api,
+    views_miniapp_serve,
+    views_panel,
+    views_panel_catalog,
+    views_panel_users,
+    views_webhook,
+)
 
 urlpatterns = [
     path('health/', views_webhook.webhook_health, name='bale_health'),
@@ -71,4 +78,34 @@ urlpatterns = [
     path('users/', views_panel_users.PanelUserListView.as_view(), name='panel_user_list'),
     path('users/new/', views_panel_users.PanelUserCreateView.as_view(), name='panel_user_create'),
     path('users/<int:pk>/edit/', views_panel_users.PanelUserUpdateView.as_view(), name='panel_user_edit'),
+    path('catalog/', views_panel_catalog.CatalogDashboardView.as_view(), name='catalog_dashboard'),
+    path('catalog/settings/', views_panel_catalog.CatalogSettingsView.as_view(), name='catalog_settings'),
+    path('catalog/categories/', views_panel_catalog.CatalogCategoryListView.as_view(), name='catalog_category_list'),
+    path('catalog/categories/new/', views_panel_catalog.CatalogCategoryCreateView.as_view(), name='catalog_category_create'),
+    path('catalog/categories/<int:pk>/edit/', views_panel_catalog.CatalogCategoryUpdateView.as_view(), name='catalog_category_edit'),
+    path('catalog/items/', views_panel_catalog.CatalogItemListView.as_view(), name='catalog_item_list'),
+    path('catalog/items/new/', views_panel_catalog.CatalogItemCreateView.as_view(), name='catalog_item_create'),
+    path('catalog/items/<int:pk>/edit/', views_panel_catalog.CatalogItemUpdateView.as_view(), name='catalog_item_edit'),
+    path(
+        'catalog/items/<int:pk>/images/<int:image_pk>/delete/',
+        views_panel_catalog.CatalogItemImageDeleteView.as_view(),
+        name='catalog_item_image_delete',
+    ),
+    path('catalog/orders/', views_panel_catalog.CatalogOrderListView.as_view(), name='catalog_order_list'),
+    path('catalog/orders/<int:pk>/', views_panel_catalog.CatalogOrderDetailView.as_view(), name='catalog_order_detail'),
+    path('api/shop/<uuid:public_id>/config/', views_miniapp_api.catalog_config, name='api_catalog_config'),
+    path('api/shop/<uuid:public_id>/categories/', views_miniapp_api.catalog_categories, name='api_catalog_categories'),
+    path('api/shop/<uuid:public_id>/items/', views_miniapp_api.catalog_items, name='api_catalog_items'),
+    path('api/shop/<uuid:public_id>/items/<slug:slug>/', views_miniapp_api.catalog_item_detail, name='api_catalog_item_detail'),
+    path('api/shop/<uuid:public_id>/auth/validate/', views_miniapp_api.catalog_auth_validate, name='api_catalog_auth'),
+    path('api/shop/<uuid:public_id>/cart/', views_miniapp_api.catalog_cart, name='api_catalog_cart'),
+    path('api/shop/<uuid:public_id>/checkout/', views_miniapp_api.catalog_checkout, name='api_catalog_checkout'),
+    path('api/shop/<uuid:public_id>/request/', views_miniapp_api.catalog_request, name='api_catalog_request'),
+    path(
+        'shop/<uuid:public_id>/payment/zarinpal/callback/',
+        views_miniapp_serve.zarinpal_callback,
+        name='zarinpal_callback',
+    ),
+    path('shop/<uuid:public_id>/', views_miniapp_serve.serve_miniapp, name='miniapp_shop'),
+    path('shop/<uuid:public_id>/<path:path>', views_miniapp_serve.serve_miniapp, name='miniapp_shop_asset'),
 ]

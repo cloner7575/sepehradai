@@ -314,6 +314,32 @@ def get_webhook_info(platform: str, *, settings: BotSettings | None = None) -> d
     return call_method(platform, 'getWebhookInfo', settings=settings)
 
 
+def create_invoice_link(
+    platform: str,
+    invoice: dict[str, Any],
+    *,
+    settings: BotSettings | None = None,
+) -> dict[str, Any]:
+    return call_method(platform, 'createInvoiceLink', settings=settings, json_body=invoice)
+
+
+def answer_pre_checkout_query(
+    platform: str,
+    pre_checkout_query_id: str,
+    *,
+    ok: bool = True,
+    error_message: str | None = None,
+    settings: BotSettings | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        'pre_checkout_query_id': pre_checkout_query_id,
+        'ok': ok,
+    }
+    if not ok and error_message:
+        payload['error_message'] = error_message
+    return call_method(platform, 'answerPreCheckoutQuery', settings=settings, json_body=payload)
+
+
 def sleep_after_rate_limit(payload: dict[str, Any]) -> None:
     """اگر پاسخ خطا شامل retry_after بود، همان‌قدر صبر کن."""
     params = payload.get('parameters') or {}

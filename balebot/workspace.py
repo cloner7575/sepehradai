@@ -5,7 +5,7 @@ from __future__ import annotations
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
-from balebot.models import BotSettings, Workspace
+from balebot.models import BotSettings, CatalogSettings, Workspace
 
 User = get_user_model()
 
@@ -33,6 +33,12 @@ def ensure_bot_settings_for_workspace(workspace: Workspace) -> None:
         BotSettings.get_for_platform(workspace, platform)
 
 
+def ensure_catalog_settings_for_workspace(workspace: Workspace) -> None:
+    for platform in workspace.allowed_platforms():
+        if workspace.has_miniapp_access(platform):
+            CatalogSettings.get_for_platform(workspace, platform)
+
+
 def create_panel_user(
     *,
     username: str,
@@ -42,9 +48,15 @@ def create_panel_user(
     is_active: bool = True,
     allow_bale: bool = True,
     allow_telegram: bool = True,
+    allow_bale_miniapp: bool = False,
+    allow_telegram_miniapp: bool = False,
 ) -> tuple[User, Workspace]:
     if not allow_bale and not allow_telegram:
         raise ValueError('حداقل یک پلتفرم باید انتخاب شود.')
+    if allow_bale_miniapp and not allow_bale:
+        raise ValueError('مینی‌اپ بله نیاز به دسترسی بله دارد.')
+    if allow_telegram_miniapp and not allow_telegram:
+        raise ValueError('مینی‌اپ تلگرام نیاز به دسترسی تلگرام دارد.')
     with transaction.atomic():
         user = User.objects.create_user(
             username=username,
@@ -60,6 +72,8 @@ def create_panel_user(
             is_active=is_active,
             allow_bale=allow_bale,
             allow_telegram=allow_telegram,
+            allow_bale_miniapp=allow_bale_miniapp,
+            allow_telegram_miniapp=allow_telegram_miniapp,
         )
         ensure_bot_settings_for_workspace(workspace)
     return user, workspace

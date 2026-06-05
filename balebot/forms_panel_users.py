@@ -38,10 +38,30 @@ class PanelUserCreateForm(forms.Form):
         label='دسترسی تلگرام',
         help_text='کاربر می‌تواند ربات تلگرام را در پنل مدیریت کند.',
     )
+    allow_bale_miniapp = forms.BooleanField(
+        required=False,
+        initial=False,
+        label='دسترسی مینی‌اپ بله',
+        help_text='مدیریت فروشگاه/نمونه‌کار مینی‌اپ بله در پنل.',
+    )
+    allow_telegram_miniapp = forms.BooleanField(
+        required=False,
+        initial=False,
+        label='دسترسی مینی‌اپ تلگرام',
+        help_text='مدیریت فروشگاه/نمونه‌کار مینی‌اپ تلگرام در پنل.',
+    )
 
     def clean(self):
         cleaned = super().clean()
-        if not cleaned.get('allow_bale') and not cleaned.get('allow_telegram'):
+        allow_bale = cleaned.get('allow_bale')
+        allow_telegram = cleaned.get('allow_telegram')
+        allow_bale_ma = cleaned.get('allow_bale_miniapp')
+        allow_telegram_ma = cleaned.get('allow_telegram_miniapp')
+        if allow_bale_ma and not allow_bale:
+            raise forms.ValidationError('مینی‌اپ بله نیاز به دسترسی بله دارد.')
+        if allow_telegram_ma and not allow_telegram:
+            raise forms.ValidationError('مینی‌اپ تلگرام نیاز به دسترسی تلگرام دارد.')
+        if not allow_bale and not allow_telegram:
             raise forms.ValidationError('حداقل یکی از پلتفرم‌های بله یا تلگرام باید انتخاب شود.')
         return cleaned
 
@@ -93,9 +113,29 @@ class PanelUserUpdateForm(forms.Form):
         label='دسترسی تلگرام',
         help_text='کاربر می‌تواند ربات تلگرام را در پنل مدیریت کند.',
     )
+    allow_bale_miniapp = forms.BooleanField(
+        required=False,
+        initial=False,
+        label='دسترسی مینی‌اپ بله',
+        help_text='مدیریت فروشگاه/نمونه‌کار مینی‌اپ بله در پنل.',
+    )
+    allow_telegram_miniapp = forms.BooleanField(
+        required=False,
+        initial=False,
+        label='دسترسی مینی‌اپ تلگرام',
+        help_text='مدیریت فروشگاه/نمونه‌کار مینی‌اپ تلگرام در پنل.',
+    )
 
     def clean(self):
         cleaned = super().clean()
-        if not cleaned.get('allow_bale') and not cleaned.get('allow_telegram'):
+        allow_bale = cleaned.get('allow_bale')
+        allow_telegram = cleaned.get('allow_telegram')
+        allow_bale_ma = cleaned.get('allow_bale_miniapp')
+        allow_telegram_ma = cleaned.get('allow_telegram_miniapp')
+        if allow_bale_ma and not allow_bale:
+            raise forms.ValidationError('مینی‌اپ بله نیاز به دسترسی بله دارد.')
+        if allow_telegram_ma and not allow_telegram:
+            raise forms.ValidationError('مینی‌اپ تلگرام نیاز به دسترسی تلگرام دارد.')
+        if not allow_bale and not allow_telegram:
             raise forms.ValidationError('حداقل یکی از پلتفرم‌های بله یا تلگرام باید انتخاب شود.')
         return cleaned

@@ -1,0 +1,42 @@
+{% extends "balebot/base.html" %}
+{% block title %}داشبورد مینی‌اپ{% endblock %}
+{% block page_title %}مینی‌اپ {{ active_platform_label }}{% endblock %}
+{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">مدیریت فروشگاه و نمونه‌کار</p>{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3"><div class="panel-card p-3 text-center"><div class="fs-4 fw-bold">{{ item_count }}</div><div class="small text-muted">آیتم</div></div></div>
+  <div class="col-6 col-md-3"><div class="panel-card p-3 text-center"><div class="fs-4 fw-bold">{{ category_count }}</div><div class="small text-muted">دسته</div></div></div>
+  <div class="col-6 col-md-3"><div class="panel-card p-3 text-center"><div class="fs-4 fw-bold">{{ order_count }}</div><div class="small text-muted">سفارش</div></div></div>
+  <div class="col-6 col-md-3"><div class="panel-card p-3 text-center"><div class="fs-4 fw-bold">{{ order_pending }}</div><div class="small text-muted">در انتظار</div></div></div>
+</div>
+<div class="panel-card p-4 mb-4">
+  <h2 class="h6 mb-2">لینک مینی‌اپ</h2>
+  {% if mini_app_url %}
+  <code class="d-block text-break user-select-all small" dir="ltr">{{ mini_app_url }}</code>
+  {% else %}
+  <p class="small text-muted mb-1">شناسه: <code dir="ltr">{{ catalog_public_id }}</code></p>
+  {% if webhook_public_url %}
+  <code class="d-block text-break user-select-all small" dir="ltr">{{ webhook_public_url }}/shop/{{ catalog_public_id }}/</code>
+  {% else %}
+  <p class="small text-danger mb-0">برای نمایش لینک، <a href="{% url 'bot_settings' %}">آدرس عمومی سرور</a> را در تنظیمات ربات وارد کنید.</p>
+  {% endif %}
+  {% endif %}
+  {% if not catalog.is_enabled %}<p class="text-warning small mt-2 mb-0">مینی‌اپ هنوز غیرفعال است — از <a href="{% url 'catalog_settings' %}">تنظیمات</a> فعال کنید.</p>{% endif %}
+</div>
+<div class="panel-card">
+  <div class="panel-table-wrap"><table class="table panel-table mb-0">
+    <thead><tr><th>#</th><th>وضعیت</th><th>مبلغ</th><th>کاربر</th><th>تاریخ</th></tr></thead>
+    <tbody>
+      {% for o in recent_orders %}
+      <tr>
+        <td><a href="{% url 'catalog_order_detail' o.pk %}">#{{ o.pk }}</a></td>
+        <td>{{ o.get_status_display }}</td>
+        <td>{{ o.total_amount|floatformat:0 }} ریال</td>
+        <td>{% if o.subscriber %}{{ o.subscriber.first_name }}{% else %}—{% endif %}</td>
+        <td class="small">{{ o.created_at|date:"Y/m/d H:i" }}</td>
+      </tr>
+      {% empty %}<tr><td colspan="5" class="text-center text-muted py-4">سفارشی ثبت نشده</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}

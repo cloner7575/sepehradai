@@ -56,6 +56,8 @@ class PanelUserCreateView(SuperuserRequiredMixin, FormView):
             email=form.cleaned_data.get('email') or '',
             allow_bale=form.cleaned_data['allow_bale'],
             allow_telegram=form.cleaned_data['allow_telegram'],
+            allow_bale_miniapp=form.cleaned_data['allow_bale_miniapp'],
+            allow_telegram_miniapp=form.cleaned_data['allow_telegram_miniapp'],
         )
         messages.success(
             self.request,
@@ -90,6 +92,8 @@ class PanelUserUpdateView(SuperuserRequiredMixin, FormView):
             'workspace_active': ws.is_active if ws else True,
             'allow_bale': ws.allow_bale if ws else True,
             'allow_telegram': ws.allow_telegram if ws else True,
+            'allow_bale_miniapp': ws.allow_bale_miniapp if ws else False,
+            'allow_telegram_miniapp': ws.allow_telegram_miniapp if ws else False,
         }
 
     def get_context_data(self, **kwargs):
@@ -121,8 +125,11 @@ class PanelUserUpdateView(SuperuserRequiredMixin, FormView):
             self.workspace.is_active = form.cleaned_data['workspace_active']
             self.workspace.allow_bale = form.cleaned_data['allow_bale']
             self.workspace.allow_telegram = form.cleaned_data['allow_telegram']
+            self.workspace.allow_bale_miniapp = form.cleaned_data['allow_bale_miniapp']
+            self.workspace.allow_telegram_miniapp = form.cleaned_data['allow_telegram_miniapp']
             self.workspace.save(update_fields=[
                 'name', 'is_active', 'allow_bale', 'allow_telegram',
+                'allow_bale_miniapp', 'allow_telegram_miniapp',
             ])
             ensure_bot_settings_for_workspace(self.workspace)
         else:
@@ -132,6 +139,8 @@ class PanelUserUpdateView(SuperuserRequiredMixin, FormView):
                 is_active=form.cleaned_data['workspace_active'],
                 allow_bale=form.cleaned_data['allow_bale'],
                 allow_telegram=form.cleaned_data['allow_telegram'],
+                allow_bale_miniapp=form.cleaned_data['allow_bale_miniapp'],
+                allow_telegram_miniapp=form.cleaned_data['allow_telegram_miniapp'],
             )
             ensure_bot_settings_for_workspace(ws)
             self.workspace = ws

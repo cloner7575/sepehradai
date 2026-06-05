@@ -74,6 +74,23 @@ def get_bot_settings_for_request(request: HttpRequest) -> BotSettings:
     return BotSettings.get_for_platform(workspace, platform)
 
 
+def has_miniapp_access_for_request(request: HttpRequest, workspace: Workspace | None = None) -> bool:
+    if workspace is None and request.user.is_authenticated:
+        workspace = get_workspace_for_user(request.user)
+    if workspace is None or not workspace.is_active:
+        return False
+    platform = get_active_platform(request, workspace)
+    return workspace.has_miniapp_access(platform)
+
+
+def require_miniapp_access_for_request(request: HttpRequest) -> tuple[Workspace, str]:
+    workspace = require_workspace_for_request(request)
+    platform = get_active_platform(request, workspace)
+    if not workspace.has_miniapp_access(platform):
+        raise PermissionDenied
+    return workspace, platform
+
+
 def platform_label(platform: str) -> str:
     if platform == Platform.TELEGRAM:
         return 'تلگرام'

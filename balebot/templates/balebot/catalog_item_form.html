@@ -1,0 +1,28 @@
+{% extends "balebot/base.html" %}
+{% block title %}{% if object %}ویرایش آیتم{% else %}آیتم جدید{% endif %}{% endblock %}
+{% block page_title %}{% if object %}ویرایش آیتم{% else %}آیتم جدید{% endif %}{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8"><div class="panel-card p-4">
+    <form method="post" enctype="multipart/form-data">{% csrf_token %}
+      {% for field in form %}<div class="mb-3"><label class="form-label">{{ field.label }}</label>{{ field }}{% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>{% endfor %}
+      <div class="mb-3"><label class="form-label">تصاویر جدید</label><input type="file" name="images" class="form-control" multiple accept="image/*"></div>
+      <button type="submit" class="btn btn-panel-primary">ذخیره</button>
+      <a href="{% url 'catalog_item_list' %}" class="btn btn-panel-ghost">بازگشت</a>
+    </form>
+  </div></div>
+  {% if item_images %}
+  <div class="col-lg-4"><div class="panel-card p-4">
+    <h2 class="h6 mb-3">تصاویر فعلی</h2>
+    {% for img in item_images %}
+    <div class="mb-3 d-flex align-items-center gap-2">
+      <img src="{{ img.image.url }}" alt="" class="rounded" style="width:64px;height:64px;object-fit:cover">
+      <form method="post" action="{% url 'catalog_item_image_delete' object.pk img.pk %}">{% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-outline-danger">حذف</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div></div>
+  {% endif %}
+</div>
+{% endblock %}

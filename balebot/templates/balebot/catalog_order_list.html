@@ -1,0 +1,25 @@
+{% extends "balebot/base.html" %}
+{% block title %}سفارش‌ها{% endblock %}
+{% block page_title %}سفارش‌های مینی‌اپ{% endblock %}
+{% block content %}
+<div class="mb-3 d-flex gap-2 flex-wrap">
+  <a href="{% url 'catalog_order_list' %}" class="btn btn-sm {% if not request.GET.status %}btn-panel-primary{% else %}btn-panel-ghost{% endif %}">همه</a>
+  <a href="?status=paid" class="btn btn-sm {% if request.GET.status == 'paid' %}btn-panel-primary{% else %}btn-panel-ghost{% endif %}">پرداخت‌شده</a>
+  <a href="?status=pending" class="btn btn-sm {% if request.GET.status == 'pending' %}btn-panel-primary{% else %}btn-panel-ghost{% endif %}">در انتظار</a>
+  <a href="?status=request" class="btn btn-sm {% if request.GET.status == 'request' %}btn-panel-primary{% else %}btn-panel-ghost{% endif %}">درخواست</a>
+</div>
+<div class="panel-card"><div class="table-responsive"><table class="table panel-table mb-0">
+  <thead><tr><th>#</th><th>وضعیت</th><th>مبلغ</th><th>کاربر</th><th>تاریخ</th></tr></thead>
+  <tbody>
+    {% for o in orders %}
+    <tr>
+      <td><a href="{% url 'catalog_order_detail' o.pk %}">#{{ o.pk }}</a></td>
+      <td>{{ o.get_status_display }}</td>
+      <td>{{ o.total_amount|floatformat:0 }}</td>
+      <td>{% if o.subscriber %}{{ o.subscriber.first_name }}{% else %}—{% endif %}</td>
+      <td class="small">{{ o.created_at|date:"Y/m/d H:i" }}</td>
+    </tr>
+    {% empty %}<tr><td colspan="5" class="text-center text-muted py-4">سفارشی نیست</td></tr>{% endfor %}
+  </tbody>
+</table></div></div>
+{% endblock %}

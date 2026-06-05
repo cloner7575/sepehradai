@@ -19,6 +19,7 @@ from balebot.platform import (
     allowed_platforms_for_workspace,
     get_active_platform,
     get_bot_settings_for_request,
+    has_miniapp_access_for_request,
     platform_label,
     require_workspace_for_request,
     set_active_platform,
@@ -38,6 +39,9 @@ from balebot.models import (
     CallbackLog,
     Campaign,
     CampaignDelivery,
+    CatalogItem,
+    CatalogOrder,
+    CatalogSettings,
     FlowMedia,
     InboundMessage,
     Platform,
@@ -157,6 +161,17 @@ class DashboardView(WorkspaceScopedMixin, PanelAccessMixin, TemplateView):
             subscriber__workspace=scope['workspace'],
             subscriber__platform=scope['platform'],
         ).count()
+        ctx['has_miniapp_access'] = has_miniapp_access_for_request(self.request, scope['workspace'])
+        if ctx['has_miniapp_access']:
+            catalog = CatalogSettings.get_for_platform(scope['workspace'], scope['platform'])
+            bot = get_bot_settings_for_request(self.request)
+            ctx['catalog'] = catalog
+            ctx['catalog_item_count'] = CatalogItem.objects.filter(**scope).count()
+            ctx['catalog_order_pending'] = CatalogOrder.objects.filter(
+                **scope,
+                status=CatalogOrder.Status.PENDING,
+            ).count()
+            ctx['mini_app_url'] = catalog.build_mini_app_url(bot)
         return ctx
 
 

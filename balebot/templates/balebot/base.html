@@ -40,6 +40,24 @@
         <a class="nav-link {% if name == 'campaign_list' or name == 'campaign_create' or name == 'campaign_detail' or name == 'campaign_edit' %}active{% endif %}" href="{% url 'campaign_list' %}">
           <i class="bi bi-megaphone-fill"></i> کمپین‌ها
         </a>
+        {% if has_miniapp_access %}
+        <div class="sidebar-section-label mt-3">مینی‌اپ {{ active_platform_label }}</div>
+        <a class="nav-link {% if name == 'catalog_dashboard' %}active{% endif %}" href="{% url 'catalog_dashboard' %}">
+          <i class="bi bi-shop"></i> داشبورد مینی‌اپ
+        </a>
+        <a class="nav-link {% if name == 'catalog_category_list' or name == 'catalog_category_create' or name == 'catalog_category_edit' %}active{% endif %}" href="{% url 'catalog_category_list' %}">
+          <i class="bi bi-folder-fill"></i> دسته‌بندی‌ها
+        </a>
+        <a class="nav-link {% if name == 'catalog_item_list' or name == 'catalog_item_create' or name == 'catalog_item_edit' %}active{% endif %}" href="{% url 'catalog_item_list' %}">
+          <i class="bi bi-box-seam-fill"></i> آیتم‌ها
+        </a>
+        <a class="nav-link {% if name == 'catalog_order_list' or name == 'catalog_order_detail' %}active{% endif %}" href="{% url 'catalog_order_list' %}">
+          <i class="bi bi-receipt"></i> سفارش‌ها
+        </a>
+        <a class="nav-link {% if name == 'catalog_settings' %}active{% endif %}" href="{% url 'catalog_settings' %}">
+          <i class="bi bi-palette-fill"></i> تنظیمات مینی‌اپ
+        </a>
+        {% endif %}
         {% if user.is_superuser %}
         <a class="nav-link {% if name == 'panel_user_list' or name == 'panel_user_create' or name == 'panel_user_edit' %}active{% endif %}" href="{% url 'panel_user_list' %}">
           <i class="bi bi-people-fill"></i> مدیریت کاربران

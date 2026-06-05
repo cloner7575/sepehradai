@@ -1,0 +1,71 @@
+{% extends "balebot/base.html" %}
+{% block title %}تنظیمات مینی‌اپ{% endblock %}
+{% block page_title %}تنظیمات مینی‌اپ {{ active_platform_label }}{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="panel-card p-4">
+      <form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+          {% for err in form.non_field_errors %}{{ err }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+        </div>
+        {% endif %}
+        {% for field in form %}
+        <div class="mb-3">
+          {% if field.field.widget.input_type == 'checkbox' %}
+          <div class="form-check form-switch">
+            {{ field }}
+            <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          </div>
+          {% else %}
+          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% endif %}
+          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          {% for err in field.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-panel-primary">ذخیره</button>
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="panel-card p-4 mb-3">
+      <h2 class="h6 mb-3">لینک مینی‌اپ (برای BotFather)</h2>
+      {% if mini_app_url %}
+      <code class="d-block text-break small user-select-all p-2 bg-light rounded" dir="ltr">{{ mini_app_url }}</code>
+      <p class="small text-success mt-2 mb-0">این آدرس را در BotFather به‌عنوان URL مینی‌اپ ثبت کنید.</p>
+      {% else %}
+      <div class="alert alert-warning small mb-2">
+        لینک کامل هنوز ساخته نشده است.
+      </div>
+      <p class="small text-muted mb-2">شناسه فروشگاه شما:</p>
+      <code class="d-block text-break small user-select-all" dir="ltr">{{ catalog_public_id }}</code>
+      {% if webhook_public_url %}
+      <p class="small mt-2 mb-0">لینک پس از ذخیره:</p>
+      <code class="d-block text-break small" dir="ltr">{{ webhook_public_url }}/shop/{{ catalog_public_id }}/</code>
+      {% else %}
+      <p class="small text-danger mt-2 mb-0">
+        ابتدا در <a href="{% url 'bot_settings' %}">تنظیمات ربات</a> فیلد
+        <strong>آدرس عمومی سرور</strong> را پر کنید (مثلاً <code dir="ltr">https://example.com</code>).
+      </p>
+      {% endif %}
+      {% endif %}
+      {% if bot_username %}
+      <p class="small mt-3 mb-0">میانبر بله: <code dir="ltr">https://ble.ir/{{ bot_username }}?startapp</code></p>
+      {% endif %}
+    </div>
+    <div class="panel-card p-4">
+      <h2 class="h6">روش‌های پرداخت</h2>
+      <ul class="small text-muted mb-3">
+        <li><strong>ارسال سبد به ادمین:</strong> چت‌آیدی ادمین + فعال‌سازی این گزینه</li>
+        <li><strong>زرین‌پال:</strong> مرچنت‌آیدی + فعال‌سازی این گزینه</li>
+      </ul>
+      <p class="small text-muted mb-0">
+        می‌توانید ابتدا تنظیمات ظاهری را ذخیره کنید؛ برای <strong>فعال کردن</strong> مینی‌اپ، حداقل یک روش پرداخت را کامل پر کنید.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

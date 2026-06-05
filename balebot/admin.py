@@ -5,6 +5,10 @@ from .models import (
     CallbackLog,
     Campaign,
     CampaignDelivery,
+    CatalogCategory,
+    CatalogItem,
+    CatalogOrder,
+    CatalogSettings,
     ClassEnrollmentRequest,
     FlowMedia,
     InboundMessage,
@@ -103,3 +107,27 @@ class ClassEnrollmentRequestAdmin(admin.ModelAdmin):
     list_display = ('subscriber', 'tag', 'status', 'requested_at', 'reviewed_at', 'reviewed_by')
     list_filter = ('status', 'tag')
     search_fields = ('subscriber__phone_number', 'subscriber__username', 'tag__name')
+
+
+@admin.register(CatalogSettings)
+class CatalogSettingsAdmin(admin.ModelAdmin):
+    list_display = ('workspace', 'platform', 'is_enabled', 'public_id', 'updated_at')
+    list_filter = ('platform', 'is_enabled')
+
+
+@admin.register(CatalogCategory)
+class CatalogCategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'workspace', 'platform', 'sort_order', 'is_active')
+    list_filter = ('platform', 'is_active')
+
+
+@admin.register(CatalogItem)
+class CatalogItemAdmin(admin.ModelAdmin):
+    list_display = ('title', 'workspace', 'platform', 'price', 'is_active', 'is_featured')
+    list_filter = ('platform', 'item_type', 'is_active')
+
+
+@admin.register(CatalogOrder)
+class CatalogOrderAdmin(admin.ModelAdmin):
+    list_display = ('pk', 'workspace', 'platform', 'status', 'total_amount', 'created_at')
+    list_filter = ('platform', 'status')

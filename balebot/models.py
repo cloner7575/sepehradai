@@ -26,6 +26,14 @@ class Workspace(models.Model):
     is_active = models.BooleanField(default=True, verbose_name='فعال')
     allow_bale = models.BooleanField(default=True, verbose_name='دسترسی بله')
     allow_telegram = models.BooleanField(default=True, verbose_name='دسترسی تلگرام')
+    allow_bale_miniapp = models.BooleanField(
+        default=False,
+        verbose_name='دسترسی مینی‌اپ بله',
+    )
+    allow_telegram_miniapp = models.BooleanField(
+        default=False,
+        verbose_name='دسترسی مینی‌اپ تلگرام',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -49,6 +57,20 @@ class Workspace(models.Model):
         if platform == Platform.TELEGRAM:
             return self.allow_telegram
         return self.allow_bale
+
+    def has_miniapp_access(self, platform: str) -> bool:
+        platform = Platform.TELEGRAM if platform == Platform.TELEGRAM else Platform.BALE
+        if platform == Platform.TELEGRAM:
+            return self.allow_telegram and self.allow_telegram_miniapp
+        return self.allow_bale and self.allow_bale_miniapp
+
+    def has_any_access(self) -> bool:
+        return (
+            self.allow_bale
+            or self.allow_telegram
+            or (self.allow_bale and self.allow_bale_miniapp)
+            or (self.allow_telegram and self.allow_telegram_miniapp)
+        )
 
 
 class FlowMedia(models.Model):
@@ -722,3 +744,412 @@ class BotSettings(models.Model):
 
     def has_bot_token(self) -> bool:
         return bool((self.bot_token or '').strip())
+
+
+def default_catalog_theme() -> dict:
+    return {
+        'primary_color': '#2563eb',
+        'accent_color': '#7c3aed',
+        'layout': 'grid',
+        'font_family': 'Vazirmatn',
+    }
+
+
+def default_catalog_labels() -> dict:
+    return {
+        'buy_now': 'خرید',
+        'add_to_cart': 'افزودن به سبد',
+        'request_quote': 'درخواست / تماس',
+        'cart': 'سبد خرید',
+        'checkout': 'تسویه',
+    }
+
+
+class CatalogSettings(models.Model):
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name='catalog_settings',
+        db_index=True,
+    )
+    platform = models.CharField(
+        max_length=16,
+        choices=Platform.choices,
+        default=Platform.BALE,
+        db_index=True,
+    )
+    public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    is_enabled = models.BooleanField(default=False, verbose_name='فعال')
+
+    class PaymentMethod(models.TextChoices):
+        ADMIN_CART = 'admin_cart', 'ارسال سبد به ادمین'
+        ZARINPAL = 'zarinpal', 'زرین‌پال'
+
+    payment_admin_enabled = models.BooleanField(
+        default=False,
+        verbose_name='فعال‌سازی ارسال سبد به ادمین',
+    )
+    payment_zarinpal_enabled = models.BooleanField(
+        default=False,
+        verbose_name='فعال‌سازی زرین‌پال',
+    )
+    payment_default_method = models.CharField(
+        max_length=16,
+        choices=PaymentMethod.choices,
+        default=PaymentMethod.ADMIN_CART,
+        verbose_name='روش پرداخت پیش‌فرض',
+    )
+    admin_notify_chat_id = models.BigIntegerField(
+        null=True,
+        blank=True,
+        verbose_name='چت‌آیدی ادمین برای سفارش‌ها',
+        help_text='شناسه گفتگوی ادمین در بله/تلگرام برای دریافت سبد خرید.',
+    )
+    zarinpal_merchant_id = models.CharField(
+        max_length=64,
+        blank=True,
+        default='',
+        verbose_name='مرچنت‌آیدی زرین‌پال',
+    )
+    zarinpal_sandbox = models.BooleanField(
+        default=True,
+        verbose_name='حالت تست زرین‌پال (سندباکس)',
+    )
+    provider_token = models.CharField(
+        max_length=256,
+        blank=True,
+        default='',
+        verbose_name='توکن پرداخت (منسوخ)',
+        help_text='دیگر استفاده نمی‌شود؛ از زرین‌پال یا ارسال به ادمین استفاده کنید.',
+    )
+    hero_title = models.CharField(max_length=200, blank=True, default='')
+    hero_subtitle = models.CharField(max_length=300, blank=True, default='')
+    logo = models.ImageField(upload_to='catalog/%Y/%m/', blank=True, null=True)
+    theme_config = models.JSONField(default=default_catalog_theme, blank=True)
+    labels = models.JSONField(default=default_catalog_labels, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'تنظیمات فروشگاه'
+        verbose_name_plural = 'تنظیمات فروشگاه'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['workspace', 'platform'],
+                name='unique_catalog_settings_workspace_platform',
+            ),
+        ]
+
+    def __str__(self):
+        return f'فروشگاه {self.workspace_id} — {self.get_platform_display()}'
+
+    @classmethod
+    def get_for_platform(cls, workspace: Workspace, platform: str):
+        platform = Platform.TELEGRAM if platform == Platform.TELEGRAM else Platform.BALE
+        obj, _ = cls.objects.get_or_create(
+            workspace=workspace,
+            platform=platform,
+            defaults={'platform': platform},
+        )
+        return obj
+
+    def build_mini_app_url(self, bot_settings: BotSettings | None = None) -> str:
+        base = ''
+        if bot_settings:
+            base = (bot_settings.webhook_public_url or '').strip().rstrip('/')
+        if not base:
+            return ''
+        return f'{base}/shop/{self.public_id}/'
+
+    def enabled_payment_methods(self) -> list[tuple[str, str]]:
+        methods: list[tuple[str, str]] = []
+        if self.payment_admin_enabled:
+            methods.append((self.PaymentMethod.ADMIN_CART, self.PaymentMethod.ADMIN_CART.label))
+        if self.payment_zarinpal_enabled and (self.zarinpal_merchant_id or '').strip():
+            methods.append((self.PaymentMethod.ZARINPAL, self.PaymentMethod.ZARINPAL.label))
+        return methods
+
+    def resolve_payment_method(self, requested: str | None) -> str | None:
+        enabled = {m[0] for m in self.enabled_payment_methods()}
+        if not enabled:
+            return None
+        if requested and requested in enabled:
+            return requested
+        default = self.payment_default_method
+        if default in enabled:
+            return default
+        return next(iter(enabled))
+
+
+class CatalogCategory(models.Model):
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name='catalog_categories',
+        db_index=True,
+    )
+    platform = models.CharField(
+        max_length=16,
+        choices=Platform.choices,
+        default=Platform.BALE,
+        db_index=True,
+    )
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='children',
+    )
+    name = models.CharField(max_length=120)
+    slug = models.SlugField(max_length=140)
+    icon = models.CharField(max_length=64, blank=True, default='')
+    sort_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['sort_order', 'name']
+        verbose_name = 'دسته فروشگاه'
+        verbose_name_plural = 'دسته‌های فروشگاه'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['workspace', 'platform', 'slug'],
+                name='unique_catalog_category_slug',
+            ),
+        ]
+
+    def __str__(self):
+        return self.name
+
+
+class CatalogItem(models.Model):
+    class ItemType(models.TextChoices):
+        PRODUCT = 'product', 'محصول'
+        PORTFOLIO = 'portfolio', 'نمونه‌کار'
+        SERVICE = 'service', 'خدمت'
+        DIGITAL = 'digital', 'دیجیتال'
+
+    class SaleMode(models.TextChoices):
+        BUYABLE = 'buyable', 'قابل خرید'
+        REQUEST_ONLY = 'request_only', 'فقط درخواست'
+        BOTH = 'both', 'خرید و درخواست'
+
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name='catalog_items',
+        db_index=True,
+    )
+    platform = models.CharField(
+        max_length=16,
+        choices=Platform.choices,
+        default=Platform.BALE,
+        db_index=True,
+    )
+    category = models.ForeignKey(
+        CatalogCategory,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='items',
+    )
+    title = models.CharField(max_length=200)
+    slug = models.SlugField(max_length=220)
+    short_description = models.CharField(max_length=300, blank=True, default='')
+    description = models.TextField(blank=True, default='')
+    item_type = models.CharField(
+        max_length=16,
+        choices=ItemType.choices,
+        default=ItemType.PRODUCT,
+    )
+    price = models.PositiveBigIntegerField(
+        null=True,
+        blank=True,
+        help_text='قیمت به ریال',
+    )
+    sale_mode = models.CharField(
+        max_length=16,
+        choices=SaleMode.choices,
+        default=SaleMode.BOTH,
+    )
+    stock = models.PositiveIntegerField(null=True, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    is_active = models.BooleanField(default=True)
+    is_featured = models.BooleanField(default=False)
+    sort_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['sort_order', '-created_at']
+        verbose_name = 'آیتم فروشگاه'
+        verbose_name_plural = 'آیتم‌های فروشگاه'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['workspace', 'platform', 'slug'],
+                name='unique_catalog_item_slug',
+            ),
+        ]
+
+    def __str__(self):
+        return self.title
+
+    def is_buyable(self) -> bool:
+        if self.sale_mode == self.SaleMode.REQUEST_ONLY:
+            return False
+        return self.price is not None and self.price > 0
+
+    def is_requestable(self) -> bool:
+        return self.sale_mode in (self.SaleMode.REQUEST_ONLY, self.SaleMode.BOTH)
+
+
+class CatalogItemImage(models.Model):
+    item = models.ForeignKey(
+        CatalogItem,
+        on_delete=models.CASCADE,
+        related_name='images',
+    )
+    image = models.ImageField(upload_to='catalog/items/%Y/%m/')
+    sort_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['sort_order', 'id']
+
+    def __str__(self):
+        return f'{self.item_id} — {self.sort_order}'
+
+
+class CatalogOrder(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'در انتظار پرداخت'
+        PAID = 'paid', 'پرداخت‌شده'
+        FAILED = 'failed', 'ناموفق'
+        CANCELLED = 'cancelled', 'لغوشده'
+        REQUEST = 'request', 'درخواست'
+
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name='catalog_orders',
+        db_index=True,
+    )
+    platform = models.CharField(
+        max_length=16,
+        choices=Platform.choices,
+        default=Platform.BALE,
+        db_index=True,
+    )
+    subscriber = models.ForeignKey(
+        'Subscriber',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='catalog_orders',
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
+    )
+    total_amount = models.PositiveBigIntegerField(default=0)
+    currency = models.CharField(max_length=8, default='IRR')
+    payment_method = models.CharField(max_length=16, blank=True, default='')
+    payment_charge_id = models.CharField(max_length=256, blank=True, default='')
+    zarinpal_authority = models.CharField(max_length=64, blank=True, default='')
+    note = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'سفارش فروشگاه'
+        verbose_name_plural = 'سفارش‌های فروشگاه'
+
+    def __str__(self):
+        return f'سفارش #{self.pk}'
+
+
+class CatalogOrderLine(models.Model):
+    order = models.ForeignKey(
+        CatalogOrder,
+        on_delete=models.CASCADE,
+        related_name='lines',
+    )
+    item = models.ForeignKey(
+        CatalogItem,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    title_snapshot = models.CharField(max_length=200)
+    price_snapshot = models.PositiveBigIntegerField(default=0)
+    quantity = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ['id']
+
+    def __str__(self):
+        return self.title_snapshot
+
+    @property
+    def line_total(self) -> int:
+        return self.price_snapshot * self.quantity
+
+
+class CatalogCart(models.Model):
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name='catalog_carts',
+    )
+    platform = models.CharField(
+        max_length=16,
+        choices=Platform.choices,
+        default=Platform.BALE,
+    )
+    subscriber = models.ForeignKey(
+        'Subscriber',
+        on_delete=models.CASCADE,
+        related_name='catalog_carts',
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['workspace', 'platform', 'subscriber'],
+                name='unique_catalog_cart_per_subscriber',
+            ),
+        ]
+
+    def __str__(self):
+        return f'سبد {self.subscriber_id}'
+
+
+class CatalogCartItem(models.Model):
+    cart = models.ForeignKey(
+        CatalogCart,
+        on_delete=models.CASCADE,
+        related_name='items',
+    )
+    catalog_item = models.ForeignKey(
+        CatalogItem,
+        on_delete=models.CASCADE,
+        related_name='cart_entries',
+    )
+    quantity = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['cart', 'catalog_item'],
+                name='unique_cart_catalog_item',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.catalog_item_id} x{self.quantity}'

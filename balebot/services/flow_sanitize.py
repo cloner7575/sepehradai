@@ -88,6 +88,11 @@ def _sanitize_action(action: Any, depth: int) -> dict[str, Any] | None:
         if not url:
             return None
         return {'type': 'url', 'url': url}
+    if atype == 'web_app':
+        url = str(action.get('url', '') or '').strip()[:512]
+        if not url:
+            return None
+        return {'type': 'web_app', 'url': url}
     return None
 
 

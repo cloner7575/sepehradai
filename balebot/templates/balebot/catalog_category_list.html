@@ -1,0 +1,21 @@
+{% extends "balebot/base.html" %}
+{% block title %}دسته‌بندی‌ها{% endblock %}
+{% block page_title %}دسته‌بندی‌های مینی‌اپ{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <span class="text-muted small">{{ categories|length }} دسته</span>
+  <a href="{% url 'catalog_category_create' %}" class="btn btn-panel-primary btn-sm">دسته جدید</a>
+</div>
+<div class="panel-card"><div class="table-responsive"><table class="table panel-table mb-0">
+  <thead><tr><th>نام</th><th>slug</th><th>آیتم</th><th>ترتیب</th><th>وضعیت</th><th></th></tr></thead>
+  <tbody>
+    {% for c in categories %}
+    <tr>
+      <td>{{ c.name }}</td><td dir="ltr">{{ c.slug }}</td><td>{{ c.item_count }}</td><td>{{ c.sort_order }}</td>
+      <td>{% if c.is_active %}<span class="badge text-bg-success">فعال</span>{% else %}<span class="badge text-bg-secondary">غیرفعال</span>{% endif %}</td>
+      <td class="text-end"><a href="{% url 'catalog_category_edit' c.pk %}" class="btn btn-sm btn-panel-ghost">ویرایش</a></td>
+    </tr>
+    {% empty %}<tr><td colspan="6" class="text-center text-muted py-4">دسته‌ای نیست</td></tr>{% endfor %}
+  </tbody>
+</table></div></div>
+{% endblock %}

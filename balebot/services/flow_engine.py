@@ -183,11 +183,18 @@ def build_markup_for_buttons_node(
             if not text:
                 continue
             action = btn.get('action')
-            if isinstance(action, dict) and str(action.get('type', '')).lower() == 'url':
-                url = (action.get('url') or '').strip()
-                if url:
-                    out_row.append({'text': text, 'url': url[:512]})
-                continue
+            if isinstance(action, dict):
+                atype = str(action.get('type', '')).lower()
+                if atype == 'url':
+                    url = (action.get('url') or '').strip()
+                    if url:
+                        out_row.append({'text': text, 'url': url[:512]})
+                    continue
+                if atype == 'web_app':
+                    url = (action.get('url') or '').strip()
+                    if url:
+                        out_row.append({'text': text, 'web_app': {'url': url[:512]}})
+                    continue
             nid = btn.get('id')
             if not nid:
                 continue
@@ -393,8 +400,8 @@ def execute_button_action(
             return 'image_failed'
         return 'image'
 
-    if atype == 'url':
-        return 'url'
+    if atype in ('url', 'web_app'):
+        return atype
 
     if atype == 'buttons':
         mk = build_markup_for_buttons_node(action, parent_button_id=btn_id)

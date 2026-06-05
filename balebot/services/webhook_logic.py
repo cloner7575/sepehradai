@@ -17,6 +17,7 @@ from balebot.models import (
     SupportTicketMessage,
 )
 from balebot.services import messenger_api
+from balebot.services import catalog_payment
 from balebot.services.flow_engine import (
     get_flow,
     handle_flow_callback,
@@ -218,6 +219,10 @@ def handle_message(cfg: BotSettings, msg: dict[str, Any]) -> None:
     from_user = msg.get('from') or {}
     chat = msg.get('chat') or {}
     if not from_user or not chat:
+        return
+
+    if msg.get('web_app_data'):
+        catalog_payment.handle_web_app_data(cfg, msg)
         return
 
     sub = get_or_create_subscriber(cfg, from_user, chat)

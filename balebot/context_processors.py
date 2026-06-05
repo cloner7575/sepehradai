@@ -1,7 +1,12 @@
 from django.db.utils import OperationalError
 
 from balebot.models import BotSettings
-from balebot.platform import allowed_platforms_for_workspace, get_active_platform, platform_label
+from balebot.platform import (
+    allowed_platforms_for_workspace,
+    get_active_platform,
+    has_miniapp_access_for_request,
+    platform_label,
+)
 from balebot.workspace import get_workspace_for_user
 
 
@@ -17,6 +22,8 @@ def panel_branding(request):
             'active_platform': active,
             'active_platform_label': platform_label(active),
             'available_platforms': allowed_platforms_for_workspace(ws),
+            'panel_workspace': ws,
+            'has_miniapp_access': has_miniapp_access_for_request(request, ws),
         }
     except OperationalError:
         return {
@@ -24,4 +31,6 @@ def panel_branding(request):
             'active_platform': 'bale',
             'active_platform_label': 'بله',
             'available_platforms': allowed_platforms_for_workspace(None),
+            'panel_workspace': None,
+            'has_miniapp_access': False,
         }
