@@ -55,9 +55,9 @@
           }
         : null;
     }
-    if (t === 'url') {
+    if (t === 'url' || t === 'web_app') {
       var url = String(a.url || '').trim().slice(0, 512);
-      return url ? { type: 'url', url: url } : null;
+      return url ? { type: t, url: url } : null;
     }
     if (t === 'buttons') {
       return normalizeButtons({ type: 'buttons', rows: a.rows }, depth);
@@ -383,6 +383,7 @@
         ['buttons', 'زیرمنو — دکمه‌های بعدی'],
         ['image', 'ارسال عکس'],
         ['url', 'باز کردن لینک'],
+        ['web_app', 'باز کردن مینی‌اپ'],
       ].forEach(function (o) {
         var opt = document.createElement('option');
         opt.value = o[0];
@@ -419,18 +420,21 @@
           btn.action = { type: 'text', body: bodyTa.value };
           extras.appendChild(bodyLbl);
           extras.appendChild(bodyTa);
-        } else if (t === 'url') {
+        } else if (t === 'url' || t === 'web_app') {
           var urlInp = document.createElement('input');
           urlInp.type = 'url';
           urlInp.className =
             'form-control form-control-sm panel-input ' + depthClass(depth + 1);
-          urlInp.placeholder = 'https://...';
-          urlInp.value = prev && prev.type === 'url' ? prev.url || '' : '';
+          urlInp.placeholder = t === 'web_app' ? 'https://.../shop/...' : 'https://...';
+          urlInp.value =
+            prev && (prev.type === 'url' || prev.type === 'web_app')
+              ? prev.url || ''
+              : '';
           urlInp.addEventListener('input', function () {
-            btn.action = { type: 'url', url: urlInp.value };
+            btn.action = { type: t, url: urlInp.value };
             onChange();
           });
-          btn.action = { type: 'url', url: urlInp.value };
+          btn.action = { type: t, url: urlInp.value };
           extras.appendChild(urlInp);
         } else if (t === 'image') {
           var imgLbl = document.createElement('label');
