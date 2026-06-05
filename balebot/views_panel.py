@@ -16,7 +16,7 @@ from django.views.generic.edit import CreateView, UpdateView
 
 from balebot.forms import BotSettingsForm, CampaignForm
 from balebot.platform import (
-    all_platforms,
+    allowed_platforms_for_workspace,
     get_active_platform,
     get_bot_settings_for_request,
     platform_label,
@@ -88,17 +88,18 @@ class WorkspaceScopedMixin:
         return require_workspace_for_request(self.request)
 
     def get_active_platform(self) -> str:
-        return get_active_platform(self.request)
+        return get_active_platform(self.request, self.get_workspace())
 
     def scope_filter(self) -> dict:
         return {'workspace': self.get_workspace(), 'platform': self.get_active_platform()}
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        workspace = self.get_workspace()
         ctx['active_platform'] = self.get_active_platform()
         ctx['active_platform_label'] = platform_label(ctx['active_platform'])
-        ctx['available_platforms'] = all_platforms()
-        ctx['panel_workspace'] = self.get_workspace()
+        ctx['available_platforms'] = allowed_platforms_for_workspace(workspace)
+        ctx['panel_workspace'] = workspace
         return ctx
 
 
@@ -109,8 +110,9 @@ class SwitchPlatformView(PanelAccessMixin, View):
         return HttpResponseRedirect(request.META.get('HTTP_REFERER') or '/')
 
     def post(self, request, *args, **kwargs):
+        workspace = require_workspace_for_request(request)
         platform = (request.POST.get('platform') or '').strip()
-        set_active_platform(request, platform)
+        set_active_platform(request, platform, workspace)
         next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or '/'
         return HttpResponseRedirect(next_url)
 

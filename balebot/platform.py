@@ -17,13 +17,44 @@ def normalize_platform(value: str | None) -> str:
     return Platform.BALE
 
 
-def get_active_platform(request: HttpRequest) -> str:
+def all_platforms() -> list[tuple[str, str]]:
+    return [(Platform.BALE, platform_label(Platform.BALE)), (Platform.TELEGRAM, platform_label(Platform.TELEGRAM))]
+
+
+def allowed_platforms_for_workspace(workspace: Workspace | None) -> list[tuple[str, str]]:
+    if workspace is None:
+        return all_platforms()
+    result: list[tuple[str, str]] = []
+    if workspace.allow_bale:
+        result.append((Platform.BALE, platform_label(Platform.BALE)))
+    if workspace.allow_telegram:
+        result.append((Platform.TELEGRAM, platform_label(Platform.TELEGRAM)))
+    return result
+
+
+def _resolve_active_platform(request: HttpRequest, workspace: Workspace | None) -> str:
     raw = request.session.get(SESSION_ACTIVE_PLATFORM_KEY)
-    return normalize_platform(raw)
+    platform = normalize_platform(raw)
+    allowed = [value for value, _ in allowed_platforms_for_workspace(workspace)]
+    if allowed and platform not in allowed:
+        platform = allowed[0]
+        request.session[SESSION_ACTIVE_PLATFORM_KEY] = platform
+    return platform
 
 
-def set_active_platform(request: HttpRequest, platform: str) -> str:
+def get_active_platform(request: HttpRequest, workspace: Workspace | None = None) -> str:
+    if workspace is None and request.user.is_authenticated:
+        workspace = get_workspace_for_user(request.user)
+    return _resolve_active_platform(request, workspace)
+
+
+def set_active_platform(request: HttpRequest, platform: str, workspace: Workspace | None = None) -> str:
     platform = normalize_platform(platform)
+    if workspace is None and request.user.is_authenticated:
+        workspace = get_workspace_for_user(request.user)
+    allowed = {value for value, _ in allowed_platforms_for_workspace(workspace)}
+    if allowed and platform not in allowed:
+        raise PermissionDenied
     request.session[SESSION_ACTIVE_PLATFORM_KEY] = platform
     return platform
 
@@ -37,14 +68,13 @@ def require_workspace_for_request(request: HttpRequest) -> Workspace:
 
 def get_bot_settings_for_request(request: HttpRequest) -> BotSettings:
     workspace = require_workspace_for_request(request)
-    return BotSettings.get_for_platform(workspace, get_active_platform(request))
+    platform = get_active_platform(request, workspace)
+    if not workspace.has_platform_access(platform):
+        raise PermissionDenied
+    return BotSettings.get_for_platform(workspace, platform)
 
 
 def platform_label(platform: str) -> str:
     if platform == Platform.TELEGRAM:
         return 'تلگرام'
     return 'بله'
-
-
-def all_platforms() -> list[tuple[str, str]]:
-    return [(Platform.BALE, platform_label(Platform.BALE)), (Platform.TELEGRAM, platform_label(Platform.TELEGRAM))]

@@ -7,7 +7,7 @@
 
 {% block content %}
 <div class="d-grid d-sm-flex justify-content-sm-between align-items-sm-center gap-3 mb-4">
-  <p class="mb-0 small text-muted">هر کاربر یک workspace جدا با تنظیمات بله و تلگرام دارد.</p>
+  <p class="mb-0 small text-muted">هر کاربر یک workspace جدا دارد؛ دسترسی بله و/یا تلگرام هنگام ساخت تعیین می‌شود.</p>
   <a href="{% url 'panel_user_create' %}" class="btn btn-panel-primary flex-shrink-0">
     <i class="bi bi-person-plus-fill me-2"></i>کاربر جدید
   </a>
@@ -21,6 +21,7 @@
           <tr>
             <th>نام کاربری</th>
             <th>نام پنل</th>
+            <th>پلتفرم‌ها</th>
             <th>وضعیت</th>
             <th class="text-end">عملیات</th>
           </tr>
@@ -30,6 +31,15 @@
           <tr>
             <td>{{ u.username }}</td>
             <td>{% if u.workspace %}{{ u.workspace.name }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            <td>
+              {% if u.workspace %}
+                {% if u.workspace.allow_bale %}<span class="badge text-bg-primary me-1">بله</span>{% endif %}
+                {% if u.workspace.allow_telegram %}<span class="badge text-bg-info">تلگرام</span>{% endif %}
+                {% if not u.workspace.allow_bale and not u.workspace.allow_telegram %}<span class="text-muted">—</span>{% endif %}
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
             <td>
               {% if u.is_active and u.workspace and u.workspace.is_active %}
               <span class="badge text-bg-success">فعال</span>
@@ -43,7 +53,7 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="4" class="text-center text-muted py-4">هنوز کاربر پنلی ثبت نشده است.</td>
+            <td colspan="5" class="text-center text-muted py-4">هنوز کاربر پنلی ثبت نشده است.</td>
           </tr>
           {% endfor %}
         </tbody>

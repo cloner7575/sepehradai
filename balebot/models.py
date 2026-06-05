@@ -24,6 +24,8 @@ class Workspace(models.Model):
         related_name='workspace',
     )
     is_active = models.BooleanField(default=True, verbose_name='فعال')
+    allow_bale = models.BooleanField(default=True, verbose_name='دسترسی بله')
+    allow_telegram = models.BooleanField(default=True, verbose_name='دسترسی تلگرام')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -33,6 +35,20 @@ class Workspace(models.Model):
 
     def __str__(self):
         return self.name
+
+    def allowed_platforms(self) -> list[str]:
+        platforms: list[str] = []
+        if self.allow_bale:
+            platforms.append(Platform.BALE)
+        if self.allow_telegram:
+            platforms.append(Platform.TELEGRAM)
+        return platforms
+
+    def has_platform_access(self, platform: str) -> bool:
+        platform = Platform.TELEGRAM if platform == Platform.TELEGRAM else Platform.BALE
+        if platform == Platform.TELEGRAM:
+            return self.allow_telegram
+        return self.allow_bale
 
 
 class FlowMedia(models.Model):

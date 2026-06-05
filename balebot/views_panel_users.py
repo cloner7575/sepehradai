@@ -8,7 +8,7 @@ from django.views.generic import FormView, ListView
 
 from balebot.forms_panel_users import PanelUserCreateForm, PanelUserUpdateForm
 from balebot.models import BotSettings, Workspace
-from balebot.workspace import create_panel_user
+from balebot.workspace import create_panel_user, ensure_bot_settings_for_workspace
 
 User = get_user_model()
 
@@ -54,6 +54,8 @@ class PanelUserCreateView(SuperuserRequiredMixin, FormView):
             password=form.cleaned_data['password'],
             workspace_name=form.cleaned_data['workspace_name'],
             email=form.cleaned_data.get('email') or '',
+            allow_bale=form.cleaned_data['allow_bale'],
+            allow_telegram=form.cleaned_data['allow_telegram'],
         )
         messages.success(
             self.request,
@@ -86,6 +88,8 @@ class PanelUserUpdateView(SuperuserRequiredMixin, FormView):
             'email': self.panel_user.email,
             'is_active': self.panel_user.is_active,
             'workspace_active': ws.is_active if ws else True,
+            'allow_bale': ws.allow_bale if ws else True,
+            'allow_telegram': ws.allow_telegram if ws else True,
         }
 
     def get_context_data(self, **kwargs):
@@ -95,8 +99,12 @@ class PanelUserUpdateView(SuperuserRequiredMixin, FormView):
         ctx['panel_user'] = self.panel_user
         ctx['bot_settings_list'] = []
         if self.workspace:
+            allowed = self.workspace.allowed_platforms()
             ctx['bot_settings_list'] = list(
-                BotSettings.objects.filter(workspace=self.workspace).order_by('platform'),
+                BotSettings.objects.filter(
+                    workspace=self.workspace,
+                    platform__in=allowed,
+                ).order_by('platform'),
             )
         return ctx
 
@@ -111,14 +119,21 @@ class PanelUserUpdateView(SuperuserRequiredMixin, FormView):
         if self.workspace:
             self.workspace.name = form.cleaned_data['workspace_name'].strip()
             self.workspace.is_active = form.cleaned_data['workspace_active']
-            self.workspace.save(update_fields=['name', 'is_active'])
+            self.workspace.allow_bale = form.cleaned_data['allow_bale']
+            self.workspace.allow_telegram = form.cleaned_data['allow_telegram']
+            self.workspace.save(update_fields=[
+                'name', 'is_active', 'allow_bale', 'allow_telegram',
+            ])
+            ensure_bot_settings_for_workspace(self.workspace)
         else:
             ws = Workspace.objects.create(
                 name=form.cleaned_data['workspace_name'].strip() or self.panel_user.username,
                 owner=self.panel_user,
                 is_active=form.cleaned_data['workspace_active'],
+                allow_bale=form.cleaned_data['allow_bale'],
+                allow_telegram=form.cleaned_data['allow_telegram'],
             )
-            BotSettings.ensure_for_workspace(ws)
+            ensure_bot_settings_for_workspace(ws)
             self.workspace = ws
 
         messages.success(self.request, 'تغییرات کاربر ذخیره شد.')

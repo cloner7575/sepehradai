@@ -26,6 +26,24 @@ class PanelUserCreateForm(forms.Form):
         label='نام پنل',
         widget=forms.TextInput(attrs={'class': _INPUT}),
     )
+    allow_bale = forms.BooleanField(
+        required=False,
+        initial=True,
+        label='دسترسی بله',
+        help_text='کاربر می‌تواند ربات بله را در پنل مدیریت کند.',
+    )
+    allow_telegram = forms.BooleanField(
+        required=False,
+        initial=True,
+        label='دسترسی تلگرام',
+        help_text='کاربر می‌تواند ربات تلگرام را در پنل مدیریت کند.',
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        if not cleaned.get('allow_bale') and not cleaned.get('allow_telegram'):
+            raise forms.ValidationError('حداقل یکی از پلتفرم‌های بله یا تلگرام باید انتخاب شود.')
+        return cleaned
 
     def clean_username(self):
         username = (self.cleaned_data.get('username') or '').strip()
@@ -63,3 +81,21 @@ class PanelUserUpdateForm(forms.Form):
         initial=True,
         label='پنل فعال',
     )
+    allow_bale = forms.BooleanField(
+        required=False,
+        initial=True,
+        label='دسترسی بله',
+        help_text='کاربر می‌تواند ربات بله را در پنل مدیریت کند.',
+    )
+    allow_telegram = forms.BooleanField(
+        required=False,
+        initial=True,
+        label='دسترسی تلگرام',
+        help_text='کاربر می‌تواند ربات تلگرام را در پنل مدیریت کند.',
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        if not cleaned.get('allow_bale') and not cleaned.get('allow_telegram'):
+            raise forms.ValidationError('حداقل یکی از پلتفرم‌های بله یا تلگرام باید انتخاب شود.')
+        return cleaned

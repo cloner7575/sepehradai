@@ -81,6 +81,7 @@
             {% endif %}
             {{ active_platform_label }}
           </span>
+          {% if available_platforms|length > 1 %}
           <form method="post" action="{% url 'panel_switch_platform' %}" class="platform-switch-form">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -96,6 +97,7 @@
               {% endfor %}
             </select>
           </form>
+          {% endif %}
           {% endif %}
           <span class="topbar-user-badge"><i class="bi bi-person-fill"></i><span class="topbar-user-name">{{ user.username }}</span></span>
           <form method="post" action="{% url 'panel_logout' %}" class="panel-logout-form m-0">

@@ -28,6 +28,11 @@ def user_has_panel_access(user) -> bool:
     return bool(user.is_staff and ws and ws.is_active)
 
 
+def ensure_bot_settings_for_workspace(workspace: Workspace) -> None:
+    for platform in workspace.allowed_platforms():
+        BotSettings.get_for_platform(workspace, platform)
+
+
 def create_panel_user(
     *,
     username: str,
@@ -35,7 +40,11 @@ def create_panel_user(
     workspace_name: str,
     email: str = '',
     is_active: bool = True,
+    allow_bale: bool = True,
+    allow_telegram: bool = True,
 ) -> tuple[User, Workspace]:
+    if not allow_bale and not allow_telegram:
+        raise ValueError('حداقل یک پلتفرم باید انتخاب شود.')
     with transaction.atomic():
         user = User.objects.create_user(
             username=username,
@@ -49,6 +58,8 @@ def create_panel_user(
             name=workspace_name.strip() or username,
             owner=user,
             is_active=is_active,
+            allow_bale=allow_bale,
+            allow_telegram=allow_telegram,
         )
-        BotSettings.ensure_for_workspace(workspace)
+        ensure_bot_settings_for_workspace(workspace)
     return user, workspace
