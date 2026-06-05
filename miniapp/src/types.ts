@@ -4,6 +4,7 @@ export interface PaymentMethodOption {
 }
 
 export interface CatalogConfig {
+  is_enabled?: boolean;
   platform: string;
   hero_title: string;
   hero_subtitle: string;

@@ -17,7 +17,12 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json', ...(options?.headers || {}) },
     ...options,
   });
-  const data = await res.json();
+  let data: { ok?: boolean; error?: string };
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(res.status === 404 ? 'فروشگاه یافت نشد' : `خطای سرور (${res.status})`);
+  }
   if (!data.ok) {
     throw new Error(data.error || 'خطای سرور');
   }

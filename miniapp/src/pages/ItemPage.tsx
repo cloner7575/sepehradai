@@ -114,7 +114,7 @@ export function ItemPage() {
             ))}
           </dl>
         )}
-        {item.is_buyable && methods.length > 0 && (
+        {item.is_buyable && config?.is_enabled !== false && methods.length > 0 && (
           <div className="mt-4">
             <PaymentMethodPicker methods={methods} value={paymentMethod} onChange={setPaymentMethod} />
           </div>
@@ -122,7 +122,7 @@ export function ItemPage() {
         {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
       </div>
       <div className="fixed bottom-0 left-0 right-0 border-t border-slate-200 bg-surface/95 p-4 backdrop-blur space-y-2">
-        {item.is_buyable && (
+        {item.is_buyable && config?.is_enabled !== false && (
           <>
             <button type="button" className="btn-primary" disabled={isBusy} onClick={buyNow}>
               {labels.buy_now || 'خرید'}
@@ -132,7 +132,7 @@ export function ItemPage() {
             </button>
           </>
         )}
-        {item.is_requestable && (
+        {item.is_requestable && config?.is_enabled !== false && (
           <button type="button" className="btn-secondary" disabled={isBusy} onClick={requestItem}>
             {labels.request_quote || 'درخواست / تماس'}
           </button>

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 
-from django.http import Http404, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -24,15 +24,21 @@ from balebot.services.webhook_logic import get_or_create_subscriber
 logger = logging.getLogger(__name__)
 
 
-def _get_catalog(public_id: str) -> CatalogSettings:
-    catalog = get_object_or_404(
-        CatalogSettings.objects.select_related('workspace'),
-        public_id=public_id,
-        is_enabled=True,
-    )
+def _resolve_catalog(
+    public_id: str,
+    *,
+    require_enabled: bool = False,
+) -> tuple[CatalogSettings | None, JsonResponse | None]:
+    """یافتن فروشگاه؛ برای خواندن کاتالوگ نیازی به is_enabled نیست."""
+    try:
+        catalog = CatalogSettings.objects.select_related('workspace').get(public_id=public_id)
+    except CatalogSettings.DoesNotExist:
+        return None, _json_error('فروشگاه یافت نشد', 404)
     if not catalog.workspace.is_active:
-        raise Http404
-    return catalog
+        return None, _json_error('حساب فروشگاه غیرفعال است', 403)
+    if require_enabled and not catalog.is_enabled:
+        return None, _json_error('فروشگاه هنوز فعال نشده است. از پنل مدیریت فعال کنید.', 403)
+    return catalog, None
 
 
 def _json_error(message: str, status: int = 400) -> JsonResponse:
@@ -85,7 +91,9 @@ def _resolve_subscriber(catalog: CatalogSettings, init_data: str) -> Subscriber 
 
 @require_http_methods(['GET'])
 def catalog_config(request, public_id):
-    catalog = _get_catalog(public_id)
+    catalog, err = _resolve_catalog(public_id)
+    if err:
+        return err
     cfg = BotSettings.get_for_platform(catalog.workspace, catalog.platform)
     logo_url = ''
     if catalog.logo:
@@ -97,6 +105,7 @@ def catalog_config(request, public_id):
         methods.append({'id': value, 'label': label})
     return JsonResponse({
         'ok': True,
+        'is_enabled': catalog.is_enabled,
         'platform': catalog.platform,
         'hero_title': catalog.hero_title,
         'hero_subtitle': catalog.hero_subtitle,
@@ -104,14 +113,16 @@ def catalog_config(request, public_id):
         'labels': catalog.labels or {},
         'logo_url': logo_url,
         'mini_app_url': catalog.build_mini_app_url(cfg),
-        'payment_methods': methods,
-        'payment_default': catalog.resolve_payment_method(None),
+        'payment_methods': methods if catalog.is_enabled else [],
+        'payment_default': catalog.resolve_payment_method(None) if catalog.is_enabled else None,
     })
 
 
 @require_http_methods(['GET'])
 def catalog_categories(request, public_id):
-    catalog = _get_catalog(public_id)
+    catalog, err = _resolve_catalog(public_id)
+    if err:
+        return err
     cats = CatalogCategory.objects.filter(
         workspace=catalog.workspace,
         platform=catalog.platform,
@@ -132,7 +143,9 @@ def catalog_categories(request, public_id):
 
 @require_http_methods(['GET'])
 def catalog_items(request, public_id):
-    catalog = _get_catalog(public_id)
+    catalog, err = _resolve_catalog(public_id)
+    if err:
+        return err
     qs = CatalogItem.objects.filter(
         workspace=catalog.workspace,
         platform=catalog.platform,
@@ -159,7 +172,9 @@ def catalog_items(request, public_id):
 
 @require_http_methods(['GET'])
 def catalog_item_detail(request, public_id, slug):
-    catalog = _get_catalog(public_id)
+    catalog, err = _resolve_catalog(public_id)
+    if err:
+        return err
     item = get_object_or_404(
         CatalogItem.objects.prefetch_related('images'),
         workspace=catalog.workspace,
@@ -173,7 +188,9 @@ def catalog_item_detail(request, public_id, slug):
 @csrf_exempt
 @require_http_methods(['POST'])
 def catalog_auth_validate(request, public_id):
-    catalog = _get_catalog(public_id)
+    catalog, err = _resolve_catalog(public_id)
+    if err:
+        return err
     try:
         body = json.loads(request.body.decode('utf-8'))
     except (json.JSONDecodeError, UnicodeDecodeError):
@@ -203,7 +220,9 @@ def _parse_body(request) -> dict:
 @csrf_exempt
 @require_http_methods(['GET', 'POST'])
 def catalog_cart(request, public_id):
-    catalog = _get_catalog(public_id)
+    catalog, err = _resolve_catalog(public_id, require_enabled=True)
+    if err:
+        return err
     if request.method == 'GET':
         init_data = (request.GET.get('initData') or '').strip()
         sub = _resolve_subscriber(catalog, init_data)
@@ -279,7 +298,9 @@ def catalog_cart(request, public_id):
 @csrf_exempt
 @require_http_methods(['POST'])
 def catalog_checkout(request, public_id):
-    catalog = _get_catalog(public_id)
+    catalog, err = _resolve_catalog(public_id, require_enabled=True)
+    if err:
+        return err
     body = _parse_body(request)
     init_data = (body.get('initData') or '').strip()
     sub = _resolve_subscriber(catalog, init_data)
@@ -360,7 +381,9 @@ def catalog_checkout(request, public_id):
 @csrf_exempt
 @require_http_methods(['POST'])
 def catalog_request(request, public_id):
-    catalog = _get_catalog(public_id)
+    catalog, err = _resolve_catalog(public_id, require_enabled=True)
+    if err:
+        return err
     body = _parse_body(request)
     init_data = (body.get('initData') or '').strip()
     sub = _resolve_subscriber(catalog, init_data)

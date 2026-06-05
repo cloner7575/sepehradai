@@ -79,6 +79,7 @@ export default function App() {
   const [cartItems, setCartItems] = useState<CartLine[]>([]);
   const [cartTotal, setCartTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [unsupported, setUnsupported] = useState(false);
 
   const refreshCart = useCallback(async () => {
@@ -94,23 +95,32 @@ export default function App() {
   }, [adapter.initData]);
 
   useEffect(() => {
+    const ad = createWebAppAdapter();
+    setAdapter(ad);
+    ad.ready();
+    ad.expand();
+
     fetchConfig()
       .then((cfg) => {
+        setLoadError('');
         setConfig(cfg);
-        const ad = createWebAppAdapter(cfg.platform);
-        setAdapter(ad);
-        if (!ad.isSupported) setUnsupported(true);
-        applyTheme(cfg.theme || {}, ad);
-        ad.ready();
-        ad.expand();
-        if (ad.initData) {
-          fetchCart(ad.initData)
+        const platformAdapter = createWebAppAdapter(cfg.platform);
+        setAdapter(platformAdapter);
+        if (!platformAdapter.isSupported) setUnsupported(true);
+        applyTheme(cfg.theme || {}, platformAdapter);
+        platformAdapter.ready();
+        platformAdapter.expand();
+        if (cfg.is_enabled && platformAdapter.initData) {
+          fetchCart(platformAdapter.initData)
             .then((d) => {
               setCartItems(d.items);
               setCartTotal(d.total);
             })
             .catch(() => {});
         }
+      })
+      .catch((e: unknown) => {
+        setLoadError(e instanceof Error ? e.message : 'بارگذاری فروشگاه ناموفق بود');
       })
       .finally(() => setLoading(false));
   }, []);
@@ -128,8 +138,22 @@ export default function App() {
     );
   }
 
+  if (loadError) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-8 text-center">
+        <div className="text-4xl">⚠️</div>
+        <p className="text-sm text-muted">{loadError}</p>
+      </div>
+    );
+  }
+
   return (
     <AppContext.Provider value={value}>
+      {config && config.is_enabled === false && (
+        <div className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900">
+          فروشگاه در حال آماده‌سازی است — مشاهده محصولات ممکن است، خرید هنوز فعال نشده.
+        </div>
+      )}
       {unsupported && (
         <div className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900">
           لطفاً اپلیکیشن بله/تلگرام را به‌روزرسانی کنید.
