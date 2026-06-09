@@ -107,13 +107,13 @@ export function ItemPage() {
 
       <div className="px-4 pt-5">
         <h1 className="text-xl font-bold leading-snug tracking-tight">{item.title}</h1>
-        {item.is_downloadable ? (
-          <p className="mt-2 text-sm text-muted">
+        {item.is_downloadable && item.download_url ? (
+          <p className="mt-2 truncate text-sm text-muted" dir="ltr">
             {fileNameFromUrl(item.download_url)}
           </p>
-        ) : (
+        ) : !item.is_downloadable ? (
           <p className="price-tag mt-2 text-lg">{formatPrice(item.price)}</p>
-        )}
+        ) : null}
         {item.short_description && (
           <p className="mt-3 text-sm leading-relaxed text-muted">{item.short_description}</p>
         )}

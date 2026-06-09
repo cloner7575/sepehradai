@@ -67,9 +67,7 @@ def _item_dict(item: CatalogItem, request=None, catalog=None) -> dict:
         cover_url = absolute_media_url(request, item.cover.url, catalog=catalog)
         if cover_url and cover_url not in images:
             images.insert(0, cover_url)
-    download_url = ''
-    if item.download_file:
-        download_url = absolute_media_url(request, item.download_file.url, catalog=catalog)
+    download_url = item.resolve_download_url(request, catalog) if item.is_downloadable() else ''
     return {
         'id': item.pk,
         'slug': item.slug,

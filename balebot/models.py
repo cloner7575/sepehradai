@@ -988,7 +988,13 @@ class CatalogItem(models.Model):
         upload_to='catalog/items/downloads/%Y/%m/',
         blank=True,
         null=True,
-        help_text='فایل اصلی قابل دانلود',
+        help_text='فایل اصلی قابل دانلود (آپلود روی سرور)',
+    )
+    download_link = models.URLField(
+        max_length=500,
+        blank=True,
+        default='',
+        help_text='لینک مستقیم دانلود (گوگل‌درایو، دراپ‌باکس و...)',
     )
     metadata = models.JSONField(default=dict, blank=True)
     is_active = models.BooleanField(default=True)
@@ -1012,7 +1018,16 @@ class CatalogItem(models.Model):
         return self.title
 
     def is_downloadable(self) -> bool:
-        return self.item_type == self.ItemType.DOWNLOAD and bool(self.download_file)
+        if self.item_type != self.ItemType.DOWNLOAD:
+            return False
+        return bool(self.download_file) or bool((self.download_link or '').strip())
+
+    def resolve_download_url(self, request=None, catalog=None) -> str:
+        if self.download_file:
+            from balebot.services.catalog_media import absolute_media_url
+
+            return absolute_media_url(request, self.download_file.url, catalog=catalog)
+        return (self.download_link or '').strip()
 
     def is_buyable(self) -> bool:
         if self.is_downloadable():

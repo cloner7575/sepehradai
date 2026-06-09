@@ -7,7 +7,7 @@
   <div class="col-lg-8"><div class="panel-card p-4">
     <form method="post" enctype="multipart/form-data" id="catalog-item-form">{% csrf_token %}
       {% for field in form %}
-        {% if field.name == 'cover' or field.name == 'download_file' %}
+        {% if field.name == 'cover' or field.name == 'download_file' or field.name == 'download_link' %}
           {# در بلوک دانلود رندر می‌شود #}
         {% elif field.name == 'price' or field.name == 'sale_mode' or field.name == 'stock' %}
           <div class="mb-3 catalog-commerce-field" data-commerce-field>
@@ -37,13 +37,26 @@
           <img src="{{ object.cover.url }}" alt="" class="rounded mt-2 catalog-settings-logo-preview">
           {% endif %}
         </div>
+
         <div class="mb-3">
-          <label class="form-label" for="id_download_file">{{ form.download_file.label }}</label>
+          <label class="form-label" for="id_download_file">آپلود فایل</label>
           {{ form.download_file }}
           {% if form.download_file.help_text %}<div class="form-text">{{ form.download_file.help_text }}</div>{% endif %}
           {% for e in form.download_file.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
           {% if object and object.download_file %}
           <div class="small text-muted mt-2">فایل فعلی: <code dir="ltr">{{ object.download_file.name }}</code></div>
+          {% endif %}
+        </div>
+
+        <div class="text-center text-muted small my-2">— یا —</div>
+
+        <div class="mb-0">
+          <label class="form-label" for="id_download_link">{{ form.download_link.label }}</label>
+          {{ form.download_link }}
+          {% if form.download_link.help_text %}<div class="form-text">{{ form.download_link.help_text }}</div>{% endif %}
+          {% for e in form.download_link.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          {% if object and object.download_link %}
+          <div class="small text-muted mt-2">لینک فعلی: <a href="{{ object.download_link }}" target="_blank" rel="noopener" dir="ltr">{{ object.download_link }}</a></div>
           {% endif %}
         </div>
       </div>
