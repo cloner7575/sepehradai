@@ -7,6 +7,7 @@ import logging
 
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
@@ -21,6 +22,7 @@ from balebot.models import (
 )
 from balebot.services import catalog_payment, miniapp_auth
 from balebot.services.catalog_media import absolute_media_url
+from balebot.services.channel_membership import is_channel_member
 from balebot.services.webhook_logic import get_or_create_subscriber
 
 logger = logging.getLogger(__name__)
@@ -116,6 +118,31 @@ def _resolve_subscriber(catalog: CatalogSettings, init_data: str) -> Subscriber 
     }
     chat = {'id': chat_id, 'type': 'private'}
     return get_or_create_subscriber(cfg, from_user, chat)
+
+
+def _mark_miniapp_seen(sub: Subscriber) -> None:
+    if sub.miniapp_first_seen_at:
+        return
+    sub.miniapp_first_seen_at = timezone.now()
+    sub.save(update_fields=['miniapp_first_seen_at', 'updated_at'])
+
+
+def _channel_auth_payload(catalog: CatalogSettings, user_id: int) -> dict:
+    if not catalog.require_channel_membership:
+        return {
+            'channel_required': False,
+            'is_channel_member': True,
+            'channel_message': '',
+            'channel_invite_link': '',
+        }
+    is_member = is_channel_member(catalog, user_id)
+    return {
+        'channel_required': True,
+        'is_channel_member': is_member,
+        'channel_message': (catalog.channel_membership_message or '').strip()
+        or 'برای استفاده از فروشگاه ابتدا در کانال ما عضو شوید.',
+        'channel_invite_link': (catalog.channel_invite_link or '').strip(),
+    }
 
 
 @require_http_methods(['GET'])
@@ -229,6 +256,8 @@ def catalog_auth_validate(request, public_id):
     sub = _resolve_subscriber(catalog, init_data)
     if not sub:
         return _json_error('احراز هویت ناموفق', 401)
+    _mark_miniapp_seen(sub)
+    channel = _channel_auth_payload(catalog, sub.messenger_user_id)
     return JsonResponse({
         'ok': True,
         'subscriber_id': sub.pk,
@@ -237,6 +266,7 @@ def catalog_auth_validate(request, public_id):
             'first_name': sub.first_name,
             'username': sub.username,
         },
+        **channel,
     })
 
 

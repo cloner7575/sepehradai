@@ -52,6 +52,10 @@ class CatalogSettingsForm(forms.ModelForm):
         model = CatalogSettings
         fields = [
             'is_enabled',
+            'require_channel_membership',
+            'required_channel_id',
+            'channel_membership_message',
+            'channel_invite_link',
             'payment_admin_enabled',
             'payment_zarinpal_enabled',
             'payment_default_method',
@@ -64,6 +68,10 @@ class CatalogSettingsForm(forms.ModelForm):
         ]
         widgets = {
             'is_enabled': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
+            'require_channel_membership': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
+            'required_channel_id': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': '@mychannel'}),
+            'channel_membership_message': forms.Textarea(attrs={'class': _INPUT, 'rows': 3}),
+            'channel_invite_link': forms.URLInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'https://...'}),
             'payment_admin_enabled': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
             'payment_zarinpal_enabled': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
             'payment_default_method': forms.Select(attrs={'class': _INPUT}),
@@ -100,6 +108,14 @@ class CatalogSettingsForm(forms.ModelForm):
                 '(چت‌آیدی ادمین یا مرچنت‌آیدی زرین‌پال).',
             )
 
+        require_channel = cleaned.get('require_channel_membership')
+        channel_id = (cleaned.get('required_channel_id') or '').strip()
+        if require_channel and not channel_id:
+            self.add_error(
+                'required_channel_id',
+                'برای فعال‌سازی شرط عضویت کانال، شناسه کانال الزامی است.',
+            )
+
         default = cleaned.get('payment_default_method')
         enabled = set()
         if has_admin:
@@ -133,6 +149,18 @@ class CatalogSettingsForm(forms.ModelForm):
         self.fields['zarinpal_merchant_id'].help_text = 'از پنل زرین‌پال → درگاه پرداخت.'
         self.fields['is_enabled'].help_text = (
             'فقط وقتی فعال کنید که حداقل یک روش پرداخت را کامل پر کرده‌اید.'
+        )
+        self.fields['require_channel_membership'].help_text = (
+            'اگر فعال باشد، کاربر تا زمان عضویت در کانال به مینی‌اپ دسترسی ندارد.'
+        )
+        self.fields['required_channel_id'].help_text = (
+            'نام کاربری کانال (مثلاً @mychannel) یا شناسه عددی. ربات باید ادمین کانال باشد.'
+        )
+        self.fields['channel_membership_message'].help_text = (
+            'پیامی که به کاربرانی که هنوز عضو کانال نیستند نمایش داده می‌شود.'
+        )
+        self.fields['channel_invite_link'].help_text = (
+            'لینک دعوت کانال برای دکمه «عضویت در کانال» در مینی‌اپ.'
         )
 
     def save(self, commit=True):

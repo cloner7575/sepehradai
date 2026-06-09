@@ -1,18 +1,20 @@
 import { Component, createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { fetchCart, fetchConfig } from './api';
+import { fetchCart, fetchConfig, validateAuth } from './api';
 import { applyTheme, createWebAppAdapter, type WebAppAdapter } from './platform';
-import type { CartLine, CatalogConfig } from './types';
+import type { AuthValidateResult, CartLine, CatalogConfig } from './types';
 import { HomePage } from './pages/HomePage';
 import { CategoryPage } from './pages/CategoryPage';
 import { ItemPage } from './pages/ItemPage';
 import { CartPage } from './pages/CartPage';
+import { ChannelGate } from './components/ChannelGate';
 import { IconAlert } from './components/Icons';
 
 interface AppContextValue {
   config: CatalogConfig | null;
   adapter: WebAppAdapter;
+  auth: AuthValidateResult | null;
   cartItems: CartLine[];
   cartTotal: number;
   refreshCart: () => Promise<void>;
@@ -97,6 +99,7 @@ export default function App() {
   const [adapter, setAdapter] = useState<WebAppAdapter>(() => createWebAppAdapter());
   const [cartItems, setCartItems] = useState<CartLine[]>([]);
   const [cartTotal, setCartTotal] = useState(0);
+  const [auth, setAuth] = useState<AuthValidateResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [unsupported, setUnsupported] = useState(false);
@@ -120,7 +123,7 @@ export default function App() {
     ad.expand();
 
     fetchConfig()
-      .then((cfg) => {
+      .then(async (cfg) => {
         setLoadError('');
         setConfig(cfg);
         const platformAdapter = createWebAppAdapter();
@@ -129,6 +132,16 @@ export default function App() {
         applyTheme(cfg.theme || {}, platformAdapter);
         platformAdapter.ready();
         platformAdapter.expand();
+
+        if (platformAdapter.initData) {
+          try {
+            const authResult = await validateAuth(platformAdapter.initData);
+            setAuth(authResult);
+          } catch {
+            /* بدون initData معتبر، فقط مشاهده محدود */
+          }
+        }
+
         if (cfg.is_enabled && platformAdapter.initData) {
           fetchCart(platformAdapter.initData)
             .then((d) => {
@@ -144,9 +157,12 @@ export default function App() {
       .finally(() => setLoading(false));
   }, []);
 
+  const channelBlocked =
+    auth?.channel_required === true && auth?.is_channel_member === false;
+
   const value = useMemo(
-    () => ({ config, adapter, cartItems, cartTotal, refreshCart }),
-    [config, adapter, cartItems, cartTotal, refreshCart],
+    () => ({ config, adapter, auth, cartItems, cartTotal, refreshCart }),
+    [config, adapter, auth, cartItems, cartTotal, refreshCart],
   );
 
   if (loading) {
@@ -166,6 +182,20 @@ export default function App() {
         </div>
         <p className="text-sm text-muted">{loadError}</p>
       </div>
+    );
+  }
+
+  if (channelBlocked && auth) {
+    return (
+      <AppErrorBoundary>
+        <AppContext.Provider value={value}>
+          <ChannelGate
+            adapter={adapter}
+            auth={auth}
+            onUnlocked={(result) => setAuth(result)}
+          />
+        </AppContext.Provider>
+      </AppErrorBoundary>
     );
   }
 

@@ -1,4 +1,4 @@
-import type { CartLine, CatalogConfig, CatalogItem, Category, CheckoutResult } from './types';
+import type { AuthValidateResult, CartLine, CatalogConfig, CatalogItem, Category, CheckoutResult } from './types';
 
 function getPublicId(): string {
   const parts = window.location.pathname.split('/').filter(Boolean);
@@ -35,6 +35,13 @@ export function getPublicIdValue() {
 
 export async function fetchConfig(): Promise<CatalogConfig & { ok?: boolean }> {
   return request<CatalogConfig & { ok?: boolean }>('/config/');
+}
+
+export async function validateAuth(initData: string): Promise<AuthValidateResult> {
+  return request<AuthValidateResult>('/auth/validate/', {
+    method: 'POST',
+    body: JSON.stringify({ initData }),
+  });
 }
 
 export async function fetchCategories() {

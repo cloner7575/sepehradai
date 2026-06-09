@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from django.utils import timezone
 
 from balebot.models import Campaign, Subscriber
@@ -11,7 +11,8 @@ def resolve_campaign_subscribers_qs(campaign: Campaign) -> QuerySet[Subscriber]:
         workspace=campaign.workspace,
         platform=campaign.platform,
         is_active=True,
-        is_registered=True,
+    ).filter(
+        Q(is_registered=True) | Q(miniapp_first_seen_at__isnull=False),
     )
     tag_ids = list(campaign.target_tags.values_list('id', flat=True))
     if tag_ids:

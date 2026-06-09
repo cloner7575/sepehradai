@@ -21,6 +21,9 @@
       <a href="#sec-status" class="settings-nav-link active" data-settings-nav="sec-status">
         <i class="bi bi-power"></i><span>وضعیت</span>
       </a>
+      <a href="#sec-access" class="settings-nav-link" data-settings-nav="sec-access">
+        <i class="bi bi-shield-lock"></i><span>دسترسی</span>
+      </a>
       <a href="#sec-branding" class="settings-nav-link" data-settings-nav="sec-branding">
         <i class="bi bi-shop"></i><span>برند</span>
       </a>
@@ -54,6 +57,27 @@
             حتی وقتی غیرفعال است، می‌توانید محتوا را آماده کنید. کاربران محصولات را می‌بینند ولی خرید غیرفعال است.
           </div>
           {% endif %}
+        </div>
+      </section>
+
+      <section id="sec-access" class="settings-section panel-card mb-4">
+        <header class="panel-card-header settings-section-header">
+          <div>
+            <h2 class="panel-card-title mb-1"><i class="bi bi-shield-lock me-2"></i>دسترسی و عضویت کانال</h2>
+            <p class="panel-card-lead mb-0">محدود کردن دسترسی مینی‌اپ به اعضای کانال.</p>
+          </div>
+        </header>
+        <div class="panel-card-body">
+          {% include "balebot/_settings_switch.html" with field=form.require_channel_membership title=form.require_channel_membership.label desc=form.require_channel_membership.help_text %}
+          <div id="channel-access-block" class="settings-sub-block">
+            {% include "balebot/_settings_field.html" with field=form.required_channel_id hint=form.required_channel_id.help_text %}
+            {% include "balebot/_settings_field.html" with field=form.channel_membership_message hint=form.channel_membership_message.help_text %}
+            {% include "balebot/_settings_field.html" with field=form.channel_invite_link hint=form.channel_invite_link.help_text %}
+          </div>
+          <div class="alert alert-info small mb-0">
+            <i class="bi bi-info-circle me-1"></i>
+            ربات باید در کانال مقصد <strong>ادمین</strong> باشد تا عضویت کاربران قابل بررسی باشد.
+          </div>
         </div>
       </section>
 

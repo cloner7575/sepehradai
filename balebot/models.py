@@ -189,6 +189,11 @@ class Subscriber(models.Model):
         default=False,
         help_text='اگر روشن باشد، پیام بعدی کاربر به عنوان پیام پشتیبانی ثبت می‌شود.',
     )
+    miniapp_first_seen_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='اولین بازدید از مینی‌اپ فروشگاه.',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     tags = models.ManyToManyField(
@@ -828,6 +833,27 @@ class CatalogSettings(models.Model):
     logo = models.ImageField(upload_to='catalog/%Y/%m/', blank=True, null=True)
     theme_config = models.JSONField(default=default_catalog_theme, blank=True)
     labels = models.JSONField(default=default_catalog_labels, blank=True)
+    require_channel_membership = models.BooleanField(
+        default=False,
+        verbose_name='الزام عضویت در کانال',
+    )
+    required_channel_id = models.CharField(
+        max_length=128,
+        blank=True,
+        default='',
+        verbose_name='شناسه کانال',
+        help_text='@username کانال یا شناسه عددی. ربات باید ادمین کانال باشد.',
+    )
+    channel_membership_message = models.TextField(
+        blank=True,
+        default='برای استفاده از فروشگاه ابتدا در کانال ما عضو شوید.',
+        verbose_name='پیام عضویت کانال',
+    )
+    channel_invite_link = models.URLField(
+        blank=True,
+        default='',
+        verbose_name='لینک پیوستن به کانال',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

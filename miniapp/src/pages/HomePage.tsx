@@ -24,7 +24,8 @@ export function HomePage() {
 
   const search = () => {
     setLoading(true);
-    fetchItems({ q }).then(setItems).finally(() => setLoading(false));
+    const params = q.trim() ? { q: q.trim() } : undefined;
+    fetchItems(params).then(setItems).finally(() => setLoading(false));
   };
 
   return (
@@ -38,7 +39,7 @@ export function HomePage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && search()}
-            placeholder="جستجو در فروشگاه…"
+            placeholder="جستجو…"
             className="input-field pr-11"
           />
         </div>

@@ -87,6 +87,17 @@ def get_me(platform: str, *, settings: BotSettings | None = None) -> dict[str, A
     return call_method(platform, 'getMe', settings=settings)
 
 
+def get_chat_member(
+    platform: str,
+    chat_id: int | str,
+    user_id: int | str,
+    *,
+    settings: BotSettings | None = None,
+) -> dict[str, Any]:
+    payload = {'chat_id': chat_id, 'user_id': user_id}
+    return call_method(platform, 'getChatMember', settings=settings, json_body=payload)
+
+
 def send_message(
     platform: str,
     chat_id: int | str,

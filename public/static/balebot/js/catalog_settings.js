@@ -81,6 +81,7 @@
   document.addEventListener('DOMContentLoaded', function () {
     bindToggle('id_payment_admin_enabled', 'admin-payment-block');
     bindToggle('id_payment_zarinpal_enabled', 'zarinpal-payment-block');
+    bindToggle('id_require_channel_membership', 'channel-access-block');
     initNav();
     initColorPreview();
   });

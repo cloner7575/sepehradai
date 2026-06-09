@@ -15,6 +15,19 @@ export interface CatalogConfig {
   payment_default?: string;
 }
 
+export interface AuthValidateResult {
+  subscriber_id: number;
+  user: {
+    id: number;
+    first_name: string;
+    username: string;
+  };
+  channel_required: boolean;
+  is_channel_member: boolean;
+  channel_message: string;
+  channel_invite_link: string;
+}
+
 export interface CheckoutResult {
   order_id: number;
   payment_method: string;
