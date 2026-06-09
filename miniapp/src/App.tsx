@@ -8,6 +8,7 @@ import { HomePage } from './pages/HomePage';
 import { CategoryPage } from './pages/CategoryPage';
 import { ItemPage } from './pages/ItemPage';
 import { CartPage } from './pages/CartPage';
+import { IconAlert, IconCart, IconHome } from './components/Icons';
 
 interface AppContextValue {
   config: CatalogConfig | null;
@@ -33,8 +34,10 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { error: strin
   render() {
     if (this.state.error) {
       return (
-        <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-8 text-center">
-          <div className="text-4xl">⚠️</div>
+        <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500">
+            <IconAlert className="h-6 w-6" />
+          </div>
           <p className="text-sm text-muted">{this.state.error}</p>
         </div>
       );
@@ -47,6 +50,14 @@ export function useApp() {
   const ctx = useContext(AppContext);
   if (!ctx) throw new Error('useApp outside provider');
   return ctx;
+}
+
+function Banner({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="border-b border-amber-200/60 bg-amber-50 px-4 py-2.5 text-center text-xs text-amber-800">
+      {children}
+    </div>
+  );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
@@ -64,24 +75,34 @@ function Shell({ children }: { children: React.ReactNode }) {
   }, [location.pathname, adapter, navigate]);
 
   const cartCount = cartItems.reduce((s, l) => s + l.quantity, 0);
+  const isHome = location.pathname === '/';
+  const isCart = location.pathname === '/cart';
 
   return (
     <div className="mx-auto min-h-screen max-w-lg">
       {children}
-      <nav className="fixed bottom-0 left-1/2 z-50 flex w-full max-w-lg -translate-x-1/2 border-t border-slate-200 bg-surface/95 px-6 py-2 backdrop-blur md:hidden">
-        <div className="flex w-full justify-around text-xs">
-          <Link to="/" className={`flex flex-col items-center gap-1 ${location.pathname === '/' ? 'text-primary' : 'text-muted'}`}>
-            <span>🏠</span><span>خانه</span>
-          </Link>
-          <Link to="/cart" className={`relative flex flex-col items-center gap-1 ${location.pathname === '/cart' ? 'text-primary' : 'text-muted'}`}>
-            <span>🛒</span><span>سبد</span>
+      <nav className="bottom-bar mx-auto flex max-w-lg justify-center gap-1 px-6 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-1">
+        <Link
+          to="/"
+          className={`nav-tab ${isHome ? 'nav-tab-active' : 'nav-tab-inactive'}`}
+        >
+          <IconHome className="h-5 w-5" />
+          <span>خانه</span>
+        </Link>
+        <Link
+          to="/cart"
+          className={`nav-tab relative ${isCart ? 'nav-tab-active' : 'nav-tab-inactive'}`}
+        >
+          <span className="relative">
+            <IconCart className="h-5 w-5" />
             {cartCount > 0 && (
-              <span className="absolute -top-1 left-6 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] text-white">
+              <span className="absolute -top-1.5 -left-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white">
                 {cartCount}
               </span>
             )}
-          </Link>
-        </div>
+          </span>
+          <span>سبد</span>
+        </Link>
       </nav>
     </div>
   );
@@ -157,16 +178,19 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="skeleton h-12 w-12 rounded-full" />
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+        <div className="skeleton h-10 w-10 rounded-full" />
+        <p className="text-xs text-muted">در حال بارگذاری…</p>
       </div>
     );
   }
 
   if (loadError) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-8 text-center">
-        <div className="text-4xl">⚠️</div>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500">
+          <IconAlert className="h-6 w-6" />
+        </div>
         <p className="text-sm text-muted">{loadError}</p>
       </div>
     );
@@ -176,14 +200,14 @@ export default function App() {
     <AppErrorBoundary>
       <AppContext.Provider value={value}>
         {config && config.is_enabled === false && (
-          <div className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900">
+          <Banner>
             فروشگاه در حال آماده‌سازی است — مشاهده محصولات ممکن است، خرید هنوز فعال نشده.
-          </div>
+          </Banner>
         )}
         {unsupported && (
-          <div className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900">
+          <Banner>
             لطفاً اپلیکیشن بله/تلگرام را به‌روزرسانی کنید.
-          </div>
+          </Banner>
         )}
         <MemoryRouter>
           <Shell>

@@ -3,12 +3,14 @@
 @tailwind utilities;
 
 :root {
-  --color-primary: #2563eb;
-  --color-accent: #7c3aed;
-  --color-bg: #f8fafc;
+  --color-primary: #18181b;
+  --color-accent: #3f3f46;
+  --color-bg: #fafafa;
   --color-surface: #ffffff;
-  --color-text: #0f172a;
-  --color-muted: #64748b;
+  --color-text: #18181b;
+  --color-muted: #71717a;
+  --color-border: #e4e4e7;
+  --color-primary-soft: rgba(24, 24, 27, 0.06);
 }
 
 body {
@@ -16,19 +18,61 @@ body {
   min-height: 100vh;
   font-family: Vazirmatn, Tahoma, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 @layer components {
   .btn-primary {
-    @apply w-full rounded-2xl bg-primary px-4 py-3.5 text-center font-semibold text-white shadow-lg transition active:scale-[0.98];
+    @apply w-full rounded-xl bg-primary px-4 py-3.5 text-center text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-50;
   }
   .btn-secondary {
-    @apply w-full rounded-2xl border border-slate-200 bg-surface px-4 py-3.5 text-center font-semibold text-slate-800 transition active:scale-[0.98];
+    @apply w-full rounded-xl border border-border bg-surface px-4 py-3.5 text-center text-sm font-semibold text-[var(--color-text)] transition active:scale-[0.98] disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-medium text-muted transition hover:bg-black/5 active:scale-[0.98];
   }
   .card {
-    @apply rounded-2xl bg-surface shadow-sm ring-1 ring-slate-100 overflow-hidden transition hover:shadow-md;
+    @apply rounded-2xl border border-border bg-surface overflow-hidden transition;
+  }
+  .card-interactive {
+    @apply card active:scale-[0.98];
+  }
+  .input-field {
+    @apply w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm outline-none transition placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-[var(--color-primary-soft)];
+  }
+  .section-title {
+    @apply text-xs font-semibold uppercase tracking-wide text-muted;
+  }
+  .page-header {
+    @apply sticky top-0 z-40 border-b border-border backdrop-blur-md;
+    background-color: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  }
+  .bottom-bar {
+    @apply fixed bottom-0 left-0 right-0 z-50 border-t border-border backdrop-blur-md;
+    background-color: color-mix(in srgb, var(--color-surface) 95%, transparent);
+  }
+  .nav-tab {
+    @apply flex flex-col items-center gap-1 px-4 py-2 text-[11px] font-medium transition;
+  }
+  .nav-tab-active {
+    @apply text-primary;
+  }
+  .nav-tab-inactive {
+    @apply text-muted;
+  }
+  .badge {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold;
   }
   .skeleton {
-    @apply animate-pulse rounded-xl bg-slate-200;
+    @apply animate-pulse rounded-xl bg-black/5;
+  }
+  .empty-state {
+    @apply flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-6 py-12 text-center;
+  }
+  .qty-btn {
+    @apply flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface text-sm font-medium transition active:scale-95 disabled:opacity-40;
+  }
+  .price-tag {
+    @apply text-sm font-bold tracking-tight text-primary;
   }
 }

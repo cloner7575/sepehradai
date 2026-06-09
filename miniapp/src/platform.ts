@@ -169,5 +169,7 @@ export function applyTheme(configTheme: Record<string, string>, adapter: WebAppA
   root.style.setProperty('--color-bg', bg);
   root.style.setProperty('--color-surface', surface);
   root.style.setProperty('--color-text', text);
-  root.style.setProperty('--color-muted', tp.hint_color || '#64748b');
+  root.style.setProperty('--color-muted', tp.hint_color || '#71717a');
+  root.style.setProperty('--color-border', adapter.colorScheme === 'dark' ? '#3f3f46' : '#e4e4e7');
+  root.style.setProperty('--color-primary-soft', `color-mix(in srgb, ${primary} 8%, transparent)`);
 }

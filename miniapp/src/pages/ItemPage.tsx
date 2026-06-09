@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { fetchItem, formatPrice, submitRequest, updateCart } from '../api';
 import { useApp } from '../App';
 import { PaymentMethodPicker } from '../components/PaymentMethodPicker';
+import { IconPackage } from '../components/Icons';
 import { useCheckout } from '../hooks/useCheckout';
 
 export function ItemPage() {
@@ -71,43 +72,73 @@ export function ItemPage() {
 
   const isBusy = busy || checkoutBusy;
 
-  if (loading) return <div className="p-4"><div className="skeleton h-64 rounded-2xl" /></div>;
-  if (!item) return <div className="p-8 text-center text-muted">آیتم یافت نشد</div>;
+  if (loading) {
+    return (
+      <div className="p-4">
+        <div className="skeleton aspect-square rounded-2xl" />
+        <div className="mt-4 space-y-2">
+          <div className="skeleton h-6 w-2/3" />
+          <div className="skeleton h-5 w-1/3" />
+        </div>
+      </div>
+    );
+  }
+  if (!item) {
+    return (
+      <div className="empty-state mx-4 mt-8">
+        <IconPackage className="h-8 w-8 text-muted/40" />
+        <p className="text-sm text-muted">محصول یافت نشد</p>
+      </div>
+    );
+  }
 
   const images = item.images.length ? item.images : [];
 
   return (
-    <div className="pb-40">
-      <div className="aspect-square bg-slate-100 relative">
+    <div className="pb-44">
+      <div className="relative aspect-square bg-[var(--color-primary-soft)]">
         {images[imgIdx] ? (
           <img src={images[imgIdx]} alt={item.title} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full items-center justify-center text-6xl text-slate-300">📦</div>
+          <div className="flex h-full items-center justify-center text-muted/30">
+            <IconPackage className="h-16 w-16" />
+          </div>
         )}
         {images.length > 1 && (
-          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2">
+          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5">
             {images.map((_, i) => (
               <button
                 key={i}
                 type="button"
                 onClick={() => setImgIdx(i)}
-                className={`h-2 w-2 rounded-full ${i === imgIdx ? 'bg-primary' : 'bg-white/70'}`}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === imgIdx ? 'w-5 bg-primary' : 'w-1.5 bg-white/60'
+                }`}
+                aria-label={`تصویر ${i + 1}`}
               />
             ))}
           </div>
         )}
       </div>
-      <div className="px-4 pt-4">
-        <h1 className="text-2xl font-bold">{item.title}</h1>
-        <p className="mt-2 text-lg font-semibold text-primary">{formatPrice(item.price)}</p>
-        {item.short_description && <p className="mt-2 text-muted">{item.short_description}</p>}
+
+      <div className="px-4 pt-5">
+        <h1 className="text-xl font-bold leading-snug tracking-tight">{item.title}</h1>
+        <p className="price-tag mt-2 text-lg">{formatPrice(item.price)}</p>
+        {item.short_description && (
+          <p className="mt-3 text-sm leading-relaxed text-muted">{item.short_description}</p>
+        )}
         {item.description && (
-          <div className="mt-4 whitespace-pre-wrap text-sm leading-7">{item.description}</div>
+          <div className="mt-5 whitespace-pre-wrap text-sm leading-7 text-[var(--color-text)]/80">
+            {item.description}
+          </div>
         )}
         {Object.keys(item.metadata || {}).length > 0 && (
-          <dl className="mt-4 card divide-y text-sm">
-            {Object.entries(item.metadata).map(([k, v]) => (
-              <div key={k} className="flex justify-between gap-4 px-4 py-2">
+          <dl className="mt-5 overflow-hidden rounded-2xl border border-border text-sm">
+            {Object.entries(item.metadata).map(([k, v], idx) => (
+              <div
+                key={k}
+                className={`flex justify-between gap-4 px-4 py-3 ${idx > 0 ? 'border-t border-border' : ''}`}
+              >
                 <dt className="text-muted">{k}</dt>
                 <dd className="font-medium">{String(v)}</dd>
               </div>
@@ -115,13 +146,14 @@ export function ItemPage() {
           </dl>
         )}
         {item.is_buyable && config?.is_enabled !== false && methods.length > 0 && (
-          <div className="mt-4">
+          <div className="mt-5">
             <PaymentMethodPicker methods={methods} value={paymentMethod} onChange={setPaymentMethod} />
           </div>
         )}
-        {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
       </div>
-      <div className="fixed bottom-0 left-0 right-0 border-t border-slate-200 bg-surface/95 p-4 backdrop-blur space-y-2">
+
+      <div className="bottom-bar mx-auto max-w-lg space-y-2 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         {item.is_buyable && config?.is_enabled !== false && (
           <>
             <button type="button" className="btn-primary" disabled={isBusy} onClick={buyNow}>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchCategories, fetchItems } from '../api';
 import { ItemCard } from '../components/ItemCard';
+import { IconGrid, IconSearch } from '../components/Icons';
 import type { Category, CatalogItem } from '../types';
 import { useApp } from '../App';
 
@@ -28,41 +29,54 @@ export function HomePage() {
 
   return (
     <div className="pb-24">
-      <section className="relative overflow-hidden rounded-b-3xl bg-gradient-to-br from-primary to-accent px-5 py-8 text-white">
-        {config?.logo_url && (
-          <img src={config.logo_url} alt="" className="mb-3 h-12 w-12 rounded-xl object-cover ring-2 ring-white/30" />
-        )}
-        <h1 className="text-2xl font-bold">{config?.hero_title || 'فروشگاه'}</h1>
-        {config?.hero_subtitle && <p className="mt-2 text-sm text-white/85">{config.hero_subtitle}</p>}
-      </section>
+      <header className="page-header px-5 py-5">
+        <div className="flex items-center gap-3">
+          {config?.logo_url ? (
+            <img
+              src={config.logo_url}
+              alt=""
+              className="h-11 w-11 shrink-0 rounded-xl border border-border object-cover"
+            />
+          ) : (
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary-soft)] text-primary">
+              <IconGrid className="h-5 w-5" />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-lg font-bold tracking-tight">
+              {config?.hero_title || 'فروشگاه'}
+            </h1>
+            {config?.hero_subtitle && (
+              <p className="mt-0.5 truncate text-xs text-muted">{config.hero_subtitle}</p>
+            )}
+          </div>
+        </div>
+      </header>
 
       <div className="px-4 pt-4">
-        <div className="flex gap-2">
+        <div className="relative">
+          <IconSearch className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && search()}
-            placeholder="جستجو…"
-            className="flex-1 rounded-2xl border border-slate-200 bg-surface px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+            placeholder="جستجوی محصول…"
+            className="input-field pr-10"
           />
-          <button type="button" onClick={search} className="rounded-2xl bg-primary px-4 text-white">
-            جستجو
-          </button>
         </div>
       </div>
 
       {categories.length > 0 && (
-        <section className="px-4 pt-5">
-          <h2 className="mb-3 text-sm font-semibold text-muted">دسته‌بندی‌ها</h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <section className="px-4 pt-6">
+          <h2 className="section-title mb-3">دسته‌بندی‌ها</h2>
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
             {categories.map((c) => (
               <Link
                 key={c.id}
                 to={`/category/${c.slug}`}
-                className="card flex items-center gap-3 p-4"
+                className="shrink-0 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium transition active:scale-95 active:bg-[var(--color-primary-soft)]"
               >
-                <span className="text-2xl">{c.icon ? '' : '📁'}</span>
-                <span className="font-medium">{c.name}</span>
+                {c.name}
               </Link>
             ))}
           </div>
@@ -70,17 +84,20 @@ export function HomePage() {
       )}
 
       <section className="px-4 pt-6">
-        <h2 className="mb-3 text-sm font-semibold text-muted">همه آیتم‌ها</h2>
+        <h2 className="section-title mb-3">محصولات</h2>
         {loading ? (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="skeleton h-48" />
+              <div key={i} className="skeleton aspect-[3/4] rounded-2xl" />
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="card p-8 text-center text-muted">آیتمی یافت نشد</div>
+          <div className="empty-state">
+            <IconSearch className="h-8 w-8 text-muted/40" />
+            <p className="text-sm text-muted">محصولی یافت نشد</p>
+          </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3">
             {items.map((item) => (
               <ItemCard key={item.id} item={item} />
             ))}
