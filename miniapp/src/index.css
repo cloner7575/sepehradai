@@ -40,8 +40,14 @@ body {
   .input-field {
     @apply w-full rounded-2xl border-0 bg-surface px-4 py-3 text-sm shadow-sm outline-none ring-1 ring-border transition placeholder:text-muted focus:ring-2 focus:ring-[var(--color-primary-soft)];
   }
+  .section-header {
+    @apply flex items-end justify-between gap-3;
+  }
   .section-title {
-    @apply mb-3 text-sm font-bold text-[var(--color-text)];
+    @apply text-sm font-bold text-[var(--color-text)];
+  }
+  .section-meta {
+    @apply mt-0.5 text-xs text-muted;
   }
   .app-header {
     @apply sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-border px-4 py-3;
@@ -88,9 +94,40 @@ body {
     @apply absolute bottom-0 right-0 left-0 px-3 pb-3 text-sm font-bold leading-snug text-white;
   }
   .product-card {
-    @apply card-interactive overflow-hidden;
+    @apply card-interactive flex h-full flex-col overflow-hidden;
   }
   .product-card-media {
-    @apply relative aspect-square overflow-hidden bg-[var(--color-primary-soft)];
+    @apply relative aspect-[4/5] overflow-hidden bg-[var(--color-primary-soft)];
+  }
+  .product-card-badges {
+    @apply absolute top-2 right-2 flex flex-col gap-1;
+  }
+  .product-card-body {
+    @apply flex flex-1 flex-col gap-1.5 p-3;
+  }
+  .product-card-title {
+    @apply text-sm font-bold leading-snug line-clamp-2;
+  }
+  .product-card-desc {
+    @apply text-xs leading-relaxed text-muted line-clamp-2;
+  }
+  .product-card-footer {
+    @apply mt-auto flex items-center justify-between gap-2 border-t border-border pt-2.5;
+  }
+  .product-card-cta {
+    @apply text-[11px] font-semibold text-muted transition group-active:text-primary;
+  }
+  .item-type-chip {
+    @apply inline-flex w-fit items-center rounded-lg bg-[var(--color-primary-soft)] px-2 py-0.5 text-[10px] font-semibold text-muted;
+  }
+  .items-grid {
+    @apply grid grid-cols-2 gap-3;
+  }
+  .item-detail-panel {
+    @apply -mt-4 rounded-t-3xl border border-border bg-surface px-4 pb-6 pt-5;
+    box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.06);
+  }
+  .item-detail-badge {
+    @apply mb-2 inline-flex items-center rounded-xl bg-[var(--color-primary-soft)] px-2.5 py-1 text-xs font-semibold text-muted;
   }
 }

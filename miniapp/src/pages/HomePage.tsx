@@ -3,6 +3,7 @@ import { fetchCategories, fetchItems } from '../api';
 import { AppHeader } from '../components/AppHeader';
 import { CategoryCard } from '../components/CategoryCard';
 import { ItemCard } from '../components/ItemCard';
+import { ItemsSection } from '../components/ItemsSection';
 import { IconSearch } from '../components/Icons';
 import type { Category, CatalogItem } from '../types';
 
@@ -45,7 +46,7 @@ export function HomePage() {
 
       {categories.length > 0 && (
         <section className="px-4 pt-6">
-          <h2 className="section-title">دسته‌بندی‌ها</h2>
+          <h2 className="section-title mb-3">دسته‌بندی‌ها</h2>
           <div className="grid grid-cols-2 gap-3">
             {categories.map((c) => (
               <CategoryCard key={c.id} category={c} />
@@ -54,12 +55,11 @@ export function HomePage() {
         </section>
       )}
 
-      <section className="px-4 pt-6">
-        <h2 className="section-title">محصولات</h2>
+      <ItemsSection title="آیتم‌ها" count={loading ? undefined : items.length}>
         {loading ? (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="items-grid">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="skeleton aspect-square rounded-2xl" />
+              <div key={i} className="skeleton aspect-[4/5] rounded-2xl" />
             ))}
           </div>
         ) : items.length === 0 ? (
@@ -68,13 +68,13 @@ export function HomePage() {
             <p className="text-sm text-muted">موردی یافت نشد</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="items-grid">
             {items.map((item) => (
               <ItemCard key={item.id} item={item} />
             ))}
           </div>
         )}
-      </section>
+      </ItemsSection>
     </div>
   );
 }

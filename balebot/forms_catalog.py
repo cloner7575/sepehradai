@@ -114,7 +114,7 @@ class CatalogSettingsForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         theme = (self.instance.theme_config or {}) if self.instance else {}
         labels = (self.instance.labels or {}) if self.instance else {}
-        self.fields['theme_primary'].initial = theme.get('primary_color', '#18181b')
+        self.fields['theme_primary'].initial = theme.get('primary_color', '#334155')
         self.fields['theme_accent'].initial = theme.get('accent_color', '#3f3f46')
         self.fields['theme_layout'].initial = theme.get('layout', 'grid')
         self.fields['label_buy_now'].initial = labels.get('buy_now', 'خرید')
@@ -139,7 +139,7 @@ class CatalogSettingsForm(forms.ModelForm):
         obj = super().save(commit=False)
         obj.theme_config = {
             **(obj.theme_config or {}),
-            'primary_color': self.cleaned_data.get('theme_primary') or '#18181b',
+            'primary_color': self.cleaned_data.get('theme_primary') or '#334155',
             'accent_color': self.cleaned_data.get('theme_accent') or '#3f3f46',
             'layout': self.cleaned_data.get('theme_layout') or 'grid',
             'font_family': (obj.theme_config or {}).get('font_family', 'Vazirmatn'),

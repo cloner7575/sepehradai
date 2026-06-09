@@ -7,6 +7,7 @@ import { MediaGallery } from '../components/MediaGallery';
 import { IconDownload, IconPackage } from '../components/Icons';
 import { useCheckout } from '../hooks/useCheckout';
 import { fileNameFromUrl } from '../utils/media';
+import { itemTypeLabel } from '../utils/itemType';
 
 export function ItemPage() {
   const { slug } = useParams();
@@ -105,7 +106,8 @@ export function ItemPage() {
     <div className="pb-36">
       <MediaGallery item={item} />
 
-      <div className="px-4 pt-5">
+      <div className="item-detail-panel mx-4">
+        <span className="item-detail-badge">{itemTypeLabel(item.item_type)}</span>
         <h1 className="text-xl font-bold leading-snug tracking-tight">{item.title}</h1>
         {item.is_downloadable && item.download_url ? (
           <p className="mt-2 truncate text-sm text-muted" dir="ltr">

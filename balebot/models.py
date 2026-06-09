@@ -931,7 +931,6 @@ class CatalogItem(models.Model):
         PRODUCT = 'product', 'محصول'
         PORTFOLIO = 'portfolio', 'نمونه‌کار'
         SERVICE = 'service', 'خدمت'
-        DIGITAL = 'digital', 'دیجیتال'
         DOWNLOAD = 'download', 'فایل دانلود'
 
     class SaleMode(models.TextChoices):

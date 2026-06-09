@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { fetchCategories, fetchItems } from '../api';
 import { AppHeader } from '../components/AppHeader';
 import { ItemCard } from '../components/ItemCard';
+import { ItemsSection } from '../components/ItemsSection';
 import { IconPackage } from '../components/Icons';
 import type { CatalogItem, Category } from '../types';
 
@@ -29,11 +30,11 @@ export function CategoryPage() {
         subtitle={!loading ? `${items.length} مورد` : undefined}
       />
 
-      <div className="px-4 pt-4">
+      <ItemsSection title="آیتم‌های این دسته" count={loading ? undefined : items.length}>
         {loading ? (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="items-grid">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="skeleton aspect-square rounded-2xl" />
+              <div key={i} className="skeleton aspect-[4/5] rounded-2xl" />
             ))}
           </div>
         ) : items.length === 0 ? (
@@ -42,13 +43,13 @@ export function CategoryPage() {
             <p className="text-sm text-muted">آیتمی در این دسته نیست</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="items-grid">
             {items.map((item) => (
               <ItemCard key={item.id} item={item} />
             ))}
           </div>
         )}
-      </div>
+      </ItemsSection>
     </div>
   );
 }
