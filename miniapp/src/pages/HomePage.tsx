@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { fetchCategories, fetchItems } from '../api';
+import { AppHeader } from '../components/AppHeader';
 import { CategoryCard } from '../components/CategoryCard';
 import { ItemCard } from '../components/ItemCard';
-import { IconGrid, IconSearch } from '../components/Icons';
+import { IconSearch } from '../components/Icons';
 import type { Category, CatalogItem } from '../types';
-import { useApp } from '../App';
 
 export function HomePage() {
-  const { config } = useApp();
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [q, setQ] = useState('');
@@ -28,48 +27,26 @@ export function HomePage() {
   };
 
   return (
-    <div className="pb-24">
-      <header className="page-header px-5 py-5">
-        <div className="flex items-center gap-3">
-          {config?.logo_url ? (
-            <img
-              src={config.logo_url}
-              alt=""
-              className="h-11 w-11 shrink-0 rounded-xl border border-border object-cover"
-            />
-          ) : (
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary-soft)] text-primary">
-              <IconGrid className="h-5 w-5" />
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-lg font-bold tracking-tight">
-              {config?.hero_title || 'فروشگاه'}
-            </h1>
-            {config?.hero_subtitle && (
-              <p className="mt-0.5 truncate text-xs text-muted">{config.hero_subtitle}</p>
-            )}
-          </div>
-        </div>
-      </header>
+    <div className="pb-6">
+      <AppHeader showBrand />
 
       <div className="px-4 pt-4">
         <div className="relative">
-          <IconSearch className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          <IconSearch className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && search()}
-            placeholder="جستجو…"
-            className="input-field pr-10"
+            placeholder="جستجو در فروشگاه…"
+            className="input-field pr-11"
           />
         </div>
       </div>
 
       {categories.length > 0 && (
         <section className="px-4 pt-6">
-          <h2 className="section-title mb-3">دسته‌بندی‌ها</h2>
-          <div className="flex gap-3 overflow-x-auto pb-1">
+          <h2 className="section-title">دسته‌بندی‌ها</h2>
+          <div className="grid grid-cols-2 gap-3">
             {categories.map((c) => (
               <CategoryCard key={c.id} category={c} />
             ))}
@@ -78,17 +55,17 @@ export function HomePage() {
       )}
 
       <section className="px-4 pt-6">
-        <h2 className="section-title mb-3">آیتم‌ها</h2>
+        <h2 className="section-title">محصولات</h2>
         {loading ? (
           <div className="grid grid-cols-2 gap-3">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="skeleton aspect-[3/4] rounded-2xl" />
+              <div key={i} className="skeleton aspect-square rounded-2xl" />
             ))}
           </div>
         ) : items.length === 0 ? (
           <div className="empty-state">
             <IconSearch className="h-8 w-8 text-muted/40" />
-            <p className="text-sm text-muted">آیتمی یافت نشد</p>
+            <p className="text-sm text-muted">موردی یافت نشد</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">

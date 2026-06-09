@@ -1,6 +1,6 @@
 import { Component, createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
-import { Link, MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { fetchCart, fetchConfig } from './api';
 import { applyTheme, createWebAppAdapter, type WebAppAdapter } from './platform';
 import type { CartLine, CatalogConfig } from './types';
@@ -8,7 +8,7 @@ import { HomePage } from './pages/HomePage';
 import { CategoryPage } from './pages/CategoryPage';
 import { ItemPage } from './pages/ItemPage';
 import { CartPage } from './pages/CartPage';
-import { IconAlert, IconCart, IconHome } from './components/Icons';
+import { IconAlert } from './components/Icons';
 
 interface AppContextValue {
   config: CatalogConfig | null;
@@ -63,7 +63,7 @@ function Banner({ children }: { children: React.ReactNode }) {
 function Shell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { adapter, cartItems } = useApp();
+  const { adapter } = useApp();
 
   useEffect(() => {
     if (location.pathname === '/') {
@@ -74,36 +74,9 @@ function Shell({ children }: { children: React.ReactNode }) {
     return () => adapter.hideBackButton();
   }, [location.pathname, adapter, navigate]);
 
-  const cartCount = cartItems.reduce((s, l) => s + l.quantity, 0);
-  const isHome = location.pathname === '/';
-  const isCart = location.pathname === '/cart';
-
   return (
-    <div className="mx-auto min-h-screen max-w-lg">
+    <div className="mx-auto min-h-screen max-w-lg bg-[var(--color-bg)]">
       {children}
-      <nav className="bottom-bar mx-auto flex max-w-lg justify-center gap-1 px-6 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-1">
-        <Link
-          to="/"
-          className={`nav-tab ${isHome ? 'nav-tab-active' : 'nav-tab-inactive'}`}
-        >
-          <IconHome className="h-5 w-5" />
-          <span>خانه</span>
-        </Link>
-        <Link
-          to="/cart"
-          className={`nav-tab relative ${isCart ? 'nav-tab-active' : 'nav-tab-inactive'}`}
-        >
-          <span className="relative">
-            <IconCart className="h-5 w-5" />
-            {cartCount > 0 && (
-              <span className="absolute -top-1.5 -left-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white">
-                {cartCount}
-              </span>
-            )}
-          </span>
-          <span>سبد</span>
-        </Link>
-      </nav>
     </div>
   );
 }
@@ -178,7 +151,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[var(--color-bg)]">
         <div className="skeleton h-10 w-10 rounded-full" />
         <p className="text-xs text-muted">در حال بارگذاری…</p>
       </div>
@@ -187,7 +160,7 @@ export default function App() {
 
   if (loadError) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[var(--color-bg)] p-8 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500">
           <IconAlert className="h-6 w-6" />
         </div>

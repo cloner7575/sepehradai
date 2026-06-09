@@ -3,76 +3,94 @@
 @tailwind utilities;
 
 :root {
-  --color-primary: #18181b;
-  --color-accent: #3f3f46;
-  --color-bg: #fafafa;
+  --color-primary: #0f172a;
+  --color-accent: #334155;
+  --color-bg: #f4f4f5;
   --color-surface: #ffffff;
-  --color-text: #18181b;
-  --color-muted: #71717a;
-  --color-border: #e4e4e7;
-  --color-primary-soft: rgba(24, 24, 27, 0.06);
+  --color-text: #0f172a;
+  --color-muted: #64748b;
+  --color-border: #e2e8f0;
+  --color-primary-soft: rgba(15, 23, 42, 0.05);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
   font-family: Vazirmatn, Tahoma, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 @layer components {
   .btn-primary {
-    @apply w-full rounded-xl bg-primary px-4 py-3.5 text-center text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-50;
+    @apply w-full rounded-2xl bg-primary px-4 py-3.5 text-center text-sm font-semibold text-white shadow-sm transition active:scale-[0.98] disabled:opacity-50;
   }
   .btn-secondary {
-    @apply w-full rounded-xl border border-border bg-surface px-4 py-3.5 text-center text-sm font-semibold text-[var(--color-text)] transition active:scale-[0.98] disabled:opacity-50;
-  }
-  .btn-ghost {
-    @apply inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-medium text-muted transition hover:bg-black/5 active:scale-[0.98];
+    @apply w-full rounded-2xl border border-border bg-surface px-4 py-3.5 text-center text-sm font-semibold text-[var(--color-text)] transition active:scale-[0.98] disabled:opacity-50;
   }
   .card {
-    @apply rounded-2xl border border-border bg-surface overflow-hidden transition;
+    @apply rounded-2xl border border-border bg-surface overflow-hidden;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   }
   .card-interactive {
-    @apply card active:scale-[0.98];
+    @apply card transition active:scale-[0.98];
   }
   .input-field {
-    @apply w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm outline-none transition placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-[var(--color-primary-soft)];
+    @apply w-full rounded-2xl border-0 bg-surface px-4 py-3 text-sm shadow-sm outline-none ring-1 ring-border transition placeholder:text-muted focus:ring-2 focus:ring-[var(--color-primary-soft)];
   }
   .section-title {
-    @apply text-xs font-semibold uppercase tracking-wide text-muted;
+    @apply mb-3 text-sm font-bold text-[var(--color-text)];
   }
-  .page-header {
-    @apply sticky top-0 z-40 border-b border-border backdrop-blur-md;
-    background-color: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  .app-header {
+    @apply sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-border px-4 py-3;
+    background-color: color-mix(in srgb, var(--color-surface) 94%, transparent);
+    backdrop-filter: blur(12px);
+  }
+  .cart-header-btn {
+    @apply relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-surface text-primary ring-1 ring-border transition active:scale-95;
+  }
+  .cart-header-badge {
+    @apply absolute -top-1 -left-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white;
   }
   .bottom-bar {
     @apply fixed bottom-0 left-0 right-0 z-50 border-t border-border backdrop-blur-md;
-    background-color: color-mix(in srgb, var(--color-surface) 95%, transparent);
-  }
-  .nav-tab {
-    @apply flex flex-col items-center gap-1 px-4 py-2 text-[11px] font-medium transition;
-  }
-  .nav-tab-active {
-    @apply text-primary;
-  }
-  .nav-tab-inactive {
-    @apply text-muted;
+    background-color: color-mix(in srgb, var(--color-surface) 96%, transparent);
   }
   .badge {
     @apply inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold;
   }
   .skeleton {
-    @apply animate-pulse rounded-xl bg-black/5;
+    @apply animate-pulse rounded-2xl bg-black/5;
   }
   .empty-state {
     @apply flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-6 py-12 text-center;
   }
   .qty-btn {
-    @apply flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface text-sm font-medium transition active:scale-95 disabled:opacity-40;
+    @apply flex h-8 w-8 items-center justify-center rounded-xl border border-border bg-surface text-sm font-medium transition active:scale-95 disabled:opacity-40;
   }
   .price-tag {
     @apply text-sm font-bold tracking-tight text-primary;
+  }
+  .category-card {
+    @apply block overflow-hidden rounded-2xl ring-1 ring-border transition active:scale-[0.98];
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  }
+  .category-card-media {
+    @apply relative aspect-[5/4] overflow-hidden bg-[var(--color-primary-soft)];
+  }
+  .category-card-overlay {
+    @apply pointer-events-none absolute inset-0;
+    background: linear-gradient(to top, rgba(15, 23, 42, 0.72) 0%, transparent 55%);
+  }
+  .category-card-title {
+    @apply absolute bottom-0 right-0 left-0 px-3 pb-3 text-sm font-bold leading-snug text-white;
+  }
+  .product-card {
+    @apply card-interactive overflow-hidden;
+  }
+  .product-card-media {
+    @apply relative aspect-square overflow-hidden bg-[var(--color-primary-soft)];
   }
 }

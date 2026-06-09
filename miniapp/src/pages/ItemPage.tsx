@@ -102,10 +102,8 @@ export function ItemPage() {
   }
 
   return (
-    <div className="pb-44">
-      <div className="px-0">
-        <MediaGallery item={item} />
-      </div>
+    <div className="pb-36">
+      <MediaGallery item={item} />
 
       <div className="px-4 pt-5">
         <h1 className="text-xl font-bold leading-snug tracking-tight">{item.title}</h1>

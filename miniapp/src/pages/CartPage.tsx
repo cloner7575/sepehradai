@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { formatPrice, updateCart } from '../api';
 import type { CartLine } from '../types';
 import { useApp } from '../App';
+import { AppHeader } from '../components/AppHeader';
 import { PaymentMethodPicker } from '../components/PaymentMethodPicker';
 import { IconCart, IconCheck, IconPackage, IconSend } from '../components/Icons';
 import { useCheckout } from '../hooks/useCheckout';
@@ -91,12 +92,11 @@ export function CartPage() {
 
   return (
     <div className="pb-36">
-      <header className="page-header px-5 py-4">
-        <h1 className="text-lg font-bold tracking-tight">{labels.cart || 'سبد خرید'}</h1>
-        {cartItems.length > 0 && (
-          <p className="mt-0.5 text-xs text-muted">{cartItems.length} قلم</p>
-        )}
-      </header>
+      <AppHeader
+        title={labels.cart || 'سبد خرید'}
+        subtitle={cartItems.length > 0 ? `${cartItems.length} قلم` : undefined}
+        showCart={false}
+      />
 
       <div className="px-4 pt-4">
         {cartItems.length === 0 ? (

@@ -17,9 +17,33 @@ def detect_media_type(filename: str) -> str:
     return 'file'
 
 
-def absolute_media_url(request, url: str) -> str:
+def _public_base_url(request, catalog=None) -> str:
+    if catalog is not None:
+        from balebot.models import BotSettings
+
+        cfg = BotSettings.get_for_platform(catalog.workspace, catalog.platform)
+        base = (cfg.webhook_public_url or '').strip().rstrip('/')
+        if base:
+            return base
+    if request is None:
+        return ''
+    scheme = 'https' if request.is_secure() else 'http'
+    forwarded = (request.META.get('HTTP_X_FORWARDED_PROTO') or '').split(',')[0].strip()
+    if forwarded in ('http', 'https'):
+        scheme = forwarded
+    host = request.get_host()
+    return f'{scheme}://{host}'
+
+
+def absolute_media_url(request, url: str, *, catalog=None) -> str:
     if not url:
         return ''
     if url.startswith('http://') or url.startswith('https://'):
         return url
-    return request.build_absolute_uri(url)
+    path = url if url.startswith('/') else f'/{url}'
+    base = _public_base_url(request, catalog)
+    if base:
+        return f'{base}{path}'
+    if request:
+        return request.build_absolute_uri(path)
+    return path
