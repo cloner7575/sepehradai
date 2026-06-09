@@ -29,20 +29,21 @@
         <tr>
           <td>
             <div class="catalog-thumb catalog-thumb-sm">
-              {% with img=item.first_image %}
-                {% if img %}
-                <img src="{{ img.file.url }}" alt="">
-                {% elif item.media.all %}
-                <i class="bi bi-{% if item.media.all.0.media_type == 'video' %}play-btn{% else %}file-earmark{% endif %}"></i>
-                {% else %}
-                <i class="bi bi-image"></i>
-                {% endif %}
-              {% endwith %}
+              {% if item.cover %}
+              <img src="{{ item.cover.url }}" alt="">
+              {% elif item.first_image %}
+              <img src="{{ item.first_image.file.url }}" alt="">
+              {% elif item.media.all %}
+              <i class="bi bi-{% if item.media.all.0.media_type == 'video' %}play-btn{% else %}file-earmark{% endif %}"></i>
+              {% else %}
+              <i class="bi bi-{% if item.item_type == 'download' %}download{% else %}image{% endif %}"></i>
+              {% endif %}
             </div>
           </td>
           <td>
             <div class="fw-semibold">{{ item.title }}</div>
             {% if item.short_description %}<div class="small text-muted text-truncate" style="max-width:200px">{{ item.short_description }}</div>{% endif %}
+            {% if item.item_type == 'download' %}<span class="badge text-bg-info mt-1">دانلود</span>{% endif %}
             {% if item.is_featured %}<span class="badge text-bg-warning mt-1">ویژه</span>{% endif %}
           </td>
           <td>{% if item.category %}{{ item.category.name }}{% else %}<span class="text-muted">—</span>{% endif %}</td>

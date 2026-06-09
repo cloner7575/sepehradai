@@ -97,6 +97,14 @@ export function ItemThumbnail({ item }: { item: CatalogItem }) {
   const images = getItemImages(item);
   const videos = getItemVideos(item);
 
+  if (item.is_downloadable && !images[0]) {
+    return (
+      <div className="flex h-full items-center justify-center bg-[var(--color-primary-soft)] text-primary/50">
+        <IconDownload className="h-10 w-10" />
+      </div>
+    );
+  }
+
   if (images[0]) {
     return <img src={images[0]} alt={item.title} className="h-full w-full object-cover" loading="lazy" />;
   }

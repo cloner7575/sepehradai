@@ -762,6 +762,7 @@ def default_catalog_labels() -> dict:
         'request_quote': 'درخواست / تماس',
         'cart': 'سبد خرید',
         'checkout': 'تسویه',
+        'download': 'دانلود',
     }
 
 
@@ -931,6 +932,7 @@ class CatalogItem(models.Model):
         PORTFOLIO = 'portfolio', 'نمونه‌کار'
         SERVICE = 'service', 'خدمت'
         DIGITAL = 'digital', 'دیجیتال'
+        DOWNLOAD = 'download', 'فایل دانلود'
 
     class SaleMode(models.TextChoices):
         BUYABLE = 'buyable', 'قابل خرید'
@@ -976,6 +978,18 @@ class CatalogItem(models.Model):
         default=SaleMode.BOTH,
     )
     stock = models.PositiveIntegerField(null=True, blank=True)
+    cover = models.ImageField(
+        upload_to='catalog/items/covers/%Y/%m/',
+        blank=True,
+        null=True,
+        help_text='تصویر کاور برای نمایش (مخصوص فایل دانلود)',
+    )
+    download_file = models.FileField(
+        upload_to='catalog/items/downloads/%Y/%m/',
+        blank=True,
+        null=True,
+        help_text='فایل اصلی قابل دانلود',
+    )
     metadata = models.JSONField(default=dict, blank=True)
     is_active = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
@@ -997,12 +1011,19 @@ class CatalogItem(models.Model):
     def __str__(self):
         return self.title
 
+    def is_downloadable(self) -> bool:
+        return self.item_type == self.ItemType.DOWNLOAD and bool(self.download_file)
+
     def is_buyable(self) -> bool:
+        if self.is_downloadable():
+            return False
         if self.sale_mode == self.SaleMode.REQUEST_ONLY:
             return False
         return self.price is not None and self.price > 0
 
     def is_requestable(self) -> bool:
+        if self.item_type == self.ItemType.DOWNLOAD:
+            return False
         return self.sale_mode in (self.SaleMode.REQUEST_ONLY, self.SaleMode.BOTH)
 
     def first_image(self):

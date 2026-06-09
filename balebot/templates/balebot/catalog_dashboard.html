@@ -221,15 +221,15 @@
         <a class="list-group-item list-group-item-action py-3" href="{% url 'catalog_item_edit' item.pk %}">
           <div class="d-flex align-items-center gap-3">
             <div class="catalog-thumb">
-              {% with img=item.first_image %}
-                {% if img %}
-                <img src="{{ img.file.url }}" alt="">
-                {% elif item.media.all %}
+              {% if item.cover %}
+              <img src="{{ item.cover.url }}" alt="">
+              {% elif item.first_image %}
+              <img src="{{ item.first_image.file.url }}" alt="">
+              {% elif item.media.all %}
                 <i class="bi bi-{% if item.media.all.0.media_type == 'video' %}play-btn{% else %}file-earmark{% endif %}"></i>
-                {% else %}
-                <i class="bi bi-image"></i>
-                {% endif %}
-              {% endwith %}
+              {% else %}
+              <i class="bi bi-{% if item.item_type == 'download' %}download{% else %}image{% endif %}"></i>
+              {% endif %}
             </div>
             <div class="min-w-0 flex-grow-1">
               <div class="fw-semibold text-truncate">{{ item.title }}</div>

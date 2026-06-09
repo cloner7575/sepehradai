@@ -42,6 +42,11 @@ class CatalogSettingsForm(forms.ModelForm):
         label='دکمه تسویه',
         widget=forms.TextInput(attrs={'class': _INPUT}),
     )
+    label_download = forms.CharField(
+        required=False,
+        label='دکمه دانلود',
+        widget=forms.TextInput(attrs={'class': _INPUT}),
+    )
 
     class Meta:
         model = CatalogSettings
@@ -117,6 +122,7 @@ class CatalogSettingsForm(forms.ModelForm):
         self.fields['label_request_quote'].initial = labels.get('request_quote', 'درخواست / تماس')
         self.fields['label_cart'].initial = labels.get('cart', 'سبد خرید')
         self.fields['label_checkout'].initial = labels.get('checkout', 'تسویه حساب')
+        self.fields['label_download'].initial = labels.get('download', 'دانلود')
         self.fields['hero_title'].help_text = 'در بالای مینی‌اپ نمایش داده می‌شود.'
         self.fields['hero_subtitle'].help_text = 'زیر عنوان — اختیاری.'
         self.fields['logo'].help_text = 'لوگوی فروشگاه در هدر مینی‌اپ.'
@@ -144,6 +150,7 @@ class CatalogSettingsForm(forms.ModelForm):
             'request_quote': (self.cleaned_data.get('label_request_quote') or '').strip() or 'درخواست / تماس',
             'cart': (self.cleaned_data.get('label_cart') or '').strip() or 'سبد خرید',
             'checkout': (self.cleaned_data.get('label_checkout') or '').strip() or 'تسویه حساب',
+            'download': (self.cleaned_data.get('label_download') or '').strip() or 'دانلود',
         }
         if commit:
             obj.save()
@@ -195,6 +202,8 @@ class CatalogItemForm(forms.ModelForm):
             'short_description',
             'description',
             'item_type',
+            'cover',
+            'download_file',
             'price',
             'sale_mode',
             'stock',
@@ -208,7 +217,9 @@ class CatalogItemForm(forms.ModelForm):
             'slug': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
             'short_description': forms.TextInput(attrs={'class': _INPUT}),
             'description': forms.Textarea(attrs={'class': _INPUT, 'rows': 5}),
-            'item_type': forms.Select(attrs={'class': _INPUT}),
+            'item_type': forms.Select(attrs={'class': _INPUT, 'id': 'id_item_type'}),
+            'cover': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            'download_file': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'price': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
             'sale_mode': forms.Select(attrs={'class': _INPUT}),
             'stock': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
@@ -225,12 +236,27 @@ class CatalogItemForm(forms.ModelForm):
             is_active=True,
         ).order_by('sort_order', 'name')
         self.fields['category'].required = False
+        self.fields['cover'].help_text = 'تصویر نمایشی کاور — در لیست و صفحه آیتم نشان داده می‌شود.'
+        self.fields['download_file'].help_text = 'فایل اصلی که کاربر دانلود می‌کند (PDF، ZIP، ویدیو و...).'
+        self.fields['item_type'].help_text = 'برای فایل دانلود رایگان، نوع «فایل دانلود» را انتخاب کنید.'
         if self.instance.pk:
             self.fields['metadata_json'].initial = json.dumps(
                 self.instance.metadata or {},
                 ensure_ascii=False,
                 indent=2,
             )
+
+    def clean(self):
+        cleaned = super().clean()
+        item_type = cleaned.get('item_type')
+        download_file = cleaned.get('download_file')
+        has_existing_file = bool(self.instance.pk and self.instance.download_file)
+        if item_type == CatalogItem.ItemType.DOWNLOAD:
+            if not download_file and not has_existing_file:
+                self.add_error('download_file', 'برای نوع «فایل دانلود»، آپلود فایل الزامی است.')
+            cleaned['sale_mode'] = CatalogItem.SaleMode.REQUEST_ONLY
+            cleaned['price'] = None
+        return cleaned
 
     def clean_slug(self):
         slug = (self.cleaned_data.get('slug') or '').strip()

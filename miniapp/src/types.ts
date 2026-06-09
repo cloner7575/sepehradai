@@ -52,10 +52,13 @@ export interface CatalogItem {
   sale_mode: string;
   is_buyable: boolean;
   is_requestable: boolean;
+  is_downloadable: boolean;
   is_featured: boolean;
   metadata: Record<string, unknown>;
   media: ItemMedia[];
   images: string[];
+  cover_url: string;
+  download_url: string;
   category_id: number | null;
   category_slug: string | null;
 }

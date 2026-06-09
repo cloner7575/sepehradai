@@ -2568,6 +2568,13 @@ select.panel-input {
   z-index: 80;
 }
 
+.catalog-download-block {
+  padding: 1rem;
+  border-radius: var(--pb-radius-sm);
+  border: 1px solid rgba(var(--pb-accent-rgb), 0.25);
+  background: rgba(var(--pb-accent-rgb), 0.06);
+}
+
 @media (max-width: 575px) {
   .catalog-quick-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

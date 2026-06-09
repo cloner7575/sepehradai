@@ -4,8 +4,9 @@ import { fetchItem, formatPrice, submitRequest, updateCart } from '../api';
 import { useApp } from '../App';
 import { PaymentMethodPicker } from '../components/PaymentMethodPicker';
 import { MediaGallery } from '../components/MediaGallery';
-import { IconPackage } from '../components/Icons';
+import { IconDownload, IconPackage } from '../components/Icons';
 import { useCheckout } from '../hooks/useCheckout';
+import { fileNameFromUrl } from '../utils/media';
 
 export function ItemPage() {
   const { slug } = useParams();
@@ -70,7 +71,15 @@ export function ItemPage() {
     }
   };
 
+  const downloadItem = () => {
+    if (!item?.download_url) return;
+    adapter.openLink(item.download_url);
+  };
+
   const isBusy = busy || checkoutBusy;
+  const shopEnabled = config?.is_enabled !== false;
+  const showBuy = item?.is_buyable && shopEnabled;
+  const showDownload = item?.is_downloadable && item.download_url;
 
   if (loading) {
     return (
@@ -100,7 +109,13 @@ export function ItemPage() {
 
       <div className="px-4 pt-5">
         <h1 className="text-xl font-bold leading-snug tracking-tight">{item.title}</h1>
-        <p className="price-tag mt-2 text-lg">{formatPrice(item.price)}</p>
+        {item.is_downloadable ? (
+          <p className="mt-2 text-sm text-muted">
+            {fileNameFromUrl(item.download_url)}
+          </p>
+        ) : (
+          <p className="price-tag mt-2 text-lg">{formatPrice(item.price)}</p>
+        )}
         {item.short_description && (
           <p className="mt-3 text-sm leading-relaxed text-muted">{item.short_description}</p>
         )}
@@ -122,7 +137,7 @@ export function ItemPage() {
             ))}
           </dl>
         )}
-        {item.is_buyable && config?.is_enabled !== false && methods.length > 0 && (
+        {showBuy && methods.length > 0 && (
           <div className="mt-5">
             <PaymentMethodPicker methods={methods} value={paymentMethod} onChange={setPaymentMethod} />
           </div>
@@ -131,7 +146,15 @@ export function ItemPage() {
       </div>
 
       <div className="bottom-bar mx-auto max-w-lg space-y-2 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-        {item.is_buyable && config?.is_enabled !== false && (
+        {showDownload && (
+          <button type="button" className="btn-primary" onClick={downloadItem}>
+            <span className="inline-flex items-center justify-center gap-2">
+              <IconDownload className="h-4 w-4" />
+              {labels.download || 'دانلود'}
+            </span>
+          </button>
+        )}
+        {showBuy && (
           <>
             <button type="button" className="btn-primary" disabled={isBusy} onClick={buyNow}>
               {labels.buy_now || 'خرید'}
@@ -141,7 +164,7 @@ export function ItemPage() {
             </button>
           </>
         )}
-        {item.is_requestable && config?.is_enabled !== false && (
+        {item.is_requestable && shopEnabled && (
           <button type="button" className="btn-secondary" disabled={isBusy} onClick={requestItem}>
             {labels.request_quote || 'درخواست / تماس'}
           </button>

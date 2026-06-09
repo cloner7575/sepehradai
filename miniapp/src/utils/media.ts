@@ -13,8 +13,12 @@ export function getItemMedia(item: CatalogItem): ItemMedia[] {
 export function getItemImages(item: CatalogItem): string[] {
   const media = getItemMedia(item);
   const fromMedia = media.filter((m) => m.type === 'image').map((m) => m.url);
-  if (fromMedia.length) return fromMedia;
-  return item.images || [];
+  const images = fromMedia.length ? fromMedia : (item.images || []);
+  if (item.cover_url && !images.includes(item.cover_url)) {
+    return [item.cover_url, ...images];
+  }
+  if (item.cover_url) return images;
+  return images;
 }
 
 export function getItemVideos(item: CatalogItem): ItemMedia[] {
@@ -26,6 +30,7 @@ export function getItemFiles(item: CatalogItem): ItemMedia[] {
 }
 
 export function getItemThumbnail(item: CatalogItem): { type: MediaType; url: string } | null {
+  if (item.cover_url) return { type: 'image', url: item.cover_url };
   const media = getItemMedia(item);
   const image = media.find((m) => m.type === 'image');
   if (image) return { type: 'image', url: image.url };

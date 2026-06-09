@@ -62,6 +62,14 @@ def _media_dict(media: CatalogItemMedia, request=None) -> dict:
 def _item_dict(item: CatalogItem, request=None) -> dict:
     media_list = [_media_dict(m, request) for m in item.media.all()]
     images = [m['url'] for m in media_list if m['type'] == CatalogItemMedia.MediaType.IMAGE]
+    cover_url = ''
+    if item.cover:
+        cover_url = absolute_media_url(request, item.cover.url)
+        if cover_url and cover_url not in images:
+            images.insert(0, cover_url)
+    download_url = ''
+    if item.download_file:
+        download_url = absolute_media_url(request, item.download_file.url)
     return {
         'id': item.pk,
         'slug': item.slug,
@@ -73,16 +81,21 @@ def _item_dict(item: CatalogItem, request=None) -> dict:
         'sale_mode': item.sale_mode,
         'is_buyable': item.is_buyable(),
         'is_requestable': item.is_requestable(),
+        'is_downloadable': item.is_downloadable(),
         'is_featured': item.is_featured,
         'metadata': item.metadata or {},
         'media': media_list,
         'images': images,
+        'cover_url': cover_url,
+        'download_url': download_url,
         'category_id': item.category_id,
         'category_slug': item.category.slug if item.category else None,
     }
 
 
 def _first_item_image_url(item: CatalogItem, request=None) -> str:
+    if item.cover:
+        return absolute_media_url(request, item.cover.url) if request else item.cover.url
     media = item.media.filter(media_type=CatalogItemMedia.MediaType.IMAGE).first()
     if not media or not media.file:
         return ''
