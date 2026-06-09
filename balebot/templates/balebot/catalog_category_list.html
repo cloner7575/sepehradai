@@ -1,22 +1,73 @@
 {% extends "balebot/base.html" %}
 {% block title %}دسته‌بندی‌ها{% endblock %}
 {% block page_title %}دسته‌بندی‌های مینی‌اپ{% endblock %}
+{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">{{ categories|length }} دسته</p>{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between mb-3">
-  <span class="text-muted small">{{ categories|length }} دسته</span>
-  <a href="{% url 'catalog_category_create' %}" class="btn btn-panel-primary btn-sm">دسته جدید</a>
+<div class="catalog-panel">
+  {% include "balebot/_catalog_subnav.html" %}
+
+  <div class="catalog-toolbar">
+    <span class="catalog-toolbar-meta text-muted small">{{ categories|length }} دسته</span>
+    <a href="{% url 'catalog_category_create' %}" class="btn btn-panel-primary btn-sm">
+      <i class="bi bi-folder-plus me-1"></i>دسته جدید
+    </a>
+  </div>
+
+  {% if categories %}
+  <div class="panel-card">
+    <div class="panel-table-wrap">
+      <table class="table panel-table mb-0 catalog-table">
+        <thead>
+          <tr>
+            <th style="width:56px"></th>
+            <th>نام</th>
+            <th>slug</th>
+            <th>آیتم</th>
+            <th>ترتیب</th>
+            <th>وضعیت</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in categories %}
+          <tr>
+            <td>
+              <div class="catalog-thumb catalog-thumb-sm">
+                {% if c.image %}
+                <img src="{{ c.image.url }}" alt="">
+                {% else %}
+                <i class="bi bi-folder"></i>
+                {% endif %}
+              </div>
+            </td>
+            <td class="fw-semibold">{{ c.name }}</td>
+            <td dir="ltr" class="small text-muted">{{ c.slug }}</td>
+            <td>{{ c.item_count }}</td>
+            <td class="small text-muted">{{ c.sort_order }}</td>
+            <td>
+              {% if c.is_active %}
+              <span class="catalog-pill catalog-pill--ok">فعال</span>
+              {% else %}
+              <span class="catalog-pill">غیرفعال</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <a href="{% url 'catalog_category_edit' c.pk %}" class="btn btn-sm btn-panel-ghost">ویرایش</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="panel-card">
+    <div class="catalog-empty-state">
+      <i class="bi bi-folder"></i>
+      <p>دسته‌ای نیست</p>
+      <a href="{% url 'catalog_category_create' %}" class="btn btn-panel-primary btn-sm">اولین دسته</a>
+    </div>
+  </div>
+  {% endif %}
 </div>
-<div class="panel-card"><div class="table-responsive"><table class="table panel-table mb-0">
-  <thead><tr><th>تصویر</th><th>نام</th><th>slug</th><th>آیتم</th><th>ترتیب</th><th>وضعیت</th><th></th></tr></thead>
-  <tbody>
-    {% for c in categories %}
-    <tr>
-      <td>{% if c.image %}<img src="{{ c.image.url }}" alt="" class="rounded" style="width:40px;height:40px;object-fit:cover">{% else %}<span class="text-muted small">—</span>{% endif %}</td>
-      <td>{{ c.name }}</td><td dir="ltr">{{ c.slug }}</td><td>{{ c.item_count }}</td><td>{{ c.sort_order }}</td>
-      <td>{% if c.is_active %}<span class="badge text-bg-success">فعال</span>{% else %}<span class="badge text-bg-secondary">غیرفعال</span>{% endif %}</td>
-      <td class="text-end"><a href="{% url 'catalog_category_edit' c.pk %}" class="btn btn-sm btn-panel-ghost">ویرایش</a></td>
-    </tr>
-    {% empty %}<tr><td colspan="7" class="text-center text-muted py-4">دسته‌ای نیست</td></tr>{% endfor %}
-  </tbody>
-</table></div></div>
 {% endblock %}

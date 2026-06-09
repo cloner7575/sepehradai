@@ -3,56 +3,69 @@
 {% block page_title %}آیتم‌های مینی‌اپ{% endblock %}
 {% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">محصول، ویدیو، فایل و خدمات</p>{% endblock %}
 {% block content %}
-<div class="catalog-items-toolbar">
-  <form method="get" class="catalog-items-search">
-    <input name="q" value="{{ request.GET.q }}" class="form-control panel-input" placeholder="جستجوی عنوان…">
-    <button class="btn btn-panel-ghost btn-sm">جستجو</button>
-  </form>
-  <a href="{% url 'catalog_item_create' %}" class="btn btn-panel-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>آیتم جدید</a>
-</div>
+<div class="catalog-panel">
+  {% include "balebot/_catalog_subnav.html" %}
 
-{% if items %}
-<div class="catalog-items-grid">
-  {% for item in items %}
-  <a href="{% url 'catalog_item_edit' item.pk %}" class="catalog-item-card">
-    <div class="catalog-item-card-thumb">
-      {% if item.cover %}
-      <img src="{{ item.cover.url }}" alt="">
-      {% elif item.first_image %}
-      <img src="{{ item.first_image.file.url }}" alt="">
-      {% elif item.media.all %}
-      <i class="bi bi-{% if item.media.all.0.media_type == 'video' %}play-btn{% else %}file-earmark{% endif %}"></i>
-      {% else %}
-      <i class="bi bi-{% if item.item_type == 'download' %}download{% else %}image{% endif %}"></i>
-      {% endif %}
-    </div>
-    <div class="catalog-item-card-body">
-      <div class="catalog-item-card-title">{{ item.title }}</div>
-      <div class="catalog-item-card-meta">
-        {% if item.category %}{{ item.category.name }} · {% endif %}
-        {{ item.get_item_type_display }}
-      </div>
-      {% if item.short_description %}
-      <div class="catalog-item-card-meta text-truncate">{{ item.short_description }}</div>
-      {% endif %}
-      <div class="catalog-item-card-badges">
-        {% if item.is_active %}<span class="badge text-bg-success">فعال</span>{% else %}<span class="badge text-bg-secondary">غیرفعال</span>{% endif %}
-        {% if item.item_type == 'download' %}<span class="badge text-bg-info">دانلود</span>{% endif %}
-        {% if item.is_featured %}<span class="badge text-bg-warning">ویژه</span>{% endif %}
-      </div>
-      {% if item.price %}
-      <div class="catalog-item-card-price">{{ item.price|floatformat:0 }} ریال</div>
-      {% endif %}
-    </div>
-  </a>
-  {% endfor %}
-</div>
-{% else %}
-<div class="panel-card">
-  <div class="panel-card-body text-center py-5">
-    <p class="text-muted mb-2">آیتمی نیست</p>
-    <a href="{% url 'catalog_item_create' %}" class="btn btn-panel-primary btn-sm">اولین آیتم را بسازید</a>
+  <div class="catalog-toolbar">
+    <form method="get" class="catalog-toolbar-search">
+      <i class="bi bi-search catalog-toolbar-search-icon"></i>
+      <input name="q" value="{{ request.GET.q }}" class="form-control panel-input" placeholder="جستجوی عنوان…">
+      <button class="btn btn-panel-ghost btn-sm">جستجو</button>
+    </form>
+    <a href="{% url 'catalog_item_create' %}" class="btn btn-panel-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>آیتم جدید
+    </a>
   </div>
+
+  {% if items %}
+  <div class="panel-card">
+    <div class="panel-card-body">
+      <div class="catalog-items-grid">
+        {% for item in items %}
+        <a href="{% url 'catalog_item_edit' item.pk %}" class="catalog-item-card">
+          <div class="catalog-item-card-thumb">
+            {% if item.cover %}
+            <img src="{{ item.cover.url }}" alt="">
+            {% elif item.first_image %}
+            <img src="{{ item.first_image.file.url }}" alt="">
+            {% elif item.media.all %}
+            <i class="bi bi-{% if item.media.all.0.media_type == 'video' %}play-btn{% else %}file-earmark{% endif %}"></i>
+            {% else %}
+            <i class="bi bi-{% if item.item_type == 'download' %}download{% else %}image{% endif %}"></i>
+            {% endif %}
+          </div>
+          <div class="catalog-item-card-body">
+            <div class="catalog-item-card-title">{{ item.title }}</div>
+            <div class="catalog-item-card-meta">
+              {% if item.category %}{{ item.category.name }} · {% endif %}
+              {{ item.get_item_type_display }}
+            </div>
+            {% if item.short_description %}
+            <div class="catalog-item-card-meta text-truncate">{{ item.short_description }}</div>
+            {% endif %}
+            <div class="catalog-item-card-badges">
+              {% if item.is_active %}<span class="catalog-pill catalog-pill--ok">فعال</span>{% else %}<span class="catalog-pill">غیرفعال</span>{% endif %}
+              {% if item.item_type == 'download' %}<span class="catalog-pill catalog-pill--info">دانلود</span>{% endif %}
+              {% if item.is_featured %}<span class="catalog-pill catalog-pill--warn">ویژه</span>{% endif %}
+            </div>
+            {% if item.price %}
+            <div class="catalog-item-card-price">{{ item.price|floatformat:0 }} ریال</div>
+            {% endif %}
+          </div>
+          <i class="bi bi-chevron-left catalog-item-card-arrow"></i>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="panel-card">
+    <div class="catalog-empty-state">
+      <i class="bi bi-box-seam"></i>
+      <p>آیتمی نیست</p>
+      <a href="{% url 'catalog_item_create' %}" class="btn btn-panel-primary btn-sm">اولین آیتم را بسازید</a>
+    </div>
+  </div>
+  {% endif %}
 </div>
-{% endif %}
 {% endblock %}

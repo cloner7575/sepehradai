@@ -2,17 +2,39 @@
 {% block title %}{% if object %}ویرایش دسته{% else %}دسته جدید{% endif %}{% endblock %}
 {% block page_title %}{% if object %}ویرایش دسته{% else %}دسته جدید{% endif %}{% endblock %}
 {% block content %}
-<div class="panel-card p-4 col-lg-8">
-  <form method="post" enctype="multipart/form-data">{% csrf_token %}
-    {% for field in form %}<div class="mb-3"><label class="form-label">{{ field.label }}</label>{{ field }}{% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>{% endfor %}
-    {% if object and object.image %}
-    <div class="mb-3">
-      <label class="form-label">تصویر فعلی</label>
-      <img src="{{ object.image.url }}" alt="" class="rounded d-block" style="width:96px;height:96px;object-fit:cover">
+<div class="catalog-panel">
+  {% include "balebot/_catalog_subnav.html" %}
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="panel-card">
+        <div class="panel-card-header">
+          <h2 class="panel-card-title mb-0">اطلاعات دسته</h2>
+        </div>
+        <div class="panel-card-body">
+          <form method="post" enctype="multipart/form-data">{% csrf_token %}
+            {% for field in form %}
+            <div class="mb-3">
+              <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+              {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            </div>
+            {% endfor %}
+            {% if object and object.image %}
+            <div class="mb-3">
+              <label class="form-label">تصویر فعلی</label>
+              <img src="{{ object.image.url }}" alt="" class="catalog-settings-logo-preview rounded">
+            </div>
+            {% endif %}
+            <div class="d-flex flex-wrap gap-2">
+              <button type="submit" class="btn btn-panel-primary">ذخیره</button>
+              <a href="{% url 'catalog_category_list' %}" class="btn btn-panel-ghost">بازگشت</a>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
-    {% endif %}
-    <button type="submit" class="btn btn-panel-primary">ذخیره</button>
-    <a href="{% url 'catalog_category_list' %}" class="btn btn-panel-ghost">بازگشت</a>
-  </form>
+  </div>
 </div>
 {% endblock %}

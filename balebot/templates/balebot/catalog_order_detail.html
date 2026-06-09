@@ -2,20 +2,56 @@
 {% block title %}سفارش #{{ order.pk }}{% endblock %}
 {% block page_title %}سفارش #{{ order.pk }}{% endblock %}
 {% block content %}
-<div class="panel-card p-4 col-lg-8">
-  <dl class="row mb-4">
-    <dt class="col-sm-3">وضعیت</dt><dd class="col-sm-9">{{ order.get_status_display }}</dd>
-    {% if order.payment_method %}<dt class="col-sm-3">روش پرداخت</dt><dd class="col-sm-9">{{ order.payment_method }}</dd>{% endif %}
-    {% if order.zarinpal_authority %}<dt class="col-sm-3">Authority</dt><dd class="col-sm-9" dir="ltr">{{ order.zarinpal_authority }}</dd>{% endif %}
-    <dt class="col-sm-3">مبلغ کل</dt><dd class="col-sm-9">{{ order.total_amount|floatformat:0 }} ریال</dd>
-    <dt class="col-sm-3">کاربر</dt><dd class="col-sm-9">{% if order.subscriber %}{{ order.subscriber.first_name }} ({{ order.subscriber.messenger_user_id }}){% else %}—{% endif %}</dd>
-    <dt class="col-sm-3">تاریخ</dt><dd class="col-sm-9">{{ order.created_at|date:"Y/m/d H:i" }}</dd>
-    {% if order.note %}<dt class="col-sm-3">یادداشت</dt><dd class="col-sm-9">{{ order.note }}</dd>{% endif %}
-  </dl>
-  <h2 class="h6">اقلام</h2>
-  <table class="table panel-table"><thead><tr><th>عنوان</th><th>تعداد</th><th>قیمت</th><th>جمع</th></tr></thead>
-  <tbody>{% for line in order.lines.all %}<tr><td>{{ line.title_snapshot }}</td><td>{{ line.quantity }}</td><td>{{ line.price_snapshot|floatformat:0 }}</td><td>{{ line.line_total|floatformat:0 }}</td></tr>{% endfor %}</tbody>
-  </table>
-  <a href="{% url 'catalog_order_list' %}" class="btn btn-panel-ghost">بازگشت</a>
+<div class="catalog-panel">
+  {% include "balebot/_catalog_subnav.html" %}
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="panel-card">
+        <div class="panel-card-header">
+          <h2 class="panel-card-title mb-0">جزئیات سفارش</h2>
+          <span class="catalog-pill">{{ order.get_status_display }}</span>
+        </div>
+        <div class="panel-card-body">
+          <dl class="row catalog-detail-dl mb-4">
+            {% if order.payment_method %}
+            <dt class="col-sm-4">روش پرداخت</dt><dd class="col-sm-8">{{ order.payment_method }}</dd>
+            {% endif %}
+            {% if order.zarinpal_authority %}
+            <dt class="col-sm-4">Authority</dt><dd class="col-sm-8" dir="ltr">{{ order.zarinpal_authority }}</dd>
+            {% endif %}
+            <dt class="col-sm-4">مبلغ کل</dt><dd class="col-sm-8">{{ order.total_amount|floatformat:0 }} ریال</dd>
+            <dt class="col-sm-4">کاربر</dt>
+            <dd class="col-sm-8">{% if order.subscriber %}{{ order.subscriber.first_name }} ({{ order.subscriber.messenger_user_id }}){% else %}—{% endif %}</dd>
+            <dt class="col-sm-4">تاریخ</dt><dd class="col-sm-8">{{ order.created_at|date:"Y/m/d H:i" }}</dd>
+            {% if order.note %}
+            <dt class="col-sm-4">یادداشت</dt><dd class="col-sm-8">{{ order.note }}</dd>
+            {% endif %}
+          </dl>
+
+          <h3 class="catalog-form-section-title">اقلام</h3>
+          <div class="panel-table-wrap">
+            <table class="table panel-table mb-0 catalog-table">
+              <thead><tr><th>عنوان</th><th>تعداد</th><th>قیمت</th><th>جمع</th></tr></thead>
+              <tbody>
+                {% for line in order.lines.all %}
+                <tr>
+                  <td>{{ line.title_snapshot }}</td>
+                  <td>{{ line.quantity }}</td>
+                  <td>{{ line.price_snapshot|floatformat:0 }}</td>
+                  <td>{{ line.line_total|floatformat:0 }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="mt-4">
+            <a href="{% url 'catalog_order_list' %}" class="btn btn-panel-ghost">بازگشت به سفارش‌ها</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}

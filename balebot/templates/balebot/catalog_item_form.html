@@ -3,94 +3,114 @@
 {% block title %}{% if object %}ویرایش آیتم{% else %}آیتم جدید{% endif %}{% endblock %}
 {% block page_title %}{% if object %}ویرایش آیتم{% else %}آیتم جدید{% endif %}{% endblock %}
 {% block content %}
-<div class="row g-4">
-  <div class="col-lg-8"><div class="panel-card p-4">
-    <form method="post" enctype="multipart/form-data" id="catalog-item-form">{% csrf_token %}
-      {% for field in form %}
-        {% if field.name == 'cover' or field.name == 'download_file' or field.name == 'download_link' %}
-          {# در بلوک دانلود رندر می‌شود #}
-        {% elif field.name == 'price' or field.name == 'sale_mode' or field.name == 'stock' %}
-          <div class="mb-3 catalog-commerce-field" data-commerce-field>
-            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {{ field }}
-            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-            {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-          </div>
-        {% else %}
-          <div class="mb-3">
-            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {{ field }}
-            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-            {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-          </div>
-        {% endif %}
-      {% endfor %}
+<div class="catalog-panel">
+  {% include "balebot/_catalog_subnav.html" %}
 
-      <div id="download-fields-block" class="catalog-download-block mb-4">
-        <h3 class="h6 mb-3"><i class="bi bi-download me-1"></i>فایل دانلود</h3>
-        <div class="mb-3">
-          <label class="form-label" for="id_cover">{{ form.cover.label }}</label>
-          {{ form.cover }}
-          {% if form.cover.help_text %}<div class="form-text">{{ form.cover.help_text }}</div>{% endif %}
-          {% for e in form.cover.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-          {% if object and object.cover %}
-          <img src="{{ object.cover.url }}" alt="" class="rounded mt-2 catalog-settings-logo-preview">
-          {% endif %}
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="panel-card">
+        <div class="panel-card-header">
+          <h2 class="panel-card-title mb-0">اطلاعات آیتم</h2>
         </div>
+        <div class="panel-card-body">
+          <form method="post" enctype="multipart/form-data" id="catalog-item-form">{% csrf_token %}
+            {% for field in form %}
+              {% if field.name == 'cover' or field.name == 'download_file' or field.name == 'download_link' %}
+                {# در بلوک دانلود رندر می‌شود #}
+              {% elif field.name == 'price' or field.name == 'sale_mode' or field.name == 'stock' %}
+                <div class="mb-3 catalog-commerce-field" data-commerce-field>
+                  <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                  {{ field }}
+                  {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                  {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                </div>
+              {% else %}
+                <div class="mb-3">
+                  <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                  {{ field }}
+                  {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                  {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                </div>
+              {% endif %}
+            {% endfor %}
 
-        <div class="mb-3">
-          <label class="form-label" for="id_download_file">آپلود فایل</label>
-          {{ form.download_file }}
-          {% if form.download_file.help_text %}<div class="form-text">{{ form.download_file.help_text }}</div>{% endif %}
-          {% for e in form.download_file.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-          {% if object and object.download_file %}
-          <div class="small text-muted mt-2">فایل فعلی: <code dir="ltr">{{ object.download_file.name }}</code></div>
-          {% endif %}
-        </div>
+            <div id="download-fields-block" class="catalog-download-block mb-4">
+              <h3 class="catalog-form-section-title"><i class="bi bi-download me-1"></i>فایل دانلود</h3>
+              <div class="mb-3">
+                <label class="form-label" for="id_cover">{{ form.cover.label }}</label>
+                {{ form.cover }}
+                {% if form.cover.help_text %}<div class="form-text">{{ form.cover.help_text }}</div>{% endif %}
+                {% for e in form.cover.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                {% if object and object.cover %}
+                <img src="{{ object.cover.url }}" alt="" class="rounded mt-2 catalog-settings-logo-preview">
+                {% endif %}
+              </div>
 
-        <div class="text-center text-muted small my-2">— یا —</div>
+              <div class="mb-3">
+                <label class="form-label" for="id_download_file">آپلود فایل</label>
+                {{ form.download_file }}
+                {% if form.download_file.help_text %}<div class="form-text">{{ form.download_file.help_text }}</div>{% endif %}
+                {% for e in form.download_file.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                {% if object and object.download_file %}
+                <div class="small text-muted mt-2">فایل فعلی: <code dir="ltr">{{ object.download_file.name }}</code></div>
+                {% endif %}
+              </div>
 
-        <div class="mb-0">
-          <label class="form-label" for="id_download_link">{{ form.download_link.label }}</label>
-          {{ form.download_link }}
-          {% if form.download_link.help_text %}<div class="form-text">{{ form.download_link.help_text }}</div>{% endif %}
-          {% for e in form.download_link.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-          {% if object and object.download_link %}
-          <div class="small text-muted mt-2">لینک فعلی: <a href="{{ object.download_link }}" target="_blank" rel="noopener" dir="ltr">{{ object.download_link }}</a></div>
-          {% endif %}
+              <div class="catalog-form-divider">یا</div>
+
+              <div class="mb-0">
+                <label class="form-label" for="id_download_link">{{ form.download_link.label }}</label>
+                {{ form.download_link }}
+                {% if form.download_link.help_text %}<div class="form-text">{{ form.download_link.help_text }}</div>{% endif %}
+                {% for e in form.download_link.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                {% if object and object.download_link %}
+                <div class="small text-muted mt-2">لینک فعلی: <a href="{{ object.download_link }}" target="_blank" rel="noopener" dir="ltr">{{ object.download_link }}</a></div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div id="media-upload-block" class="mb-4">
+              <label class="form-label">رسانه اضافی</label>
+              <input type="file" name="media" class="form-control panel-input" multiple accept="image/*,video/*,.pdf,.doc,.docx,.zip,.rar,.txt,.xls,.xlsx,.ppt,.pptx">
+              <div class="form-text">تصویر، ویدیو یا فایل — برای انواع غیر از «فایل دانلود».</div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+              <button type="submit" class="btn btn-panel-primary">ذخیره</button>
+              <a href="{% url 'catalog_item_list' %}" class="btn btn-panel-ghost">بازگشت</a>
+            </div>
+          </form>
         </div>
       </div>
-
-      <div id="media-upload-block" class="mb-3">
-        <label class="form-label">رسانه اضافی</label>
-        <input type="file" name="media" class="form-control" multiple accept="image/*,video/*,.pdf,.doc,.docx,.zip,.rar,.txt,.xls,.xlsx,.ppt,.pptx">
-        <div class="form-text">تصویر، ویدیو یا فایل — برای انواع غیر از «فایل دانلود».</div>
-      </div>
-
-      <button type="submit" class="btn btn-panel-primary">ذخیره</button>
-      <a href="{% url 'catalog_item_list' %}" class="btn btn-panel-ghost">بازگشت</a>
-    </form>
-  </div></div>
-  {% if item_media %}
-  <div class="col-lg-4"><div class="panel-card p-4">
-    <h2 class="h6 mb-3">رسانه‌های فعلی</h2>
-    {% for m in item_media %}
-    <div class="mb-3 d-flex align-items-center gap-2">
-      {% if m.media_type == 'image' %}
-      <img src="{{ m.file.url }}" alt="" class="rounded" style="width:64px;height:64px;object-fit:cover">
-      {% elif m.media_type == 'video' %}
-      <div class="rounded bg-dark text-white d-flex align-items-center justify-content-center" style="width:64px;height:64px;font-size:12px">ویدیو</div>
-      {% else %}
-      <div class="rounded bg-light d-flex align-items-center justify-content-center" style="width:64px;height:64px;font-size:12px">فایل</div>
-      {% endif %}
-      <div class="flex-grow-1 small text-muted">{{ m.get_media_type_display }}</div>
-      <form method="post" action="{% url 'catalog_item_media_delete' object.pk m.pk %}">{% csrf_token %}
-        <button type="submit" class="btn btn-sm btn-outline-danger">حذف</button>
-      </form>
     </div>
-    {% endfor %}
-  </div></div>
-  {% endif %}
+
+    {% if item_media %}
+    <div class="col-lg-4">
+      <div class="panel-card">
+        <div class="panel-card-header">
+          <h2 class="panel-card-title mb-0">رسانه‌های فعلی</h2>
+        </div>
+        <div class="panel-card-body">
+          {% for m in item_media %}
+          <div class="catalog-media-row">
+            {% if m.media_type == 'image' %}
+            <img src="{{ m.file.url }}" alt="" class="catalog-media-thumb">
+            {% elif m.media_type == 'video' %}
+            <div class="catalog-media-thumb catalog-media-thumb--video"><i class="bi bi-play-fill"></i></div>
+            {% else %}
+            <div class="catalog-media-thumb catalog-media-thumb--file"><i class="bi bi-file-earmark"></i></div>
+            {% endif %}
+            <div class="flex-grow-1 small text-muted">{{ m.get_media_type_display }}</div>
+            <form method="post" action="{% url 'catalog_item_media_delete' object.pk m.pk %}">{% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-danger">حذف</button>
+            </form>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}
 

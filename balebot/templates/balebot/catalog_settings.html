@@ -5,6 +5,8 @@
 {% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">برند، ظاهر، متن دکمه‌ها و پرداخت — {{ active_platform_label }}</p>{% endblock %}
 
 {% block content %}
+<div class="catalog-panel">
+{% include "balebot/_catalog_subnav.html" %}
 <form method="post" enctype="multipart/form-data" class="settings-page-form" id="catalog-settings-form" novalidate>
   {% csrf_token %}
   {% if form.non_field_errors %}
@@ -190,6 +192,7 @@
     </div>
   </div>
 </form>
+</div>
 {% endblock %}
 
 {% block extra_js %}
