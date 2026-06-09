@@ -904,6 +904,7 @@ class CatalogCategory(models.Model):
     name = models.CharField(max_length=120)
     slug = models.SlugField(max_length=140)
     icon = models.CharField(max_length=64, blank=True, default='')
+    image = models.ImageField(upload_to='catalog/categories/%Y/%m/', blank=True, null=True)
     sort_order = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -1004,22 +1005,41 @@ class CatalogItem(models.Model):
     def is_requestable(self) -> bool:
         return self.sale_mode in (self.SaleMode.REQUEST_ONLY, self.SaleMode.BOTH)
 
+    def first_image(self):
+        for media in self.media.all():
+            if media.media_type == 'image':
+                return media
+        return None
 
-class CatalogItemImage(models.Model):
+
+class CatalogItemMedia(models.Model):
+    class MediaType(models.TextChoices):
+        IMAGE = 'image', 'تصویر'
+        VIDEO = 'video', 'ویدیو'
+        FILE = 'file', 'فایل'
+
     item = models.ForeignKey(
         CatalogItem,
         on_delete=models.CASCADE,
-        related_name='images',
+        related_name='media',
     )
-    image = models.ImageField(upload_to='catalog/items/%Y/%m/')
+    file = models.FileField(upload_to='catalog/items/%Y/%m/')
+    media_type = models.CharField(
+        max_length=8,
+        choices=MediaType.choices,
+        default=MediaType.IMAGE,
+    )
+    title = models.CharField(max_length=200, blank=True, default='')
     sort_order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['sort_order', 'id']
+        verbose_name = 'رسانه آیتم'
+        verbose_name_plural = 'رسانه‌های آیتم'
 
     def __str__(self):
-        return f'{self.item_id} — {self.sort_order}'
+        return f'{self.item_id} — {self.media_type} — {self.sort_order}'
 
 
 class CatalogOrder(models.Model):

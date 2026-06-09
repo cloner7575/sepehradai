@@ -166,6 +166,8 @@ if not DEBUG:
 
 MEDIA_URL = config('MEDIA_URL', default='/media/')
 MEDIA_ROOT = config('MEDIA_ROOT', default=os.path.join(BASE_DIR, "public", "media"))
+# سرو فایل‌های media از خود Django (برای مینی‌اپ و پنل). در پروداکشن ترجیحاً nginx همین مسیر را سرو کند.
+SERVE_MEDIA = config('SERVE_MEDIA', default=True, cast=bool)
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]

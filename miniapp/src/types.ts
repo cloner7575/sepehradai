@@ -23,11 +23,21 @@ export interface CheckoutResult {
   payment_url?: string;
 }
 
+export type MediaType = 'image' | 'video' | 'file';
+
+export interface ItemMedia {
+  id: number;
+  type: MediaType;
+  url: string;
+  title: string;
+}
+
 export interface Category {
   id: number;
   slug: string;
   name: string;
   icon: string;
+  image_url: string;
   parent_id: number | null;
 }
 
@@ -44,6 +54,7 @@ export interface CatalogItem {
   is_requestable: boolean;
   is_featured: boolean;
   metadata: Record<string, unknown>;
+  media: ItemMedia[];
   images: string[];
   category_id: number | null;
   category_slug: string | null;

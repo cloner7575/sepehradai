@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { fetchItem, formatPrice, submitRequest, updateCart } from '../api';
 import { useApp } from '../App';
 import { PaymentMethodPicker } from '../components/PaymentMethodPicker';
+import { MediaGallery } from '../components/MediaGallery';
 import { IconPackage } from '../components/Icons';
 import { useCheckout } from '../hooks/useCheckout';
 
@@ -13,7 +14,6 @@ export function ItemPage() {
   const [item, setItem] = useState<Awaited<ReturnType<typeof fetchItem>> | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [imgIdx, setImgIdx] = useState(0);
   const labels = config?.labels || {};
   const {
     paymentMethod,
@@ -87,38 +87,15 @@ export function ItemPage() {
     return (
       <div className="empty-state mx-4 mt-8">
         <IconPackage className="h-8 w-8 text-muted/40" />
-        <p className="text-sm text-muted">محصول یافت نشد</p>
+        <p className="text-sm text-muted">آیتم یافت نشد</p>
       </div>
     );
   }
 
-  const images = item.images.length ? item.images : [];
-
   return (
     <div className="pb-44">
-      <div className="relative aspect-square bg-[var(--color-primary-soft)]">
-        {images[imgIdx] ? (
-          <img src={images[imgIdx]} alt={item.title} className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full items-center justify-center text-muted/30">
-            <IconPackage className="h-16 w-16" />
-          </div>
-        )}
-        {images.length > 1 && (
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5">
-            {images.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setImgIdx(i)}
-                className={`h-1.5 rounded-full transition-all ${
-                  i === imgIdx ? 'w-5 bg-primary' : 'w-1.5 bg-white/60'
-                }`}
-                aria-label={`تصویر ${i + 1}`}
-              />
-            ))}
-          </div>
-        )}
+      <div className="px-0">
+        <MediaGallery item={item} />
       </div>
 
       <div className="px-4 pt-5">

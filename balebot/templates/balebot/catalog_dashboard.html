@@ -1,42 +1,284 @@
 {% extends "balebot/base.html" %}
+{% load static %}
 {% block title %}داشبورد مینی‌اپ{% endblock %}
-{% block page_title %}مینی‌اپ {{ active_platform_label }}{% endblock %}
-{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">مدیریت فروشگاه و نمونه‌کار</p>{% endblock %}
+{% block page_title %}داشبورد مینی‌اپ{% endblock %}
+{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">مدیریت، شخصی‌سازی و انتشار فروشگاه {{ active_platform_label }}</p>{% endblock %}
+
 {% block content %}
-<div class="row g-3 mb-4">
-  <div class="col-6 col-md-3"><div class="panel-card p-3 text-center"><div class="fs-4 fw-bold">{{ item_count }}</div><div class="small text-muted">آیتم</div></div></div>
-  <div class="col-6 col-md-3"><div class="panel-card p-3 text-center"><div class="fs-4 fw-bold">{{ category_count }}</div><div class="small text-muted">دسته</div></div></div>
-  <div class="col-6 col-md-3"><div class="panel-card p-3 text-center"><div class="fs-4 fw-bold">{{ order_count }}</div><div class="small text-muted">سفارش</div></div></div>
-  <div class="col-6 col-md-3"><div class="panel-card p-3 text-center"><div class="fs-4 fw-bold">{{ order_pending }}</div><div class="small text-muted">در انتظار</div></div></div>
+{% if catalog.is_enabled %}
+<div class="alert alert-success d-flex align-items-center gap-2 mb-4 py-2">
+  <i class="bi bi-check-circle-fill"></i>
+  <span>مینی‌اپ <strong>فعال</strong> است و کاربران می‌توانند خرید کنند.</span>
 </div>
-<div class="panel-card p-4 mb-4">
-  <h2 class="h6 mb-2">لینک مینی‌اپ</h2>
-  {% if mini_app_url %}
-  <code class="d-block text-break user-select-all small" dir="ltr">{{ mini_app_url }}</code>
-  {% else %}
-  <p class="small text-muted mb-1">شناسه: <code dir="ltr">{{ catalog_public_id }}</code></p>
-  {% if webhook_public_url %}
-  <code class="d-block text-break user-select-all small" dir="ltr">{{ webhook_public_url }}/shop/{{ catalog_public_id }}/</code>
-  {% else %}
-  <p class="small text-danger mb-0">برای نمایش لینک، <a href="{% url 'bot_settings' %}">آدرس عمومی سرور</a> را در تنظیمات ربات وارد کنید.</p>
-  {% endif %}
-  {% endif %}
-  {% if not catalog.is_enabled %}<p class="text-warning small mt-2 mb-0">مینی‌اپ هنوز غیرفعال است — از <a href="{% url 'catalog_settings' %}">تنظیمات</a> فعال کنید.</p>{% endif %}
+{% else %}
+<div class="alert alert-warning d-flex align-items-start gap-2 mb-4">
+  <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+  <div>
+    <strong>مینی‌اپ هنوز فعال نشده.</strong>
+    <div class="small mt-1">می‌توانید محتوا را آماده کنید؛ برای فعال‌سازی خرید، <a href="{% url 'catalog_settings' %}#sec-payment">روش پرداخت</a> را تنظیم کنید.</div>
+  </div>
 </div>
-<div class="panel-card">
-  <div class="panel-table-wrap"><table class="table panel-table mb-0">
-    <thead><tr><th>#</th><th>وضعیت</th><th>مبلغ</th><th>کاربر</th><th>تاریخ</th></tr></thead>
-    <tbody>
-      {% for o in recent_orders %}
-      <tr>
-        <td><a href="{% url 'catalog_order_detail' o.pk %}">#{{ o.pk }}</a></td>
-        <td>{{ o.get_status_display }}</td>
-        <td>{{ o.total_amount|floatformat:0 }} ریال</td>
-        <td>{% if o.subscriber %}{{ o.subscriber.first_name }}{% else %}—{% endif %}</td>
-        <td class="small">{{ o.created_at|date:"Y/m/d H:i" }}</td>
-      </tr>
-      {% empty %}<tr><td colspan="5" class="text-center text-muted py-4">سفارشی ثبت نشده</td></tr>{% endfor %}
-    </tbody>
-  </table></div>
+{% endif %}
+
+<div class="row g-3 g-xl-4 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <a href="{% url 'catalog_item_list' %}" class="text-decoration-none">
+      <div class="stat-card stat-card-compact catalog-stat-link">
+        <div class="stat-card-head">
+          <div class="stat-card-label text-center w-100 d-block">آیتم‌ها</div>
+          <i class="bi bi-box-seam stat-card-icon"></i>
+        </div>
+        <div class="stat-card-value">{{ item_count }}</div>
+        <div class="small text-muted mt-2">{{ active_item_count }} فعال</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <a href="{% url 'catalog_category_list' %}" class="text-decoration-none">
+      <div class="stat-card stat-card-compact catalog-stat-link">
+        <div class="stat-card-head">
+          <div class="stat-card-label text-center w-100 d-block">دسته‌ها</div>
+          <i class="bi bi-folder stat-card-icon"></i>
+        </div>
+        <div class="stat-card-value">{{ category_count }}</div>
+        <div class="small text-muted mt-2">دسته‌بندی فعال</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <a href="{% url 'catalog_order_list' %}" class="text-decoration-none">
+      <div class="stat-card stat-card-compact catalog-stat-link">
+        <div class="stat-card-head">
+          <div class="stat-card-label text-center w-100 d-block">سفارش‌ها</div>
+          <i class="bi bi-receipt stat-card-icon"></i>
+        </div>
+        <div class="stat-card-value">{{ order_count }}</div>
+        <div class="small text-muted mt-2">{{ order_pending }} در انتظار</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <a href="{% url 'catalog_settings' %}" class="text-decoration-none">
+      <div class="stat-card stat-card-compact catalog-stat-link">
+        <div class="stat-card-head">
+          <div class="stat-card-label text-center w-100 d-block">آمادگی راه‌اندازی</div>
+          <i class="bi bi-rocket-takeoff stat-card-icon"></i>
+        </div>
+        <div class="stat-card-value">{{ setup_percent }}%</div>
+        <div class="small text-muted mt-2">{{ setup_done }} از {{ setup_total }} مرحله</div>
+      </div>
+    </a>
+  </div>
 </div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-7">
+    <div class="panel-card h-100">
+      <div class="panel-card-header">
+        <h2 class="panel-card-title mb-0"><i class="bi bi-lightning-charge me-2"></i>دسترسی سریع</h2>
+      </div>
+      <div class="panel-card-body">
+        <div class="catalog-quick-grid">
+          <a href="{% url 'catalog_item_create' %}" class="catalog-quick-card">
+            <i class="bi bi-plus-circle"></i>
+            <span>آیتم جدید</span>
+          </a>
+          <a href="{% url 'catalog_category_create' %}" class="catalog-quick-card">
+            <i class="bi bi-folder-plus"></i>
+            <span>دسته جدید</span>
+          </a>
+          <a href="{% url 'catalog_settings' %}#sec-branding" class="catalog-quick-card">
+            <i class="bi bi-palette"></i>
+            <span>برند و ظاهر</span>
+          </a>
+          <a href="{% url 'catalog_settings' %}#sec-labels" class="catalog-quick-card">
+            <i class="bi bi-type"></i>
+            <span>متن دکمه‌ها</span>
+          </a>
+          <a href="{% url 'catalog_settings' %}#sec-payment" class="catalog-quick-card">
+            <i class="bi bi-credit-card"></i>
+            <span>پرداخت</span>
+          </a>
+          <a href="{% url 'catalog_order_list' %}" class="catalog-quick-card">
+            <i class="bi bi-bag-check"></i>
+            <span>سفارش‌ها</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="panel-card h-100">
+      <div class="panel-card-header">
+        <h2 class="panel-card-title mb-0"><i class="bi bi-phone me-2"></i>لینک مینی‌اپ</h2>
+      </div>
+      <div class="panel-card-body">
+        {% if mini_app_url %}
+        <div class="catalog-link-box mb-3">
+          <code id="miniapp-url" class="catalog-link-code" dir="ltr">{{ mini_app_url }}</code>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <button type="button" class="btn btn-panel-primary btn-sm" data-copy-target="miniapp-url">
+            <i class="bi bi-clipboard me-1"></i>کپی لینک
+          </button>
+          <a href="{{ mini_app_url }}" target="_blank" rel="noopener" class="btn btn-panel-ghost btn-sm">
+            <i class="bi bi-box-arrow-up-right me-1"></i>باز کردن
+          </a>
+        </div>
+        <p class="small text-muted mt-3 mb-0">این آدرس را در BotFather یا تنظیمات مینی‌اپ {{ active_platform_label }} ثبت کنید.</p>
+        {% else %}
+        <div class="alert alert-warning small mb-3">لینک کامل هنوز ساخته نشده است.</div>
+        <p class="small text-muted mb-2">شناسه فروشگاه:</p>
+        <code class="d-block text-break small user-select-all mb-2" dir="ltr">{{ catalog_public_id }}</code>
+        {% if webhook_public_url %}
+        <code class="d-block text-break small" dir="ltr">{{ webhook_public_url }}/shop/{{ catalog_public_id }}/</code>
+        {% else %}
+        <p class="small text-danger mb-0">ابتدا <a href="{% url 'bot_settings' %}">آدرس عمومی سرور</a> را در تنظیمات ربات وارد کنید.</p>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-5">
+    <div class="panel-card h-100">
+      <div class="panel-card-header">
+        <h2 class="panel-card-title mb-0"><i class="bi bi-list-check me-2"></i>راه‌اندازی</h2>
+        <span class="badge rounded-pill {% if setup_percent == 100 %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ setup_done }}/{{ setup_total }}</span>
+      </div>
+      <div class="panel-card-body">
+        <div class="catalog-setup-progress mb-3">
+          <div class="catalog-setup-progress-bar" style="width: {{ setup_percent }}%"></div>
+        </div>
+        <ul class="catalog-setup-list list-unstyled mb-0">
+          {% for step in setup_steps %}
+          <li class="catalog-setup-item {% if step.done %}is-done{% endif %}">
+            <span class="catalog-setup-icon">
+              {% if step.done %}<i class="bi bi-check-lg"></i>{% else %}<i class="bi bi-circle"></i>{% endif %}
+            </span>
+            <div class="flex-grow-1 min-w-0">
+              <div class="fw-semibold">{{ step.label }}</div>
+              <div class="small text-muted">{{ step.hint }}</div>
+            </div>
+            {% if not step.done %}
+            <a href="{% url step.url_name %}{% if step.url_hash %}#{{ step.url_hash }}{% endif %}" class="btn btn-panel-ghost btn-sm flex-shrink-0">تنظیم</a>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="panel-card h-100">
+      <div class="panel-card-header">
+        <h2 class="panel-card-title mb-0"><i class="bi bi-eye me-2"></i>پیش‌نمایش ظاهر</h2>
+        <a href="{% url 'catalog_settings' %}#sec-appearance" class="btn btn-panel-ghost btn-sm">ویرایش</a>
+      </div>
+      <div class="panel-card-body">
+        <div class="catalog-preview-phone">
+          <div class="catalog-preview-header" style="--preview-primary: {{ theme.primary_color|default:'#18181b' }};">
+            {% if catalog.logo %}
+            <img src="{{ catalog.logo.url }}" alt="" class="catalog-preview-logo">
+            {% else %}
+            <div class="catalog-preview-logo-placeholder"><i class="bi bi-shop"></i></div>
+            {% endif %}
+            <div class="min-w-0">
+              <div class="catalog-preview-title">{{ catalog.hero_title|default:"فروشگاه" }}</div>
+              {% if catalog.hero_subtitle %}
+              <div class="catalog-preview-sub">{{ catalog.hero_subtitle }}</div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="catalog-preview-body">
+            <div class="catalog-preview-search"></div>
+            <div class="catalog-preview-colors">
+              <span class="catalog-color-swatch" style="background: {{ theme.primary_color|default:'#18181b' }}" title="رنگ اصلی"></span>
+              <span class="catalog-color-swatch" style="background: {{ theme.accent_color|default:'#3f3f46' }}" title="رنگ تأکیدی"></span>
+              <span class="small text-muted ms-2">چیدمان: {{ theme.layout|default:"grid" }}</span>
+            </div>
+            <div class="catalog-preview-grid">
+              <span></span><span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="panel-card h-100">
+      <div class="panel-card-header">
+        <h2 class="panel-card-title mb-0">آخرین آیتم‌ها</h2>
+        <a href="{% url 'catalog_item_create' %}" class="btn btn-panel-primary btn-sm"><i class="bi bi-plus-lg"></i></a>
+      </div>
+      <div class="list-group list-group-panel list-group-flush rounded-0">
+        {% for item in recent_items %}
+        <a class="list-group-item list-group-item-action py-3" href="{% url 'catalog_item_edit' item.pk %}">
+          <div class="d-flex align-items-center gap-3">
+            <div class="catalog-thumb">
+              {% with img=item.first_image %}
+                {% if img %}
+                <img src="{{ img.file.url }}" alt="">
+                {% elif item.media.all %}
+                <i class="bi bi-{% if item.media.all.0.media_type == 'video' %}play-btn{% else %}file-earmark{% endif %}"></i>
+                {% else %}
+                <i class="bi bi-image"></i>
+                {% endif %}
+              {% endwith %}
+            </div>
+            <div class="min-w-0 flex-grow-1">
+              <div class="fw-semibold text-truncate">{{ item.title }}</div>
+              <div class="small text-muted">
+                {% if item.category %}{{ item.category.name }} · {% endif %}
+                {{ item.get_item_type_display }}
+                {% if item.price %} · {{ item.price|floatformat:0 }} ریال{% endif %}
+              </div>
+            </div>
+            {% if item.is_active %}<span class="badge text-bg-success">فعال</span>{% else %}<span class="badge text-bg-secondary">غیرفعال</span>{% endif %}
+          </div>
+        </a>
+        {% empty %}
+        <div class="list-group-item text-center text-muted py-4">
+          هنوز آیتمی ندارید —
+          <a href="{% url 'catalog_item_create' %}">اولین آیتم را بسازید</a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="panel-card h-100">
+      <div class="panel-card-header">
+        <h2 class="panel-card-title mb-0">آخرین سفارش‌ها</h2>
+        <a href="{% url 'catalog_order_list' %}" class="btn btn-panel-ghost btn-sm">همه</a>
+      </div>
+      <div class="panel-table-wrap">
+        <table class="table panel-table mb-0">
+          <thead><tr><th>#</th><th>وضعیت</th><th>مبلغ</th><th>کاربر</th></tr></thead>
+          <tbody>
+            {% for o in recent_orders %}
+            <tr>
+              <td><a href="{% url 'catalog_order_detail' o.pk %}">#{{ o.pk }}</a></td>
+              <td><span class="badge text-bg-secondary">{{ o.get_status_display }}</span></td>
+              <td class="small">{{ o.total_amount|floatformat:0 }}</td>
+              <td class="small">{% if o.subscriber %}{{ o.subscriber.first_name|default:"—" }}{% else %}—{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-4">سفارشی ثبت نشده</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'balebot/js/catalog_dashboard.js' %}"></script>
 {% endblock %}

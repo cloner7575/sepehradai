@@ -22,8 +22,25 @@ class CatalogSettingsForm(forms.ModelForm):
     theme_layout = forms.ChoiceField(
         choices=[('grid', 'شبکه‌ای'), ('list', 'لیستی')],
         required=False,
-        label='چیدمان',
+        label='چیدمان آیتم‌ها',
         widget=forms.Select(attrs={'class': _INPUT}),
+    )
+    label_buy_now = forms.CharField(required=False, label='دکمه خرید', widget=forms.TextInput(attrs={'class': _INPUT}))
+    label_add_to_cart = forms.CharField(
+        required=False,
+        label='افزودن به سبد',
+        widget=forms.TextInput(attrs={'class': _INPUT}),
+    )
+    label_request_quote = forms.CharField(
+        required=False,
+        label='درخواست / تماس',
+        widget=forms.TextInput(attrs={'class': _INPUT}),
+    )
+    label_cart = forms.CharField(required=False, label='عنوان سبد', widget=forms.TextInput(attrs={'class': _INPUT}))
+    label_checkout = forms.CharField(
+        required=False,
+        label='دکمه تسویه',
+        widget=forms.TextInput(attrs={'class': _INPUT}),
     )
 
     class Meta:
@@ -48,9 +65,9 @@ class CatalogSettingsForm(forms.ModelForm):
             'admin_notify_chat_id': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
             'zarinpal_merchant_id': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr', 'autocomplete': 'off'}),
             'zarinpal_sandbox': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
-            'hero_title': forms.TextInput(attrs={'class': _INPUT}),
-            'hero_subtitle': forms.TextInput(attrs={'class': _INPUT}),
-            'logo': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'hero_title': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'نام فروشگاه یا کسب‌وکار'}),
+            'hero_subtitle': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'توضیح کوتاه زیر عنوان'}),
+            'logo': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
         }
 
     def clean(self):
@@ -91,9 +108,19 @@ class CatalogSettingsForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         theme = (self.instance.theme_config or {}) if self.instance else {}
-        self.fields['theme_primary'].initial = theme.get('primary_color', '#2563eb')
-        self.fields['theme_accent'].initial = theme.get('accent_color', '#7c3aed')
+        labels = (self.instance.labels or {}) if self.instance else {}
+        self.fields['theme_primary'].initial = theme.get('primary_color', '#18181b')
+        self.fields['theme_accent'].initial = theme.get('accent_color', '#3f3f46')
         self.fields['theme_layout'].initial = theme.get('layout', 'grid')
+        self.fields['label_buy_now'].initial = labels.get('buy_now', 'خرید')
+        self.fields['label_add_to_cart'].initial = labels.get('add_to_cart', 'افزودن به سبد')
+        self.fields['label_request_quote'].initial = labels.get('request_quote', 'درخواست / تماس')
+        self.fields['label_cart'].initial = labels.get('cart', 'سبد خرید')
+        self.fields['label_checkout'].initial = labels.get('checkout', 'تسویه حساب')
+        self.fields['hero_title'].help_text = 'در بالای مینی‌اپ نمایش داده می‌شود.'
+        self.fields['hero_subtitle'].help_text = 'زیر عنوان — اختیاری.'
+        self.fields['logo'].help_text = 'لوگوی فروشگاه در هدر مینی‌اپ.'
+        self.fields['theme_layout'].help_text = 'نحوه نمایش لیست آیتم‌ها در صفحه اصلی.'
         self.fields['admin_notify_chat_id'].help_text = (
             'شناسه عددی گفتگوی شما با ربات (از @userinfobot یا لاگ ربات).'
         )
@@ -106,10 +133,17 @@ class CatalogSettingsForm(forms.ModelForm):
         obj = super().save(commit=False)
         obj.theme_config = {
             **(obj.theme_config or {}),
-            'primary_color': self.cleaned_data.get('theme_primary') or '#2563eb',
-            'accent_color': self.cleaned_data.get('theme_accent') or '#7c3aed',
+            'primary_color': self.cleaned_data.get('theme_primary') or '#18181b',
+            'accent_color': self.cleaned_data.get('theme_accent') or '#3f3f46',
             'layout': self.cleaned_data.get('theme_layout') or 'grid',
             'font_family': (obj.theme_config or {}).get('font_family', 'Vazirmatn'),
+        }
+        obj.labels = {
+            'buy_now': (self.cleaned_data.get('label_buy_now') or '').strip() or 'خرید',
+            'add_to_cart': (self.cleaned_data.get('label_add_to_cart') or '').strip() or 'افزودن به سبد',
+            'request_quote': (self.cleaned_data.get('label_request_quote') or '').strip() or 'درخواست / تماس',
+            'cart': (self.cleaned_data.get('label_cart') or '').strip() or 'سبد خرید',
+            'checkout': (self.cleaned_data.get('label_checkout') or '').strip() or 'تسویه حساب',
         }
         if commit:
             obj.save()
@@ -119,12 +153,12 @@ class CatalogSettingsForm(forms.ModelForm):
 class CatalogCategoryForm(forms.ModelForm):
     class Meta:
         model = CatalogCategory
-        fields = ['parent', 'name', 'slug', 'icon', 'sort_order', 'is_active']
+        fields = ['parent', 'name', 'slug', 'image', 'sort_order', 'is_active']
         widgets = {
             'parent': forms.Select(attrs={'class': _INPUT}),
             'name': forms.TextInput(attrs={'class': _INPUT}),
             'slug': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
-            'icon': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'bi-box'}),
+            'image': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
             'sort_order': forms.NumberInput(attrs={'class': _INPUT}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
         }

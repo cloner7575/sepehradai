@@ -1,24 +1,61 @@
 {% extends "balebot/base.html" %}
 {% block title %}آیتم‌ها{% endblock %}
 {% block page_title %}آیتم‌های مینی‌اپ{% endblock %}
+{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">محصول، ویدیو، فایل و خدمات</p>{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-  <form method="get" class="d-flex gap-2"><input name="q" value="{{ request.GET.q }}" class="form-control panel-input" placeholder="جستجو…"><button class="btn btn-panel-ghost btn-sm">جستجو</button></form>
-  <a href="{% url 'catalog_item_create' %}" class="btn btn-panel-primary btn-sm">آیتم جدید</a>
+  <form method="get" class="d-flex gap-2 flex-grow-1" style="max-width: 360px;">
+    <input name="q" value="{{ request.GET.q }}" class="form-control panel-input" placeholder="جستجوی عنوان…">
+    <button class="btn btn-panel-ghost btn-sm">جستجو</button>
+  </form>
+  <a href="{% url 'catalog_item_create' %}" class="btn btn-panel-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>آیتم جدید</a>
 </div>
-<div class="panel-card"><div class="table-responsive"><table class="table panel-table mb-0">
-  <thead><tr><th>عنوان</th><th>دسته</th><th>قیمت</th><th>نوع</th><th>وضعیت</th><th></th></tr></thead>
-  <tbody>
-    {% for item in items %}
-    <tr>
-      <td>{{ item.title }}{% if item.is_featured %} <span class="badge text-bg-warning">ویژه</span>{% endif %}</td>
-      <td>{% if item.category %}{{ item.category.name }}{% else %}—{% endif %}</td>
-      <td>{% if item.price %}{{ item.price|floatformat:0 }} ریال{% else %}—{% endif %}</td>
-      <td>{{ item.get_item_type_display }}</td>
-      <td>{% if item.is_active %}<span class="badge text-bg-success">فعال</span>{% else %}<span class="badge text-bg-secondary">غیرفعال</span>{% endif %}</td>
-      <td class="text-end"><a href="{% url 'catalog_item_edit' item.pk %}" class="btn btn-sm btn-panel-ghost">ویرایش</a></td>
-    </tr>
-    {% empty %}<tr><td colspan="6" class="text-center text-muted py-4">آیتمی نیست</td></tr>{% endfor %}
-  </tbody>
-</table></div></div>
+<div class="panel-card">
+  <div class="table-responsive">
+    <table class="table panel-table mb-0">
+      <thead>
+        <tr>
+          <th style="width:52px"></th>
+          <th>عنوان</th>
+          <th>دسته</th>
+          <th>قیمت</th>
+          <th>نوع</th>
+          <th>وضعیت</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>
+            <div class="catalog-thumb catalog-thumb-sm">
+              {% with img=item.first_image %}
+                {% if img %}
+                <img src="{{ img.file.url }}" alt="">
+                {% elif item.media.all %}
+                <i class="bi bi-{% if item.media.all.0.media_type == 'video' %}play-btn{% else %}file-earmark{% endif %}"></i>
+                {% else %}
+                <i class="bi bi-image"></i>
+                {% endif %}
+              {% endwith %}
+            </div>
+          </td>
+          <td>
+            <div class="fw-semibold">{{ item.title }}</div>
+            {% if item.short_description %}<div class="small text-muted text-truncate" style="max-width:200px">{{ item.short_description }}</div>{% endif %}
+            {% if item.is_featured %}<span class="badge text-bg-warning mt-1">ویژه</span>{% endif %}
+          </td>
+          <td>{% if item.category %}{{ item.category.name }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          <td class="small">{% if item.price %}{{ item.price|floatformat:0 }} ریال{% else %}—{% endif %}</td>
+          <td class="small">{{ item.get_item_type_display }}</td>
+          <td>{% if item.is_active %}<span class="badge text-bg-success">فعال</span>{% else %}<span class="badge text-bg-secondary">غیرفعال</span>{% endif %}</td>
+          <td class="text-end"><a href="{% url 'catalog_item_edit' item.pk %}" class="btn btn-sm btn-panel-ghost">ویرایش</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-5">آیتمی نیست — <a href="{% url 'catalog_item_create' %}">اولین آیتم را بسازید</a></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endblock %}

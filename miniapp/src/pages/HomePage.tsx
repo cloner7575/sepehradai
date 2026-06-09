@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { fetchCategories, fetchItems } from '../api';
+import { CategoryCard } from '../components/CategoryCard';
 import { ItemCard } from '../components/ItemCard';
 import { IconGrid, IconSearch } from '../components/Icons';
 import type { Category, CatalogItem } from '../types';
@@ -60,7 +60,7 @@ export function HomePage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && search()}
-            placeholder="جستجوی محصول…"
+            placeholder="جستجو…"
             className="input-field pr-10"
           />
         </div>
@@ -69,22 +69,16 @@ export function HomePage() {
       {categories.length > 0 && (
         <section className="px-4 pt-6">
           <h2 className="section-title mb-3">دسته‌بندی‌ها</h2>
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex gap-3 overflow-x-auto pb-1">
             {categories.map((c) => (
-              <Link
-                key={c.id}
-                to={`/category/${c.slug}`}
-                className="shrink-0 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium transition active:scale-95 active:bg-[var(--color-primary-soft)]"
-              >
-                {c.name}
-              </Link>
+              <CategoryCard key={c.id} category={c} />
             ))}
           </div>
         </section>
       )}
 
       <section className="px-4 pt-6">
-        <h2 className="section-title mb-3">محصولات</h2>
+        <h2 className="section-title mb-3">آیتم‌ها</h2>
         {loading ? (
           <div className="grid grid-cols-2 gap-3">
             {[1, 2, 3, 4].map((i) => (
@@ -94,7 +88,7 @@ export function HomePage() {
         ) : items.length === 0 ? (
           <div className="empty-state">
             <IconSearch className="h-8 w-8 text-muted/40" />
-            <p className="text-sm text-muted">محصولی یافت نشد</p>
+            <p className="text-sm text-muted">آیتمی یافت نشد</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">

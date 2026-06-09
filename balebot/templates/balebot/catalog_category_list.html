@@ -7,15 +7,16 @@
   <a href="{% url 'catalog_category_create' %}" class="btn btn-panel-primary btn-sm">دسته جدید</a>
 </div>
 <div class="panel-card"><div class="table-responsive"><table class="table panel-table mb-0">
-  <thead><tr><th>نام</th><th>slug</th><th>آیتم</th><th>ترتیب</th><th>وضعیت</th><th></th></tr></thead>
+  <thead><tr><th>تصویر</th><th>نام</th><th>slug</th><th>آیتم</th><th>ترتیب</th><th>وضعیت</th><th></th></tr></thead>
   <tbody>
     {% for c in categories %}
     <tr>
+      <td>{% if c.image %}<img src="{{ c.image.url }}" alt="" class="rounded" style="width:40px;height:40px;object-fit:cover">{% else %}<span class="text-muted small">—</span>{% endif %}</td>
       <td>{{ c.name }}</td><td dir="ltr">{{ c.slug }}</td><td>{{ c.item_count }}</td><td>{{ c.sort_order }}</td>
       <td>{% if c.is_active %}<span class="badge text-bg-success">فعال</span>{% else %}<span class="badge text-bg-secondary">غیرفعال</span>{% endif %}</td>
       <td class="text-end"><a href="{% url 'catalog_category_edit' c.pk %}" class="btn btn-sm btn-panel-ghost">ویرایش</a></td>
     </tr>
-    {% empty %}<tr><td colspan="6" class="text-center text-muted py-4">دسته‌ای نیست</td></tr>{% endfor %}
+    {% empty %}<tr><td colspan="7" class="text-center text-muted py-4">دسته‌ای نیست</td></tr>{% endfor %}
   </tbody>
 </table></div></div>
 {% endblock %}

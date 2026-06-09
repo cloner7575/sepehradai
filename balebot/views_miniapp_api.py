@@ -14,11 +14,13 @@ from balebot.models import (
     BotSettings,
     CatalogCategory,
     CatalogItem,
+    CatalogItemMedia,
     CatalogOrder,
     CatalogSettings,
     Subscriber,
 )
 from balebot.services import catalog_payment, miniapp_auth
+from balebot.services.catalog_media import absolute_media_url
 from balebot.services.webhook_logic import get_or_create_subscriber
 
 logger = logging.getLogger(__name__)
@@ -45,13 +47,21 @@ def _json_error(message: str, status: int = 400) -> JsonResponse:
     return JsonResponse({'ok': False, 'error': message}, status=status)
 
 
+def _media_dict(media: CatalogItemMedia, request=None) -> dict:
+    url = media.file.url if media.file else ''
+    if request:
+        url = absolute_media_url(request, url)
+    return {
+        'id': media.pk,
+        'type': media.media_type,
+        'url': url,
+        'title': media.title or '',
+    }
+
+
 def _item_dict(item: CatalogItem, request=None) -> dict:
-    images = []
-    for img in item.images.all():
-        url = img.image.url
-        if request and not url.startswith('http'):
-            url = request.build_absolute_uri(url)
-        images.append(url)
+    media_list = [_media_dict(m, request) for m in item.media.all()]
+    images = [m['url'] for m in media_list if m['type'] == CatalogItemMedia.MediaType.IMAGE]
     return {
         'id': item.pk,
         'slug': item.slug,
@@ -65,10 +75,18 @@ def _item_dict(item: CatalogItem, request=None) -> dict:
         'is_requestable': item.is_requestable(),
         'is_featured': item.is_featured,
         'metadata': item.metadata or {},
+        'media': media_list,
         'images': images,
         'category_id': item.category_id,
         'category_slug': item.category.slug if item.category else None,
     }
+
+
+def _first_item_image_url(item: CatalogItem, request=None) -> str:
+    media = item.media.filter(media_type=CatalogItemMedia.MediaType.IMAGE).first()
+    if not media or not media.file:
+        return ''
+    return absolute_media_url(request, media.file.url) if request else media.file.url
 
 
 def _resolve_subscriber(catalog: CatalogSettings, init_data: str) -> Subscriber | None:
@@ -97,9 +115,7 @@ def catalog_config(request, public_id):
     cfg = BotSettings.get_for_platform(catalog.workspace, catalog.platform)
     logo_url = ''
     if catalog.logo:
-        logo_url = catalog.logo.url
-        if not logo_url.startswith('http'):
-            logo_url = request.build_absolute_uri(logo_url)
+        logo_url = absolute_media_url(request, catalog.logo.url)
     methods = []
     for value, label in catalog.enabled_payment_methods():
         methods.append({'id': value, 'label': label})
@@ -128,16 +144,19 @@ def catalog_categories(request, public_id):
         platform=catalog.platform,
         is_active=True,
     ).order_by('sort_order', 'name')
-    data = [
-        {
+    data = []
+    for c in cats:
+        image_url = ''
+        if c.image:
+            image_url = absolute_media_url(request, c.image.url)
+        data.append({
             'id': c.pk,
             'slug': c.slug,
             'name': c.name,
             'icon': c.icon,
+            'image_url': image_url,
             'parent_id': c.parent_id,
-        }
-        for c in cats
-    ]
+        })
     return JsonResponse({'ok': True, 'categories': data})
 
 
@@ -150,7 +169,7 @@ def catalog_items(request, public_id):
         workspace=catalog.workspace,
         platform=catalog.platform,
         is_active=True,
-    ).select_related('category').prefetch_related('images')
+    ).select_related('category').prefetch_related('media')
     cat = (request.GET.get('category') or '').strip()
     if cat:
         qs = qs.filter(category__slug=cat)
@@ -176,7 +195,7 @@ def catalog_item_detail(request, public_id, slug):
     if err:
         return err
     item = get_object_or_404(
-        CatalogItem.objects.prefetch_related('images'),
+        CatalogItem.objects.prefetch_related('media'),
         workspace=catalog.workspace,
         platform=catalog.platform,
         slug=slug,
@@ -217,6 +236,20 @@ def _parse_body(request) -> dict:
         return {}
 
 
+def _cart_line_dict(entry, request=None) -> dict:
+    item = entry.catalog_item
+    line_total = (item.price or 0) * entry.quantity
+    return {
+        'item_id': item.pk,
+        'slug': item.slug,
+        'title': item.title,
+        'price': item.price,
+        'quantity': entry.quantity,
+        'line_total': line_total,
+        'image': _first_item_image_url(item, request),
+    }
+
+
 @csrf_exempt
 @require_http_methods(['GET', 'POST'])
 def catalog_cart(request, public_id):
@@ -231,21 +264,13 @@ def catalog_cart(request, public_id):
         cart = catalog_payment.get_or_create_cart(catalog.workspace, catalog.platform, sub)
         items = []
         total = 0
-        for entry in cart.items.select_related('catalog_item').all():
+        for entry in cart.items.select_related('catalog_item').prefetch_related('catalog_item__media').all():
             item = entry.catalog_item
             if not item.is_active:
                 continue
-            line_total = (item.price or 0) * entry.quantity
-            total += line_total
-            items.append({
-                'item_id': item.pk,
-                'slug': item.slug,
-                'title': item.title,
-                'price': item.price,
-                'quantity': entry.quantity,
-                'line_total': line_total,
-                'image': item.images.first().image.url if item.images.exists() else '',
-            })
+            line = _cart_line_dict(entry, request)
+            total += line['line_total']
+            items.append(line)
         return JsonResponse({'ok': True, 'items': items, 'total': total})
 
     body = _parse_body(request)
@@ -278,20 +303,13 @@ def catalog_cart(request, public_id):
         entry.save(update_fields=['quantity'])
     items = []
     total = 0
-    for entry in cart.items.select_related('catalog_item').all():
+    for entry in cart.items.select_related('catalog_item').prefetch_related('catalog_item__media').all():
         ci = entry.catalog_item
         if not ci.is_active:
             continue
-        line_total = (ci.price or 0) * entry.quantity
-        total += line_total
-        items.append({
-            'item_id': ci.pk,
-            'slug': ci.slug,
-            'title': ci.title,
-            'price': ci.price,
-            'quantity': entry.quantity,
-            'line_total': line_total,
-        })
+        line = _cart_line_dict(entry, request)
+        total += line['line_total']
+        items.append(line)
     return JsonResponse({'ok': True, 'items': items, 'total': total})
 
 

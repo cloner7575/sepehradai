@@ -16,11 +16,12 @@ from balebot.models import (
     BotSettings,
     CatalogCategory,
     CatalogItem,
-    CatalogItemImage,
+    CatalogItemMedia,
     CatalogOrder,
     CatalogSettings,
 )
 from balebot.platform import get_bot_settings_for_request, require_miniapp_access_for_request
+from balebot.services.catalog_media import detect_media_type
 from balebot.views_panel import PanelAccessMixin, WorkspaceScopedMixin
 
 
@@ -47,18 +48,90 @@ class CatalogDashboardView(MiniAppPanelMixin, TemplateView):
         scope = self.scope_filter()
         catalog = self.get_catalog_settings()
         bot = get_bot_settings_for_request(self.request)
-        ctx['catalog'] = catalog
-        ctx['mini_app_url'] = catalog.build_mini_app_url(bot)
-        ctx['catalog_public_id'] = catalog.public_id
-        ctx['webhook_public_url'] = (bot.webhook_public_url or '').strip()
-        ctx['item_count'] = CatalogItem.objects.filter(**scope).count()
-        ctx['category_count'] = CatalogCategory.objects.filter(**scope, is_active=True).count()
-        ctx['order_count'] = CatalogOrder.objects.filter(**scope).count()
-        ctx['order_pending'] = CatalogOrder.objects.filter(
-            **scope,
-            status=CatalogOrder.Status.PENDING,
-        ).count()
-        ctx['recent_orders'] = CatalogOrder.objects.filter(**scope).select_related('subscriber')[:10]
+        theme = catalog.theme_config or {}
+        payment_methods = catalog.enabled_payment_methods()
+
+        item_count = CatalogItem.objects.filter(**scope).count()
+        active_item_count = CatalogItem.objects.filter(**scope, is_active=True).count()
+        category_count = CatalogCategory.objects.filter(**scope, is_active=True).count()
+        order_count = CatalogOrder.objects.filter(**scope).count()
+        order_pending = CatalogOrder.objects.filter(**scope, status=CatalogOrder.Status.PENDING).count()
+
+        setup_steps = [
+            {
+                'key': 'hero',
+                'done': bool((catalog.hero_title or '').strip()),
+                'label': 'عنوان فروشگاه',
+                'hint': 'نام کسب‌وکار در هدر مینی‌اپ',
+                'url_name': 'catalog_settings',
+                'url_hash': 'sec-branding',
+            },
+            {
+                'key': 'logo',
+                'done': bool(catalog.logo),
+                'label': 'لوگو',
+                'hint': 'تصویر برند در هدر',
+                'url_name': 'catalog_settings',
+                'url_hash': 'sec-branding',
+            },
+            {
+                'key': 'categories',
+                'done': category_count > 0,
+                'label': 'دسته‌بندی',
+                'hint': 'حداقل یک دسته با تصویر',
+                'url_name': 'catalog_category_create',
+                'url_hash': '',
+            },
+            {
+                'key': 'items',
+                'done': item_count > 0,
+                'label': 'آیتم',
+                'hint': 'محصول، ویدیو یا فایل',
+                'url_name': 'catalog_item_create',
+                'url_hash': '',
+            },
+            {
+                'key': 'payment',
+                'done': bool(payment_methods),
+                'label': 'روش پرداخت',
+                'hint': 'زرین‌پال یا ارسال به ادمین',
+                'url_name': 'catalog_settings',
+                'url_hash': 'sec-payment',
+            },
+        ]
+        setup_done = sum(1 for s in setup_steps if s['done'])
+        setup_total = len(setup_steps)
+
+        ctx.update({
+            'catalog': catalog,
+            'theme': theme,
+            'mini_app_url': catalog.build_mini_app_url(bot),
+            'catalog_public_id': catalog.public_id,
+            'webhook_public_url': (bot.webhook_public_url or '').strip(),
+            'item_count': item_count,
+            'active_item_count': active_item_count,
+            'featured_count': CatalogItem.objects.filter(**scope, is_featured=True, is_active=True).count(),
+            'category_count': category_count,
+            'order_count': order_count,
+            'order_pending': order_pending,
+            'payment_methods': payment_methods,
+            'has_payment': bool(payment_methods),
+            'setup_steps': setup_steps,
+            'setup_done': setup_done,
+            'setup_total': setup_total,
+            'setup_percent': int((setup_done / setup_total) * 100) if setup_total else 0,
+            'recent_orders': CatalogOrder.objects.filter(**scope).select_related('subscriber')[:8],
+            'recent_items': (
+                CatalogItem.objects.filter(**scope)
+                .select_related('category')
+                .prefetch_related('media')
+                .order_by('-updated_at')[:6]
+            ),
+            'recent_categories': (
+                CatalogCategory.objects.filter(**scope, is_active=True)
+                .order_by('-updated_at')[:6]
+            ),
+        })
         return ctx
 
 
@@ -161,7 +234,7 @@ class CatalogItemListView(MiniAppPanelMixin, ListView):
     paginate_by = 30
 
     def get_queryset(self):
-        qs = CatalogItem.objects.filter(**self.scope_filter()).select_related('category')
+        qs = CatalogItem.objects.filter(**self.scope_filter()).select_related('category').prefetch_related('media')
         q = (self.request.GET.get('q') or '').strip()
         if q:
             qs = qs.filter(Q(title__icontains=q) | Q(short_description__icontains=q))
@@ -183,14 +256,19 @@ class CatalogItemCreateView(MiniAppPanelMixin, CreateView):
         form.instance.workspace = self.get_workspace()
         form.instance.platform = self.get_active_platform()
         self.object = form.save()
-        self._save_images()
+        self._save_media()
         messages.success(self.request, 'آیتم ذخیره شد.')
         return redirect(self.get_success_url())
 
-    def _save_images(self):
-        files = self.request.FILES.getlist('images')
+    def _save_media(self):
+        files = self.request.FILES.getlist('media')
         for idx, f in enumerate(files):
-            CatalogItemImage.objects.create(item=self.object, image=f, sort_order=idx)
+            CatalogItemMedia.objects.create(
+                item=self.object,
+                file=f,
+                media_type=detect_media_type(f.name),
+                sort_order=idx,
+            )
 
     def get_success_url(self):
         return reverse('catalog_item_list')
@@ -212,15 +290,20 @@ class CatalogItemUpdateView(MiniAppPanelMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['item_images'] = self.object.images.all()
+        ctx['item_media'] = self.object.media.all()
         return ctx
 
     def form_valid(self, form):
         self.object = form.save()
-        files = self.request.FILES.getlist('images')
-        base = self.object.images.count()
+        files = self.request.FILES.getlist('media')
+        base = self.object.media.count()
         for idx, f in enumerate(files):
-            CatalogItemImage.objects.create(item=self.object, image=f, sort_order=base + idx)
+            CatalogItemMedia.objects.create(
+                item=self.object,
+                file=f,
+                media_type=detect_media_type(f.name),
+                sort_order=base + idx,
+            )
         messages.success(self.request, 'آیتم به‌روزرسانی شد.')
         return redirect(self.get_success_url())
 
@@ -228,12 +311,12 @@ class CatalogItemUpdateView(MiniAppPanelMixin, UpdateView):
         return reverse('catalog_item_list')
 
 
-class CatalogItemImageDeleteView(MiniAppPanelMixin, View):
-    def post(self, request, pk, image_pk):
+class CatalogItemMediaDeleteView(MiniAppPanelMixin, View):
+    def post(self, request, pk, media_pk):
         item = get_object_or_404(CatalogItem, pk=pk, **self.scope_filter())
-        img = get_object_or_404(CatalogItemImage, pk=image_pk, item=item)
-        img.delete()
-        messages.success(request, 'تصویر حذف شد.')
+        media = get_object_or_404(CatalogItemMedia, pk=media_pk, item=item)
+        media.delete()
+        messages.success(request, 'رسانه حذف شد.')
         return redirect('catalog_item_edit', pk=pk)
 
 

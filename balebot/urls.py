@@ -87,9 +87,9 @@ urlpatterns = [
     path('catalog/items/new/', views_panel_catalog.CatalogItemCreateView.as_view(), name='catalog_item_create'),
     path('catalog/items/<int:pk>/edit/', views_panel_catalog.CatalogItemUpdateView.as_view(), name='catalog_item_edit'),
     path(
-        'catalog/items/<int:pk>/images/<int:image_pk>/delete/',
-        views_panel_catalog.CatalogItemImageDeleteView.as_view(),
-        name='catalog_item_image_delete',
+        'catalog/items/<int:pk>/media/<int:media_pk>/delete/',
+        views_panel_catalog.CatalogItemMediaDeleteView.as_view(),
+        name='catalog_item_media_delete',
     ),
     path('catalog/orders/', views_panel_catalog.CatalogOrderListView.as_view(), name='catalog_order_list'),
     path('catalog/orders/<int:pk>/', views_panel_catalog.CatalogOrderDetailView.as_view(), name='catalog_order_detail'),
