@@ -710,10 +710,48 @@ class CampaignMediaClearView(PanelAccessMixin, View):
 
 
 FLOW_IMAGE_EXTENSIONS = frozenset({'.jpg', '.jpeg', '.png', '.gif', '.webp'})
+FLOW_VIDEO_EXTENSIONS = frozenset({'.mp4', '.mov', '.mkv', '.webm'})
+FLOW_VOICE_EXTENSIONS = frozenset({'.ogg', '.oga', '.mp3', '.m4a', '.wav', '.opus'})
+FLOW_DOCUMENT_EXTENSIONS = frozenset(
+    {'.pdf', '.zip', '.rar', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt'},
+)
+FLOW_MEDIA_MAX_BYTES = {
+    'photo': 10 * 1024 * 1024,
+    'video': 50 * 1024 * 1024,
+    'voice': 10 * 1024 * 1024,
+    'document': 20 * 1024 * 1024,
+}
+
+
+def _detect_flow_media_kind(ext: str, content_type: str) -> str | None:
+    ext = (ext or '').lower()
+    ct = (content_type or '').lower()
+    if ext in FLOW_IMAGE_EXTENSIONS or ct.startswith('image/'):
+        return FlowMedia.MediaKind.PHOTO
+    if ext in FLOW_VIDEO_EXTENSIONS or ct.startswith('video/'):
+        return FlowMedia.MediaKind.VIDEO
+    if ext in FLOW_VOICE_EXTENSIONS or ct.startswith('audio/'):
+        return FlowMedia.MediaKind.VOICE
+    if ext in FLOW_DOCUMENT_EXTENSIONS or ct in (
+        'application/pdf',
+        'application/zip',
+        'application/x-zip-compressed',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'text/plain',
+    ):
+        return FlowMedia.MediaKind.DOCUMENT
+    if ext and ext not in FLOW_IMAGE_EXTENSIONS | FLOW_VIDEO_EXTENSIONS | FLOW_VOICE_EXTENSIONS:
+        return FlowMedia.MediaKind.DOCUMENT
+    return None
 
 
 class FlowMediaUploadView(WorkspaceScopedMixin, PanelAccessMixin, View):
-    """آپلود عکس برای نودهای جریان /start."""
+    """آپلود رسانه برای نودهای جریان /start."""
 
     http_method_names = ['post']
 
@@ -723,28 +761,27 @@ class FlowMediaUploadView(WorkspaceScopedMixin, PanelAccessMixin, View):
             return JsonResponse({'ok': False, 'error': 'فایلی ارسال نشد.'}, status=400)
 
         ext = Path(upload.name).suffix.lower()
-        if ext not in FLOW_IMAGE_EXTENSIONS:
+        media_kind = _detect_flow_media_kind(ext, upload.content_type or '')
+        if not media_kind:
             return JsonResponse(
-                {'ok': False, 'error': 'فقط تصویر (jpg, png, gif, webp) مجاز است.'},
+                {
+                    'ok': False,
+                    'error': 'نوع فایل پشتیبانی نمی‌شود. عکس، ویدیو، صدا یا فایل مجاز است.',
+                },
                 status=400,
             )
 
-        ct = (upload.content_type or '').lower()
-        if ct and not ct.startswith('image/') and ct != 'application/octet-stream':
-            return JsonResponse(
-                {'ok': False, 'error': 'نوع فایل به‌عنوان تصویر شناخته نشد.'},
-                status=400,
-            )
-
-        max_bytes = 10 * 1024 * 1024
+        max_bytes = FLOW_MEDIA_MAX_BYTES.get(media_kind, 10 * 1024 * 1024)
         if getattr(upload, 'size', 0) and upload.size > max_bytes:
+            mb = max(1, max_bytes // (1024 * 1024))
             return JsonResponse(
-                {'ok': False, 'error': 'حجم فایل از ۱۰ مگابایت بیشتر است.'},
+                {'ok': False, 'error': f'حجم فایل از {mb} مگابایت بیشتر است.'},
                 status=400,
             )
 
         media = FlowMedia.objects.create(
             file=upload,
+            media_kind=media_kind,
             platform=self.get_active_platform(),
             workspace=self.get_workspace(),
         )
@@ -752,6 +789,7 @@ class FlowMediaUploadView(WorkspaceScopedMixin, PanelAccessMixin, View):
             {
                 'ok': True,
                 'media_id': str(media.pk),
+                'media_kind': media_kind,
                 'name': Path(upload.name).name,
             },
         )

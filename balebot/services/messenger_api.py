@@ -165,21 +165,38 @@ def send_video(
     settings: BotSettings | None = None,
     video_path: Path | None = None,
     video_file_id: str | None = None,
+    video_file: Any | None = None,
+    video_filename: str | None = None,
     caption: str = '',
     reply_markup: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    cap = (caption or '').strip()
     if video_file_id:
         payload: dict[str, Any] = {
             'chat_id': chat_id,
             'video': video_file_id,
-            'caption': caption,
         }
+        if cap:
+            payload['caption'] = cap
         if reply_markup is not None:
             payload['reply_markup'] = reply_markup
         return call_method(platform, 'sendVideo', settings=settings, json_body=payload)
+    if video_file is not None:
+        data: dict[str, Any] = {'chat_id': str(chat_id)}
+        if cap:
+            data['caption'] = cap
+        if reply_markup is not None:
+            data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
+        fname = video_filename or getattr(video_file, 'name', None) or 'video.mp4'
+        if isinstance(fname, str) and '/' in fname:
+            fname = Path(fname).name
+        files = {'video': (fname, video_file)}
+        return call_method(platform, 'sendVideo', settings=settings, data=data, files=files)
     if not video_path or not video_path.is_file():
         raise MessengerAPIError('مسیر ویدیو برای ارسال نامعتبر است.')
-    data = {'chat_id': str(chat_id), 'caption': caption}
+    data = {'chat_id': str(chat_id)}
+    if cap:
+        data['caption'] = cap
     if reply_markup is not None:
         data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
     with video_path.open('rb') as f:
@@ -194,21 +211,38 @@ def send_voice(
     settings: BotSettings | None = None,
     voice_path: Path | None = None,
     voice_file_id: str | None = None,
+    voice_file: Any | None = None,
+    voice_filename: str | None = None,
     caption: str = '',
     reply_markup: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    cap = (caption or '').strip()
     if voice_file_id:
         payload: dict[str, Any] = {
             'chat_id': chat_id,
             'voice': voice_file_id,
-            'caption': caption,
         }
+        if cap:
+            payload['caption'] = cap
         if reply_markup is not None:
             payload['reply_markup'] = reply_markup
         return call_method(platform, 'sendVoice', settings=settings, json_body=payload)
+    if voice_file is not None:
+        data: dict[str, Any] = {'chat_id': str(chat_id)}
+        if cap:
+            data['caption'] = cap
+        if reply_markup is not None:
+            data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
+        fname = voice_filename or getattr(voice_file, 'name', None) or 'voice.ogg'
+        if isinstance(fname, str) and '/' in fname:
+            fname = Path(fname).name
+        files = {'voice': (fname, voice_file)}
+        return call_method(platform, 'sendVoice', settings=settings, data=data, files=files)
     if not voice_path or not voice_path.is_file():
         raise MessengerAPIError('مسیر صدا برای ارسال نامعتبر است.')
-    data = {'chat_id': str(chat_id), 'caption': caption}
+    data = {'chat_id': str(chat_id)}
+    if cap:
+        data['caption'] = cap
     if reply_markup is not None:
         data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
     with voice_path.open('rb') as f:
@@ -223,21 +257,38 @@ def send_document(
     settings: BotSettings | None = None,
     document_path: Path | None = None,
     document_file_id: str | None = None,
+    document_file: Any | None = None,
+    document_filename: str | None = None,
     caption: str = '',
     reply_markup: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    cap = (caption or '').strip()
     if document_file_id:
         payload: dict[str, Any] = {
             'chat_id': chat_id,
             'document': document_file_id,
-            'caption': caption,
         }
+        if cap:
+            payload['caption'] = cap
         if reply_markup is not None:
             payload['reply_markup'] = reply_markup
         return call_method(platform, 'sendDocument', settings=settings, json_body=payload)
+    if document_file is not None:
+        data: dict[str, Any] = {'chat_id': str(chat_id)}
+        if cap:
+            data['caption'] = cap
+        if reply_markup is not None:
+            data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
+        fname = document_filename or getattr(document_file, 'name', None) or 'file.bin'
+        if isinstance(fname, str) and '/' in fname:
+            fname = Path(fname).name
+        files = {'document': (fname, document_file)}
+        return call_method(platform, 'sendDocument', settings=settings, data=data, files=files)
     if not document_path or not document_path.is_file():
         raise MessengerAPIError('مسیر سند برای ارسال نامعتبر است.')
-    data = {'chat_id': str(chat_id), 'caption': caption}
+    data = {'chat_id': str(chat_id)}
+    if cap:
+        data['caption'] = cap
     if reply_markup is not None:
         data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
     with document_path.open('rb') as f:

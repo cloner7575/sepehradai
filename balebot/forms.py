@@ -266,11 +266,23 @@ class CampaignForm(forms.ModelForm):
             },
         ),
     )
+    AUDIENCE_ALL = 'all'
+    AUDIENCE_TAGS = 'tags'
+
+    audience_mode = forms.ChoiceField(
+        choices=[
+            (AUDIENCE_ALL, 'ارسال برای همه'),
+            (AUDIENCE_TAGS, 'ارسال به دسته‌بندی‌های انتخابی'),
+        ],
+        label='مخاطبان کمپین',
+        initial=AUDIENCE_ALL,
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
+    )
     target_tags = forms.ModelMultipleChoiceField(
         required=False,
         queryset=Tag.objects.filter(is_active=True).order_by('name'),
-        label='دسته‌بندی مخاطب (Tag)',
-        help_text='اگر انتخاب نکنید، کمپین برای همه کاربران فعال و ثبت‌نام‌شده ارسال می‌شود.',
+        label='دسته‌بندی‌ها',
+        help_text='یک یا چند دسته‌بندی را انتخاب کنید.',
         widget=forms.SelectMultiple(attrs={'class': 'form-select panel-input', 'size': 6}),
     )
 
@@ -299,6 +311,7 @@ class CampaignForm(forms.ModelForm):
         'jalali_scheduled_date',
         'jalali_scheduled_time',
         'content_type',
+        'audience_mode',
         'target_tags',
         'body',
         'media',
@@ -314,6 +327,10 @@ class CampaignForm(forms.ModelForm):
         if self.workspace is not None:
             tag_filter['workspace'] = self.workspace
         self.fields['target_tags'].queryset = Tag.objects.filter(**tag_filter).order_by('name')
+        if self.instance.pk and self.instance.target_tags.exists():
+            self.initial['audience_mode'] = self.AUDIENCE_TAGS
+        else:
+            self.initial['audience_mode'] = self.AUDIENCE_ALL
         raw = self.instance.inline_keyboard if self.instance.pk else None
         norm = normalize_to_sections(raw)
         dumped = json.dumps(norm, ensure_ascii=False)
@@ -419,6 +436,13 @@ class CampaignForm(forms.ModelForm):
         else:
             cleaned['resolved_scheduled_at'] = None
 
+        mode = cleaned.get('audience_mode')
+        tags = cleaned.get('target_tags')
+        if mode == self.AUDIENCE_TAGS and not tags:
+            raise forms.ValidationError(
+                'برای ارسال به دسته‌بندی، حداقل یک دسته‌بندی انتخاب کنید.',
+            )
+
         return cleaned
 
     def save(self, commit=True):
@@ -426,7 +450,10 @@ class CampaignForm(forms.ModelForm):
         obj.scheduled_at = self.cleaned_data['resolved_scheduled_at']
         if commit:
             obj.save()
-            self._save_m2m()
+            if self.cleaned_data.get('audience_mode') == self.AUDIENCE_ALL:
+                obj.target_tags.clear()
+            else:
+                self._save_m2m()
             self._apply_pending_video_upload(obj)
         return obj
 

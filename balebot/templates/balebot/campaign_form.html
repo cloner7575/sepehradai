@@ -16,7 +16,7 @@
       {% endif %}
 
       {% for field in form %}
-        {% if field.name != 'inline_keyboard' %}
+        {% if field.name != 'inline_keyboard' and field.name != 'audience_mode' and field.name != 'target_tags' %}
           {% if field.name == 'media' %}
             {% include "balebot/campaign_media_widget.html" with media_field=field %}
           {% else %}
@@ -30,22 +30,58 @@
         {% endif %}
       {% endfor %}
 
+      <div class="mb-3 campaign-audience-block">
+        <label class="form-label d-block">{{ form.audience_mode.label }}</label>
+        <div class="d-flex flex-column gap-2 mb-2">
+          {% for radio in form.audience_mode %}
+          <div class="form-check">
+            {{ radio.tag }}
+            <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="form-text mb-2">
+          «ارسال برای همه» شامل کاربران فعال و ثبت‌نام‌شده (یا بازدیدکنندگان مینی‌اپ) می‌شود.
+        </div>
+        {% for err in form.audience_mode.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+
+        <div id="campaign-target-tags-wrap" class="mt-3">
+          <label class="form-label" for="{{ form.target_tags.id_for_label }}">{{ form.target_tags.label }}</label>
+          {{ form.target_tags }}
+          {% if form.target_tags.help_text %}<div class="form-text">{{ form.target_tags.help_text }}</div>{% endif %}
+          {% for err in form.target_tags.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+        </div>
+      </div>
+
       {% include "balebot/campaign_keyboard_builder.html" %}
 
       <script>
       (function () {
         var kind = document.getElementById('id_schedule_kind');
         var boxes = document.querySelectorAll('.campaign-jalali-fields');
-        function sync() {
+        function syncSchedule() {
           var show = kind && kind.value === 'scheduled';
           boxes.forEach(function (el) {
             el.style.display = show ? '' : 'none';
           });
         }
         if (kind) {
-          kind.addEventListener('change', sync);
-          sync();
+          kind.addEventListener('change', syncSchedule);
+          syncSchedule();
         }
+
+        var audienceRadios = document.querySelectorAll('input[name="audience_mode"]');
+        var tagsWrap = document.getElementById('campaign-target-tags-wrap');
+        function syncAudience() {
+          if (!tagsWrap) return;
+          var mode = document.querySelector('input[name="audience_mode"]:checked');
+          var showTags = mode && mode.value === 'tags';
+          tagsWrap.style.display = showTags ? '' : 'none';
+        }
+        audienceRadios.forEach(function (radio) {
+          radio.addEventListener('change', syncAudience);
+        });
+        syncAudience();
       })();
       </script>
 

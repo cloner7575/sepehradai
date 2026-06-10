@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,8 @@ from django.db import IntegrityError
 from balebot.models import BotSettings, FlowMedia, Platform, Subscriber, SubscriberTag, Tag
 from balebot.services import messenger_api
 from balebot.services.flow_sanitize import empty_start_flow, sanitize_start_flow
+
+logger = logging.getLogger(__name__)
 
 _FLOW_CB = re.compile(r'^f(n_[a-f0-9]{8})$')
 _FLOW_BACK_CB = re.compile(r'^fb(n_[a-f0-9]{8})$')
@@ -166,16 +169,36 @@ def assign_path_tags(sub: Subscriber, slugs: list[str], ref: _ButtonRef) -> None
         SubscriberTag.objects.get_or_create(subscriber=sub, tag=tag)
 
 
+def resolve_web_app_url(raw: str, cfg: BotSettings | None = None) -> str:
+    """آدرس مینی‌اپ را برای WebAppInfo نرمال می‌کند (HTTPS الزامی است)."""
+    url = (raw or '').strip()
+    if not url:
+        return ''
+    if url.startswith('/'):
+        if cfg is None:
+            return ''
+        base = (cfg.webhook_public_url or '').strip().rstrip('/')
+        if not base:
+            return ''
+        url = f'{base}{url}'
+    if url.startswith('http://'):
+        url = f'https://{url[7:]}'
+    elif not url.startswith('https://'):
+        url = f'https://{url.lstrip("/")}'
+    return url[:512]
+
+
 def build_markup_for_buttons_node(
     buttons_node: dict[str, Any],
     *,
     parent_button_id: str | None = None,
+    cfg: BotSettings | None = None,
 ) -> dict[str, Any] | None:
-    rows_api: list[list[dict[str, str]]] = []
+    rows_api: list[list[dict[str, Any]]] = []
     for row in buttons_node.get('rows') or []:
         if not isinstance(row, list):
             continue
-        out_row: list[dict[str, str]] = []
+        out_row: list[dict[str, Any]] = []
         for btn in row:
             if not isinstance(btn, dict):
                 continue
@@ -191,9 +214,9 @@ def build_markup_for_buttons_node(
                         out_row.append({'text': text, 'url': url[:512]})
                     continue
                 if atype == 'web_app':
-                    url = (action.get('url') or '').strip()
+                    url = resolve_web_app_url(action.get('url') or '', cfg)
                     if url:
-                        out_row.append({'text': text, 'web_app': {'url': url[:512]}})
+                        out_row.append({'text': text, 'web_app': {'url': url}})
                     continue
             nid = btn.get('id')
             if not nid:
@@ -212,18 +235,37 @@ def build_markup_for_buttons_node(
     return {'inline_keyboard': rows_api}
 
 
-def _extract_photo_file_id(resp: dict[str, Any]) -> str:
+def _extract_messenger_file_id(resp: dict[str, Any], media_kind: str) -> str:
     if not isinstance(resp, dict):
         return ''
     result = resp.get('result') or resp
-    payload = result.get('photo')
-    if isinstance(payload, list):
-        if payload:
-            return str(payload[-1].get('file_id') or '')
+    kind = str(media_kind or 'photo').lower()
+    if kind == 'photo':
+        payload = result.get('photo')
+        if isinstance(payload, list):
+            if payload:
+                return str(payload[-1].get('file_id') or '')
+            return ''
+        if isinstance(payload, dict):
+            return str(payload.get('file_id') or '')
         return ''
-    if isinstance(payload, dict):
-        return str(payload.get('file_id') or '')
+    for key in ('video', 'voice', 'document', 'audio'):
+        payload = result.get(key)
+        if isinstance(payload, dict):
+            fid = str(payload.get('file_id') or '')
+            if fid:
+                return fid
     return ''
+
+
+def _node_type_to_media_kind(node_type: str) -> str:
+    mapping = {
+        'image': FlowMedia.MediaKind.PHOTO,
+        'video': FlowMedia.MediaKind.VIDEO,
+        'voice': FlowMedia.MediaKind.VOICE,
+        'document': FlowMedia.MediaKind.DOCUMENT,
+    }
+    return mapping.get(str(node_type or '').lower(), FlowMedia.MediaKind.PHOTO)
 
 
 def _send_flow_media_upload(
@@ -233,33 +275,94 @@ def _send_flow_media_upload(
     *,
     caption: str = '',
 ) -> dict[str, Any]:
-    """آپلود فایل FlowMedia به بله (بدون وابستگی به مسیر محلی روی دیسک)."""
+    """آپلود فایل FlowMedia به پیام‌رسان (بدون وابستگی به مسیر محلی روی دیسک)."""
     if not media.file or not media.file.name:
-        raise messenger_api.MessengerAPIError('فایل عکس در سرور یافت نشد.')
+        raise messenger_api.MessengerAPIError('فایل رسانه در سرور یافت نشد.')
+    fname = Path(media.file.name).name
     with media.file.open('rb') as f:
+        kind = str(media.media_kind or FlowMedia.MediaKind.PHOTO).lower()
+        if kind == FlowMedia.MediaKind.VIDEO:
+            return messenger_api.send_video(
+                cfg.platform,
+                chat_id,
+                settings=cfg,
+                video_file=f,
+                video_filename=fname,
+                caption=caption,
+            )
+        if kind == FlowMedia.MediaKind.VOICE:
+            return messenger_api.send_voice(
+                cfg.platform,
+                chat_id,
+                settings=cfg,
+                voice_file=f,
+                voice_filename=fname,
+                caption=caption,
+            )
+        if kind == FlowMedia.MediaKind.DOCUMENT:
+            return messenger_api.send_document(
+                cfg.platform,
+                chat_id,
+                settings=cfg,
+                document_file=f,
+                document_filename=fname,
+                caption=caption,
+            )
         return messenger_api.send_photo(
             cfg.platform,
             chat_id,
             settings=cfg,
             photo_file=f,
-            photo_filename=Path(media.file.name).name,
+            photo_filename=fname,
             caption=caption,
         )
 
 
 def _store_messenger_file_id(media: FlowMedia, resp: dict[str, Any]) -> None:
-    fid = _extract_photo_file_id(resp)
+    fid = _extract_messenger_file_id(resp, media.media_kind)
     if fid and fid != media.messenger_file_id:
         media.messenger_file_id = fid[:512]
         media.save(update_fields=['messenger_file_id'])
 
 
-def send_image_node(cfg: BotSettings, chat_id: int, node: dict[str, Any]) -> bool:
+def _send_media_with_file_id(
+    cfg: BotSettings,
+    chat_id: int,
+    media: FlowMedia,
+    *,
+    caption: str = '',
+) -> None:
     platform = cfg.platform
+    fid = media.messenger_file_id
+    kind = str(media.media_kind or FlowMedia.MediaKind.PHOTO).lower()
+    if kind == FlowMedia.MediaKind.VIDEO:
+        messenger_api.send_video(
+            platform, chat_id, settings=cfg, video_file_id=fid, caption=caption,
+        )
+    elif kind == FlowMedia.MediaKind.VOICE:
+        messenger_api.send_voice(
+            platform, chat_id, settings=cfg, voice_file_id=fid, caption=caption,
+        )
+    elif kind == FlowMedia.MediaKind.DOCUMENT:
+        messenger_api.send_document(
+            platform, chat_id, settings=cfg, document_file_id=fid, caption=caption,
+        )
+    else:
+        messenger_api.send_photo(
+            platform, chat_id, settings=cfg, photo_file_id=fid, caption=caption,
+        )
+
+
+def send_media_node(cfg: BotSettings, chat_id: int, node: dict[str, Any]) -> bool:
+    platform = cfg.platform
+    node_type = str(node.get('type', '') or '').lower()
+    if node_type not in ('image', 'video', 'voice', 'document'):
+        return False
     media_id = str(node.get('media_id', '') or '').strip()
     caption = (node.get('caption') or '').strip()[:1024]
     if not media_id:
         return False
+    expected_kind = _node_type_to_media_kind(node_type)
     media = FlowMedia.objects.filter(
         pk=media_id,
         platform=platform,
@@ -267,16 +370,14 @@ def send_image_node(cfg: BotSettings, chat_id: int, node: dict[str, Any]) -> boo
     ).first()
     if not media or not media.file or not media.file.name:
         return False
+    if media.media_kind != expected_kind:
+        media.media_kind = expected_kind
+        media.messenger_file_id = ''
+        media.save(update_fields=['media_kind', 'messenger_file_id'])
 
     if media.messenger_file_id:
         try:
-            messenger_api.send_photo(
-                platform,
-                chat_id,
-                settings=cfg,
-                photo_file_id=media.messenger_file_id,
-                caption=caption,
-            )
+            _send_media_with_file_id(cfg, chat_id, media, caption=caption)
             return True
         except messenger_api.MessengerAPIError:
             media.messenger_file_id = ''
@@ -290,8 +391,12 @@ def send_image_node(cfg: BotSettings, chat_id: int, node: dict[str, Any]) -> boo
         return False
 
 
+def send_image_node(cfg: BotSettings, chat_id: int, node: dict[str, Any]) -> bool:
+    return send_media_node(cfg, chat_id, node)
+
+
 def _append_markup_rows(
-    merged_rows: list[list[dict[str, str]]],
+    merged_rows: list[list[dict[str, Any]]],
     markup: dict[str, Any] | None,
 ) -> None:
     if not markup:
@@ -301,33 +406,108 @@ def _append_markup_rows(
             merged_rows.append(row)
 
 
-def send_sequence(cfg: BotSettings, chat_id: int, sequence: dict[str, Any]) -> dict[str, Any] | None:
-    """ارسال آیتم‌های sequence؛ ردیف‌های همهٔ بلوک‌های دکمه را ادغام و برمی‌گرداند."""
+def send_sequence_items(
+    cfg: BotSettings,
+    chat_id: int,
+    sequence: dict[str, Any],
+    *,
+    merge_button_markup: bool = False,
+) -> dict[str, Any] | None:
+    """ارسال آیتم‌های sequence؛ در صورت merge_button_markup ردیف‌های دکمه ادغام می‌شوند."""
     platform = cfg.platform
-    merged_rows: list[list[dict[str, str]]] = []
     items = sequence.get('items') or []
-    for item in items:
+    merged_rows: list[list[dict[str, Any]]] = []
+
+    if merge_button_markup:
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            if str(item.get('type', '')).lower() == 'buttons':
+                _append_markup_rows(
+                    merged_rows,
+                    build_markup_for_buttons_node(item, cfg=cfg),
+                )
+
+    pending_markup: dict[str, Any] | None = None
+    if merge_button_markup and merged_rows:
+        pending_markup = {'inline_keyboard': merged_rows}
+
+    last_text_idx = -1
+    for idx, item in enumerate(items):
+        if not isinstance(item, dict):
+            continue
+        if str(item.get('type', '')).lower() == 'text' and (item.get('body') or '').strip():
+            last_text_idx = idx
+
+    for idx, item in enumerate(items):
         if not isinstance(item, dict):
             continue
         itype = str(item.get('type', '')).lower()
         if itype == 'text':
             body = (item.get('body') or '').strip()
-            if body:
-                try:
-                    messenger_api.send_message(platform, chat_id, body[:4096], settings=cfg)
-                except messenger_api.MessengerAPIError:
-                    pass
-        elif itype == 'image':
-            send_image_node(cfg, chat_id, item)
-        elif itype == 'buttons':
-            _append_markup_rows(merged_rows, build_markup_for_buttons_node(item))
-    if merged_rows:
-        return {'inline_keyboard': merged_rows}
-    return None
+            if not body:
+                continue
+            reply_markup = pending_markup if merge_button_markup and idx == last_text_idx else None
+            try:
+                messenger_api.send_message(
+                    platform,
+                    chat_id,
+                    body[:4096],
+                    settings=cfg,
+                    reply_markup=reply_markup,
+                )
+            except messenger_api.MessengerAPIError:
+                if reply_markup:
+                    try:
+                        messenger_api.send_message(
+                            platform,
+                            chat_id,
+                            body[:4096],
+                            settings=cfg,
+                        )
+                    except messenger_api.MessengerAPIError:
+                        pass
+            else:
+                if reply_markup:
+                    pending_markup = None
+        elif itype in ('image', 'video', 'voice', 'document'):
+            send_media_node(cfg, chat_id, item)
+
+    return pending_markup
+
+
+def _send_inline_keyboard_message(
+    cfg: BotSettings,
+    chat_id: int,
+    markup: dict[str, Any],
+) -> bool:
+    """پیام حامل دکمه‌های inline؛ متن باید برای API بله قابل‌قبول باشد."""
+    platform = cfg.platform
+    for anchor in ('.', '·', ' '):
+        try:
+            messenger_api.send_message(
+                platform,
+                chat_id,
+                anchor,
+                settings=cfg,
+                reply_markup=markup,
+            )
+            return True
+        except messenger_api.MessengerAPIError as exc:
+            logger.warning(
+                'ارسال پیام دکمه‌های inline ناموفق (anchor=%r): %s',
+                anchor,
+                exc,
+            )
+    return False
+
+
+def send_sequence(cfg: BotSettings, chat_id: int, sequence: dict[str, Any]) -> dict[str, Any] | None:
+    """ارسال آیتم‌های sequence؛ ردیف‌های همهٔ بلوک‌های دکمه را ادغام و برمی‌گرداند."""
+    return send_sequence_items(cfg, chat_id, sequence, merge_button_markup=True)
 
 
 def render_root_flow(cfg: BotSettings, chat_id: int) -> None:
-    platform = cfg.platform
     flow = get_flow(cfg)
     root = flow.get('root') or {}
     if str(root.get('type', '')).lower() != 'sequence':
@@ -335,17 +515,11 @@ def render_root_flow(cfg: BotSettings, chat_id: int) -> None:
     markup = send_sequence(cfg, chat_id, root)
     if markup:
         markup = merge_support_into_markup(cfg, markup) or markup
-        try:
-            messenger_api.send_message(platform, chat_id, '\u2060', settings=cfg, reply_markup=markup)
-        except messenger_api.MessengerAPIError:
-            pass
+        _send_inline_keyboard_message(cfg, chat_id, markup)
     elif cfg.enable_support:
         mk = merge_support_into_markup(cfg, None)
         if mk:
-            try:
-                messenger_api.send_message(platform, chat_id, '\u2060', settings=cfg, reply_markup=mk)
-            except messenger_api.MessengerAPIError:
-                pass
+            _send_inline_keyboard_message(cfg, chat_id, mk)
 
 
 def send_default_text(cfg: BotSettings, chat_id: int) -> None:
@@ -395,16 +569,20 @@ def execute_button_action(
         return 'text'
 
     if atype == 'image':
-        if not send_image_node(cfg, chat_id, action):
+        if not send_media_node(cfg, chat_id, action):
             send_default_text(cfg, chat_id)
             return 'image_failed'
         return 'image'
+
+    if atype == 'sequence':
+        send_sequence_items(cfg, chat_id, action, merge_button_markup=False)
+        return 'sequence'
 
     if atype in ('url', 'web_app'):
         return atype
 
     if atype == 'buttons':
-        mk = build_markup_for_buttons_node(action, parent_button_id=btn_id)
+        mk = build_markup_for_buttons_node(action, parent_button_id=btn_id, cfg=cfg)
         if mk and message_id:
             try:
                 messenger_api.edit_message_reply_markup(
@@ -414,11 +592,8 @@ def execute_button_action(
             except messenger_api.MessengerAPIError:
                 pass
         if mk:
-            try:
-                messenger_api.send_message(platform, chat_id, '\u2060', settings=cfg, reply_markup=mk)
-                return 'buttons'
-            except messenger_api.MessengerAPIError:
-                pass
+            _send_inline_keyboard_message(cfg, chat_id, mk)
+            return 'buttons'
         send_default_text(cfg, chat_id)
         return 'default'
 
@@ -447,6 +622,7 @@ def handle_flow_callback(
                 mk = build_markup_for_buttons_node(
                     pact,
                     parent_button_id=str(parent.get('id') or '') or None,
+                    cfg=cfg,
                 )
                 if mk and message_id:
                     try:

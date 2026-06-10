@@ -5,6 +5,19 @@
 
   var MAX_DEPTH = 20;
   var uploadUrl = '';
+  var MEDIA_TYPES = ['image', 'video', 'voice', 'document'];
+  var MEDIA_LABELS = {
+    image: 'عکس',
+    video: 'ویدیو',
+    voice: 'صدا',
+    document: 'فایل',
+  };
+  var MEDIA_ACCEPT = {
+    image: 'image/*',
+    video: 'video/*,.mp4,.mov,.mkv,.webm',
+    voice: 'audio/*,.ogg,.mp3,.m4a,.wav,.opus',
+    document: '*/*,.pdf,.zip,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt',
+  };
 
   function depthClass(d) {
     return 'panel-input-depth-' + Math.min(d, 5);
@@ -23,8 +36,16 @@
     return { type: 'sequence', items: [] };
   }
 
+  function defaultMediaItem(mediaType) {
+    return { type: mediaType, media_id: '', caption: '' };
+  }
+
   function emptyFlow() {
     return { version: 2, root: defaultSequence() };
+  }
+
+  function isMediaType(t) {
+    return MEDIA_TYPES.indexOf(String(t || '').toLowerCase()) >= 0;
   }
 
   function actionLabelSuffix(action) {
@@ -33,8 +54,45 @@
     if (t === 'url') return ' · 🔗';
     if (t === 'text') return ' · 💬';
     if (t === 'image') return ' · 🖼';
+    if (t === 'video') return ' · 🎬';
+    if (t === 'voice') return ' · 🎙';
+    if (t === 'document') return ' · 📎';
+    if (t === 'sequence') {
+      var n = (action.items || []).length;
+      return ' · 📦' + (n ? ' (' + n + ')' : '');
+    }
     if (t === 'buttons') return ' · 📂';
     return '';
+  }
+
+  function normalizeMediaItem(item, mediaType) {
+    var mid = String(item.media_id || '').trim();
+    if (!mid) return null;
+    return {
+      type: mediaType,
+      media_id: mid,
+      caption: String(item.caption || '').slice(0, 1024),
+    };
+  }
+
+  function normalizeMiniSequence(seq, depth) {
+    if (!seq || String(seq.type).toLowerCase() !== 'sequence') {
+      return null;
+    }
+    var items = [];
+    (seq.items || []).forEach(function (item) {
+      if (!item) return;
+      var t = String(item.type || '').toLowerCase();
+      if (t === 'text') {
+        var body = String(item.body || '').trim();
+        if (body) items.push({ type: 'text', body: body.slice(0, 4096) });
+      } else if (isMediaType(t)) {
+        var media = normalizeMediaItem(item, t);
+        if (media) items.push(media);
+      }
+    });
+    if (!items.length) return null;
+    return { type: 'sequence', items: items };
   }
 
   function normalizeAction(action, depth) {
@@ -45,15 +103,11 @@
       var body = String(a.body || '').trim().slice(0, 4096);
       return body ? { type: 'text', body: body } : null;
     }
-    if (t === 'image') {
-      var mid = String(a.media_id || '').trim();
-      return mid
-        ? {
-            type: 'image',
-            media_id: mid,
-            caption: String(a.caption || '').slice(0, 1024),
-          }
-        : null;
+    if (isMediaType(t)) {
+      return normalizeMediaItem(a, t);
+    }
+    if (t === 'sequence') {
+      return normalizeMiniSequence(a, depth);
     }
     if (t === 'url' || t === 'web_app') {
       var url = String(a.url || '').trim().slice(0, 512);
@@ -110,14 +164,9 @@
       if (t === 'text') {
         var body = String(item.body || '').trim();
         if (body) items.push({ type: 'text', body: body.slice(0, 4096) });
-      } else if (t === 'image') {
-        var mid = String(item.media_id || '').trim();
-        if (mid)
-          items.push({
-            type: 'image',
-            media_id: mid,
-            caption: String(item.caption || '').slice(0, 1024),
-          });
+      } else if (isMediaType(t)) {
+        var media = normalizeMediaItem(item, t);
+        if (media) items.push(media);
       } else if (t === 'buttons') {
         var b = normalizeButtons(item, depth);
         if (b) items.push(b);
@@ -148,7 +197,7 @@
     if (el) el.value = JSON.stringify(state);
   }
 
-  function uploadImage(file, onOk, onErr) {
+  function uploadMedia(file, onOk, onErr) {
     if (!uploadUrl) {
       onErr('آدرس آپلود تنظیم نشده.');
       return;
@@ -237,8 +286,8 @@
         block.appendChild(rowsHost);
         box.appendChild(block);
 
-        (node.rows || []).forEach(function (row, ri) {
-          (row || []).forEach(function (btn, bi) {
+        (node.rows || []).forEach(function (row) {
+          (row || []).forEach(function (btn) {
             if (
               btn &&
               btn.action &&
@@ -267,17 +316,17 @@
       }
     }
 
-    function appendImageFields(
+    function appendMediaFields(
       target,
-      holder,
       depth,
-      getAction,
-      setAction,
+      mediaType,
+      getItem,
+      setItem,
       onChange
     ) {
       var fileInp = document.createElement('input');
       fileInp.type = 'file';
-      fileInp.accept = 'image/*';
+      fileInp.accept = MEDIA_ACCEPT[mediaType] || '*/*';
       fileInp.className =
         'form-control form-control-sm panel-input ' + depthClass(depth);
 
@@ -285,10 +334,10 @@
       status.className = 'small text-muted mt-1';
 
       function refreshStatus() {
-        var act = getAction();
+        var item = getItem();
         status.textContent =
-          act && act.media_id
-            ? 'آپلود شده · ' + act.media_id.slice(0, 8) + '…'
+          item && item.media_id
+            ? 'آپلود شده · ' + item.media_id.slice(0, 8) + '…'
             : 'فایلی انتخاب نشده';
       }
       refreshStatus();
@@ -297,14 +346,14 @@
         var f = fileInp.files && fileInp.files[0];
         if (!f) return;
         status.textContent = 'در حال آپلود…';
-        uploadImage(
+        uploadMedia(
           f,
           function (j) {
-            var act = getAction() || { type: 'image', media_id: '', caption: '' };
-            act.type = 'image';
-            act.media_id = j.media_id;
-            if (act.caption === undefined) act.caption = '';
-            setAction(act);
+            var item = getItem() || defaultMediaItem(mediaType);
+            item.type = mediaType;
+            item.media_id = j.media_id;
+            if (item.caption === undefined) item.caption = '';
+            setItem(item);
             refreshStatus();
             onChange();
           },
@@ -318,21 +367,123 @@
       cap.className =
         'form-control form-control-sm panel-input ' + depthClass(depth) + ' mt-2';
       cap.rows = 2;
-      cap.placeholder = 'کپشن / زیرنویس عکس (اختیاری)';
+      cap.placeholder = 'توضیح / کپشن (اختیاری)';
       cap.maxLength = 1024;
-      var act0 = getAction();
-      cap.value = (act0 && act0.caption) || '';
+      var item0 = getItem();
+      cap.value = (item0 && item0.caption) || '';
       cap.addEventListener('input', function () {
-        var act = getAction() || { type: 'image', media_id: '', caption: '' };
-        act.type = 'image';
-        act.caption = cap.value;
-        setAction(act);
+        var item = getItem() || defaultMediaItem(mediaType);
+        item.type = mediaType;
+        item.caption = cap.value;
+        setItem(item);
         onChange();
       });
 
       target.appendChild(fileInp);
       target.appendChild(status);
       target.appendChild(cap);
+    }
+
+    function renderMiniSequenceEditor(seq, depth, parentEl, onChange) {
+      if (!seq.items) seq.items = [];
+
+      var hint = document.createElement('div');
+      hint.className = 'small text-muted mb-2';
+      hint.textContent =
+        'پس از کلیک، این آیتم‌ها به‌ترتیب برای کاربر ارسال می‌شوند (متن، عکس، ویدیو، صدا، فایل).';
+      parentEl.appendChild(hint);
+
+      var list = document.createElement('div');
+      list.className = 'flow-mini-sequence-list';
+      parentEl.appendChild(list);
+
+      function renderItems() {
+        list.innerHTML = '';
+        seq.items.forEach(function (item, idx) {
+          var card = document.createElement('div');
+          card.className =
+            'flow-mini-seq-item mb-2 p-2 rounded border border-secondary border-opacity-25 ' +
+            depthClass(depth + 1);
+
+          var head = document.createElement('div');
+          head.className = 'd-flex justify-content-between align-items-center mb-2';
+          var t = String(item.type || '');
+          head.innerHTML =
+            '<span class="small fw-semibold">' +
+            (t === 'text' ? 'متن' : MEDIA_LABELS[t] || t) +
+            '</span>';
+
+          var rm = document.createElement('button');
+          rm.type = 'button';
+          rm.className = 'btn btn-panel-ghost btn-sm text-danger';
+          rm.innerHTML = '<i class="bi bi-trash"></i>';
+          rm.addEventListener('click', function () {
+            seq.items.splice(idx, 1);
+            renderItems();
+            onChange();
+          });
+          head.appendChild(rm);
+          card.appendChild(head);
+
+          if (t === 'text') {
+            var ta = document.createElement('textarea');
+            ta.className =
+              'form-control form-control-sm panel-input ' + depthClass(depth + 1);
+            ta.rows = 2;
+            ta.placeholder = 'متن پیام';
+            ta.maxLength = 4096;
+            ta.value = item.body || '';
+            ta.addEventListener('input', function () {
+              item.body = ta.value;
+              onChange();
+            });
+            card.appendChild(ta);
+          } else if (isMediaType(t)) {
+            appendMediaFields(
+              card,
+              depth + 1,
+              t,
+              function () {
+                return item;
+              },
+              function (next) {
+                seq.items[idx] = next;
+              },
+              onChange
+            );
+          }
+
+          list.appendChild(card);
+        });
+      }
+
+      var toolbar = document.createElement('div');
+      toolbar.className = 'd-flex flex-wrap gap-2 mt-2';
+      [
+        ['text', 'متن'],
+        ['image', 'عکس'],
+        ['video', 'ویدیو'],
+        ['voice', 'صدا'],
+        ['document', 'فایل'],
+      ].forEach(function (pair) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'btn btn-panel-ghost btn-sm';
+        b.textContent = '+ ' + pair[1];
+        b.addEventListener('click', function () {
+          if (pair[0] === 'text') {
+            seq.items.push({ type: 'text', body: '' });
+          } else {
+            seq.items.push(defaultMediaItem(pair[0]));
+          }
+          renderItems();
+          onChange();
+        });
+        toolbar.appendChild(b);
+      });
+      parentEl.appendChild(toolbar);
+
+      renderItems();
     }
 
     function renderButtonEditor(btn, depth, onChange) {
@@ -348,7 +499,7 @@
       var textInp = document.createElement('input');
       textInp.type = 'text';
       textInp.className = 'form-control form-control-sm panel-input ' + depthClass(depth);
-      textInp.placeholder = 'مثلاً ثبت‌نام کلاس';
+      textInp.placeholder = 'مثلاً مشاهده کمپین';
       textInp.maxLength = 64;
       textInp.value = btn.text || '';
       textInp.addEventListener('input', function () {
@@ -380,8 +531,9 @@
       [
         ['', 'بدون اکشن (بن‌بست → متن پیش‌فرض)'],
         ['text', 'ارسال متن'],
+        ['sequence', 'ارسال چند رسانه / متن'],
         ['buttons', 'زیرمنو — دکمه‌های بعدی'],
-        ['image', 'ارسال عکس'],
+        ['image', 'ارسال یک عکس'],
         ['url', 'باز کردن لینک'],
         ['web_app', 'باز کردن مینی‌اپ'],
       ].forEach(function (o) {
@@ -425,7 +577,7 @@
           urlInp.type = 'url';
           urlInp.className =
             'form-control form-control-sm panel-input ' + depthClass(depth + 1);
-          urlInp.placeholder = t === 'web_app' ? 'https://.../shop/...' : 'https://...';
+          urlInp.placeholder = t === 'web_app' ? 'https://example.com/shop/...' : 'https://...';
           urlInp.value =
             prev && (prev.type === 'url' || prev.type === 'web_app')
               ? prev.url || ''
@@ -436,10 +588,17 @@
           });
           btn.action = { type: t, url: urlInp.value };
           extras.appendChild(urlInp);
+          if (t === 'web_app') {
+            var webAppHint = document.createElement('div');
+            webAppHint.className = 'form-text small mt-1';
+            webAppHint.textContent =
+              'آدرس باید با https:// شروع شود. می‌توانید مسیر /shop/... را از تنظیمات فروشگاه کپی کنید.';
+            extras.appendChild(webAppHint);
+          }
         } else if (t === 'image') {
           var imgLbl = document.createElement('label');
           imgLbl.className = 'form-label small mb-1';
-          imgLbl.textContent = 'عکس و کپشن';
+          imgLbl.textContent = 'عکس و توضیح';
           extras.appendChild(imgLbl);
 
           var mediaId =
@@ -448,10 +607,10 @@
             prev && prev.type === 'image' ? prev.caption || '' : '';
           btn.action = { type: 'image', media_id: mediaId, caption: caption };
 
-          appendImageFields(
+          appendMediaFields(
             extras,
-            btn,
             depth + 1,
+            'image',
             function () {
               return btn.action;
             },
@@ -460,6 +619,13 @@
             },
             onChange
           );
+        } else if (t === 'sequence') {
+          var seq =
+            prev && prev.type === 'sequence'
+              ? prev
+              : { type: 'sequence', items: [] };
+          btn.action = seq;
+          renderMiniSequenceEditor(seq, depth, extras, onChange);
         } else if (t === 'buttons') {
           var sub =
             prev && prev.type === 'buttons'
@@ -591,7 +757,11 @@
       var t = String(item.type || '');
       head.innerHTML =
         '<span class="small fw-semibold">' +
-        (t === 'text' ? 'متن' : t === 'image' ? 'عکس' : 'دکمه‌ها') +
+        (t === 'text'
+          ? 'متن'
+          : t === 'buttons'
+            ? 'دکمه‌ها'
+            : MEDIA_LABELS[t] || t) +
         '</span>';
 
       var rm = document.createElement('button');
@@ -618,22 +788,19 @@
           doSync();
         });
         body.appendChild(ta);
-      } else if (t === 'image') {
+      } else if (isMediaType(t)) {
         item.caption = item.caption || '';
-        appendImageFields(
+        appendMediaFields(
           body,
-          item,
           depth,
+          t,
           function () {
-            return {
-              type: 'image',
-              media_id: item.media_id || '',
-              caption: item.caption || '',
-            };
+            return item;
           },
-          function (act) {
-            item.media_id = act.media_id;
-            item.caption = act.caption || '';
+          function (next) {
+            item.media_id = next.media_id;
+            item.caption = next.caption || '';
+            item.type = t;
           },
           doSync
         );
@@ -652,6 +819,9 @@
       [
         ['text', 'افزودن متن'],
         ['image', 'افزودن عکس'],
+        ['video', 'افزودن ویدیو'],
+        ['voice', 'افزودن صدا'],
+        ['document', 'افزودن فایل'],
         ['buttons', 'افزودن دکمه‌ها'],
       ].forEach(function (pair) {
         var b = document.createElement('button');
@@ -661,13 +831,13 @@
         b.addEventListener('click', function () {
           if (pair[0] === 'text') {
             state.root.items.push({ type: 'text', body: '' });
-          } else if (pair[0] === 'image') {
-            state.root.items.push({ type: 'image', media_id: '', caption: '' });
-          } else {
+          } else if (pair[0] === 'buttons') {
             state.root.items.push({
               type: 'buttons',
               rows: [[defaultButton()]],
             });
+          } else {
+            state.root.items.push(defaultMediaItem(pair[0]));
           }
           render();
         });

@@ -11,6 +11,8 @@ from balebot.models import FlowMedia
 _MAX_DEPTH = 20
 _SLUG_RE = re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$')
 _NODE_ID_RE = re.compile(r'^n_[a-f0-9]{8}$')
+_MEDIA_NODE_TYPES = frozenset({'image', 'video', 'voice', 'document'})
+_SEQUENCE_ITEM_TYPES = frozenset({'text', 'image', 'video', 'voice', 'document'})
 
 
 def _new_node_id() -> str:
@@ -43,7 +45,9 @@ def _sanitize_text_node(item: dict[str, Any]) -> dict[str, Any] | None:
     return {'type': 'text', 'body': body}
 
 
-def _sanitize_image_node(item: dict[str, Any]) -> dict[str, Any] | None:
+def _sanitize_media_node(item: dict[str, Any], media_type: str) -> dict[str, Any] | None:
+    if media_type not in _MEDIA_NODE_TYPES:
+        return None
     media_id = str(item.get('media_id', '') or '').strip()
     if not media_id:
         return None
@@ -54,7 +58,49 @@ def _sanitize_image_node(item: dict[str, Any]) -> dict[str, Any] | None:
     if not FlowMedia.objects.filter(pk=media_id).exists():
         return None
     caption = str(item.get('caption', '') or '').strip()[:1024]
-    return {'type': 'image', 'media_id': media_id, 'caption': caption}
+    return {'type': media_type, 'media_id': media_id, 'caption': caption}
+
+
+def _sanitize_image_node(item: dict[str, Any]) -> dict[str, Any] | None:
+    return _sanitize_media_node(item, 'image')
+
+
+def _sanitize_sequence_items(items: Any, depth: int) -> list[dict[str, Any]]:
+    if depth > _MAX_DEPTH or not isinstance(items, list):
+        return []
+    items_out: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        itype = str(item.get('type', '') or '').strip().lower()
+        sanitized: dict[str, Any] | None = None
+        if itype == 'text':
+            sanitized = _sanitize_text_node(item)
+        elif itype in _MEDIA_NODE_TYPES:
+            sanitized = _sanitize_media_node(item, itype)
+        if sanitized:
+            items_out.append(sanitized)
+    return items_out
+
+
+def _sanitize_sequence_node(node: dict[str, Any], depth: int) -> dict[str, Any] | None:
+    if depth > _MAX_DEPTH:
+        return None
+    items_out = _sanitize_sequence_items(node.get('items'), depth)
+    if not items_out:
+        return None
+    return {'type': 'sequence', 'items': items_out}
+
+
+def _normalize_web_app_url(raw: str) -> str:
+    url = (raw or '').strip()
+    if not url:
+        return ''
+    if url.startswith('http://'):
+        url = f'https://{url[7:]}'
+    elif not url.startswith('https://') and not url.startswith('/'):
+        url = f'https://{url.lstrip("/")}'
+    return url[:512]
 
 
 def _sanitize_action(action: Any, depth: int) -> dict[str, Any] | None:
@@ -67,17 +113,9 @@ def _sanitize_action(action: Any, depth: int) -> dict[str, Any] | None:
             return None
         return {'type': 'text', 'body': body}
     if atype == 'image':
-        media_id = str(action.get('media_id', '') or '').strip()
-        if not media_id:
-            return None
-        try:
-            uuid.UUID(media_id)
-        except ValueError:
-            return None
-        if not FlowMedia.objects.filter(pk=media_id).exists():
-            return None
-        caption = str(action.get('caption', '') or '').strip()[:1024]
-        return {'type': 'image', 'media_id': media_id, 'caption': caption}
+        return _sanitize_media_node(action, 'image')
+    if atype == 'sequence':
+        return _sanitize_sequence_node(action, depth)
     if atype == 'buttons':
         inner = _sanitize_buttons_node({'type': 'buttons', 'rows': action.get('rows')}, depth + 1)
         if not inner:
@@ -89,7 +127,7 @@ def _sanitize_action(action: Any, depth: int) -> dict[str, Any] | None:
             return None
         return {'type': 'url', 'url': url}
     if atype == 'web_app':
-        url = str(action.get('url', '') or '').strip()[:512]
+        url = _normalize_web_app_url(str(action.get('url', '') or ''))
         if not url:
             return None
         return {'type': 'web_app', 'url': url}
@@ -168,8 +206,8 @@ def _sanitize_sequence(node: Any, depth: int) -> dict[str, Any] | None:
         sanitized: dict[str, Any] | None = None
         if itype == 'text':
             sanitized = _sanitize_text_node(item)
-        elif itype == 'image':
-            sanitized = _sanitize_image_node(item)
+        elif itype in _MEDIA_NODE_TYPES:
+            sanitized = _sanitize_media_node(item, itype)
         elif itype == 'buttons':
             sanitized = _sanitize_buttons_node(item, depth)
         if sanitized:

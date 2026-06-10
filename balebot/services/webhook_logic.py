@@ -25,6 +25,7 @@ from balebot.services.flow_engine import (
     parse_flow_back_callback,
     parse_flow_callback,
     render_root_flow,
+    _send_inline_keyboard_message,
 )
 
 
@@ -210,9 +211,7 @@ def _send_start_with_flow(cfg: BotSettings, sub: Subscriber) -> None:
     elif cfg.enable_support:
         mk = merge_support_into_markup(cfg, None)
         if mk:
-            messenger_api.send_message(
-                platform, sub.chat_id, '\u2060', settings=cfg, reply_markup=mk,
-            )
+            _send_inline_keyboard_message(cfg, sub.chat_id, mk)
 
 
 def handle_message(cfg: BotSettings, msg: dict[str, Any]) -> None:

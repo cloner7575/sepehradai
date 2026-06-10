@@ -74,7 +74,13 @@ class Workspace(models.Model):
 
 
 class FlowMedia(models.Model):
-    """رسانهٔ آپلودشده برای نود عکس در جریان /start."""
+    """رسانهٔ آپلودشده برای نودهای مدیا در جریان /start."""
+
+    class MediaKind(models.TextChoices):
+        PHOTO = 'photo', 'عکس'
+        VIDEO = 'video', 'ویدیو'
+        VOICE = 'voice', 'صدا'
+        DOCUMENT = 'document', 'سند'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     workspace = models.ForeignKey(
@@ -90,6 +96,12 @@ class FlowMedia(models.Model):
         db_index=True,
     )
     file = models.FileField(upload_to='flow_media/%Y/%m/')
+    media_kind = models.CharField(
+        max_length=16,
+        choices=MediaKind.choices,
+        default=MediaKind.PHOTO,
+        db_index=True,
+    )
     messenger_file_id = models.CharField(max_length=512, blank=True, default='')
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
