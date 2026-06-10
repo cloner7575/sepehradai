@@ -184,9 +184,8 @@ def normalize_inline_url(
     raw: str,
     *,
     cfg: BotSettings | None = None,
-    for_web_app: bool = False,
 ) -> str:
-    """آدرس دکمه inline را برای API بله/تلگرام نرمال و اعتبارسنجی می‌کند."""
+    """آدرس دکمه inline (لینک) را برای API بله/تلگرام نرمال و اعتبارسنجی می‌کند."""
     url = (raw or '').strip()
     if not url:
         return ''
@@ -208,7 +207,7 @@ def normalize_inline_url(
     if not host or host in {'localhost', '127.0.0.1', '0.0.0.0', '::1'}:
         return ''
 
-    if parsed.scheme == 'http' or for_web_app:
+    if parsed.scheme == 'http':
         parsed = parsed._replace(scheme='https')
         url = urlunparse(parsed)
     elif parsed.scheme != 'https':
@@ -228,20 +227,11 @@ def _button_api_entry(
         atype = str(action.get('type', '')).lower()
         raw_url = action.get('url') or ''
         if atype == 'url':
-            url = normalize_inline_url(raw_url, cfg=cfg, for_web_app=False)
+            url = normalize_inline_url(raw_url, cfg=cfg)
             if url:
                 return {'text': text, 'url': url}
             logger.warning(
                 'Invalid inline url button; using callback. text=%r raw=%r',
-                text,
-                raw_url,
-            )
-        elif atype == 'web_app':
-            url = normalize_inline_url(raw_url, cfg=cfg, for_web_app=True)
-            if url:
-                return {'text': text, 'web_app': {'url': url}}
-            logger.warning(
-                'Invalid inline web_app button; using callback. text=%r raw=%r',
                 text,
                 raw_url,
             )
@@ -473,19 +463,73 @@ def _append_markup_rows(
             merged_rows.append(row)
 
 
+def build_root_flow_markup(cfg: BotSettings) -> dict[str, Any] | None:
+    """ردیف‌های دکمهٔ جریان /start بدون ارسال."""
+    flow = get_flow(cfg)
+    root = flow.get('root') or {}
+    if str(root.get('type', '')).lower() != 'sequence':
+        return None
+    merged_rows: list[list[dict[str, Any]]] = []
+    for item in root.get('items') or []:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get('type', '')).lower() == 'buttons':
+            _append_markup_rows(
+                merged_rows,
+                build_markup_for_buttons_node(item, cfg=cfg),
+            )
+    if not merged_rows:
+        return None
+    return {'inline_keyboard': merged_rows}
+
+
+def _send_message_with_inline_markup(
+    cfg: BotSettings,
+    chat_id: int,
+    text: str,
+    markup: dict[str, Any],
+) -> bool:
+    """ارسال متن همراه کیبورد؛ True اگر reply_markup با موفقیت پیوست شد."""
+    platform = cfg.platform
+    body = (text or '').strip()
+    if not body:
+        return False
+    for candidate in (markup, _strip_url_buttons_from_markup(markup)):
+        if not candidate:
+            continue
+        try:
+            messenger_api.send_message(
+                platform,
+                chat_id,
+                body[:4096],
+                settings=cfg,
+                reply_markup=candidate,
+            )
+            return True
+        except messenger_api.MessengerAPIError:
+            continue
+    try:
+        messenger_api.send_message(platform, chat_id, body[:4096], settings=cfg)
+    except messenger_api.MessengerAPIError:
+        pass
+    return False
+
+
 def send_sequence_items(
     cfg: BotSettings,
     chat_id: int,
     sequence: dict[str, Any],
     *,
     merge_button_markup: bool = False,
+    pending_markup: dict[str, Any] | None = None,
+    attach_markup_to: str = 'first',
 ) -> dict[str, Any] | None:
     """ارسال آیتم‌های sequence؛ در صورت merge_button_markup ردیف‌های دکمه ادغام می‌شوند."""
     platform = cfg.platform
     items = sequence.get('items') or []
-    merged_rows: list[list[dict[str, Any]]] = []
 
-    if merge_button_markup:
+    if pending_markup is None and merge_button_markup:
+        merged_rows: list[list[dict[str, Any]]] = []
         for item in items:
             if not isinstance(item, dict):
                 continue
@@ -494,17 +538,23 @@ def send_sequence_items(
                     merged_rows,
                     build_markup_for_buttons_node(item, cfg=cfg),
                 )
+        if merged_rows:
+            pending_markup = {'inline_keyboard': merged_rows}
 
-    pending_markup: dict[str, Any] | None = None
-    if merge_button_markup and merged_rows:
-        pending_markup = {'inline_keyboard': merged_rows}
-
-    last_text_idx = -1
-    for idx, item in enumerate(items):
-        if not isinstance(item, dict):
-            continue
-        if str(item.get('type', '')).lower() == 'text' and (item.get('body') or '').strip():
-            last_text_idx = idx
+    attach_idx = -1
+    if pending_markup and attach_markup_to == 'first':
+        for idx, item in enumerate(items):
+            if not isinstance(item, dict):
+                continue
+            if str(item.get('type', '')).lower() == 'text' and (item.get('body') or '').strip():
+                attach_idx = idx
+                break
+    elif pending_markup and attach_markup_to == 'last':
+        for idx, item in enumerate(items):
+            if not isinstance(item, dict):
+                continue
+            if str(item.get('type', '')).lower() == 'text' and (item.get('body') or '').strip():
+                attach_idx = idx
 
     for idx, item in enumerate(items):
         if not isinstance(item, dict):
@@ -514,35 +564,20 @@ def send_sequence_items(
             body = (item.get('body') or '').strip()
             if not body:
                 continue
-            reply_markup = pending_markup if merge_button_markup and idx == last_text_idx else None
-            sent_with_markup = False
+            reply_markup = pending_markup if idx == attach_idx else None
             if reply_markup:
-                for candidate in (reply_markup, _strip_url_buttons_from_markup(reply_markup)):
-                    if not candidate:
-                        continue
-                    try:
-                        messenger_api.send_message(
-                            platform,
-                            chat_id,
-                            body[:4096],
-                            settings=cfg,
-                            reply_markup=candidate,
-                        )
-                        sent_with_markup = True
-                        pending_markup = None
-                        break
-                    except messenger_api.MessengerAPIError:
-                        continue
-            if not sent_with_markup:
-                try:
-                    messenger_api.send_message(
-                        platform,
-                        chat_id,
-                        body[:4096],
-                        settings=cfg,
-                    )
-                except messenger_api.MessengerAPIError:
-                    pass
+                if _send_message_with_inline_markup(cfg, chat_id, body, reply_markup):
+                    pending_markup = None
+                continue
+            try:
+                messenger_api.send_message(
+                    platform,
+                    chat_id,
+                    body[:4096],
+                    settings=cfg,
+                )
+            except messenger_api.MessengerAPIError:
+                pass
         elif itype in ('image', 'video', 'voice', 'document'):
             send_media_node(cfg, chat_id, item)
 
@@ -581,21 +616,38 @@ def _send_inline_keyboard_message(
     return False
 
 
-def send_sequence(cfg: BotSettings, chat_id: int, sequence: dict[str, Any]) -> dict[str, Any] | None:
-    """ارسال آیتم‌های sequence؛ ردیف‌های همهٔ بلوک‌های دکمه را ادغام و برمی‌گرداند."""
-    return send_sequence_items(cfg, chat_id, sequence, merge_button_markup=True)
+def send_sequence(
+    cfg: BotSettings,
+    chat_id: int,
+    sequence: dict[str, Any],
+    *,
+    markup_already_sent: bool = False,
+) -> dict[str, Any] | None:
+    """ارسال آیتم‌های sequence؛ دکمه‌ها به اولین بلوک متن می‌چسبند."""
+    return send_sequence_items(
+        cfg,
+        chat_id,
+        sequence,
+        merge_button_markup=not markup_already_sent,
+        attach_markup_to='first',
+    )
 
 
-def render_root_flow(cfg: BotSettings, chat_id: int) -> None:
+def render_root_flow(
+    cfg: BotSettings,
+    chat_id: int,
+    *,
+    markup_already_sent: bool = False,
+) -> None:
     flow = get_flow(cfg)
     root = flow.get('root') or {}
     if str(root.get('type', '')).lower() != 'sequence':
         return
-    markup = send_sequence(cfg, chat_id, root)
-    if markup:
+    markup = send_sequence(cfg, chat_id, root, markup_already_sent=markup_already_sent)
+    if markup and not markup_already_sent:
         markup = merge_support_into_markup(cfg, markup) or markup
         _send_inline_keyboard_message(cfg, chat_id, markup)
-    elif cfg.enable_support:
+    elif not markup_already_sent and cfg.enable_support:
         mk = merge_support_into_markup(cfg, None)
         if mk:
             _send_inline_keyboard_message(cfg, chat_id, mk)
@@ -657,7 +709,7 @@ def execute_button_action(
         send_sequence_items(cfg, chat_id, action, merge_button_markup=False)
         return 'sequence'
 
-    if atype in ('url', 'web_app'):
+    if atype == 'url':
         return atype
 
     if atype == 'buttons':

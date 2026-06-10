@@ -109,9 +109,9 @@
     if (t === 'sequence') {
       return normalizeMiniSequence(a, depth);
     }
-    if (t === 'url' || t === 'web_app') {
+    if (t === 'url') {
       var url = String(a.url || '').trim().slice(0, 512);
-      return url ? { type: t, url: url } : null;
+      return url ? { type: 'url', url: url } : null;
     }
     if (t === 'buttons') {
       return normalizeButtons({ type: 'buttons', rows: a.rows }, depth);
@@ -535,7 +535,6 @@
         ['buttons', 'زیرمنو — دکمه‌های بعدی'],
         ['image', 'ارسال یک عکس'],
         ['url', 'باز کردن لینک'],
-        ['web_app', 'باز کردن مینی‌اپ'],
       ].forEach(function (o) {
         var opt = document.createElement('option');
         opt.value = o[0];
@@ -572,29 +571,22 @@
           btn.action = { type: 'text', body: bodyTa.value };
           extras.appendChild(bodyLbl);
           extras.appendChild(bodyTa);
-        } else if (t === 'url' || t === 'web_app') {
+        } else if (t === 'url') {
           var urlInp = document.createElement('input');
           urlInp.type = 'url';
           urlInp.className =
             'form-control form-control-sm panel-input ' + depthClass(depth + 1);
-          urlInp.placeholder = t === 'web_app' ? 'https://example.com/shop/...' : 'https://...';
+          urlInp.placeholder = 'https://...';
           urlInp.value =
-            prev && (prev.type === 'url' || prev.type === 'web_app')
+            prev && prev.type === 'url'
               ? prev.url || ''
               : '';
           urlInp.addEventListener('input', function () {
-            btn.action = { type: t, url: urlInp.value };
+            btn.action = { type: 'url', url: urlInp.value };
             onChange();
           });
-          btn.action = { type: t, url: urlInp.value };
+          btn.action = { type: 'url', url: urlInp.value };
           extras.appendChild(urlInp);
-          if (t === 'web_app') {
-            var webAppHint = document.createElement('div');
-            webAppHint.className = 'form-text small mt-1';
-            webAppHint.textContent =
-              'آدرس کامل https:// لازم است (مثلاً https://domain.com/shop/...). مسیر /shop/... فقط وقتی «آدرس عمومی سرور» در تنظیمات پر باشد کار می‌کند.';
-            extras.appendChild(webAppHint);
-          }
         } else if (t === 'image') {
           var imgLbl = document.createElement('label');
           imgLbl.className = 'form-label small mb-1';

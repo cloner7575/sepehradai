@@ -19,6 +19,7 @@ from balebot.models import (
 from balebot.services import messenger_api
 from balebot.services import catalog_payment
 from balebot.services.flow_engine import (
+    build_root_flow_markup,
     get_flow,
     handle_flow_callback,
     merge_support_into_markup,
@@ -26,6 +27,7 @@ from balebot.services.flow_engine import (
     parse_flow_callback,
     render_root_flow,
     _send_inline_keyboard_message,
+    _send_message_with_inline_markup,
 )
 
 
@@ -203,15 +205,37 @@ def store_inbound_from_message(
 
 def _send_start_with_flow(cfg: BotSettings, sub: Subscriber) -> None:
     platform = cfg.platform
+    chat_id = sub.chat_id
+    has_flow = _flow_has_content(cfg)
+
+    flow_markup = build_root_flow_markup(cfg) if has_flow else None
+    combined_markup = None
+    if flow_markup or cfg.enable_support:
+        combined_markup = merge_support_into_markup(cfg, flow_markup)
+
     msg_normal = (cfg.start_message_normal or '').strip()
+    markup_sent = False
+
     if msg_normal:
-        messenger_api.send_message(platform, sub.chat_id, msg_normal, settings=cfg)
-    if _flow_has_content(cfg):
-        render_root_flow(cfg, sub.chat_id)
-    elif cfg.enable_support:
+        if combined_markup:
+            markup_sent = _send_message_with_inline_markup(
+                cfg,
+                chat_id,
+                msg_normal,
+                combined_markup,
+            )
+        else:
+            try:
+                messenger_api.send_message(platform, chat_id, msg_normal, settings=cfg)
+            except messenger_api.MessengerAPIError:
+                pass
+
+    if has_flow:
+        render_root_flow(cfg, chat_id, markup_already_sent=markup_sent)
+    elif not markup_sent and cfg.enable_support:
         mk = merge_support_into_markup(cfg, None)
         if mk:
-            _send_inline_keyboard_message(cfg, sub.chat_id, mk)
+            _send_inline_keyboard_message(cfg, chat_id, mk)
 
 
 def handle_message(cfg: BotSettings, msg: dict[str, Any]) -> None:

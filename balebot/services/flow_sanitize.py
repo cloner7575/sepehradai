@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 import uuid
 from typing import Any
-from urllib.parse import urlunparse, urlparse
 
 from balebot.models import FlowMedia
 
@@ -93,22 +92,6 @@ def _sanitize_sequence_node(node: dict[str, Any], depth: int) -> dict[str, Any] 
     return {'type': 'sequence', 'items': items_out}
 
 
-def _normalize_web_app_url(raw: str) -> str:
-    url = (raw or '').strip()
-    if not url:
-        return ''
-    if url.startswith('http://'):
-        parsed = urlparse(url)
-        if parsed.netloc:
-            url = urlunparse(parsed._replace(scheme='https'))
-    elif not url.startswith('https://') and not url.startswith('/'):
-        url = f'https://{url.lstrip("/")}'
-    parsed = urlparse(url)
-    if url.startswith('https://') and not parsed.netloc:
-        return ''
-    return url[:512]
-
-
 def _sanitize_action(action: Any, depth: int) -> dict[str, Any] | None:
     if depth > _MAX_DEPTH or not isinstance(action, dict):
         return None
@@ -132,11 +115,6 @@ def _sanitize_action(action: Any, depth: int) -> dict[str, Any] | None:
         if not url:
             return None
         return {'type': 'url', 'url': url}
-    if atype == 'web_app':
-        url = _normalize_web_app_url(str(action.get('url', '') or ''))
-        if not url:
-            return None
-        return {'type': 'web_app', 'url': url}
     return None
 
 
