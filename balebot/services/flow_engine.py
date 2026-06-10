@@ -9,7 +9,7 @@ from typing import Any
 
 from django.db import IntegrityError
 
-from balebot.models import BotSettings, FlowMedia, Platform, Subscriber, SubscriberTag, Tag
+from balebot.models import BotSettings, FlowMedia, Platform, Subscriber, SubscriberTag, Tag, Workspace
 from balebot.services import messenger_api
 from balebot.services.flow_sanitize import empty_start_flow, sanitize_start_flow
 
@@ -121,25 +121,31 @@ def label_slugs_for_button(ref: _ButtonRef) -> list[str]:
     return slugs
 
 
-def get_or_create_tag_for_slug(slug: str, platform: str, display_hint: str = '') -> Tag:
+def get_or_create_tag_for_slug(
+    slug: str,
+    platform: str,
+    workspace: Workspace,
+    display_hint: str = '',
+) -> Tag | None:
     slug = slug.strip()[:140]
-    tag = Tag.objects.filter(platform=platform, slug=slug).first()
+    if not slug:
+        return None
+
+    tag = Tag.objects.filter(workspace=workspace, platform=platform, slug=slug).first()
     if tag:
         return tag
+
     base_name = (display_hint or slug).strip()[:120] or slug
     name = base_name
-
-    # نام تگ روی (platform, name) یکتا است؛ اگر label تکراری باشد،
-    # نام کاندید را با slug متمایز می‌کنیم تا خطای unique رخ ندهد.
-    existing_same_name = Tag.objects.filter(platform=platform, name=name).exclude(slug=slug).exists()
-    if existing_same_name:
+    if Tag.objects.filter(workspace=workspace, platform=platform, name=name).exists():
         suffix = f' - {slug}'
         max_base = max(1, 120 - len(suffix))
         name = f'{base_name[:max_base]}{suffix}'[:120]
 
-    for i in range(3):
+    for i in range(5):
         try:
             return Tag.objects.create(
+                workspace=workspace,
                 name=name,
                 slug=slug,
                 platform=platform,
@@ -147,25 +153,29 @@ def get_or_create_tag_for_slug(slug: str, platform: str, display_hint: str = '')
                 is_active=True,
             )
         except IntegrityError:
-            # اگر در همین لحظه توسط یک درخواست دیگر ساخته شده باشد.
-            tag = Tag.objects.filter(platform=platform, slug=slug).first()
+            tag = Tag.objects.filter(workspace=workspace, platform=platform, slug=slug).first()
             if tag:
                 return tag
-
-            # در برخورد روی name، suffix پایدار اضافه می‌کنیم.
             name = f'{base_name[:112]}-{i + 2}'[:120]
 
-    # fallback نهایی: اگر هنوز نساخته‌ایم، احتمالاً slug همزمان ساخته شده است.
-    tag = Tag.objects.filter(platform=platform, slug=slug).first()
+    tag = Tag.objects.filter(workspace=workspace, platform=platform, slug=slug).first()
     if tag:
         return tag
-    raise IntegrityError('Could not create tag without violating unique constraints')
+    logger.warning(
+        'Could not create tag for slug=%r workspace=%s platform=%s',
+        slug,
+        workspace.pk,
+        platform,
+    )
+    return None
 
 
 def assign_path_tags(sub: Subscriber, slugs: list[str], ref: _ButtonRef) -> None:
     hint = str(ref.button.get('text') or '')
     for slug in slugs:
-        tag = get_or_create_tag_for_slug(slug, sub.platform, hint)
+        tag = get_or_create_tag_for_slug(slug, sub.platform, sub.workspace, hint)
+        if tag is None:
+            continue
         SubscriberTag.objects.get_or_create(subscriber=sub, tag=tag)
 
 
@@ -646,7 +656,14 @@ def handle_flow_callback(
 
     slugs = label_slugs_for_button(ref)
     if slugs:
-        assign_path_tags(sub, slugs, ref)
+        try:
+            assign_path_tags(sub, slugs, ref)
+        except IntegrityError:
+            logger.exception(
+                'assign_path_tags failed for subscriber=%s slugs=%s',
+                sub.pk,
+                slugs,
+            )
 
     if len(slugs) > _MAX_LOOP_VISITS:
         send_default_text(cfg, chat_id)
