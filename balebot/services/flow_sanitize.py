@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import uuid
 from typing import Any
+from urllib.parse import urlunparse, urlparse
 
 from balebot.models import FlowMedia
 
@@ -97,9 +98,14 @@ def _normalize_web_app_url(raw: str) -> str:
     if not url:
         return ''
     if url.startswith('http://'):
-        url = f'https://{url[7:]}'
+        parsed = urlparse(url)
+        if parsed.netloc:
+            url = urlunparse(parsed._replace(scheme='https'))
     elif not url.startswith('https://') and not url.startswith('/'):
         url = f'https://{url.lstrip("/")}'
+    parsed = urlparse(url)
+    if url.startswith('https://') and not parsed.netloc:
+        return ''
     return url[:512]
 
 

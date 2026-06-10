@@ -6,6 +6,7 @@ import logging
 import re
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlunparse, urlparse
 
 from django.db import IntegrityError
 
@@ -179,8 +180,13 @@ def assign_path_tags(sub: Subscriber, slugs: list[str], ref: _ButtonRef) -> None
         SubscriberTag.objects.get_or_create(subscriber=sub, tag=tag)
 
 
-def resolve_web_app_url(raw: str, cfg: BotSettings | None = None) -> str:
-    """آدرس مینی‌اپ را برای WebAppInfo نرمال می‌کند (HTTPS الزامی است)."""
+def normalize_inline_url(
+    raw: str,
+    *,
+    cfg: BotSettings | None = None,
+    for_web_app: bool = False,
+) -> str:
+    """آدرس دکمه inline را برای API بله/تلگرام نرمال و اعتبارسنجی می‌کند."""
     url = (raw or '').strip()
     if not url:
         return ''
@@ -191,11 +197,62 @@ def resolve_web_app_url(raw: str, cfg: BotSettings | None = None) -> str:
         if not base:
             return ''
         url = f'{base}{url}'
-    if url.startswith('http://'):
-        url = f'https://{url[7:]}'
-    elif not url.startswith('https://'):
+    if not url.startswith(('http://', 'https://')):
         url = f'https://{url.lstrip("/")}'
+
+    parsed = urlparse(url)
+    if not parsed.netloc:
+        return ''
+
+    host = (parsed.hostname or '').lower()
+    if not host or host in {'localhost', '127.0.0.1', '0.0.0.0', '::1'}:
+        return ''
+
+    if parsed.scheme == 'http' or for_web_app:
+        parsed = parsed._replace(scheme='https')
+        url = urlunparse(parsed)
+    elif parsed.scheme != 'https':
+        return ''
+
     return url[:512]
+
+
+def _button_api_entry(
+    btn: dict[str, Any],
+    text: str,
+    *,
+    cfg: BotSettings | None,
+) -> dict[str, Any] | None:
+    action = btn.get('action')
+    if isinstance(action, dict):
+        atype = str(action.get('type', '')).lower()
+        raw_url = action.get('url') or ''
+        if atype == 'url':
+            url = normalize_inline_url(raw_url, cfg=cfg, for_web_app=False)
+            if url:
+                return {'text': text, 'url': url}
+            logger.warning(
+                'Invalid inline url button; using callback. text=%r raw=%r',
+                text,
+                raw_url,
+            )
+        elif atype == 'web_app':
+            url = normalize_inline_url(raw_url, cfg=cfg, for_web_app=True)
+            if url:
+                return {'text': text, 'web_app': {'url': url}}
+            logger.warning(
+                'Invalid inline web_app button; using callback. text=%r raw=%r',
+                text,
+                raw_url,
+            )
+
+    nid = btn.get('id')
+    if not nid:
+        return None
+    cid = encode_flow_callback(str(nid))
+    if len(cid) <= _MAX_CB_LEN:
+        return {'text': text, 'callback_data': cid}
+    return None
 
 
 def build_markup_for_buttons_node(
@@ -215,25 +272,9 @@ def build_markup_for_buttons_node(
             text = (btn.get('text') or '').strip()[:64]
             if not text:
                 continue
-            action = btn.get('action')
-            if isinstance(action, dict):
-                atype = str(action.get('type', '')).lower()
-                if atype == 'url':
-                    url = (action.get('url') or '').strip()
-                    if url:
-                        out_row.append({'text': text, 'url': url[:512]})
-                    continue
-                if atype == 'web_app':
-                    url = resolve_web_app_url(action.get('url') or '', cfg)
-                    if url:
-                        out_row.append({'text': text, 'web_app': {'url': url}})
-                    continue
-            nid = btn.get('id')
-            if not nid:
-                continue
-            cid = encode_flow_callback(str(nid))
-            if len(cid) <= _MAX_CB_LEN:
-                out_row.append({'text': text, 'callback_data': cid})
+            entry = _button_api_entry(btn, text, cfg=cfg)
+            if entry:
+                out_row.append(entry)
         if out_row:
             rows_api.append(out_row)
     if parent_button_id:
@@ -243,6 +284,22 @@ def build_markup_for_buttons_node(
     if not rows_api:
         return None
     return {'inline_keyboard': rows_api}
+
+
+def _strip_url_buttons_from_markup(markup: dict[str, Any]) -> dict[str, Any] | None:
+    rows_out: list[list[dict[str, Any]]] = []
+    for row in markup.get('inline_keyboard') or []:
+        if not isinstance(row, list):
+            continue
+        kept = [
+            btn for btn in row
+            if isinstance(btn, dict) and 'url' not in btn and 'web_app' not in btn
+        ]
+        if kept:
+            rows_out.append(kept)
+    if not rows_out:
+        return None
+    return {'inline_keyboard': rows_out}
 
 
 def _extract_messenger_file_id(resp: dict[str, Any], media_kind: str) -> str:
@@ -458,28 +515,34 @@ def send_sequence_items(
             if not body:
                 continue
             reply_markup = pending_markup if merge_button_markup and idx == last_text_idx else None
-            try:
-                messenger_api.send_message(
-                    platform,
-                    chat_id,
-                    body[:4096],
-                    settings=cfg,
-                    reply_markup=reply_markup,
-                )
-            except messenger_api.MessengerAPIError:
-                if reply_markup:
+            sent_with_markup = False
+            if reply_markup:
+                for candidate in (reply_markup, _strip_url_buttons_from_markup(reply_markup)):
+                    if not candidate:
+                        continue
                     try:
                         messenger_api.send_message(
                             platform,
                             chat_id,
                             body[:4096],
                             settings=cfg,
+                            reply_markup=candidate,
                         )
+                        sent_with_markup = True
+                        pending_markup = None
+                        break
                     except messenger_api.MessengerAPIError:
-                        pass
-            else:
-                if reply_markup:
-                    pending_markup = None
+                        continue
+            if not sent_with_markup:
+                try:
+                    messenger_api.send_message(
+                        platform,
+                        chat_id,
+                        body[:4096],
+                        settings=cfg,
+                    )
+                except messenger_api.MessengerAPIError:
+                    pass
         elif itype in ('image', 'video', 'voice', 'document'):
             send_media_node(cfg, chat_id, item)
 
@@ -491,24 +554,30 @@ def _send_inline_keyboard_message(
     chat_id: int,
     markup: dict[str, Any],
 ) -> bool:
-    """پیام حامل دکمه‌های inline؛ متن باید برای API بله قابل‌قبول باشد."""
+    """پیام حامل دکمه‌های inline."""
     platform = cfg.platform
-    for anchor in ('.', '·', ' '):
-        try:
-            messenger_api.send_message(
-                platform,
-                chat_id,
-                anchor,
-                settings=cfg,
-                reply_markup=markup,
-            )
-            return True
-        except messenger_api.MessengerAPIError as exc:
-            logger.warning(
-                'ارسال پیام دکمه‌های inline ناموفق (anchor=%r): %s',
-                anchor,
-                exc,
-            )
+    candidates = [markup]
+    stripped = _strip_url_buttons_from_markup(markup)
+    if stripped and stripped != markup:
+        candidates.append(stripped)
+
+    for candidate in candidates:
+        for anchor in ('.', '·', ' '):
+            try:
+                messenger_api.send_message(
+                    platform,
+                    chat_id,
+                    anchor,
+                    settings=cfg,
+                    reply_markup=candidate,
+                )
+                return True
+            except messenger_api.MessengerAPIError as exc:
+                logger.warning(
+                    'ارسال پیام دکمه‌های inline ناموفق (anchor=%r): %s',
+                    anchor,
+                    exc,
+                )
     return False
 
 

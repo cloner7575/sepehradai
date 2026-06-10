@@ -592,7 +592,7 @@
             var webAppHint = document.createElement('div');
             webAppHint.className = 'form-text small mt-1';
             webAppHint.textContent =
-              'آدرس باید با https:// شروع شود. می‌توانید مسیر /shop/... را از تنظیمات فروشگاه کپی کنید.';
+              'آدرس کامل https:// لازم است (مثلاً https://domain.com/shop/...). مسیر /shop/... فقط وقتی «آدرس عمومی سرور» در تنظیمات پر باشد کار می‌کند.';
             extras.appendChild(webAppHint);
           }
         } else if (t === 'image') {
