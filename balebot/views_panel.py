@@ -14,7 +14,7 @@ from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 
-from balebot.forms import BotSettingsForm, CampaignForm
+from balebot.forms import BotSettingsForm, CampaignForm, FlowEngineForm
 from balebot.platform import (
     allowed_platforms_for_workspace,
     get_active_platform,
@@ -28,10 +28,9 @@ from balebot.workspace import user_has_panel_access
 from balebot.services import messenger_api
 from balebot.services.webhook_setup import (
     explain_telegram_webhook_error,
-    normalize_public_url,
     validate_webhook_url,
 )
-from balebot.services.audience import snapshot_campaign_audience
+from balebot.services.public_url import ensure_webhook_config
 from balebot.services.campaign_runner import run_single_campaign_web
 from balebot.services.keyboard_layout import keyboard_has_any_button, normalize_to_sections
 from balebot.models import (
@@ -144,6 +143,12 @@ class DashboardView(WorkspaceScopedMixin, PanelAccessMixin, TemplateView):
         ).count()
         ctx['delivery_sent'] = sent
         ctx['delivery_failed'] = failed
+        delivery_total = sent + failed
+        ctx['delivery_rate_pct'] = round(sent * 100 / delivery_total, 1) if delivery_total else None
+        week_ago = timezone.now() - timezone.timedelta(days=7)
+        ctx['subscriber_new_week'] = Subscriber.objects.filter(
+            **scope, created_at__gte=week_ago,
+        ).count()
         ctx['inbound_recent'] = (
             InboundMessage.objects.filter(
                 subscriber__workspace=scope['workspace'],
@@ -151,6 +156,15 @@ class DashboardView(WorkspaceScopedMixin, PanelAccessMixin, TemplateView):
             )
             .select_related('subscriber')
             .order_by('-created_at')[:15]
+        )
+        ctx['support_tickets_recent'] = (
+            InboundMessage.objects.filter(
+                subscriber__workspace=scope['workspace'],
+                subscriber__platform=scope['platform'],
+                is_support_request=True,
+            )
+            .select_related('subscriber')
+            .order_by('-created_at')[:6]
         )
         ctx['campaign_total'] = Campaign.objects.filter(**scope).count()
         ctx['campaign_running'] = Campaign.objects.filter(
@@ -166,6 +180,7 @@ class DashboardView(WorkspaceScopedMixin, PanelAccessMixin, TemplateView):
             catalog = CatalogSettings.get_for_platform(scope['workspace'], scope['platform'])
             bot = get_bot_settings_for_request(self.request)
             ctx['catalog'] = catalog
+            ctx['catalog_theme'] = catalog.theme_config or {}
             ctx['catalog_item_count'] = CatalogItem.objects.filter(**scope).count()
             ctx['catalog_order_pending'] = CatalogOrder.objects.filter(
                 **scope,
@@ -173,6 +188,41 @@ class DashboardView(WorkspaceScopedMixin, PanelAccessMixin, TemplateView):
             ).count()
             ctx['mini_app_url'] = catalog.build_mini_app_url(bot)
         return ctx
+
+
+class FlowEngineView(WorkspaceScopedMixin, PanelAccessMixin, TemplateView):
+    template_name = 'balebot/flow_engine.html'
+
+    def _bot(self):
+        return get_bot_settings_for_request(self.request)
+
+    def _context(self, bot_form=None):
+        scope = self.scope_filter()
+        bot = self._bot()
+        ctx = {
+            'bot_form': bot_form or FlowEngineForm(instance=bot),
+            'has_miniapp_access': has_miniapp_access_for_request(self.request, scope['workspace']),
+        }
+        if ctx['has_miniapp_access']:
+            catalog = CatalogSettings.get_for_platform(scope['workspace'], scope['platform'])
+            ctx['mini_app_url'] = catalog.build_mini_app_url(bot)
+        return ctx
+
+    def get_context_data(self, **kwargs):
+        return {**super().get_context_data(**kwargs), **self._context()}
+
+    def post(self, request, *args, **kwargs):
+        bot = self._bot()
+        form = FlowEngineForm(request.POST, instance=bot)
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                f'جریان /start برای {platform_label(bot.platform)} ذخیره شد.',
+            )
+            return HttpResponseRedirect(reverse_lazy('bot_flow_engine'))
+        messages.error(request, 'ذخیره نشد. خطاهای فرم را برطرف کنید.')
+        return self.render_to_response(self._context(bot_form=form))
 
 
 class BotSettingsView(WorkspaceScopedMixin, PanelAccessMixin, UpdateView):
@@ -228,30 +278,30 @@ class BotSettingsView(WorkspaceScopedMixin, PanelAccessMixin, UpdateView):
 
     def _register_webhook(self, request):
         obj = self.get_object()
-        posted_url = (request.POST.get('webhook_public_url') or '').strip()
-        posted_secret = (request.POST.get('webhook_secret') or '').strip()
-        update_fields = ['updated_at']
-        if posted_url:
-            obj.webhook_public_url = normalize_public_url(posted_url, platform=obj.platform)
-            update_fields.append('webhook_public_url')
-        if posted_secret:
-            obj.webhook_secret = posted_secret
-            update_fields.append('webhook_secret')
-        if len(update_fields) > 1:
-            obj.save(update_fields=update_fields)
+        posted_token = (request.POST.get('bot_token') or '').strip()
+        update_fields = ensure_webhook_config(obj)
+        if posted_token:
+            obj.bot_token = posted_token
+            update_fields.append('bot_token')
+        if update_fields:
+            update_fields.append('updated_at')
+            obj.save(update_fields=list(dict.fromkeys(update_fields)))
 
         url = obj.build_webhook_url()
         if not obj.has_bot_token():
-            messages.error(request, 'ابتدا توکن ربات را ذخیره کنید.')
-            return HttpResponseRedirect(reverse_lazy('bot_settings'))
+            messages.error(request, 'ابتدا توکن ربات را وارد کنید.')
+            return self._redirect_after_webhook(request)
         if not url:
-            messages.error(request, 'آدرس عمومی سرور و رمز وب‌هوک را پر کنید.')
-            return HttpResponseRedirect(reverse_lazy('bot_settings'))
+            messages.error(
+                request,
+                'آدرس عمومی سرور (BASE_URL) در تنظیمات سرور پیکربندی نشده است.',
+            )
+            return self._redirect_after_webhook(request)
 
         ok, err = validate_webhook_url(url, platform=obj.platform)
         if not ok:
             messages.error(request, err)
-            return HttpResponseRedirect(reverse_lazy('bot_settings'))
+            return self._redirect_after_webhook(request)
 
         try:
             messenger_api.set_webhook(obj.platform, url, settings=obj)
@@ -259,6 +309,12 @@ class BotSettingsView(WorkspaceScopedMixin, PanelAccessMixin, UpdateView):
         except messenger_api.MessengerAPIError as e:
             detail = explain_telegram_webhook_error(str(e)) if obj.platform == Platform.TELEGRAM else str(e)
             messages.error(request, f'ثبت وب‌هوک ناموفق: {detail}')
+        return self._redirect_after_webhook(request)
+
+    def _redirect_after_webhook(self, request):
+        next_url = (request.POST.get('next') or '').strip()
+        if next_url:
+            return HttpResponseRedirect(next_url)
         return HttpResponseRedirect(reverse_lazy('bot_settings'))
 
     def get_success_url(self):

@@ -1,0 +1,31 @@
+{% comment %}
+فرم اتصال ربات — فقط توکن + دکمه ثبت
+{% endcomment %}
+<form method="post" action="{% url 'bot_settings' %}" class="bot-connection-form">
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ connection_next|default:request.path }}">
+  <div class="mb-3">
+    <label class="form-label" for="bot-connection-token">توکن ربات {{ active_platform_label }}</label>
+    <input
+      type="password"
+      name="bot_token"
+      id="bot-connection-token"
+      class="form-control panel-input"
+      dir="ltr"
+      autocomplete="new-password"
+      placeholder="توکن از BotFather"
+      {% if not connection_status.has_token %}required{% endif %}
+    >
+    {% if connection_status.has_token %}
+    <div class="form-text">برای تغییر توکن، مقدار جدید را وارد کنید.</div>
+    {% else %}
+    <div class="form-text">توکن را از BotFather کپی کنید.</div>
+    {% endif %}
+  </div>
+  <button type="submit" name="action" value="register_webhook" class="btn btn-panel-primary">
+    <i class="bi bi-broadcast me-1"></i>ثبت و اتصال ربات
+  </button>
+  {% if connection_status.error %}
+  <div class="alert alert-danger small mt-3 mb-0">{{ connection_status.error }}</div>
+  {% endif %}
+</form>

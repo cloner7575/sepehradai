@@ -1,0 +1,69 @@
+{% comment %}پیش‌نمایش جریان ربات — شبیه‌سازی چت پیام‌رسان{% endcomment %}
+<div class="flow-canvas-stage flow-canvas-stage--bot">
+  <div class="flow-messenger">
+    <div class="flow-messenger-header">
+      <div class="flow-messenger-avatar">
+        <i class="bi bi-robot"></i>
+      </div>
+      <div class="flow-messenger-meta">
+        <strong>{% if bot_branding %}{{ bot_branding.panel_brand_title }}{% else %}ربات{% endif %}</strong>
+        <span>پلتفرم {{ active_platform_label }} · دستور /start</span>
+      </div>
+      <span class="flow-messenger-chip">Bot Flow</span>
+    </div>
+
+    <div class="flow-messenger-thread">
+      <div class="flow-chat-system">
+        <span>کاربر /start را ارسال کرد</span>
+      </div>
+
+      {% if bot_flow_preview.has_content %}
+        {% for step in bot_flow_preview.steps %}
+          {% if step.type == 'text' %}
+          <div class="flow-chat-row flow-chat-row--bot">
+            <div class="flow-chat-bubble flow-chat-bubble--text">{{ step.body|linebreaksbr }}</div>
+          </div>
+          {% elif step.type == 'media' %}
+          <div class="flow-chat-row flow-chat-row--bot">
+            <div class="flow-chat-bubble flow-chat-bubble--media">
+              <div class="flow-chat-media-placeholder flow-chat-media-placeholder--{{ step.media_type }}">
+                <i class="bi bi-{% if step.media_type == 'image' %}image{% elif step.media_type == 'video' %}camera-video{% elif step.media_type == 'voice' %}mic{% else %}paperclip{% endif %}"></i>
+                <span>{{ step.label }}</span>
+              </div>
+              {% if step.caption %}
+              <p class="flow-chat-media-caption">{{ step.caption }}</p>
+              {% endif %}
+            </div>
+          </div>
+          {% elif step.type == 'buttons' %}
+          <div class="flow-chat-row flow-chat-row--bot">
+            <div class="flow-chat-keyboard">
+              {% for row in step.rows %}
+              <div class="flow-chat-keyboard-row">
+                {% for btn in row %}
+                <div class="flow-chat-keyboard-btn" title="{{ btn.hint }}">
+                  <span>{{ btn.text }}</span>
+                  {% if btn.hint %}<small>{{ btn.hint }}</small>{% endif %}
+                </div>
+                {% endfor %}
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        {% endfor %}
+      {% else %}
+        <div class="flow-chat-empty">
+          <i class="bi bi-chat-square-dots"></i>
+          <p>هنوز پیام یا دکمه‌ای برای /start تعریف نشده.</p>
+          <a href="{% url 'bot_flow_engine' %}" class="btn-panel-primary btn-sm">ساخت جریان</a>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="flow-messenger-compose" aria-hidden="true">
+      <span class="flow-messenger-compose-field">پیام کاربر…</span>
+      <span class="flow-messenger-compose-send"><i class="bi bi-send"></i></span>
+    </div>
+  </div>
+</div>

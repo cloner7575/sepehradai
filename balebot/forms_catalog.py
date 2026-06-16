@@ -4,6 +4,7 @@ from django import forms
 from django.utils.text import slugify
 
 from balebot.models import CatalogCategory, CatalogItem, CatalogSettings
+from balebot.services.catalog_page_layout import get_home_blocks, sanitize_home_blocks
 
 _INPUT = 'form-control panel-input'
 
@@ -179,6 +180,83 @@ class CatalogSettingsForm(forms.ModelForm):
             'cart': (self.cleaned_data.get('label_cart') or '').strip() or 'سبد خرید',
             'checkout': (self.cleaned_data.get('label_checkout') or '').strip() or 'تسویه حساب',
             'download': (self.cleaned_data.get('label_download') or '').strip() or 'دانلود',
+        }
+        if commit:
+            obj.save()
+        return obj
+
+
+class MiniAppFlowForm(forms.ModelForm):
+    """ظاهر و چیدمان صفحهٔ اصلی مینی‌اپ — موتور فروشگاه."""
+
+    page_layout = forms.CharField(
+        required=False,
+        label='',
+        widget=forms.HiddenInput(attrs={'id': 'id_page_layout'}),
+    )
+    theme_primary = forms.CharField(
+        required=False,
+        label='رنگ اصلی',
+        widget=forms.TextInput(attrs={'class': _INPUT, 'type': 'color'}),
+    )
+    theme_accent = forms.CharField(
+        required=False,
+        label='رنگ تأکیدی',
+        widget=forms.TextInput(attrs={'class': _INPUT, 'type': 'color'}),
+    )
+    theme_layout = forms.ChoiceField(
+        choices=[('grid', 'شبکه‌ای'), ('list', 'لیستی')],
+        required=False,
+        label='چیدمان محصولات',
+        widget=forms.Select(attrs={'class': _INPUT}),
+    )
+    label_buy_now = forms.CharField(
+        required=False,
+        label='دکمه خرید',
+        widget=forms.TextInput(attrs={'class': _INPUT}),
+    )
+
+    class Meta:
+        model = CatalogSettings
+        fields = ['hero_title', 'hero_subtitle', 'logo']
+        widgets = {
+            'hero_title': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'نام فروشگاه'}),
+            'hero_subtitle': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'توضیح کوتاه'}),
+            'logo': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        theme = (self.instance.theme_config or {}) if self.instance else {}
+        labels = (self.instance.labels or {}) if self.instance else {}
+        self.fields['theme_primary'].initial = theme.get('primary_color', '#334155')
+        self.fields['theme_accent'].initial = theme.get('accent_color', '#3f3f46')
+        self.fields['theme_layout'].initial = theme.get('layout', 'grid')
+        self.fields['label_buy_now'].initial = labels.get('buy_now', 'خرید')
+        blocks = get_home_blocks(theme)
+        self.initial['page_layout'] = json.dumps(blocks, ensure_ascii=False)
+        self.fields['page_layout'].initial = self.initial['page_layout']
+
+    def clean_page_layout(self):
+        raw = self.cleaned_data.get('page_layout')
+        return sanitize_home_blocks(raw)
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        blocks = self.cleaned_data.get('page_layout')
+        if blocks is None:
+            blocks = get_home_blocks(obj.theme_config)
+        obj.theme_config = {
+            **(obj.theme_config or {}),
+            'primary_color': self.cleaned_data.get('theme_primary') or '#334155',
+            'accent_color': self.cleaned_data.get('theme_accent') or '#3f3f46',
+            'layout': self.cleaned_data.get('theme_layout') or 'grid',
+            'font_family': (obj.theme_config or {}).get('font_family', 'Vazirmatn'),
+            'home_blocks': blocks,
+        }
+        obj.labels = {
+            **(obj.labels or {}),
+            'buy_now': (self.cleaned_data.get('label_buy_now') or '').strip() or 'خرید',
         }
         if commit:
             obj.save()

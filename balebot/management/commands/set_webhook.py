@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 
 from balebot.models import BotSettings, Platform, Workspace
 from balebot.services import messenger_api
+from balebot.services.public_url import ensure_webhook_config
 
 
 class Command(BaseCommand):
@@ -55,11 +56,16 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS('وب‌هوک حذف شد.'))
             return
 
+        update_fields = ensure_webhook_config(cfg)
+        if update_fields:
+            update_fields.append('updated_at')
+            cfg.save(update_fields=list(dict.fromkeys(update_fields)))
+
         url = (options['url'] or cfg.build_webhook_url() or '').strip()
         if not url:
             self.stderr.write(
                 self.style.ERROR(
-                    'آدرس وب‌هوک را به صورت آرگومنت بدهید یا webhook_public_url و webhook_secret را در پنل تنظیم کنید.',
+                    'آدرس وب‌هوک را به صورت آرگومنت بدهید یا BASE_URL را در تنظیمات سرور تنظیم کنید.',
                 ),
             )
             return

@@ -44,14 +44,12 @@
         <header class="panel-card-header settings-section-header">
           <div>
             <h2 class="panel-card-title mb-1"><i class="bi bi-plug me-2"></i>اتصال ربات ({{ active_platform_label }})</h2>
-            <p class="panel-card-lead mb-0">توکن و وب‌هوک را برای همین پلتفرم تنظیم کنید.</p>
+            <p class="panel-card-lead mb-0">توکن ربات را وارد کنید؛ آدرس عمومی و رمز وب‌هوک خودکار از تنظیمات سرور تنظیم می‌شوند.</p>
           </div>
         </header>
         <div class="panel-card-body">
           {% include "balebot/_settings_switch.html" with field=form.is_enabled title=form.is_enabled.label desc="اگر خاموش باشد وب‌هوک پاسخ نمی‌دهد." %}
           {% include "balebot/_settings_field.html" with field=form.bot_token hint=form.bot_token.help_text %}
-          {% include "balebot/_settings_field.html" with field=form.webhook_secret hint="رشتهٔ تصادفی برای بخش secret در URL وب‌هوک." %}
-          {% include "balebot/_settings_field.html" with field=form.webhook_public_url hint="فقط دامنهٔ HTTPS عمومی، بدون مسیر — مثلاً https://sepehradbot.runflare.run" %}
 
           {% if webhook_url_preview %}
           <div class="alert alert-secondary small mb-3">
@@ -62,7 +60,7 @@
 
           <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
             <button type="submit" name="action" value="register_webhook" class="btn btn-outline-primary">
-              <i class="bi bi-broadcast me-1"></i>ثبت وب‌هوک
+              <i class="bi bi-broadcast me-1"></i>ثبت و اتصال ربات
             </button>
           </div>
 
@@ -141,12 +139,13 @@
               <span class="settings-step-num">۳</span>
               <div>
                 <h3 class="settings-step-title">منو و دکمه‌ها بعد از استارت</h3>
-                <p class="settings-step-lead mb-0">متن، عکس و دکمه با زیرمنو؛ هر دکمه می‌تواند برچسب مخاطب (Tag) بدهد.</p>
+                <p class="settings-step-lead mb-0">ساخت گرافیکی جریان در صفحهٔ اختصاصی موتور جریان انجام می‌شود.</p>
               </div>
             </div>
             <div class="settings-step-body">
-              {% include "balebot/_settings_field.html" with field=form.start_flow_default_text label="متن وقتی مسیر تمام شد" hint="اگر دکمه‌ای به جایی وصل نباشد یا اکشن نداشته باشد." %}
-              {% include "balebot/start_flow_builder.html" %}
+              <a href="{% url 'bot_flow_engine' %}" class="btn btn-panel-primary">
+                <i class="bi bi-diagram-3 me-1"></i> باز کردن موتور جریان /start
+              </a>
             </div>
           </div>
 

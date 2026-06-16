@@ -2,33 +2,47 @@
 {% block title %}کمپین‌ها{% endblock %}
 {% block page_title %}کمپین‌های تبلیغاتی{% endblock %}
 {% block page_subtitle %}
-<p class="topbar-meta mb-0 mt-1">ارسال <strong>آنی</strong> همین‌جا انجام می‌شود؛ کمپین‌های زمان‌بندی‌شده در موعد مقرّر به‌صورت خودکار پردازش می‌شوند.</p>
+<p class="app-page-subtitle">ارسال <strong>آنی</strong> همین‌جا انجام می‌شود؛ کمپین‌های زمان‌بندی‌شده در موعد مقرّر به‌صورت خودکار پردازش می‌شوند.</p>
 {% endblock %}
 
 {% block content %}
-<div class="row g-3 mb-4 campaign-list-stats">
-  <div class="col-6 col-xl-3">
-    <div class="stat-card py-3 px-3">
-      <div class="stat-card-label">همه کمپین‌ها</div>
-      <div class="stat-card-value" style="font-size:1.65rem">{{ campaign_stat_total }}</div>
+<div class="app-metrics mb-4">
+  <div class="row g-3">
+    <div class="col-6 col-xl-3">
+      <div class="app-metric d-flex align-items-start gap-3">
+        <span class="app-metric-icon app-metric-icon--info mb-0"><i class="bi bi-collection"></i></span>
+        <div>
+          <span class="app-metric-label">همه کمپین‌ها</span>
+          <span class="app-metric-value">{{ campaign_stat_total }}</span>
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="col-6 col-xl-3">
-    <div class="stat-card py-3 px-3">
-      <div class="stat-card-label">پیش‌نویس</div>
-      <div class="stat-card-value" style="font-size:1.65rem">{{ campaign_stat_draft }}</div>
+    <div class="col-6 col-xl-3">
+      <div class="app-metric d-flex align-items-start gap-3">
+        <span class="app-metric-icon app-metric-icon--neutral mb-0"><i class="bi bi-pencil-square"></i></span>
+        <div>
+          <span class="app-metric-label">پیش‌نویس</span>
+          <span class="app-metric-value">{{ campaign_stat_draft }}</span>
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="col-6 col-xl-3">
-    <div class="stat-card py-3 px-3">
-      <div class="stat-card-label">در صف / در حال ارسال</div>
-      <div class="stat-card-value" style="font-size:1.65rem">{{ campaign_stat_running }}</div>
+    <div class="col-6 col-xl-3">
+      <div class="app-metric d-flex align-items-start gap-3">
+        <span class="app-metric-icon app-metric-icon--warn mb-0"><i class="bi bi-send"></i></span>
+        <div>
+          <span class="app-metric-label">در صف / در حال ارسال</span>
+          <span class="app-metric-value">{{ campaign_stat_running }}</span>
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="col-6 col-xl-3">
-    <div class="stat-card py-3 px-3">
-      <div class="stat-card-label">تمام‌شده</div>
-      <div class="stat-card-value" style="font-size:1.65rem">{{ campaign_stat_done }}</div>
+    <div class="col-6 col-xl-3">
+      <div class="app-metric d-flex align-items-start gap-3">
+        <span class="app-metric-icon app-metric-icon--success mb-0"><i class="bi bi-check2-circle"></i></span>
+        <div>
+          <span class="app-metric-label">تمام‌شده</span>
+          <span class="app-metric-value">{{ campaign_stat_done }}</span>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -38,16 +52,16 @@
   <a href="{% url 'campaign_create' %}" class="btn btn-panel-primary flex-shrink-0"><i class="bi bi-plus-circle me-2"></i>کمپین جدید</a>
 </div>
 
-<div class="panel-card">
-  <div class="panel-card-header py-3 flex-column align-items-stretch gap-2 flex-lg-row align-lg-items-center justify-content-lg-between">
+<div class="app-card">
+  <div class="app-card-head py-3 flex-column align-items-stretch gap-2 flex-lg-row align-lg-items-center justify-content-lg-between">
     <div>
-      <h2 class="panel-card-title mb-1">فهرست کمپین‌ها</h2>
+      <h2 class="app-card-title mb-1">فهرست کمپین‌ها</h2>
       <p class="small text-muted mb-0">عنوان، نوع محتوا، نوع زمان و وضعیت هر کمپین</p>
     </div>
   </div>
-  <div class="panel-table-wrap border-0 rounded-top-0">
-    <div class="table-responsive">
-      <table class="table panel-table table-striped align-middle mb-0 campaign-list-table">
+  <div class="app-card-body p-0">
+    <div class="app-table-wrap">
+      <table class="data-table campaign-list-table">
         <thead>
           <tr>
             <th scope="col">عنوان</th>
@@ -85,7 +99,7 @@
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="6" class="text-center text-muted py-5">هنوز کمپینی ثبت نشده.</td></tr>
+          <tr><td colspan="6" class="app-empty-state">هنوز کمپینی ثبت نشده.</td></tr>
           {% endfor %}
         </tbody>
       </table>

@@ -1,0 +1,77 @@
+{% comment %}پیش‌نمایش مینی‌اپ — فروشگاه داخل قاب موبایل{% endcomment %}
+<div class="flow-canvas-stage flow-canvas-stage--miniapp">
+  <div class="flow-miniapp-layout">
+    <div class="flow-miniapp-preview">
+      <div class="catalog-preview-phone flow-miniapp-phone">
+        <div class="catalog-preview-header" style="--preview-primary: {{ catalog_theme.primary_color|default:'#334155' }};">
+          {% if catalog.logo %}
+          <img src="{{ catalog.logo.url }}" alt="" class="catalog-preview-logo">
+          {% else %}
+          <div class="catalog-preview-logo-placeholder"><i class="bi bi-shop"></i></div>
+          {% endif %}
+          <div class="min-w-0">
+            <div class="catalog-preview-title">{{ catalog.hero_title|default:"فروشگاه" }}</div>
+            {% if catalog.hero_subtitle %}
+            <div class="catalog-preview-sub">{{ catalog.hero_subtitle }}</div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="catalog-preview-body">
+          <div class="catalog-preview-search"></div>
+          <div class="catalog-preview-colors">
+            <span class="catalog-color-swatch" style="background: {{ catalog_theme.primary_color|default:'#334155' }}"></span>
+            <span class="catalog-color-swatch" style="background: {{ catalog_theme.accent_color|default:'#64748b' }}"></span>
+          </div>
+          <div class="catalog-preview-grid">
+            <span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-miniapp-side">
+      <div class="flow-miniapp-stat">
+        <span class="label">وضعیت</span>
+        <span class="value">
+          {% if catalog.is_enabled %}
+          <span class="status-badge completed">فعال</span>
+          {% else %}
+          <span class="status-badge scheduled">غیرفعال</span>
+          {% endif %}
+        </span>
+      </div>
+      <div class="flow-miniapp-stat">
+        <span class="label">محصولات</span>
+        <span class="value">{{ catalog_item_count|default:0 }}</span>
+      </div>
+      <div class="flow-miniapp-stat">
+        <span class="label">سفارش در انتظار</span>
+        <span class="value">{{ catalog_order_pending|default:0 }}</span>
+      </div>
+
+      <ul class="flow-miniapp-checklist">
+        <li class="{% if catalog_item_count %}is-done{% endif %}">
+          <i class="bi bi-{% if catalog_item_count %}check-circle-fill{% else %}circle{% endif %}"></i>
+          <span>حداقل یک محصول</span>
+        </li>
+        <li class="{% if catalog.is_enabled %}is-done{% endif %}">
+          <i class="bi bi-{% if catalog.is_enabled %}check-circle-fill{% else %}circle{% endif %}"></i>
+          <span>فعال‌سازی فروشگاه</span>
+        </li>
+        <li class="{% if mini_app_url %}is-done{% endif %}">
+          <i class="bi bi-{% if mini_app_url %}check-circle-fill{% else %}circle{% endif %}"></i>
+          <span>لینک عمومی</span>
+        </li>
+      </ul>
+
+      <div class="flow-miniapp-actions">
+        <a href="{% url 'catalog_item_create' %}" class="btn-panel-primary btn-sm w-100">
+          <i class="bi bi-plus-lg"></i> محصول جدید
+        </a>
+        <a href="{% url 'catalog_settings' %}" class="btn-panel-ghost btn-sm w-100">
+          <i class="bi bi-palette"></i> تنظیمات ظاهر
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

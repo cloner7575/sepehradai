@@ -1,32 +1,59 @@
 import { useEffect, useState } from 'react';
 import { fetchCategories, fetchItems } from '../api';
+import { useApp } from '../App';
 import { AppHeader } from '../components/AppHeader';
 import { CategoryCard } from '../components/CategoryCard';
+import { HomeBlocks } from '../components/HomeBlocks';
 import { ItemCard } from '../components/ItemCard';
 import { ItemsSection } from '../components/ItemsSection';
 import { IconSearch } from '../components/Icons';
-import type { Category, CatalogItem } from '../types';
+import type { CatalogItem, Category } from '../types';
 
 export function HomePage() {
+  const { config } = useApp();
+  const blocks = config?.home_blocks;
+  const useBlockLayout = Array.isArray(blocks) && blocks.length > 0;
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [q, setQ] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (useBlockLayout) {
+      setLoading(false);
+      return;
+    }
     Promise.all([fetchCategories(), fetchItems()])
       .then(([cats, its]) => {
         setCategories(cats.filter((c) => !c.parent_id));
         setItems(its);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [useBlockLayout]);
 
   const search = () => {
+    if (useBlockLayout) return;
     setLoading(true);
     const params = q.trim() ? { q: q.trim() } : undefined;
     fetchItems(params).then(setItems).finally(() => setLoading(false));
   };
+
+  if (useBlockLayout && blocks) {
+    return (
+      <div className="pb-6">
+        <HomeBlocks
+          blocks={blocks}
+          searchInput={q}
+          searchQuery={searchQuery}
+          onSearchInputChange={setQ}
+          onSearch={() => setSearchQuery(q.trim())}
+          searchLoading={loading}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="pb-6">

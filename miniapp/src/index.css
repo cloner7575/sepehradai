@@ -130,4 +130,11 @@ body {
   .item-detail-badge {
     @apply mb-2 inline-flex items-center rounded-xl bg-[var(--color-primary-soft)] px-2.5 py-1 text-xs font-semibold text-muted;
   }
+  .home-slider-track {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .home-slider-slide {
+    scroll-snap-align: start;
+  }
 }

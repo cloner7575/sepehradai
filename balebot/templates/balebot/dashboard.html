@@ -1,95 +1,149 @@
 {% extends "balebot/base.html" %}
 {% block title %}داشبورد{% endblock %}
 {% block page_title %}داشبورد{% endblock %}
-{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">نمای کلی مخاطبان، کمپین‌ها و تحویل پیام‌ها</p>{% endblock %}
+{% block page_subtitle %}
+<p class="app-page-subtitle">نمای کلی عملکرد ربات، کمپین‌ها و پشتیبانی</p>
+{% endblock %}
 
 {% block content %}
-<div class="dashboard-overview mb-4">
-  <div class="row g-3 g-xl-4">
-    <div class="col-sm-6 col-xl-3">
-      <div class="stat-card stat-card-compact">
-        <div class="stat-card-head">
-          <div class="stat-card-label text-center w-100 d-block">مشترکین فعال</div>
-          <i class="bi bi-person-check stat-card-icon"></i>
-        </div>
-        <div class="stat-card-value">{{ subscriber_active }}</div>
-        <div class="small text-muted mt-2">ثبت‌شده با شماره</div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="stat-card stat-card-compact">
-        <div class="stat-card-head">
-          <div class="stat-card-label text-center w-100 d-block">کل کاربران</div>
-          <i class="bi bi-people stat-card-icon"></i>
-        </div>
-        <div class="stat-card-value">{{ subscriber_total }}</div>
-        <div class="small text-muted mt-2">تماس با بازو</div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="stat-card stat-card-compact">
-        <div class="stat-card-head">
-          <div class="stat-card-label text-center w-100 d-block">کمپین در جریان</div>
-          <i class="bi bi-lightning-charge stat-card-icon"></i>
-        </div>
-        <div class="stat-card-value">{{ campaign_running }}</div>
-        <div class="small text-muted mt-2">از {{ campaign_total }} کمپین کل</div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="stat-card stat-card-compact">
-        <div class="stat-card-head">
-          <div class="stat-card-label text-center w-100 d-block">ارسال موفق</div>
-          <i class="bi bi-check2-circle stat-card-icon"></i>
-        </div>
-        <div class="stat-card-value">{{ delivery_sent }}</div>
-        <div class="small text-muted mt-2">موفق در تحویل پیام</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-{% if has_miniapp_access %}
-<div class="panel-card p-4 mb-4">
-  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <h2 class="h6 mb-0"><i class="bi bi-shop me-2"></i>مینی‌اپ {{ active_platform_label }}</h2>
-    <a href="{% url 'catalog_dashboard' %}" class="btn btn-panel-primary btn-sm">مدیریت مینی‌اپ</a>
-  </div>
+<div class="app-metrics mb-4">
   <div class="row g-3">
-    <div class="col-sm-4"><div class="small text-muted">آیتم‌ها</div><div class="fw-bold fs-5">{{ catalog_item_count }}</div></div>
-    <div class="col-sm-4"><div class="small text-muted">سفارش در انتظار</div><div class="fw-bold fs-5">{{ catalog_order_pending }}</div></div>
-    <div class="col-sm-4">{% if mini_app_url %}<div class="small text-muted">لینک</div><code class="small text-break d-block" dir="ltr">{{ mini_app_url }}</code>{% endif %}</div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-metric">
+        <span class="app-metric-icon app-metric-icon--success"><i class="bi bi-person-check"></i></span>
+        <div>
+          <span class="app-metric-value">{{ subscriber_active|floatformat:0 }}</span>
+          <span class="app-metric-label">مخاطبین فعال</span>
+          <span class="app-metric-hint">+{{ subscriber_new_week }} این هفته</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-metric">
+        <span class="app-metric-icon app-metric-icon--info"><i class="bi bi-people"></i></span>
+        <div>
+          <span class="app-metric-value">{{ subscriber_total|floatformat:0 }}</span>
+          <span class="app-metric-label">کل مخاطبین</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-metric">
+        <span class="app-metric-icon app-metric-icon--warn"><i class="bi bi-megaphone"></i></span>
+        <div>
+          <span class="app-metric-value">{{ campaign_running }}</span>
+          <span class="app-metric-label">کمپین فعال</span>
+          <span class="app-metric-hint">از {{ campaign_total }} کمپین</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="app-metric">
+        <span class="app-metric-icon app-metric-icon--success"><i class="bi bi-check2-circle"></i></span>
+        <div>
+          <span class="app-metric-value">{% if delivery_rate_pct %}{{ delivery_rate_pct }}%{% else %}—{% endif %}</span>
+          <span class="app-metric-label">نرخ تحویل</span>
+          <span class="app-metric-hint">{{ delivery_sent }} موفق</span>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
-{% endif %}
 
-<div class="row g-4">
-  <div class="col-12">
-    <div class="panel-card h-100">
-      <div class="panel-card-header">
-        <h2 class="panel-card-title">آخرین کمپین‌ها</h2>
-        <a href="{% url 'campaign_create' %}" class="btn btn-panel-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>جدید</a>
+<div class="app-dash-grid app-dash-grid--wide">
+  <div class="app-card">
+    <div class="app-card-head">
+      <h2 class="app-card-title">آخرین کمپین‌ها</h2>
+      <a href="{% url 'campaign_create' %}" class="btn-panel-primary btn-sm"><i class="bi bi-plus-lg"></i> جدید</a>
+    </div>
+    <div class="app-card-body p-0">
+      <div class="app-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>نام</th><th>وضعیت</th><th>زمان</th></tr>
+          </thead>
+          <tbody>
+            {% for c in campaign_recent|slice:":6" %}
+            <tr>
+              <td><a href="{{ c.get_absolute_url }}" class="text-decoration-none">{{ c.title|truncatechars:32 }}</a></td>
+              <td><span class="status-badge {{ c.status }}">{{ c.get_status_display }}</span></td>
+              <td class="text-muted small">{{ c.created_at|date:"Y/m/d H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="app-empty-state">هنوز کمپینی ثبت نشده.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-      <div class="list-group list-group-panel list-group-flush rounded-0">
-        {% for c in campaign_recent %}
-        <a class="list-group-item list-group-item-action py-3" href="{{ c.get_absolute_url }}">
-          <div class="d-flex justify-content-between align-items-start gap-2">
-            <span class="fw-semibold">{{ c.title }}</span>
-            <span class="badge rounded-pill text-bg-secondary">{{ c.get_status_display }}</span>
+    </div>
+  </div>
+
+  <div class="app-analytics-stack">
+    <div class="app-card">
+      <div class="app-card-head">
+        <h2 class="app-card-title">تیکت‌های اخیر</h2>
+        <a href="{% url 'inbound_list' %}" class="btn-panel-ghost btn-sm">همه</a>
+      </div>
+      <div class="app-card-body">
+        {% for msg in support_tickets_recent|slice:":4" %}
+        <div class="ticket-widget-item">
+          <div class="ticket-widget-avatar">{{ msg.subscriber.phone_number|default:msg.subscriber.messenger_user_id|stringformat:"s"|slice:":2" }}</div>
+          <div class="flex-grow-1 min-w-0">
+            <div class="ticket-widget-title">{{ msg.text|default:"پیام پشتیبانی"|truncatechars:36 }}</div>
+            <div class="ticket-widget-id">#{{ msg.id }}</div>
           </div>
-          <small class="text-muted">{{ c.get_content_type_display }}</small>
-        </a>
+          <span class="status-badge {% if msg.is_support_read %}completed{% else %}high{% endif %}">{% if msg.is_support_read %}بررسی‌شده{% else %}جدید{% endif %}</span>
+        </div>
         {% empty %}
-        <div class="panel-card-body text-muted">هنوز کمپینی ثبت نشده.</div>
+        <div class="app-empty-state">تیکت باز وجود ندارد.</div>
         {% endfor %}
       </div>
     </div>
+
+    {% if has_miniapp_access %}
+    <div class="app-card">
+      <div class="app-card-head">
+        <h2 class="app-card-title">مینی‌اپ</h2>
+        <a href="{% url 'catalog_dashboard' %}" class="btn-panel-ghost btn-sm">مدیریت</a>
+      </div>
+      <div class="app-card-body">
+        <div class="widget-stat-row">
+          <div class="widget-stat-item"><span class="label">محصولات</span><span class="value">{{ catalog_item_count }}</span></div>
+          <div class="widget-stat-item"><span class="label">سفارش</span><span class="value">{{ catalog_order_pending }}</span></div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
   </div>
 </div>
 
-<div class="mt-4 d-flex flex-wrap gap-2 dashboard-quick-actions">
-  <a href="{% url 'bot_settings' %}" class="btn btn-panel-primary"><i class="bi bi-robot me-2"></i>تنظیمات ربات</a>
-  <a href="{% url 'subscriber_list' %}" class="btn btn-panel-ghost">مشترکین</a>
-  <a href="{% url 'campaign_list' %}" class="btn btn-panel-ghost">کمپین‌ها</a>
+<div class="app-hub-grid mt-4">
+  <a href="{% url 'bot_flow_engine' %}" class="app-hub-card">
+    <div class="app-hub-card-icon"><i class="bi bi-diagram-3"></i></div>
+    <h3>موتور جریان</h3>
+    <p>ساخت گرافیکی /start برای {{ active_platform_label }}</p>
+  </a>
+  {% if has_miniapp_access %}
+  <a href="{% url 'catalog_flow_engine' %}" class="app-hub-card">
+    <div class="app-hub-card-icon"><i class="bi bi-shop"></i></div>
+    <h3>موتور فروشگاه</h3>
+    <p>ویرایش گرافیکی مینی‌اپ</p>
+  </a>
+  {% endif %}
+  <a href="{% url 'campaign_create' %}" class="app-hub-card">
+    <div class="app-hub-card-icon"><i class="bi bi-megaphone"></i></div>
+    <h3>ارسال انبوه</h3>
+    <p>کمپین جدید با فیلتر مخاطب</p>
+  </a>
+  <a href="{% url 'inbound_list' %}" class="app-hub-card">
+    <div class="app-hub-card-icon"><i class="bi bi-headset"></i></div>
+    <h3>پشتیبانی</h3>
+    <p>{{ inbound_open_count }} تیکت باز</p>
+  </a>
+  <a href="{% url 'subscriber_list' %}" class="app-hub-card">
+    <div class="app-hub-card-icon"><i class="bi bi-people"></i></div>
+    <h3>مخاطبین</h3>
+    <p>{{ subscriber_total }} کاربر</p>
+  </a>
 </div>
 {% endblock %}

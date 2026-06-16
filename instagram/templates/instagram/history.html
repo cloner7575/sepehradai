@@ -3,16 +3,20 @@
 {% block title %}تاریخچه استخراج{% endblock %}
 {% block page_title %}تاریخچه{% endblock %}
 {% block page_subtitle %}
-<p class="topbar-meta mb-0 mt-1">لیست عملیات‌های استخراج انجام‌شده</p>
+<p class="app-page-subtitle">لیست عملیات‌های استخراج انجام‌شده</p>
 {% endblock %}
 
 {% block content %}
-<link href="{% static 'instagram/css/extractor.css' %}?v=2" rel="stylesheet">
+<link href="{% static 'instagram/css/extractor.css' %}?v=3" rel="stylesheet">
 
 <div class="ig-panel">
   {% include "instagram/_instagram_subnav.html" %}
 
-  <div class="ig-card">
+  <div class="ig-card mb-0">
+    <div class="ig-card-head ig-card-head-split">
+      <h2>عملیات‌های استخراج</h2>
+      <a href="{% url 'instagram:phone_extractor' %}" class="ig-link"><i class="bi bi-plus-lg me-1"></i>استخراج جدید</a>
+    </div>
     {% if jobs %}
     <ul class="ig-history-list">
       {% for job in jobs %}

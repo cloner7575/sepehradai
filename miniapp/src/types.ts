@@ -3,12 +3,85 @@ export interface PaymentMethodOption {
   label: string;
 }
 
+export type HomeBlockType =
+  | 'hero'
+  | 'search'
+  | 'slider'
+  | 'categories'
+  | 'featured'
+  | 'products'
+  | 'spacer';
+
+export interface HomeBlockBase {
+  id: string;
+  type: HomeBlockType;
+}
+
+export interface HeroHomeBlock extends HomeBlockBase {
+  type: 'hero';
+  variant?: 'banner' | 'compact';
+}
+
+export interface SearchHomeBlock extends HomeBlockBase {
+  type: 'search';
+  placeholder?: string;
+}
+
+export interface SliderSlide {
+  title?: string;
+  subtitle?: string;
+  image_url?: string;
+  link_url?: string;
+}
+
+export interface SliderHomeBlock extends HomeBlockBase {
+  type: 'slider';
+  autoplay?: boolean;
+  slides?: SliderSlide[];
+}
+
+export interface CategoriesHomeBlock extends HomeBlockBase {
+  type: 'categories';
+  title?: string;
+  columns?: number;
+  limit?: number;
+}
+
+export interface FeaturedHomeBlock extends HomeBlockBase {
+  type: 'featured';
+  title?: string;
+  limit?: number;
+  layout?: 'scroll' | 'grid';
+}
+
+export interface ProductsHomeBlock extends HomeBlockBase {
+  type: 'products';
+  title?: string;
+  layout?: 'grid' | 'list';
+  limit?: number;
+}
+
+export interface SpacerHomeBlock extends HomeBlockBase {
+  type: 'spacer';
+  size?: 'sm' | 'md' | 'lg';
+}
+
+export type HomeBlock =
+  | HeroHomeBlock
+  | SearchHomeBlock
+  | SliderHomeBlock
+  | CategoriesHomeBlock
+  | FeaturedHomeBlock
+  | ProductsHomeBlock
+  | SpacerHomeBlock;
+
 export interface CatalogConfig {
   is_enabled?: boolean;
   platform: string;
   hero_title: string;
   hero_subtitle: string;
   theme: Record<string, string>;
+  home_blocks?: HomeBlock[];
   labels: Record<string, string>;
   logo_url: string;
   payment_methods?: PaymentMethodOption[];

@@ -20,9 +20,10 @@ def detect_media_type(filename: str) -> str:
 def _public_base_url(request, catalog=None) -> str:
     if catalog is not None:
         from balebot.models import BotSettings
+        from balebot.services.public_url import resolve_public_base_url
 
         cfg = BotSettings.get_for_platform(catalog.workspace, catalog.platform)
-        base = (cfg.webhook_public_url or '').strip().rstrip('/')
+        base = resolve_public_base_url(cfg).rstrip('/')
         if base:
             return base
     if request is None:

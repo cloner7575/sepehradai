@@ -1,0 +1,57 @@
+{% load static %}
+{% comment %}ویرایشگر گرافیکی جریان /start — تعامل مستقیم روی canvas چت{% endcomment %}
+<div
+  class="flow-canvas-editor"
+  id="flow-canvas-editor"
+  data-hidden-id="id_start_flow"
+  data-upload-url="{% url 'flow_media_upload' %}"
+  data-platform-label="{{ active_platform_label|default:'بله' }}"
+  {% if mini_app_url %}data-mini-app-url="{{ mini_app_url }}"{% endif %}
+>
+  <div class="flow-canvas-editor-toolbar" id="flow-canvas-toolbar" role="toolbar" aria-label="افزودن به جریان">
+    <span class="flow-canvas-editor-toolbar-label"><i class="bi bi-plus-circle"></i> افزودن</span>
+    <button type="button" class="flow-canvas-tool-btn" data-add-type="text"><i class="bi bi-chat-text"></i> متن</button>
+    <button type="button" class="flow-canvas-tool-btn" data-add-type="image"><i class="bi bi-image"></i> عکس</button>
+    <button type="button" class="flow-canvas-tool-btn" data-add-type="video"><i class="bi bi-camera-video"></i> ویدیو</button>
+    <button type="button" class="flow-canvas-tool-btn" data-add-type="voice"><i class="bi bi-mic"></i> صدا</button>
+    <button type="button" class="flow-canvas-tool-btn" data-add-type="document"><i class="bi bi-paperclip"></i> فایل</button>
+    <button type="button" class="flow-canvas-tool-btn flow-canvas-tool-btn--primary" data-add-type="buttons"><i class="bi bi-ui-checks-grid"></i> دکمه‌ها</button>
+  </div>
+
+  <div class="flow-canvas-editor-layout">
+    <div class="flow-canvas-stage flow-canvas-stage--bot flow-canvas-stage--editable">
+      <div class="flow-messenger">
+        <div class="flow-messenger-header">
+          <div class="flow-messenger-avatar"><i class="bi bi-robot"></i></div>
+          <div class="flow-messenger-meta">
+            <strong>{% if bot_branding %}{{ bot_branding.panel_brand_title }}{% else %}ربات{% endif %}</strong>
+            <span>پلتفرم {{ active_platform_label }} · ویرایش جریان /start</span>
+          </div>
+          <span class="flow-messenger-chip">Canvas</span>
+        </div>
+
+        <div class="flow-messenger-thread flow-messenger-thread--editable" id="flow-canvas-thread"></div>
+
+        <div class="flow-messenger-compose" aria-hidden="true">
+          <span class="flow-messenger-compose-field">پیام کاربر…</span>
+          <span class="flow-messenger-compose-send"><i class="bi bi-send"></i></span>
+        </div>
+      </div>
+    </div>
+
+    <aside class="flow-canvas-inspector" id="flow-canvas-inspector" aria-label="ویژگی‌های انتخاب‌شده">
+      <div class="flow-canvas-inspector-head">
+        <h3 class="flow-canvas-inspector-title" id="flow-inspector-title">ویژگی‌ها</h3>
+        <span class="flow-canvas-inspector-hint" id="flow-inspector-hint">روی canvas کلیک کنید</span>
+      </div>
+      <div class="flow-canvas-inspector-body" id="flow-inspector-body">
+        <div class="flow-canvas-inspector-empty">
+          <i class="bi bi-hand-index"></i>
+          <p>یک پیام یا دکمه را روی canvas انتخاب کنید تا اینجا ویرایش شود.</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="visually-hidden" aria-hidden="true">{{ form.start_flow }}</div>

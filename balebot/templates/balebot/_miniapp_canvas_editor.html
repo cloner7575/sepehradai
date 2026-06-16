@@ -1,0 +1,68 @@
+{% load static %}
+<div
+  class="flow-canvas-editor flow-canvas-editor--miniapp"
+  id="miniapp-canvas-editor"
+  data-categories="{{ catalog_categories_json|escape }}"
+  data-items="{{ catalog_items_json|escape }}"
+>
+  <div class="flow-canvas-editor-toolbar" id="miniapp-canvas-toolbar" role="toolbar" aria-label="افزودن المان">
+    <span class="flow-canvas-editor-toolbar-label"><i class="bi bi-plus-circle"></i> افزودن</span>
+    <button type="button" class="flow-canvas-tool-btn" data-add-block="hero"><i class="bi bi-image"></i> هیرو</button>
+    <button type="button" class="flow-canvas-tool-btn" data-add-block="slider"><i class="bi bi-images"></i> اسلایدر</button>
+    <button type="button" class="flow-canvas-tool-btn" data-add-block="search"><i class="bi bi-search"></i> جستجو</button>
+    <button type="button" class="flow-canvas-tool-btn" data-add-block="categories"><i class="bi bi-folder"></i> دسته‌ها</button>
+    <button type="button" class="flow-canvas-tool-btn" data-add-block="featured"><i class="bi bi-star"></i> ویژه</button>
+    <button type="button" class="flow-canvas-tool-btn" data-add-block="products"><i class="bi bi-grid"></i> محصولات</button>
+    <button type="button" class="flow-canvas-tool-btn" data-add-block="spacer"><i class="bi bi-distribute-vertical"></i> فاصله</button>
+    <button type="button" class="flow-canvas-tool-btn flow-canvas-tool-btn--ghost ms-auto" data-inspector-global="theme">
+      <i class="bi bi-palette"></i> تم کلی
+    </button>
+  </div>
+
+  <div class="flow-canvas-editor-layout">
+    <div class="flow-canvas-stage flow-canvas-stage--miniapp flow-canvas-stage--editable">
+      <div class="flow-messenger flow-messenger--shop">
+        <div class="flow-messenger-header">
+          <div class="flow-messenger-avatar flow-messenger-avatar--shop"><i class="bi bi-shop"></i></div>
+          <div class="flow-messenger-meta">
+            <strong id="miniapp-canvas-store-title">{% if catalog %}{{ catalog.hero_title|default:"فروشگاه" }}{% else %}فروشگاه{% endif %}</strong>
+            <span>پیش‌نمایش مینی‌اپ · {{ active_platform_label|default:"بله" }}</span>
+          </div>
+          <span class="flow-messenger-chip">Canvas</span>
+        </div>
+
+        <div
+          class="flow-messenger-thread flow-messenger-thread--editable flow-messenger-thread--miniapp"
+          id="miniapp-canvas-thread"
+        ></div>
+
+        <div class="flow-messenger-compose flow-messenger-compose--shop" aria-hidden="true">
+          <span class="flow-messenger-compose-tab is-active"><i class="bi bi-house"></i></span>
+          <span class="flow-messenger-compose-tab"><i class="bi bi-grid"></i></span>
+          <span class="flow-messenger-compose-tab"><i class="bi bi-cart"></i></span>
+        </div>
+      </div>
+    </div>
+
+    <aside class="flow-canvas-inspector" id="miniapp-canvas-inspector" aria-label="ویژگی‌های انتخاب‌شده">
+      <div class="flow-canvas-inspector-head">
+        <h3 class="flow-canvas-inspector-title" id="miniapp-inspector-title">ویژگی‌ها</h3>
+        <span class="flow-canvas-inspector-hint" id="miniapp-inspector-hint">روی canvas کلیک کنید</span>
+      </div>
+      <div class="flow-canvas-inspector-body" id="miniapp-inspector-body"></div>
+    </aside>
+  </div>
+</div>
+
+<div class="visually-hidden miniapp-inspector-vault" aria-hidden="true">
+  {% include "balebot/_settings_field.html" with field=form.hero_title %}
+  {% include "balebot/_settings_field.html" with field=form.hero_subtitle %}
+  {% include "balebot/_settings_field.html" with field=form.logo %}
+  {% include "balebot/_settings_field.html" with field=form.theme_layout %}
+  {% include "balebot/_settings_field.html" with field=form.theme_primary %}
+  {% include "balebot/_settings_field.html" with field=form.theme_accent %}
+  {% include "balebot/_settings_field.html" with field=form.label_buy_now %}
+  {{ form.page_layout }}
+</div>
+
+<script id="miniapp-home-blocks-data" type="application/json">{{ home_blocks_json|safe }}</script>

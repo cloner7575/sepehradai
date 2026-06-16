@@ -1,0 +1,52 @@
+{% extends "balebot/base.html" %}
+{% load static %}
+{% block title %}موتور فروشگاه{% endblock %}
+{% block page_title %}موتور فروشگاه{% endblock %}
+{% block page_subtitle %}
+<p class="app-page-subtitle">ساخت گرافیکی صفحهٔ اصلی مینی‌اپ برای <strong>{{ active_platform_label }}</strong></p>
+{% endblock %}
+
+{% block content %}
+<div class="catalog-panel">
+  {% include "balebot/_catalog_subnav.html" %}
+</div>
+
+<div class="flow-engine-studio" id="miniapp-flow-studio">
+  <form method="post" class="flow-engine-studio-form miniapp-flow-form" id="miniapp-flow-form" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% if catalog_form.non_field_errors %}
+    <div class="alert alert-danger mb-3">{{ catalog_form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="flow-engine-studio-hint mb-3 d-flex flex-wrap align-items-center gap-2">
+      <span class="app-badge app-badge--info"><i class="bi bi-shop"></i> مینی‌اپ {{ active_platform_label }}</span>
+      {% if available_platforms|length > 1 %}
+      <span class="small text-muted">برای بله/تلگرام از نوار بالا سوئیچ کنید</span>
+      {% endif %}
+      <a href="{% url 'bot_flow_engine' %}" class="btn-panel-ghost btn-sm ms-auto">
+        <i class="bi bi-robot"></i> موتور جریان ربات
+      </a>
+      <a href="{% url 'catalog_item_create' %}" class="btn-panel-ghost btn-sm">
+        <i class="bi bi-plus-lg"></i> محصول
+      </a>
+    </div>
+
+    {% include "balebot/_miniapp_canvas_editor.html" with form=catalog_form catalog=catalog %}
+
+    <div class="flow-engine-save-bar">
+      <div class="flow-engine-save-bar-inner">
+        <button type="submit" class="btn-panel-primary">
+          <i class="bi bi-cloud-check"></i> ذخیره ظاهر فروشگاه
+        </button>
+        {% if mini_app_url %}
+        <span class="small text-muted" dir="ltr">مینی‌اپ: {{ mini_app_url|truncatechars:48 }}</span>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'balebot/js/flow_canvas_miniapp_editor.js' %}?v=3"></script>
+{% endblock %}

@@ -5,7 +5,6 @@ from django.core.files import File
 from django.core.files.storage import default_storage
 
 from balebot.models import BotSettings, Campaign, Platform, Tag
-from balebot.services.webhook_setup import normalize_public_url
 from balebot.services.jalali_datetime import aware_to_jalali_parts, parse_jalali_date_time
 
 # هم‌نام با مقدار سشن در views_panel (آپلود ویدیو)
@@ -43,8 +42,6 @@ class BotSettingsForm(forms.ModelForm):
         model = BotSettings
         fields = [
             'bot_token',
-            'webhook_secret',
-            'webhook_public_url',
             'is_enabled',
             'panel_brand_title',
             'panel_brand_subtitle',
@@ -66,16 +63,6 @@ class BotSettingsForm(forms.ModelForm):
             'support_waiting_message',
         ]
         widgets = {
-            'webhook_secret': forms.TextInput(
-                attrs={'class': _SETTINGS_INPUT_CLASS, 'dir': 'ltr', 'autocomplete': 'off'},
-            ),
-            'webhook_public_url': forms.URLInput(
-                attrs={
-                    'class': _SETTINGS_INPUT_CLASS,
-                    'dir': 'ltr',
-                    'placeholder': 'https://example.com',
-                },
-            ),
             'is_enabled': forms.CheckboxInput(
                 attrs={'class': 'form-check-input', 'role': 'switch'},
             ),
@@ -149,16 +136,10 @@ class BotSettingsForm(forms.ModelForm):
         self._initial_bot_token = ''
         if self.instance and self.instance.pk:
             self._initial_bot_token = (self.instance.bot_token or '').strip()
-        if self._initial_bot_token:
+        if self._initial_bot_token and 'bot_token' in self.fields:
             self.fields['bot_token'].help_text = (
                 f'توکن فعلی: {self.instance.masked_bot_token()} — برای تغییر، توکن جدید وارد کنید.'
             )
-        platform = getattr(self.instance, 'platform', Platform.BALE) or Platform.BALE
-        self.fields['webhook_public_url'].help_text = (
-            'فقط دامنهٔ HTTPS عمومی، بدون مسیر. '
-            + ('تلگرام حتماً https:// لازم دارد. ' if platform == Platform.TELEGRAM else '')
-            + 'مثلاً https://example.com'
-        )
         raw = getattr(self.instance, 'start_flow', None)
         if raw and isinstance(raw, dict) and raw.get('version') == 2:
             norm = sanitize_start_flow(raw)
@@ -176,16 +157,6 @@ class BotSettingsForm(forms.ModelForm):
         if self._initial_bot_token:
             return self._initial_bot_token
         return ''
-
-    def clean_webhook_public_url(self):
-        raw = self.cleaned_data.get('webhook_public_url') or ''
-        platform = getattr(self.instance, 'platform', Platform.BALE) or Platform.BALE
-        normalized = normalize_public_url(raw, platform=platform)
-        if raw.strip() and not normalized:
-            raise forms.ValidationError('آدرس عمومی سرور نامعتبر است.')
-        if platform == Platform.TELEGRAM and normalized and not normalized.startswith('https://'):
-            raise forms.ValidationError('برای تلگرام آدرس عمومی باید با https:// باشد.')
-        return normalized
 
     def clean_start_flow(self):
         raw = self.cleaned_data.get('start_flow')
@@ -230,6 +201,33 @@ class BotSettingsForm(forms.ModelForm):
 
     def save(self, commit=True):
         return super().save(commit=commit)
+
+
+class FlowEngineForm(BotSettingsForm):
+    """فیلدهای ساخت جریان /start در صفحهٔ موتور جریان."""
+
+    class Meta(BotSettingsForm.Meta):
+        fields = [
+            'start_flow',
+            'start_flow_default_text',
+            'start_message_normal',
+            'collect_contact_on_start',
+            'start_message_contact',
+            'contact_button_label',
+            'registration_success_message',
+        ]
+
+    def clean(self):
+        cleaned = super(BotSettingsForm, self).clean()
+        if not (cleaned.get('start_message_normal') or '').strip():
+            raise forms.ValidationError('پیام خوش‌آمد را پر کنید.')
+        if cleaned.get('collect_contact_on_start') and not (
+            cleaned.get('start_message_contact') or ''
+        ).strip():
+            raise forms.ValidationError(
+                'وقتی دریافت شماره روشن است، پیام مخصوص آن را هم پر کنید.',
+            )
+        return cleaned
 
 
 class CampaignForm(forms.ModelForm):

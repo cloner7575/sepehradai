@@ -1,0 +1,74 @@
+<header class="app-header">
+  <div class="app-header-start">
+    <button
+      type="button"
+      class="app-icon-btn d-lg-none"
+      id="app-sidebar-toggle"
+      aria-controls="panel-sidebar"
+      aria-expanded="false"
+      aria-label="باز و بسته کردن منو"
+    >
+      <i class="bi bi-list"></i>
+    </button>
+    <button
+      type="button"
+      class="app-icon-btn d-none d-lg-inline-flex"
+      id="app-sidebar-collapse"
+      aria-label="جمع کردن منو"
+      title="جمع کردن منو"
+    >
+      <i class="bi bi-layout-sidebar-inset-reverse"></i>
+    </button>
+  </div>
+
+  <div class="app-header-center">
+    <span class="app-platform-label">پلتفرم فعال</span>
+    {% if available_platforms %}
+    <form method="post" action="{% url 'panel_switch_platform' %}" class="app-platform-switch" id="app-platform-form">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <input type="hidden" name="platform" id="app-platform-input" value="{{ active_platform }}">
+      {% for value, label in available_platforms %}
+      <button
+        type="button"
+        class="app-platform-btn {% if value == active_platform %}is-active{% endif %}"
+        data-platform="{{ value }}"
+        aria-pressed="{% if value == active_platform %}true{% else %}false{% endif %}"
+      >
+        {% if value == 'telegram' %}
+        <i class="bi bi-send-fill"></i>
+        {% else %}
+        <i class="bi bi-chat-dots-fill"></i>
+        {% endif %}
+        <span>{{ label }}</span>
+        {% if value == active_platform %}<i class="bi bi-check2"></i>{% endif %}
+      </button>
+      {% endfor %}
+    </form>
+    {% else %}
+    <span class="app-badge app-badge--info">{{ active_platform_label }}</span>
+    {% endif %}
+  </div>
+
+  {% if user.is_authenticated %}
+  <div class="app-header-end">
+    <a href="{% url 'inbound_list' %}" class="app-icon-btn" title="تیکت‌ها و پیام‌ها">
+      <i class="bi bi-bell"></i>
+      {% if inbound_open_count %}<span class="app-icon-badge">{{ inbound_open_count }}</span>{% endif %}
+    </a>
+    <button type="button" class="app-icon-btn" id="app-theme-toggle" title="حالت تیره / روشن">
+      <i class="bi bi-moon-stars"></i>
+    </button>
+    <div class="app-user-chip">
+      <span class="app-user-avatar">{{ user.username|slice:":2"|upper }}</span>
+      <span class="d-none d-md-inline">{{ user.get_full_name|default:user.username }}</span>
+    </div>
+    <form method="post" action="{% url 'panel_logout' %}" class="m-0">
+      {% csrf_token %}
+      <button type="submit" class="app-icon-btn" title="خروج">
+        <i class="bi bi-box-arrow-right"></i>
+      </button>
+    </form>
+  </div>
+  {% endif %}
+</header>

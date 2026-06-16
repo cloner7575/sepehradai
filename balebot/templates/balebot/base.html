@@ -4,159 +4,37 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}{% if bot_branding %}{{ bot_branding.panel_brand_title }}{% else %}پنل بازو{% endif %}{% endblock %}</title>
+  <title>{% block title %}{% if bot_branding %}{{ bot_branding.panel_brand_title }}{% else %}پنل مدیریت{% endif %}{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="{% static 'balebot/vendor/bootstrap/5.3.3/dist/css/bootstrap.rtl.min.css' %}" rel="stylesheet">
   <link href="{% static 'balebot/vendor/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css' %}" rel="stylesheet">
-  <link href="{% static 'balebot/css/panel.css' %}?v=catalog-panel-3" rel="stylesheet">
+  <link href="{% static 'balebot/css/panel-app.css' %}?v=5" rel="stylesheet">
+  <link href="{% static 'balebot/css/panel-builders.css' %}?v=15" rel="stylesheet">
+  {% block extra_css %}{% endblock %}
 </head>
-<body class="panel-body panel-theme-{{ active_platform|default:'bale' }}">
-  <div class="panel-shell">
-    <button type="button" class="sidebar-backdrop" tabindex="-1" aria-hidden="true" aria-label="بستن منو"></button>
-    <aside class="sidebar" id="panel-sidebar">
-      <div class="sidebar-brand d-flex align-items-center gap-3">
-        <div class="sidebar-brand-mark flex-shrink-0">
-          <i class="bi bi-layout-text-sidebar-reverse"></i>
+<body class="app-body app-theme-{{ active_platform|default:'bale' }}" id="app-body">
+  <div class="app-shell">
+    <button type="button" class="app-backdrop" id="app-backdrop" tabindex="-1" aria-hidden="true" aria-label="بستن منو"></button>
+    {% include "balebot/_sidebar.html" %}
+
+    <div class="app-main">
+      {% include "balebot/_header.html" %}
+
+      <div class="app-page-head">
+        <div class="app-page-head-text">
+          <h1 class="app-page-title">{% block page_title %}داشبورد{% endblock %}</h1>
+          {% block page_subtitle %}{% endblock %}
         </div>
-        <div>
-          <div class="sidebar-brand-title">{% if bot_branding %}{{ bot_branding.panel_brand_title }}{% else %}کنترل بازو{% endif %}</div>
-          {% if bot_branding and bot_branding.panel_brand_subtitle %}
-          <div class="sidebar-brand-sub">{{ bot_branding.panel_brand_subtitle }}</div>
-          {% endif %}
-        </div>
+        {% block page_actions %}{% endblock %}
       </div>
 
-      {% with name=request.resolver_match.url_name %}
-      <div class="sidebar-section-label">منوی اصلی</div>
-      <nav class="sidebar-nav nav flex-column gap-1 mt-2">
-        <a class="nav-link {% if name == 'panel_dashboard' %}active{% endif %}" href="{% url 'panel_dashboard' %}">
-          <i class="bi bi-grid-1x2-fill"></i> داشبورد
-        </a>
-        <a class="nav-link {% if name == 'bot_settings' %}active{% endif %}" href="{% url 'bot_settings' %}">
-          <i class="bi bi-robot"></i> تنظیمات ربات
-        </a>
-        <a class="nav-link {% if name == 'subscriber_list' %}active{% endif %}" href="{% url 'subscriber_list' %}">
-          <i class="bi bi-people-fill"></i> مشترکین
-        </a>
-        <a class="nav-link {% if name == 'campaign_list' or name == 'campaign_create' or name == 'campaign_detail' or name == 'campaign_edit' %}active{% endif %}" href="{% url 'campaign_list' %}">
-          <i class="bi bi-megaphone-fill"></i> کمپین‌ها
-        </a>
-        {% if has_instagram_access %}
-        <div class="sidebar-section-label mt-3">اینستاگرام</div>
-        <a class="nav-link {% if name == 'dashboard' %}active{% endif %}" href="{% url 'instagram:dashboard' %}">
-          <i class="bi bi-instagram"></i> داشبورد
-        </a>
-        <a class="nav-link {% if name == 'phone_extractor' %}active{% endif %}" href="{% url 'instagram:phone_extractor' %}">
-          <i class="bi bi-telephone-plus"></i> استخراج شماره
-        </a>
-        <a class="nav-link {% if name == 'backup_guide' %}active{% endif %}" href="{% url 'instagram:backup_guide' %}">
-          <i class="bi bi-play-circle"></i> آموزش بکاپ
-        </a>
-        <a class="nav-link {% if name == 'phone_list' %}active{% endif %}" href="{% url 'instagram:phone_list' %}">
-          <i class="bi bi-telephone"></i> لیست شماره‌ها
-        </a>
-        <a class="nav-link {% if name == 'history' or name == 'extraction_detail' %}active{% endif %}" href="{% url 'instagram:history' %}">
-          <i class="bi bi-clock-history"></i> تاریخچه
-        </a>
-        {% if user.is_superuser %}
-        <a class="nav-link {% if name == 'activity_domain_list' %}active{% endif %}" href="{% url 'instagram:activity_domain_list' %}">
-          <i class="bi bi-tags"></i> حوزه‌ها
-        </a>
-        {% endif %}
-        {% endif %}
-        {% if has_miniapp_access %}
-        <div class="sidebar-section-label mt-3">مینی‌اپ {{ active_platform_label }}</div>
-        <a class="nav-link {% if name == 'catalog_dashboard' %}active{% endif %}" href="{% url 'catalog_dashboard' %}">
-          <i class="bi bi-shop"></i> داشبورد مینی‌اپ
-        </a>
-        <a class="nav-link {% if name == 'catalog_category_list' or name == 'catalog_category_create' or name == 'catalog_category_edit' %}active{% endif %}" href="{% url 'catalog_category_list' %}">
-          <i class="bi bi-folder-fill"></i> دسته‌بندی‌ها
-        </a>
-        <a class="nav-link {% if name == 'catalog_item_list' or name == 'catalog_item_create' or name == 'catalog_item_edit' %}active{% endif %}" href="{% url 'catalog_item_list' %}">
-          <i class="bi bi-box-seam-fill"></i> آیتم‌ها
-        </a>
-        <a class="nav-link {% if name == 'catalog_order_list' or name == 'catalog_order_detail' %}active{% endif %}" href="{% url 'catalog_order_list' %}">
-          <i class="bi bi-receipt"></i> سفارش‌ها
-        </a>
-        <a class="nav-link {% if name == 'catalog_settings' %}active{% endif %}" href="{% url 'catalog_settings' %}">
-          <i class="bi bi-palette-fill"></i> تنظیمات مینی‌اپ
-        </a>
-        {% endif %}
-        {% if user.is_superuser %}
-        <a class="nav-link {% if name == 'panel_user_list' or name == 'panel_user_create' or name == 'panel_user_edit' %}active{% endif %}" href="{% url 'panel_user_list' %}">
-          <i class="bi bi-people-fill"></i> مدیریت کاربران
-        </a>
-        {% endif %}
-      </nav>
-      {% endwith %}
-
-      <div class="sidebar-footer">
-        <span class="d-block opacity-75">نسخه پنل ۲</span>
-      </div>
-    </aside>
-
-    <div class="panel-main">
-      <header class="topbar">
-        <div class="topbar-leading d-flex align-items-start gap-2 flex-grow-1 min-w-0">
-          <button
-            type="button"
-            class="btn btn-panel-ghost panel-sidebar-toggle d-lg-none flex-shrink-0"
-            aria-controls="panel-sidebar"
-            aria-expanded="false"
-            aria-label="باز و بسته کردن منوی کناری"
-          >
-            <i class="bi bi-layout-text-sidebar-reverse fs-4 lh-1"></i>
-          </button>
-          <div class="topbar-title-wrap min-w-0 flex-grow-1">
-            <h1 class="topbar-page-title mb-0 text-break">{% block page_title %}داشبورد{% endblock %}</h1>
-            {% block page_subtitle %}{% endblock %}
-          </div>
-        </div>
-        {% if user.is_authenticated %}
-        <div class="topbar-actions d-flex align-items-center gap-2 flex-shrink-0 align-self-start">
-          {% if available_platforms %}
-          <span class="platform-badge d-none d-sm-inline-flex" title="پلتفرم فعال">
-            {% if active_platform == 'telegram' %}
-            <i class="bi bi-send-fill"></i>
-            {% else %}
-            <i class="bi bi-chat-dots-fill"></i>
-            {% endif %}
-            {{ active_platform_label }}
-          </span>
-          {% if available_platforms|length > 1 %}
-          <form method="post" action="{% url 'panel_switch_platform' %}" class="platform-switch-form">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <label class="visually-hidden" for="platform-switch-select">پلتفرم</label>
-            <select
-              id="platform-switch-select"
-              name="platform"
-              class="form-select form-select-sm platform-switch-select"
-              onchange="this.form.submit()"
-            >
-              {% for value, label in available_platforms %}
-              <option value="{{ value }}" {% if value == active_platform %}selected{% endif %}>{{ label }}</option>
-              {% endfor %}
-            </select>
-          </form>
-          {% endif %}
-          {% endif %}
-          <span class="topbar-user-badge"><i class="bi bi-person-fill"></i><span class="topbar-user-name">{{ user.username }}</span></span>
-          <form method="post" action="{% url 'panel_logout' %}" class="panel-logout-form m-0">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-panel-ghost btn-sm panel-logout-btn" title="خروج از پنل">
-              <i class="bi bi-box-arrow-right"></i>
-              <span class="d-none d-sm-inline">خروج</span>
-            </button>
-          </form>
-        </div>
-        {% endif %}
-      </header>
-
-      <div class="panel-content">
+      <div class="app-content">
         {% if messages %}
-        <div class="panel-alert-global mb-3">
+        <div class="app-alert-global mb-3">
           {% for message in messages %}
-            <div class="alert alert-{{ message.tags|default:'info' }} mb-2">{{ message }}</div>
+          <div class="alert alert-{{ message.tags|default:'info' }} mb-2">{{ message }}</div>
           {% endfor %}
         </div>
         {% endif %}
@@ -164,47 +42,9 @@
       </div>
     </div>
   </div>
+
   <script src="{% static 'balebot/vendor/bootstrap/5.3.3/dist/js/bootstrap.bundle.min.js' %}"></script>
-  <script>
-    (function () {
-      function navIsDrawer() {
-        return window.matchMedia('(max-width: 991.98px)').matches;
-      }
-      function syncAria() {
-        var open = document.body.classList.contains('panel-sidebar-open');
-        var btn = document.querySelector('.panel-sidebar-toggle');
-        if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-      }
-      function setSidebarOpen(open) {
-        document.body.classList.toggle('panel-sidebar-open', open);
-        document.body.style.overflow = open ? 'hidden' : '';
-        syncAria();
-      }
-      var toggle = document.querySelector('.panel-sidebar-toggle');
-      var backdrop = document.querySelector('.sidebar-backdrop');
-      if (toggle) {
-        toggle.addEventListener('click', function () {
-          setSidebarOpen(!document.body.classList.contains('panel-sidebar-open'));
-        });
-      }
-      if (backdrop) {
-        backdrop.addEventListener('click', function () {
-          setSidebarOpen(false);
-        });
-      }
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') setSidebarOpen(false);
-      });
-      document.querySelectorAll('#panel-sidebar a').forEach(function (link) {
-        link.addEventListener('click', function () {
-          if (navIsDrawer()) setSidebarOpen(false);
-        });
-      });
-      window.addEventListener('resize', function () {
-        if (!navIsDrawer()) setSidebarOpen(false);
-      });
-    })();
-  </script>
+  <script src="{% static 'balebot/js/panel-app.js' %}?v=5"></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

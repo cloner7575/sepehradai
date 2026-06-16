@@ -1,16 +1,39 @@
 {% extends "balebot/base.html" %}
 {% load static jalali_extras %}
 {% block title %}استخراج شماره{% endblock %}
-{% block page_title %}استخراج شماره{% endblock %}
+{% block page_title %}استخراج شماره از دایرکت{% endblock %}
 {% block page_subtitle %}
-<p class="topbar-meta mb-0 mt-1">فایل ZIP را انتخاب کنید — پردازش روی دستگاه شما انجام می‌شود</p>
+<p class="app-page-subtitle">فایل ZIP بکاپ اینستاگرام را انتخاب کنید — پردازش کاملاً روی دستگاه شما انجام می‌شود</p>
 {% endblock %}
 
 {% block content %}
-<link href="{% static 'instagram/css/extractor.css' %}?v=2" rel="stylesheet">
+<link href="{% static 'instagram/css/extractor.css' %}?v=3" rel="stylesheet">
 
-<div class="ig-panel ig-panel-narrow">
+<div class="ig-panel ig-panel-wide">
   {% include "instagram/_instagram_subnav.html" %}
+
+  <div class="ig-trust-bar">
+    <span class="ig-trust-pill"><i class="bi bi-shield-lock"></i> بدون آپلود ZIP</span>
+    <span class="ig-trust-pill"><i class="bi bi-phone"></i> پردازش محلی</span>
+    <span class="ig-trust-pill"><i class="bi bi-lightning"></i> ذخیره دسته‌ای</span>
+  </div>
+
+  <div class="ig-stepper" id="ig-stepper" aria-label="مراحل استخراج">
+    <div class="ig-step is-active" data-step="1">
+      <span class="ig-step-num">1</span>
+      <span class="ig-step-label">حوزه فعالیت</span>
+    </div>
+    <span class="ig-step-divider" data-after="1"></span>
+    <div class="ig-step" data-step="2">
+      <span class="ig-step-num">2</span>
+      <span class="ig-step-label">فایل ZIP</span>
+    </div>
+    <span class="ig-step-divider" data-after="2"></span>
+    <div class="ig-step" data-step="3">
+      <span class="ig-step-num">3</span>
+      <span class="ig-step-label">استخراج</span>
+    </div>
+  </div>
 
   {% if not has_domains %}
   <div class="ig-alert ig-alert-error mb-3">
@@ -25,93 +48,126 @@
   </div>
   {% endif %}
 
-  <div class="ig-card">
-    <div class="ig-card-body">
-      <form id="extract-csrf-form" class="d-none">{% csrf_token %}</form>
-
-      <div
-        id="phone-extractor-root"
-        data-start-url="{% url 'instagram:extraction_start' %}"
-        data-phone-url="{% url 'instagram:extraction_save_phone' %}"
-        data-finish-url="{% url 'instagram:extraction_finish' %}"
-      >
-        <div class="ig-field">
-          <label class="ig-field-label" for="activity-domain">حوزه فعالیت</label>
-          <select id="activity-domain" class="form-select panel-input" required>
-            <option value="">انتخاب کنید…</option>
-            {% for d in activity_domains %}
-            <option value="{{ d.pk }}">{{ d.name }}</option>
-            {% endfor %}
-            {% if user.is_superuser %}
-            <option value="other">سایر</option>
-            {% endif %}
-          </select>
-          <p class="ig-field-hint">
-            <a href="{% url 'instagram:backup_guide' %}">آموزش دریافت بکاپ</a>
-            {% if user.is_superuser %}
-            ·
-            <a href="{% url 'instagram:activity_domain_list' %}">مدیریت حوزه‌ها</a>
-            {% endif %}
-          </p>
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="ig-card">
+        <div class="ig-card-head">
+          <span class="ig-step-num-head">1</span>
+          <h2>تنظیمات استخراج</h2>
         </div>
+        <div class="ig-card-body">
+          <form id="extract-csrf-form" class="d-none">{% csrf_token %}</form>
 
-        <div class="ig-field d-none" id="activity-domain-custom-wrap">
-          <label class="ig-field-label" for="activity-domain-custom">نام حوزه</label>
-          <input
-            type="text"
-            id="activity-domain-custom"
-            class="form-control panel-input"
-            maxlength="120"
-            placeholder="مثلاً مشاوره تحصیلی"
+          <div
+            id="phone-extractor-root"
+            data-start-url="{% url 'instagram:extraction_start' %}"
+            data-phone-url="{% url 'instagram:extraction_save_phone' %}"
+            data-finish-url="{% url 'instagram:extraction_finish' %}"
           >
-        </div>
-
-        <div class="ig-field">
-          <label class="ig-field-label">فایل ZIP بکاپ</label>
-          <input type="file" id="zip-input" class="visually-hidden" accept=".zip" disabled>
-          <div id="ig-dropzone" class="ig-dropzone ig-dropzone-disabled" role="button" tabindex="0" aria-label="انتخاب فایل ZIP">
-            <i class="bi bi-cloud-arrow-up ig-dropzone-icon"></i>
-            <p class="ig-dropzone-title">فایل ZIP را اینجا رها کنید</p>
-            <p class="ig-dropzone-sub">ابتدا حوزه فعالیت را انتخاب کنید</p>
-          </div>
-        </div>
-
-        <div class="ig-actions">
-          <button type="button" id="start-btn" class="btn btn-panel-primary" disabled>
-            شروع استخراج
-          </button>
-          <button type="button" id="cancel-btn" class="btn btn-panel-ghost d-none">
-            لغو
-          </button>
-        </div>
-
-        <div id="extract-progress-wrap" class="ig-progress-panel d-none">
-          <div class="ig-progress-top">
-            <div>
-              <div id="phone-counter" class="ig-progress-count">0</div>
-              <div class="ig-progress-count-label">شماره ذخیره شد</div>
+            <div class="ig-field" id="ig-field-domain">
+              <label class="ig-field-label" for="activity-domain">حوزه فعالیت</label>
+              <select id="activity-domain" class="form-select panel-input" required {% if not has_domains %}disabled{% endif %}>
+                <option value="">انتخاب کنید…</option>
+                {% for d in activity_domains %}
+                <option value="{{ d.pk }}">{{ d.name }}</option>
+                {% endfor %}
+                {% if user.is_superuser %}
+                <option value="other">سایر (نام دلخواه)</option>
+                {% endif %}
+              </select>
+              <p class="ig-field-hint">
+                شماره‌ها با این برچسب ذخیره می‌شوند.
+                <a href="{% url 'instagram:backup_guide' %}">آموزش دریافت بکاپ</a>
+                {% if user.is_superuser %}
+                · <a href="{% url 'instagram:activity_domain_list' %}">مدیریت حوزه‌ها</a>
+                {% endif %}
+              </p>
             </div>
-            <div id="extract-status" class="ig-progress-status">در حال آماده‌سازی…</div>
-          </div>
-          <div class="ig-progress-track">
-            <div id="extract-progress-bar" class="ig-progress-fill"></div>
-          </div>
-        </div>
 
-        <div id="extract-error" class="ig-alert ig-alert-error d-none" role="alert">
-          <i class="bi bi-exclamation-circle"></i>
-          <span class="ig-alert-text"></span>
-        </div>
-        <div id="extract-success" class="ig-alert ig-alert-success d-none" role="alert">
-          <i class="bi bi-check-circle"></i>
-          <span class="ig-alert-text"></span>
-        </div>
+            <div class="ig-field d-none" id="activity-domain-custom-wrap">
+              <label class="ig-field-label" for="activity-domain-custom">نام حوزه سفارشی</label>
+              <input
+                type="text"
+                id="activity-domain-custom"
+                class="form-control panel-input"
+                maxlength="120"
+                placeholder="مثلاً مشاوره تحصیلی"
+              >
+            </div>
 
-        <div id="phone-live-list-wrap" class="ig-phones-section d-none">
-          <div class="ig-phones-section-head">
-            <h3>آخرین شماره‌ها</h3>
+            <div class="ig-field" id="ig-field-file">
+              <label class="ig-field-label">فایل ZIP بکاپ دایرکت</label>
+              <input type="file" id="zip-input" class="visually-hidden" accept=".zip" disabled>
+              <div id="ig-dropzone" class="ig-dropzone ig-dropzone-disabled" role="button" tabindex="0" aria-label="انتخاب فایل ZIP">
+                <i class="bi bi-cloud-arrow-up ig-dropzone-icon"></i>
+                <p class="ig-dropzone-title">فایل ZIP را اینجا رها کنید</p>
+                <p class="ig-dropzone-sub">ابتدا حوزه فعالیت را انتخاب کنید</p>
+              </div>
+            </div>
+
+            <div class="ig-actions ig-field-actions">
+              <button type="button" id="start-btn" class="btn btn-panel-primary" disabled>
+                <i class="bi bi-play-fill me-1"></i>شروع استخراج
+              </button>
+              <button type="button" id="cancel-btn" class="btn btn-panel-ghost d-none">
+                <i class="bi bi-x-lg me-1"></i>لغو
+              </button>
+            </div>
+
+            <div id="extract-progress-wrap" class="ig-progress-panel d-none">
+              <div class="ig-progress-top">
+                <div>
+                  <div id="phone-counter" class="ig-progress-count">0</div>
+                  <div class="ig-progress-count-label">شماره ذخیره شد</div>
+                </div>
+                <div id="extract-status" class="ig-progress-status">در حال آماده‌سازی…</div>
+              </div>
+              <div class="ig-progress-track">
+                <div id="extract-progress-bar" class="ig-progress-fill"></div>
+              </div>
+            </div>
+
+            <div id="extract-error" class="ig-alert ig-alert-error d-none mt-3" role="alert">
+              <i class="bi bi-exclamation-circle"></i>
+              <span class="ig-alert-text"></span>
+            </div>
+            <div id="extract-success" class="ig-alert ig-alert-success d-none mt-3" role="alert">
+              <i class="bi bi-check-circle"></i>
+              <span class="ig-alert-text"></span>
+            </div>
+
+            <div id="phone-live-list-wrap" class="ig-phones-section d-none">
+              <div class="ig-phones-section-head">
+                <h3>آخرین شماره‌های ذخیره‌شده</h3>
+              </div>
+              <div id="phone-live-list" class="ig-phone-grid"></div>
+            </div>
           </div>
-          <div id="phone-live-list" class="ig-phone-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="ig-help-panel">
+        <div class="ig-help-card">
+          <h3><i class="bi bi-list-check"></i> مراحل کار</h3>
+          <ul class="ig-help-list">
+            <li>حوزه فعالیت را انتخاب کنید تا شماره‌ها دسته‌بندی شوند.</li>
+            <li>فایل ZIP بکاپ دایرکت را از اینستاگرام دریافت کنید.</li>
+            <li>فایل را انتخاب کنید و «شروع استخراج» را بزنید.</li>
+            <li>پس از اتمام، شماره‌ها در بانک شماره‌ها ذخیره می‌شوند.</li>
+          </ul>
+        </div>
+        <div class="ig-help-card">
+          <h3><i class="bi bi-question-circle"></i> نمی‌دانید ZIP را از کجا بگیرید؟</h3>
+          <p class="mb-2 small text-muted">راهنمای گام‌به‌گام دریافت بکاپ از اپ اینستاگرام:</p>
+          <a href="{% url 'instagram:backup_guide' %}" class="btn btn-panel-ghost btn-sm w-100">
+            <i class="bi bi-play-circle me-1"></i>مشاهده آموزش بکاپ
+          </a>
+        </div>
+        <div class="ig-info-card">
+          <i class="bi bi-shield-lock"></i>
+          <p>فایل ZIP روی دستگاه شما پردازش می‌شود و به سرور آپلود نمی‌شود. فقط شماره‌های یافت‌شده ذخیره می‌شوند.</p>
         </div>
       </div>
     </div>
@@ -121,5 +177,5 @@
 
 {% block extra_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="{% static 'instagram/js/phone_extractor.js' %}?v=3"></script>
+<script src="{% static 'instagram/js/phone_extractor.js' %}?v=4"></script>
 {% endblock %}

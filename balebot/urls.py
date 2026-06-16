@@ -44,6 +44,7 @@ urlpatterns = [
         name='panel_switch_platform',
     ),
     path('bot/', views_panel.BotSettingsView.as_view(), name='bot_settings'),
+    path('bot/flow/', views_panel.FlowEngineView.as_view(), name='bot_flow_engine'),
     path('subscribers/', views_panel.SubscriberListView.as_view(), name='subscriber_list'),
     path('subscribers/<int:pk>/', views_panel.SubscriberDetailView.as_view(), name='subscriber_detail'),
     path(
@@ -79,6 +80,7 @@ urlpatterns = [
     path('users/new/', views_panel_users.PanelUserCreateView.as_view(), name='panel_user_create'),
     path('users/<int:pk>/edit/', views_panel_users.PanelUserUpdateView.as_view(), name='panel_user_edit'),
     path('catalog/', views_panel_catalog.CatalogDashboardView.as_view(), name='catalog_dashboard'),
+    path('catalog/flow/', views_panel_catalog.MiniAppFlowEngineView.as_view(), name='catalog_flow_engine'),
     path('catalog/settings/', views_panel_catalog.CatalogSettingsView.as_view(), name='catalog_settings'),
     path('catalog/categories/', views_panel_catalog.CatalogCategoryListView.as_view(), name='catalog_category_list'),
     path('catalog/categories/new/', views_panel_catalog.CatalogCategoryCreateView.as_view(), name='catalog_category_create'),

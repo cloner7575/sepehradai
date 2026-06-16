@@ -1,0 +1,82 @@
+{% comment %}
+هاب پیش‌نمایش: ربات (/start) و مینی‌اپ (فروشگاه) — دو canvas مجزا
+{% endcomment %}
+<div class="flow-engine-canvas" id="flow-canvas-hub">
+  <div class="flow-engine-canvas-toolbar">
+    <div class="flow-canvas-tabs" role="tablist" aria-label="نوع پیش‌نمایش">
+      <button
+        type="button"
+        class="flow-canvas-tab is-active"
+        role="tab"
+        aria-selected="true"
+        data-canvas-target="bot"
+        id="flow-tab-bot"
+      >
+        <i class="bi bi-robot"></i>
+        <span>جریان ربات /start</span>
+        {% if bot_flow_preview.step_count %}
+        <em class="flow-canvas-tab-badge">{{ bot_flow_preview.step_count }}</em>
+        {% endif %}
+      </button>
+      {% if has_miniapp_access %}
+      <button
+        type="button"
+        class="flow-canvas-tab"
+        role="tab"
+        aria-selected="false"
+        data-canvas-target="miniapp"
+        id="flow-tab-miniapp"
+      >
+        <i class="bi bi-shop"></i>
+        <span>فروشگاه مینی‌اپ</span>
+        {% if catalog_item_count %}
+        <em class="flow-canvas-tab-badge">{{ catalog_item_count }}</em>
+        {% endif %}
+      </button>
+      {% endif %}
+    </div>
+    <div class="flow-toolbar-actions">
+      <a href="{% url 'bot_settings' %}#sec-start" class="btn-panel-ghost btn-sm flow-canvas-action flow-canvas-action--bot">
+        <i class="bi bi-pencil"></i> ویرایش جریان
+      </a>
+      {% if has_miniapp_access %}
+      <a href="{% url 'catalog_dashboard' %}" class="btn-panel-ghost btn-sm flow-canvas-action flow-canvas-action--miniapp" hidden>
+        <i class="bi bi-box-arrow-up-right"></i> پنل فروشگاه
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="flow-engine-canvas-body">
+    <div class="flow-canvas-pane is-active" data-canvas-pane="bot" role="tabpanel" aria-labelledby="flow-tab-bot">
+      {% include "balebot/_flow_canvas_bot.html" %}
+    </div>
+    {% if has_miniapp_access %}
+    <div class="flow-canvas-pane" data-canvas-pane="miniapp" role="tabpanel" aria-labelledby="flow-tab-miniapp" hidden>
+      {% include "balebot/_flow_canvas_miniapp.html" %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="flow-engine-canvas-footer">
+    <div class="flow-canvas-foot-meta flow-canvas-foot-meta--bot">
+      {% if bot_flow_preview.has_content %}
+      <span><i class="bi bi-diagram-3"></i> {{ bot_flow_preview.step_count }} مرحله · {{ bot_flow_preview.button_count }} دکمه</span>
+      {% else %}
+      <span class="text-muted"><i class="bi bi-info-circle"></i> جریان /start هنوز تنظیم نشده</span>
+      {% endif %}
+    </div>
+    {% if has_miniapp_access %}
+    <div class="flow-canvas-foot-meta flow-canvas-foot-meta--miniapp" hidden>
+      <span>
+        <i class="bi bi-phone"></i>
+        {% if catalog.is_enabled %}مینی‌اپ فعال{% else %}مینی‌اپ غیرفعال{% endif %}
+        · {{ catalog_item_count|default:0 }} محصول
+      </span>
+      {% if mini_app_url %}
+      <a href="{{ mini_app_url }}" target="_blank" rel="noopener" class="flow-canvas-foot-link" dir="ltr">{{ mini_app_url|truncatechars:42 }}</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>

@@ -49,11 +49,17 @@ export async function fetchCategories() {
   return data.categories;
 }
 
-export async function fetchItems(params?: { category?: string; q?: string; sort?: string }) {
+export async function fetchItems(params?: {
+  category?: string;
+  q?: string;
+  sort?: string;
+  featured?: boolean;
+}) {
   const qs = new URLSearchParams();
   if (params?.category) qs.set('category', params.category);
   if (params?.q) qs.set('q', params.q);
   if (params?.sort) qs.set('sort', params.sort);
+  if (params?.featured) qs.set('featured', '1');
   const suffix = qs.toString() ? `?${qs}` : '';
   const data = await request<{ items: CatalogItem[] }>(`/items/${suffix}`);
   return data.items;

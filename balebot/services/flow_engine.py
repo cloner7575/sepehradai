@@ -192,7 +192,9 @@ def normalize_inline_url(
     if url.startswith('/'):
         if cfg is None:
             return ''
-        base = (cfg.webhook_public_url or '').strip().rstrip('/')
+        from balebot.services.public_url import resolve_public_base_url
+
+        base = resolve_public_base_url(cfg).rstrip('/')
         if not base:
             return ''
         url = f'{base}{url}'

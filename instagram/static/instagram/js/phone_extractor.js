@@ -242,6 +242,30 @@
         }
       }
       startBtn.disabled = !ready || running || !selectedFile;
+      updateStepper(ready, !!selectedFile, running);
+    }
+
+    function updateStepper(domainOk, hasFile, isRunning) {
+      var stepper = document.getElementById('ig-stepper');
+      if (!stepper) return;
+      var steps = stepper.querySelectorAll('.ig-step');
+      var dividers = stepper.querySelectorAll('.ig-step-divider');
+      var activeStep = 1;
+      if (isRunning) activeStep = 3;
+      else if (hasFile) activeStep = 3;
+      else if (domainOk) activeStep = 2;
+
+      steps.forEach(function (step) {
+        var n = parseInt(step.getAttribute('data-step'), 10);
+        step.classList.remove('is-active', 'is-done');
+        if (n < activeStep) step.classList.add('is-done');
+        else if (n === activeStep) step.classList.add('is-active');
+      });
+
+      dividers.forEach(function (div) {
+        var after = parseInt(div.getAttribute('data-after'), 10);
+        div.classList.toggle('is-done', after < activeStep);
+      });
     }
 
     domainSelect.addEventListener('change', function () {

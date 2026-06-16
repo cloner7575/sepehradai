@@ -761,7 +761,9 @@ class BotSettings(models.Model):
         return f'{token[:4]}…{token[-4:]}'
 
     def build_webhook_url(self) -> str:
-        base = (self.webhook_public_url or '').strip().rstrip('/')
+        from balebot.services.public_url import resolve_public_base_url
+
+        base = resolve_public_base_url(self).rstrip('/')
         secret = (self.webhook_secret or '').strip()
         if not base or not secret:
             return ''
@@ -901,9 +903,11 @@ class CatalogSettings(models.Model):
         return obj
 
     def build_mini_app_url(self, bot_settings: BotSettings | None = None) -> str:
-        base = ''
-        if bot_settings:
-            base = (bot_settings.webhook_public_url or '').strip().rstrip('/')
+        if not bot_settings:
+            return ''
+        from balebot.services.public_url import resolve_public_base_url
+
+        base = resolve_public_base_url(bot_settings).rstrip('/')
         if not base:
             return ''
         return f'{base}/shop/{self.public_id}/'

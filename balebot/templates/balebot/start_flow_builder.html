@@ -1,33 +1,20 @@
-{% load static %}
-<div class="flow-builder-wrap" id="flow-builder-root"
-     data-hidden-id="id_start_flow"
-     data-upload-url="{% url 'flow_media_upload' %}">
-
-  <div class="flow-builder-intro mb-3">
-    <div class="d-flex flex-wrap gap-2 mb-2">
-      <span class="flow-builder-tip"><i class="bi bi-plus-lg"></i> متن، عکس، ویدیو، صدا، فایل یا دکمه</span>
-      <span class="flow-builder-tip"><i class="bi bi-collection"></i> اکشن «چند رسانه» برای ارسال پشت‌سرهم</span>
-      <span class="flow-builder-tip"><i class="bi bi-tags"></i> slug = برچسب مخاطب</span>
-      <span class="flow-builder-tip"><i class="bi bi-eye"></i> پیش‌نمایش سمت چپ</span>
-    </div>
-  </div>
-
-  <div class="flow-builder-layout">
-    <aside class="flow-builder-preview-panel" aria-label="پیش‌نمایش دکمه‌ها">
-      <div class="panel-card flow-builder-preview-card">
-        <div class="panel-card-header py-2">
-          <span class="small fw-semibold"><i class="bi bi-phone me-1"></i> پیش‌نمایش در بله</span>
-        </div>
-        <div class="panel-card-body py-3">
-          <div id="flow-builder-preview" class="kb-preview-host flow-preview-host"></div>
-        </div>
-      </div>
-    </aside>
-    <div class="flow-builder-editor">
-      <div id="flow-builder-host"></div>
-    </div>
-  </div>
-
-  <div class="visually-hidden" aria-hidden="true">{{ form.start_flow }}</div>
-</div>
-<script src="{% static 'balebot/js/flow_builder.js' %}"></script>
+{% load static %}
+<div class="flow-builder-wrap flow-builder-wrap--studio" id="flow-builder-root"
+     data-hidden-id="id_start_flow"
+     data-upload-url="{% url 'flow_media_upload' %}"
+     data-platform-label="{{ active_platform_label|default:'بله' }}">
+
+  <div class="flow-builder-intro mb-3">
+    <div class="d-flex flex-wrap gap-2">
+      <span class="flow-builder-tip"><i class="bi bi-plus-lg"></i> متن، عکس، ویدیو، صدا، فایل</span>
+      <span class="flow-builder-tip"><i class="bi bi-ui-checks-grid"></i> دکمه و زیرمنو</span>
+      <span class="flow-builder-tip"><i class="bi bi-link-45deg"></i> URL برای مینی‌اپ</span>
+      <span class="flow-builder-tip"><i class="bi bi-tags"></i> slug = برچسب مخاطب</span>
+    </div>
+  </div>
+
+  <div id="flow-builder-host"></div>
+
+  <div class="visually-hidden" aria-hidden="true">{{ form.start_flow }}</div>
+</div>
+<script src="{% static 'balebot/js/flow_builder.js' %}"></script>

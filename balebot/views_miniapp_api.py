@@ -22,6 +22,7 @@ from balebot.models import (
 )
 from balebot.services import catalog_payment, miniapp_auth
 from balebot.services.catalog_media import absolute_media_url
+from balebot.services.catalog_page_layout import get_home_blocks
 from balebot.services.channel_membership import is_channel_member
 from balebot.services.webhook_logic import get_or_create_subscriber
 
@@ -157,13 +158,15 @@ def catalog_config(request, public_id):
     methods = []
     for value, label in catalog.enabled_payment_methods():
         methods.append({'id': value, 'label': label})
+    theme = catalog.theme_config or {}
     return JsonResponse({
         'ok': True,
         'is_enabled': catalog.is_enabled,
         'platform': catalog.platform,
         'hero_title': catalog.hero_title,
         'hero_subtitle': catalog.hero_subtitle,
-        'theme': catalog.theme_config or {},
+        'theme': theme,
+        'home_blocks': get_home_blocks(theme),
         'labels': catalog.labels or {},
         'logo_url': logo_url,
         'mini_app_url': catalog.build_mini_app_url(cfg),
@@ -214,6 +217,9 @@ def catalog_items(request, public_id):
     q = (request.GET.get('q') or '').strip()
     if q:
         qs = qs.filter(title__icontains=q)
+    featured = (request.GET.get('featured') or '').strip().lower()
+    if featured in ('1', 'true', 'yes'):
+        qs = qs.filter(is_featured=True)
     sort = (request.GET.get('sort') or '').strip()
     if sort == 'price_asc':
         qs = qs.order_by('price', 'sort_order')
@@ -416,9 +422,11 @@ def catalog_checkout(request, public_id):
         })
 
     if payment_method == CatalogSettings.PaymentMethod.ZARINPAL:
-        base = (cfg.webhook_public_url or '').strip().rstrip('/')
+        from balebot.services.public_url import resolve_public_base_url
+
+        base = resolve_public_base_url(cfg).rstrip('/')
         if not base:
-            return _json_error('آدرس عمومی سرور در تنظیمات ربات تنظیم نشده است', 500)
+            return _json_error('آدرس عمومی سرور (BASE_URL) در تنظیمات سرور پیکربندی نشده است', 500)
         callback_url = f'{base}/shop/{catalog.public_id}/payment/zarinpal/callback/?order_id={order.pk}'
         try:
             payment_url = catalog_payment.start_zarinpal_checkout(order, catalog, callback_url)

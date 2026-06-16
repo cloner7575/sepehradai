@@ -179,6 +179,8 @@ CAMPAIGN_SEND_DELAY_MS = int(os.environ.get('CAMPAIGN_SEND_DELAY_MS', '80'))
 _LEGACY_BALE_BOT_TOKEN = os.environ.get('BALE_BOT_TOKEN', '')
 _LEGACY_BALE_WEBHOOK_SECRET = os.environ.get('BALE_WEBHOOK_SECRET', '')
 _LEGACY_BALE_WEBHOOK_PUBLIC_URL = os.environ.get('BALE_WEBHOOK_PUBLIC_URL', '').strip()
+# آدرس عمومی HTTPS سرور (برای وب‌هوک، مینی‌اپ و لینک‌های مطلق)
+BASE_URL = config('BASE_URL', default=_LEGACY_BALE_WEBHOOK_PUBLIC_URL).strip()
 # حداکثر حجم آپلود ویدیوی کمپین (مگابایت) — در ویوی آپلود بررسی می‌شود
 CAMPAIGN_VIDEO_MAX_UPLOAD_MB = int(os.environ.get('CAMPAIGN_VIDEO_MAX_UPLOAD_MB', '120'))
 
