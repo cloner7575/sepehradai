@@ -34,6 +34,10 @@ class Workspace(models.Model):
         default=False,
         verbose_name='دسترسی مینی‌اپ تلگرام',
     )
+    allow_instagram = models.BooleanField(
+        default=False,
+        verbose_name='دسترسی اینستاگرام',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -64,10 +68,14 @@ class Workspace(models.Model):
             return self.allow_telegram and self.allow_telegram_miniapp
         return self.allow_bale and self.allow_bale_miniapp
 
+    def has_instagram_access(self) -> bool:
+        return self.allow_instagram
+
     def has_any_access(self) -> bool:
         return (
             self.allow_bale
             or self.allow_telegram
+            or self.allow_instagram
             or (self.allow_bale and self.allow_bale_miniapp)
             or (self.allow_telegram and self.allow_telegram_miniapp)
         )

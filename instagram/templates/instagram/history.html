@@ -1,0 +1,70 @@
+{% extends "balebot/base.html" %}
+{% load static jalali_extras %}
+{% block title %}تاریخچه استخراج{% endblock %}
+{% block page_title %}تاریخچه{% endblock %}
+{% block page_subtitle %}
+<p class="topbar-meta mb-0 mt-1">لیست عملیات‌های استخراج انجام‌شده</p>
+{% endblock %}
+
+{% block content %}
+<link href="{% static 'instagram/css/extractor.css' %}?v=2" rel="stylesheet">
+
+<div class="ig-panel">
+  {% include "instagram/_instagram_subnav.html" %}
+
+  <div class="ig-card">
+    {% if jobs %}
+    <ul class="ig-history-list">
+      {% for job in jobs %}
+      <li>
+        <a href="{% url 'instagram:extraction_detail' job.pk %}" class="ig-history-item text-decoration-none">
+          <div class="ig-history-main">
+            <div class="ig-history-domain">{{ job.domain_label }}</div>
+            <div class="ig-history-meta">
+              {{ job.phone_count }} شماره
+              · {{ job.json_files_scanned }} فایل JSON
+              · {{ job.created_at|jalali_datetime }}
+              {% if job.source_filename %}· {{ job.source_filename }}{% endif %}
+            </div>
+          </div>
+          {% if job.status == 'running' %}
+          <span class="ig-history-badge ig-history-badge-running">در حال اجرا</span>
+          {% elif job.status == 'completed' %}
+          <span class="ig-history-badge ig-history-badge-done">تمام</span>
+          {% else %}
+          <span class="ig-history-badge ig-history-badge-failed">ناموفق</span>
+          {% endif %}
+          <span class="ig-history-arrow"><i class="bi bi-chevron-left"></i></span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+
+    {% if page_obj.has_other_pages %}
+    <div class="ig-card-footer">
+      <nav>
+        <ul class="pagination pagination-sm mb-0 justify-content-center">
+          {% if page_obj.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">قبلی</a></li>
+          {% endif %}
+          <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+          {% if page_obj.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">بعدی</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="ig-empty-state">
+      <i class="bi bi-inbox"></i>
+      تاریخچه‌ای وجود ندارد
+      <div class="mt-2">
+        <a href="{% url 'instagram:phone_extractor' %}" class="btn btn-sm btn-panel-primary">شروع استخراج</a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

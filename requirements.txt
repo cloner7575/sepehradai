@@ -5,3 +5,4 @@ psycopg[binary]>=3.2,<4
 python-decouple==3.8
 jdatetime>=5.0,<6
 Pillow>=10.0,<12
+openpyxl>=3.1,<4

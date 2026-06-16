@@ -50,6 +50,12 @@ class PanelUserCreateForm(forms.Form):
         label='دسترسی مینی‌اپ تلگرام',
         help_text='مدیریت فروشگاه/نمونه‌کار مینی‌اپ تلگرام در پنل.',
     )
+    allow_instagram = forms.BooleanField(
+        required=False,
+        initial=False,
+        label='دسترسی اینستاگرام',
+        help_text='استخراج و مدیریت شماره از بکاپ دایرکت اینستاگرام.',
+    )
 
     def clean(self):
         cleaned = super().clean()
@@ -57,12 +63,13 @@ class PanelUserCreateForm(forms.Form):
         allow_telegram = cleaned.get('allow_telegram')
         allow_bale_ma = cleaned.get('allow_bale_miniapp')
         allow_telegram_ma = cleaned.get('allow_telegram_miniapp')
+        allow_instagram = cleaned.get('allow_instagram')
         if allow_bale_ma and not allow_bale:
             raise forms.ValidationError('مینی‌اپ بله نیاز به دسترسی بله دارد.')
         if allow_telegram_ma and not allow_telegram:
             raise forms.ValidationError('مینی‌اپ تلگرام نیاز به دسترسی تلگرام دارد.')
-        if not allow_bale and not allow_telegram:
-            raise forms.ValidationError('حداقل یکی از پلتفرم‌های بله یا تلگرام باید انتخاب شود.')
+        if not allow_bale and not allow_telegram and not allow_instagram:
+            raise forms.ValidationError('حداقل یک دسترسی (بله، تلگرام یا اینستاگرام) باید انتخاب شود.')
         return cleaned
 
     def clean_username(self):
@@ -125,6 +132,12 @@ class PanelUserUpdateForm(forms.Form):
         label='دسترسی مینی‌اپ تلگرام',
         help_text='مدیریت فروشگاه/نمونه‌کار مینی‌اپ تلگرام در پنل.',
     )
+    allow_instagram = forms.BooleanField(
+        required=False,
+        initial=False,
+        label='دسترسی اینستاگرام',
+        help_text='استخراج و مدیریت شماره از بکاپ دایرکت اینستاگرام.',
+    )
 
     def clean(self):
         cleaned = super().clean()
@@ -132,10 +145,11 @@ class PanelUserUpdateForm(forms.Form):
         allow_telegram = cleaned.get('allow_telegram')
         allow_bale_ma = cleaned.get('allow_bale_miniapp')
         allow_telegram_ma = cleaned.get('allow_telegram_miniapp')
+        allow_instagram = cleaned.get('allow_instagram')
         if allow_bale_ma and not allow_bale:
             raise forms.ValidationError('مینی‌اپ بله نیاز به دسترسی بله دارد.')
         if allow_telegram_ma and not allow_telegram:
             raise forms.ValidationError('مینی‌اپ تلگرام نیاز به دسترسی تلگرام دارد.')
-        if not allow_bale and not allow_telegram:
-            raise forms.ValidationError('حداقل یکی از پلتفرم‌های بله یا تلگرام باید انتخاب شود.')
+        if not allow_bale and not allow_telegram and not allow_instagram:
+            raise forms.ValidationError('حداقل یک دسترسی (بله، تلگرام یا اینستاگرام) باید انتخاب شود.')
         return cleaned

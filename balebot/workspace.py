@@ -50,9 +50,10 @@ def create_panel_user(
     allow_telegram: bool = True,
     allow_bale_miniapp: bool = False,
     allow_telegram_miniapp: bool = False,
+    allow_instagram: bool = False,
 ) -> tuple[User, Workspace]:
-    if not allow_bale and not allow_telegram:
-        raise ValueError('حداقل یک پلتفرم باید انتخاب شود.')
+    if not allow_bale and not allow_telegram and not allow_instagram:
+        raise ValueError('حداقل یک دسترسی باید انتخاب شود.')
     if allow_bale_miniapp and not allow_bale:
         raise ValueError('مینی‌اپ بله نیاز به دسترسی بله دارد.')
     if allow_telegram_miniapp and not allow_telegram:
@@ -74,6 +75,7 @@ def create_panel_user(
             allow_telegram=allow_telegram,
             allow_bale_miniapp=allow_bale_miniapp,
             allow_telegram_miniapp=allow_telegram_miniapp,
+            allow_instagram=allow_instagram,
         )
         ensure_bot_settings_for_workspace(workspace)
     return user, workspace

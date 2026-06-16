@@ -4,6 +4,7 @@ from balebot.models import BotSettings
 from balebot.platform import (
     allowed_platforms_for_workspace,
     get_active_platform,
+    has_instagram_access_for_request,
     has_miniapp_access_for_request,
     platform_label,
 )
@@ -24,6 +25,7 @@ def panel_branding(request):
             'available_platforms': allowed_platforms_for_workspace(ws),
             'panel_workspace': ws,
             'has_miniapp_access': has_miniapp_access_for_request(request, ws),
+            'has_instagram_access': has_instagram_access_for_request(request, ws),
         }
     except OperationalError:
         return {
@@ -33,4 +35,5 @@ def panel_branding(request):
             'available_platforms': allowed_platforms_for_workspace(None),
             'panel_workspace': None,
             'has_miniapp_access': False,
+            'has_instagram_access': False,
         }

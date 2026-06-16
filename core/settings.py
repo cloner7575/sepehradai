@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'balebot',
+    'instagram',
 ]
 
 MIDDLEWARE = [
@@ -180,6 +181,12 @@ _LEGACY_BALE_WEBHOOK_SECRET = os.environ.get('BALE_WEBHOOK_SECRET', '')
 _LEGACY_BALE_WEBHOOK_PUBLIC_URL = os.environ.get('BALE_WEBHOOK_PUBLIC_URL', '').strip()
 # حداکثر حجم آپلود ویدیوی کمپین (مگابایت) — در ویوی آپلود بررسی می‌شود
 CAMPAIGN_VIDEO_MAX_UPLOAD_MB = int(os.environ.get('CAMPAIGN_VIDEO_MAX_UPLOAD_MB', '120'))
+
+# ویدیو آموزش بکاپ دایرکت اینستاگرام (YouTube / Aparat / embed URL)
+INSTAGRAM_BACKUP_TUTORIAL_VIDEO_URL = config(
+    'INSTAGRAM_BACKUP_TUTORIAL_VIDEO_URL',
+    default='',
+).strip()
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'

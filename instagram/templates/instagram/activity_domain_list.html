@@ -1,0 +1,71 @@
+{% extends "balebot/base.html" %}
+{% load static %}
+{% block title %}حوزه‌های فعالیت{% endblock %}
+{% block page_title %}حوزه‌های فعالیت{% endblock %}
+{% block page_subtitle %}
+<p class="topbar-meta mb-0 mt-1">دسته‌بندی شماره‌های استخراج‌شده</p>
+{% endblock %}
+
+{% block content %}
+<link href="{% static 'instagram/css/extractor.css' %}?v=2" rel="stylesheet">
+
+<div class="ig-panel">
+  {% include "instagram/_instagram_subnav.html" %}
+
+  <div class="row g-4">
+    <div class="col-lg-5">
+      <div class="ig-card">
+        <div class="ig-card-head">
+          <h2>افزودن حوزه</h2>
+        </div>
+        <div class="ig-card-body">
+          <form method="post">
+            {% csrf_token %}
+            <div class="ig-field">
+              <label class="ig-field-label" for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+              {{ form.name }}
+              {% for err in form.name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+            </div>
+            <button type="submit" class="btn btn-panel-primary">افزودن</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-7">
+      <div class="ig-card">
+        <div class="ig-card-head">
+          <h2>فهرست حوزه‌ها</h2>
+        </div>
+        {% if domains %}
+        <ul class="ig-history-list">
+          {% for domain in domains %}
+          <li class="ig-history-item">
+            <div class="ig-history-main">
+              <div class="ig-history-domain">{{ domain.name }}</div>
+            </div>
+            {% if domain.is_active %}
+            <span class="ig-history-badge ig-history-badge-done">فعال</span>
+            {% else %}
+            <span class="ig-history-badge ig-history-badge-failed">غیرفعال</span>
+            {% endif %}
+            <form method="post" action="{% url 'instagram:activity_domain_toggle' domain.pk %}" class="mb-0">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-panel-ghost">
+                {% if domain.is_active %}غیرفعال{% else %}فعال{% endif %}
+              </button>
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="ig-empty-state">
+          <i class="bi bi-tags"></i>
+          هنوز حوزه‌ای تعریف نشده
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

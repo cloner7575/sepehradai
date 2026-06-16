@@ -1,0 +1,63 @@
+{% extends "balebot/base.html" %}
+{% load static %}
+{% block title %}آموزش بکاپ{% endblock %}
+{% block page_title %}آموزش بکاپ دایرکت{% endblock %}
+{% block page_subtitle %}
+<p class="topbar-meta mb-0 mt-1">نحوه دریافت فایل ZIP از اینستاگرام</p>
+{% endblock %}
+
+{% block content %}
+<link href="{% static 'instagram/css/extractor.css' %}?v=2" rel="stylesheet">
+
+<div class="ig-panel ig-panel-narrow">
+  {% include "instagram/_instagram_subnav.html" %}
+
+  <div class="ig-card">
+    <div class="ig-card-body">
+      {% if tutorial_video_embed_url %}
+      <div class="ig-video-wrap ig-video-wrap-lg">
+        <iframe
+          src="{{ tutorial_video_embed_url }}"
+          title="آموزش بکاپ دایرکت اینستاگرام"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+          loading="lazy"
+        ></iframe>
+      </div>
+      {% else %}
+      <div class="ig-video-placeholder ig-video-placeholder-lg">
+        <i class="bi bi-play-circle"></i>
+        <p>ویدیو آموزشی به‌زودی اینجا قرار می‌گیرد.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="ig-card">
+    <div class="ig-card-head">
+      <h2>مراحل دریافت بکاپ</h2>
+    </div>
+    <div class="ig-card-body pt-0">
+      <ol class="ig-steps-list ig-steps-list-open">
+        <li>اپ <strong>Instagram</strong> → <strong>Settings</strong> → <strong>Accounts Center</strong></li>
+        <li><strong>Your information and permissions</strong> → <strong>Download your information</strong></li>
+        <li><strong>Some of your information</strong> → تیک <strong>Messages</strong></li>
+        <li>فرمت <strong>JSON</strong> — بازه <strong>All time</strong></li>
+        <li><strong>Create files</strong> → منتظر آماده‌شدن بمانید</li>
+        <li>ZIP را دانلود کنید و در <a href="{% url 'instagram:phone_extractor' %}">صفحه استخراج</a> انتخاب کنید</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="ig-info-card">
+    <i class="bi bi-phone"></i>
+    <p>پردازش روی دستگاه شما انجام می‌شود. فایل ZIP به سرور ارسال نمی‌شود — فقط شماره‌های یافت‌شده ذخیره می‌شوند.</p>
+  </div>
+
+  <div class="text-center mt-4">
+    <a href="{% url 'instagram:phone_extractor' %}" class="btn btn-panel-primary">
+      رفتن به استخراج شماره
+    </a>
+  </div>
+</div>
+{% endblock %}

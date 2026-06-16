@@ -1,0 +1,56 @@
+{% extends "balebot/base.html" %}
+{% load static jalali_extras %}
+{% block title %}جزئیات عملیات{% endblock %}
+{% block page_title %}جزئیات عملیات استخراج{% endblock %}
+{% block page_subtitle %}
+<p class="topbar-meta mb-0 mt-1">{{ job.domain_label }} · {{ job.source_filename|default:"—" }}</p>
+{% endblock %}
+
+{% block content %}
+<link href="{% static 'instagram/css/extractor.css' %}?v=2" rel="stylesheet">
+
+<div class="ig-panel ig-panel-narrow">
+  {% include "instagram/_instagram_subnav.html" %}
+
+  <div class="ig-detail-stats">
+    <div class="ig-detail-stat">
+      <div class="ig-detail-stat-label">شماره‌ها</div>
+      <div class="ig-detail-stat-value">{{ phone_count }}</div>
+    </div>
+    <div class="ig-detail-stat">
+      <div class="ig-detail-stat-label">فایل JSON</div>
+      <div class="ig-detail-stat-value">{{ job.json_files_scanned }}</div>
+    </div>
+    <div class="ig-detail-stat">
+      <div class="ig-detail-stat-label">وضعیت</div>
+      <div class="ig-detail-stat-value ig-detail-stat-value-sm">
+        {% if job.status == 'running' %}در حال اجرا{% elif job.status == 'completed' %}تمام{% else %}ناموفق{% endif %}
+      </div>
+    </div>
+    <div class="ig-detail-stat">
+      <div class="ig-detail-stat-label">تاریخ</div>
+      <div class="ig-detail-stat-value ig-detail-stat-value-sm">{{ job.created_at|jalali_datetime }}</div>
+    </div>
+  </div>
+
+  {% if job.error_message %}
+  <div class="ig-alert ig-alert-error mb-3">
+    <i class="bi bi-exclamation-circle"></i>
+    <span>{{ job.error_message }}</span>
+  </div>
+  {% endif %}
+
+  <div class="d-flex flex-wrap gap-2 mb-4">
+    <a href="{% url 'instagram:phone_list' %}?job={{ job.pk }}" class="btn btn-panel-primary">
+      <i class="bi bi-telephone me-1"></i>مشاهده شماره‌ها
+    </a>
+    <a href="{% url 'instagram:extraction_export' job.pk %}?format=xlsx" class="btn btn-panel-ghost">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i>اکسل
+    </a>
+    <a href="{% url 'instagram:extraction_export' job.pk %}?format=csv" class="btn btn-panel-ghost">
+      <i class="bi bi-filetype-csv me-1"></i>CSV
+    </a>
+    <a href="{% url 'instagram:history' %}" class="btn btn-panel-ghost">بازگشت به تاریخچه</a>
+  </div>
+</div>
+{% endblock %}

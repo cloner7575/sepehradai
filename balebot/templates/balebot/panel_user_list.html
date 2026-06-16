@@ -36,8 +36,9 @@
                 {% if u.workspace.allow_bale %}<span class="badge text-bg-primary me-1">بله</span>{% endif %}
                 {% if u.workspace.allow_telegram %}<span class="badge text-bg-info me-1">تلگرام</span>{% endif %}
                 {% if u.workspace.allow_bale_miniapp %}<span class="badge text-bg-success me-1">مینی‌اپ بله</span>{% endif %}
-                {% if u.workspace.allow_telegram_miniapp %}<span class="badge text-bg-warning">مینی‌اپ تلگرام</span>{% endif %}
-                {% if not u.workspace.allow_bale and not u.workspace.allow_telegram and not u.workspace.allow_bale_miniapp and not u.workspace.allow_telegram_miniapp %}<span class="text-muted">—</span>{% endif %}
+                {% if u.workspace.allow_telegram_miniapp %}<span class="badge text-bg-warning me-1">مینی‌اپ تلگرام</span>{% endif %}
+                {% if u.workspace.allow_instagram %}<span class="badge text-bg-secondary me-1">اینستاگرام</span>{% endif %}
+                {% if not u.workspace.allow_bale and not u.workspace.allow_telegram and not u.workspace.allow_bale_miniapp and not u.workspace.allow_telegram_miniapp and not u.workspace.allow_instagram %}<span class="text-muted">—</span>{% endif %}
               {% else %}
               <span class="text-muted">—</span>
               {% endif %}

@@ -83,6 +83,25 @@ def has_miniapp_access_for_request(request: HttpRequest, workspace: Workspace | 
     return workspace.has_miniapp_access(platform)
 
 
+def has_instagram_access_for_request(request: HttpRequest, workspace: Workspace | None = None) -> bool:
+    if request.user.is_authenticated and request.user.is_superuser:
+        return True
+    if workspace is None and request.user.is_authenticated:
+        workspace = get_workspace_for_user(request.user)
+    if workspace is None or not workspace.is_active:
+        return False
+    return workspace.has_instagram_access()
+
+
+def require_instagram_access_for_request(request: HttpRequest) -> Workspace:
+    workspace = require_workspace_for_request(request)
+    if request.user.is_authenticated and request.user.is_superuser:
+        return workspace
+    if not workspace.has_instagram_access():
+        raise PermissionDenied
+    return workspace
+
+
 def require_miniapp_access_for_request(request: HttpRequest) -> tuple[Workspace, str]:
     workspace = require_workspace_for_request(request)
     platform = get_active_platform(request, workspace)

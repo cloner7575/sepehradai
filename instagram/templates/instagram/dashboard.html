@@ -1,0 +1,141 @@
+{% extends "balebot/base.html" %}
+{% load static jalali_extras %}
+{% block title %}داشبورد اینستاگرام{% endblock %}
+{% block page_title %}اینستاگرام{% endblock %}
+{% block page_subtitle %}
+<p class="topbar-meta mb-0 mt-1">استخراج و مدیریت شماره از دایرکت</p>
+{% endblock %}
+
+{% block content %}
+<link href="{% static 'instagram/css/extractor.css' %}?v=2" rel="stylesheet">
+
+<div class="ig-panel">
+  {% include "instagram/_instagram_subnav.html" %}
+
+  <div class="ig-metrics">
+    <a href="{% url 'instagram:phone_list' %}" class="ig-metric">
+      <span class="ig-metric-icon"><i class="bi bi-telephone"></i></span>
+      <span class="ig-metric-body">
+        <span class="ig-metric-value">{{ phone_total }}</span>
+        <span class="ig-metric-label">شماره ذخیره‌شده</span>
+      </span>
+    </a>
+    <a href="{% url 'instagram:history' %}" class="ig-metric">
+      <span class="ig-metric-icon"><i class="bi bi-layers"></i></span>
+      <span class="ig-metric-body">
+        <span class="ig-metric-value">{{ job_total }}</span>
+        <span class="ig-metric-label">عملیات استخراج</span>
+        <span class="ig-metric-meta">{{ job_completed }} تمام‌شده</span>
+      </span>
+    </a>
+    {% if user.is_superuser %}
+    <a href="{% url 'instagram:activity_domain_list' %}" class="ig-metric">
+      <span class="ig-metric-icon"><i class="bi bi-tags"></i></span>
+      <span class="ig-metric-body">
+        <span class="ig-metric-value">{{ domain_active }}</span>
+        <span class="ig-metric-label">حوزه فعال</span>
+        <span class="ig-metric-meta">{{ domain_total }} کل</span>
+      </span>
+    </a>
+    {% endif %}
+    {% if job_running %}
+    <div class="ig-metric ig-metric-static">
+      <span class="ig-metric-icon ig-metric-icon-warn"><i class="bi bi-hourglass-split"></i></span>
+      <span class="ig-metric-body">
+        <span class="ig-metric-value">{{ job_running }}</span>
+        <span class="ig-metric-label">در حال اجرا</span>
+      </span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="ig-quick-actions">
+    <a href="{% url 'instagram:phone_extractor' %}" class="ig-quick-card ig-quick-card-primary">
+      <i class="bi bi-play-circle"></i>
+      <span class="ig-quick-title">شروع استخراج</span>
+      <span class="ig-quick-desc">انتخاب ZIP و استخراج شماره</span>
+    </a>
+    <a href="{% url 'instagram:backup_guide' %}" class="ig-quick-card">
+      <i class="bi bi-book"></i>
+      <span class="ig-quick-title">آموزش بکاپ</span>
+      <span class="ig-quick-desc">نحوه دریافت فایل از اینستاگرام</span>
+    </a>
+    {% if user.is_superuser %}
+    <a href="{% url 'instagram:activity_domain_list' %}" class="ig-quick-card">
+      <i class="bi bi-plus-circle"></i>
+      <span class="ig-quick-title">حوزه‌های فعالیت</span>
+      <span class="ig-quick-desc">دسته‌بندی شماره‌ها</span>
+    </a>
+    {% endif %}
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="ig-card">
+        <div class="ig-card-head ig-card-head-split">
+          <h2>آخرین استخراج‌ها</h2>
+          <a href="{% url 'instagram:history' %}" class="ig-link">مشاهده همه</a>
+        </div>
+        {% if recent_jobs %}
+        <ul class="ig-history-list">
+          {% for job in recent_jobs %}
+          <li>
+            <a href="{% url 'instagram:extraction_detail' job.pk %}" class="ig-history-item text-decoration-none">
+              <div class="ig-history-main">
+                <div class="ig-history-domain">{{ job.domain_label }}</div>
+                <div class="ig-history-meta">{{ job.phone_count }} شماره · {{ job.created_at|jalali_datetime }}</div>
+              </div>
+              {% if job.status == 'running' %}
+              <span class="ig-history-badge ig-history-badge-running">در حال اجرا</span>
+              {% elif job.status == 'completed' %}
+              <span class="ig-history-badge ig-history-badge-done">تمام</span>
+              {% else %}
+              <span class="ig-history-badge ig-history-badge-failed">ناموفق</span>
+              {% endif %}
+              <span class="ig-history-arrow"><i class="bi bi-chevron-left"></i></span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="ig-empty-state">
+          <i class="bi bi-inbox"></i>
+          هنوز استخراجی انجام نشده
+          <div class="mt-2">
+            <a href="{% url 'instagram:phone_extractor' %}" class="btn btn-sm btn-panel-primary">اولین استخراج</a>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="ig-card">
+        <div class="ig-card-head">
+          <h2>بر اساس حوزه</h2>
+        </div>
+        {% if phones_by_domain %}
+        <ul class="ig-domain-stats">
+          {% for row in phones_by_domain %}
+          <li class="ig-domain-stat-row">
+            <a href="{% url 'instagram:phone_list' %}?domain={{ row.activity_domain_label|urlencode }}" class="ig-domain-stat-name text-decoration-none">{{ row.activity_domain_label|default:"—" }}</a>
+            <span class="ig-domain-stat-count">{{ row.total }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="ig-empty-state ig-empty-state-sm">
+          <i class="bi bi-pie-chart"></i>
+          داده‌ای موجود نیست
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="ig-info-card">
+        <i class="bi bi-shield-lock"></i>
+        <p>فایل ZIP روی دستگاه شما پردازش می‌شود و به سرور آپلود نمی‌شود.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,5 +1,5 @@
 from django.contrib.auth import views as auth_views
-from django.urls import path
+from django.urls import include, path
 
 from balebot import (
     views_miniapp_api,
@@ -108,4 +108,5 @@ urlpatterns = [
     ),
     path('shop/<uuid:public_id>/', views_miniapp_serve.serve_miniapp, name='miniapp_shop'),
     path('shop/<uuid:public_id>/<path:path>', views_miniapp_serve.serve_miniapp, name='miniapp_shop_asset'),
+    path('', include('instagram.urls')),
 ]

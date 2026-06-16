@@ -1,0 +1,24 @@
+{% with name=request.resolver_match.url_name %}
+<nav class="ig-subnav" aria-label="ناوبری اینستاگرام">
+  <a href="{% url 'instagram:dashboard' %}" class="ig-subnav-link{% if name == 'dashboard' %} is-active{% endif %}">
+    <i class="bi bi-grid-1x2"></i><span>داشبورد</span>
+  </a>
+  <a href="{% url 'instagram:phone_extractor' %}" class="ig-subnav-link{% if name == 'phone_extractor' %} is-active{% endif %}">
+    <i class="bi bi-telephone-plus"></i><span>استخراج</span>
+  </a>
+  <a href="{% url 'instagram:backup_guide' %}" class="ig-subnav-link{% if name == 'backup_guide' %} is-active{% endif %}">
+    <i class="bi bi-play-circle"></i><span>آموزش بکاپ</span>
+  </a>
+  <a href="{% url 'instagram:phone_list' %}" class="ig-subnav-link{% if name == 'phone_list' %} is-active{% endif %}">
+    <i class="bi bi-telephone"></i><span>شماره‌ها</span>
+  </a>
+  <a href="{% url 'instagram:history' %}" class="ig-subnav-link{% if name == 'history' or name == 'extraction_detail' %} is-active{% endif %}">
+    <i class="bi bi-clock-history"></i><span>تاریخچه</span>
+  </a>
+  {% if user.is_superuser %}
+  <a href="{% url 'instagram:activity_domain_list' %}" class="ig-subnav-link{% if name == 'activity_domain_list' %} is-active{% endif %}">
+    <i class="bi bi-tags"></i><span>حوزه‌ها</span>
+  </a>
+  {% endif %}
+</nav>
+{% endwith %}

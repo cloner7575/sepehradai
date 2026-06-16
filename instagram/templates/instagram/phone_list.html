@@ -1,0 +1,144 @@
+{% extends "balebot/base.html" %}
+{% load static jalali_extras %}
+{% block title %}لیست شماره‌ها{% endblock %}
+{% block page_title %}لیست شماره‌ها{% endblock %}
+{% block page_subtitle %}
+<p class="topbar-meta mb-0 mt-1">{{ phone_total }} شماره در مجموع</p>
+{% endblock %}
+
+{% block content %}
+<link href="{% static 'instagram/css/extractor.css' %}?v=2" rel="stylesheet">
+
+<div class="ig-panel">
+  {% include "instagram/_instagram_subnav.html" %}
+
+  <div class="ig-card">
+    <div class="ig-card-body">
+      <form method="get" class="ig-phone-filters">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4">
+            <label class="ig-field-label" for="filter-q">جستجو</label>
+            <input
+              type="search"
+              id="filter-q"
+              name="q"
+              class="form-control panel-input"
+              value="{{ filter_q }}"
+              placeholder="0912…"
+              dir="ltr"
+            >
+          </div>
+          <div class="col-md-3">
+            <label class="ig-field-label" for="filter-domain">حوزه فعالیت</label>
+            <select id="filter-domain" name="domain" class="form-select panel-input">
+              <option value="">همه</option>
+              {% for label in domain_labels %}
+              <option value="{{ label }}"{% if filter_domain == label %} selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <div class="form-check mt-4 pt-1">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                name="unique"
+                value="1"
+                id="filter-unique"
+                {% if filter_unique %}checked{% endif %}
+              >
+              <label class="form-check-label small" for="filter-unique">فقط یکتا (آخرین رکورد)</label>
+            </div>
+          </div>
+          <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-panel-primary flex-grow-1">اعمال</button>
+            <a href="{% url 'instagram:phone_list' %}" class="btn btn-panel-ghost">پاک</a>
+          </div>
+        </div>
+        {% if filter_job %}
+        <input type="hidden" name="job" value="{{ filter_job }}">
+        <p class="ig-field-hint mt-2 mb-0">
+          فیلتر عملیات #{{ filter_job }} —
+          <a href="{% url 'instagram:phone_list' %}?{% if filter_q %}q={{ filter_q|urlencode }}&{% endif %}{% if filter_domain %}domain={{ filter_domain|urlencode }}&{% endif %}{% if filter_unique %}unique=1{% endif %}">حذف فیلتر عملیات</a>
+        </p>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    <a
+      href="{% url 'instagram:phone_list_export' %}?format=xlsx&q={{ filter_q|urlencode }}&domain={{ filter_domain|urlencode }}{% if filter_unique %}&unique=1{% endif %}{% if filter_job %}&job={{ filter_job }}{% endif %}"
+      class="btn btn-panel-primary btn-sm"
+    >
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i>اکسل
+    </a>
+    <a
+      href="{% url 'instagram:phone_list_export' %}?format=csv&q={{ filter_q|urlencode }}&domain={{ filter_domain|urlencode }}{% if filter_unique %}&unique=1{% endif %}{% if filter_job %}&job={{ filter_job }}{% endif %}"
+      class="btn btn-panel-ghost btn-sm"
+    >
+      <i class="bi bi-filetype-csv me-1"></i>CSV
+    </a>
+  </div>
+
+  <div class="ig-card">
+    {% if phones %}
+    <div class="panel-table-wrap border-0">
+      <div class="table-responsive">
+        <table class="table panel-table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>شماره</th>
+              <th>حوزه</th>
+              <th>زمان</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for phone in phones %}
+            <tr>
+              <td class="text-muted">{{ forloop.counter0|add:page_obj.start_index }}</td>
+              <td><span class="ig-phone-chip">{{ phone.phone_number }}</span></td>
+              <td>{{ phone.activity_domain_label|default:"—" }}</td>
+              <td class="text-muted small">{{ phone.created_at|jalali_datetime }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="ig-card-footer">
+      <nav>
+        <ul class="pagination pagination-sm mb-0 justify-content-center">
+          {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ filter_q|urlencode }}&domain={{ filter_domain|urlencode }}{% if filter_unique %}&unique=1{% endif %}{% if filter_job %}&job={{ filter_job }}{% endif %}">قبلی</a>
+          </li>
+          {% endif %}
+          <li class="page-item disabled">
+            <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+          </li>
+          {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ filter_q|urlencode }}&domain={{ filter_domain|urlencode }}{% if filter_unique %}&unique=1{% endif %}{% if filter_job %}&job={{ filter_job }}{% endif %}">بعدی</a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="ig-empty-state">
+      <i class="bi bi-telephone-x"></i>
+      شماره‌ای یافت نشد
+      <div class="mt-2">
+        <a href="{% url 'instagram:phone_extractor' %}" class="btn btn-sm btn-panel-primary">شروع استخراج</a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

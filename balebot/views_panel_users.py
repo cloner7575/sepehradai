@@ -58,6 +58,7 @@ class PanelUserCreateView(SuperuserRequiredMixin, FormView):
             allow_telegram=form.cleaned_data['allow_telegram'],
             allow_bale_miniapp=form.cleaned_data['allow_bale_miniapp'],
             allow_telegram_miniapp=form.cleaned_data['allow_telegram_miniapp'],
+            allow_instagram=form.cleaned_data['allow_instagram'],
         )
         messages.success(
             self.request,
@@ -94,6 +95,7 @@ class PanelUserUpdateView(SuperuserRequiredMixin, FormView):
             'allow_telegram': ws.allow_telegram if ws else True,
             'allow_bale_miniapp': ws.allow_bale_miniapp if ws else False,
             'allow_telegram_miniapp': ws.allow_telegram_miniapp if ws else False,
+            'allow_instagram': ws.allow_instagram if ws else False,
         }
 
     def get_context_data(self, **kwargs):
@@ -127,9 +129,10 @@ class PanelUserUpdateView(SuperuserRequiredMixin, FormView):
             self.workspace.allow_telegram = form.cleaned_data['allow_telegram']
             self.workspace.allow_bale_miniapp = form.cleaned_data['allow_bale_miniapp']
             self.workspace.allow_telegram_miniapp = form.cleaned_data['allow_telegram_miniapp']
+            self.workspace.allow_instagram = form.cleaned_data['allow_instagram']
             self.workspace.save(update_fields=[
                 'name', 'is_active', 'allow_bale', 'allow_telegram',
-                'allow_bale_miniapp', 'allow_telegram_miniapp',
+                'allow_bale_miniapp', 'allow_telegram_miniapp', 'allow_instagram',
             ])
             ensure_bot_settings_for_workspace(self.workspace)
         else:
@@ -141,6 +144,7 @@ class PanelUserUpdateView(SuperuserRequiredMixin, FormView):
                 allow_telegram=form.cleaned_data['allow_telegram'],
                 allow_bale_miniapp=form.cleaned_data['allow_bale_miniapp'],
                 allow_telegram_miniapp=form.cleaned_data['allow_telegram_miniapp'],
+                allow_instagram=form.cleaned_data['allow_instagram'],
             )
             ensure_bot_settings_for_workspace(ws)
             self.workspace = ws

@@ -40,6 +40,29 @@
         <a class="nav-link {% if name == 'campaign_list' or name == 'campaign_create' or name == 'campaign_detail' or name == 'campaign_edit' %}active{% endif %}" href="{% url 'campaign_list' %}">
           <i class="bi bi-megaphone-fill"></i> کمپین‌ها
         </a>
+        {% if has_instagram_access %}
+        <div class="sidebar-section-label mt-3">اینستاگرام</div>
+        <a class="nav-link {% if name == 'dashboard' %}active{% endif %}" href="{% url 'instagram:dashboard' %}">
+          <i class="bi bi-instagram"></i> داشبورد
+        </a>
+        <a class="nav-link {% if name == 'phone_extractor' %}active{% endif %}" href="{% url 'instagram:phone_extractor' %}">
+          <i class="bi bi-telephone-plus"></i> استخراج شماره
+        </a>
+        <a class="nav-link {% if name == 'backup_guide' %}active{% endif %}" href="{% url 'instagram:backup_guide' %}">
+          <i class="bi bi-play-circle"></i> آموزش بکاپ
+        </a>
+        <a class="nav-link {% if name == 'phone_list' %}active{% endif %}" href="{% url 'instagram:phone_list' %}">
+          <i class="bi bi-telephone"></i> لیست شماره‌ها
+        </a>
+        <a class="nav-link {% if name == 'history' or name == 'extraction_detail' %}active{% endif %}" href="{% url 'instagram:history' %}">
+          <i class="bi bi-clock-history"></i> تاریخچه
+        </a>
+        {% if user.is_superuser %}
+        <a class="nav-link {% if name == 'activity_domain_list' %}active{% endif %}" href="{% url 'instagram:activity_domain_list' %}">
+          <i class="bi bi-tags"></i> حوزه‌ها
+        </a>
+        {% endif %}
+        {% endif %}
         {% if has_miniapp_access %}
         <div class="sidebar-section-label mt-3">مینی‌اپ {{ active_platform_label }}</div>
         <a class="nav-link {% if name == 'catalog_dashboard' %}active{% endif %}" href="{% url 'catalog_dashboard' %}">
