@@ -9,7 +9,7 @@ from balebot.models import Platform
 
 
 def normalize_public_url(raw: str, *, platform: str) -> str:
-    """فقط scheme + host (+ port) — بدون مسیر."""
+    """فقط scheme + host (+ port) — بدون مسیر. همیشه HTTPS جز localhost."""
     value = (raw or '').strip()
     if not value:
         return ''
@@ -18,11 +18,12 @@ def normalize_public_url(raw: str, *, platform: str) -> str:
     parsed = urlparse(value)
     if not parsed.netloc:
         return ''
-    scheme = 'https' if platform == Platform.TELEGRAM else (parsed.scheme or 'https')
-    if platform == Platform.TELEGRAM:
+    host = parsed.hostname or ''
+    if host.lower() in {'localhost', '127.0.0.1', '0.0.0.0', '::1'}:
+        scheme = parsed.scheme or 'http'
+    else:
         scheme = 'https'
-    netloc = parsed.netloc
-    return f'{scheme}://{netloc}'.rstrip('/')
+    return f'{scheme}://{parsed.netloc}'.rstrip('/')
 
 
 def check_hostname_resolves(hostname: str) -> tuple[bool, str]:

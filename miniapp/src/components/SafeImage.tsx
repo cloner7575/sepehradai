@@ -21,8 +21,9 @@ export function SafeImage({ src, alt = '', className = '', fallback }: SafeImage
       src={resolved}
       alt={alt}
       className={className}
-      loading="lazy"
-      decoding="async"
+      loading="eager"
+      decoding="sync"
+      referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
     />
   );

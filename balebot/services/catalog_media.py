@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 
+from urllib.parse import urlparse
+
 IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.avif'}
 VIDEO_EXTENSIONS = {'.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v', '.ogv'}
 
@@ -33,20 +35,35 @@ def _public_base_url(request, catalog=None) -> str:
     if forwarded in ('http', 'https'):
         scheme = forwarded
     host = request.get_host()
-    return f'{scheme}://{host}'
+    base = f'{scheme}://{host}'
+    return _ensure_public_https(base)
+
+
+def _ensure_public_https(url: str) -> str:
+    """WebView بله/تلگرام روی HTTPS فقط تصاویر HTTPS را لود می‌کند."""
+    if not url:
+        return ''
+    if url.startswith('https://'):
+        return url
+    if url.startswith('http://'):
+        host = urlparse(url).hostname or ''
+        if host.lower() in {'localhost', '127.0.0.1', '0.0.0.0', '::1'}:
+            return url
+        return 'https://' + url[7:]
+    return url
 
 
 def absolute_media_url(request, url: str, *, catalog=None) -> str:
     if not url:
         return ''
     if url.startswith('http://') or url.startswith('https://'):
-        return url
+        return _ensure_public_https(url)
     path = url if url.startswith('/') else f'/{url}'
     base = _public_base_url(request, catalog)
     if base:
-        return f'{base}{path}'
+        return _ensure_public_https(f'{base}{path}')
     if request:
-        return request.build_absolute_uri(path)
+        return _ensure_public_https(request.build_absolute_uri(path))
     return path
 
 
