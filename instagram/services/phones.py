@@ -40,6 +40,54 @@ def save_phone_for_job(job: ExtractionJob, phone: str) -> tuple[ExtractedPhone |
     return phone_obj, created
 
 
+BATCH_PHONE_MAX = 100
+
+
+@transaction.atomic
+def save_phones_batch_for_job(job: ExtractionJob, phones: list) -> dict:
+    valid: list[str] = []
+    seen: set[str] = set()
+    for raw in phones:
+        phone = (raw or '').strip()
+        if not validate_iran_mobile(phone) or phone in seen:
+            continue
+        seen.add(phone)
+        valid.append(phone)
+
+    if not valid:
+        job.refresh_from_db(fields=['phone_count'])
+        return {'saved_count': 0, 'saved_phones': [], 'phone_count': job.phone_count}
+
+    existing = set(
+        ExtractedPhone.objects.filter(job=job, phone_number__in=valid).values_list(
+            'phone_number',
+            flat=True,
+        ),
+    )
+    to_create = [p for p in valid if p not in existing]
+
+    if to_create:
+        ExtractedPhone.objects.bulk_create(
+            [
+                ExtractedPhone(
+                    job=job,
+                    workspace=job.workspace,
+                    phone_number=phone,
+                    activity_domain_label=job.domain_label,
+                )
+                for phone in to_create
+            ],
+        )
+        ExtractionJob.objects.filter(pk=job.pk).update(phone_count=F('phone_count') + len(to_create))
+
+    job.refresh_from_db(fields=['phone_count'])
+    return {
+        'saved_count': len(to_create),
+        'saved_phones': to_create,
+        'phone_count': job.phone_count,
+    }
+
+
 @transaction.atomic
 def finish_job(
     job: ExtractionJob,

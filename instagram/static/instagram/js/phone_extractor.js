@@ -114,10 +114,12 @@
     var startUrl = root.dataset.startUrl;
     var phoneUrl = root.dataset.phoneUrl;
     var finishUrl = root.dataset.finishUrl;
+    var BATCH_SIZE = 100;
 
     var cancelled = false;
     var running = false;
     var savedCount = 0;
+    var pendingBatch = [];
     var selectedFile = null;
 
     var dropzoneDefaultHtml =
@@ -324,25 +326,41 @@
         });
     }
 
-    function savePhone(jobId, phone) {
-      return postJson(phoneUrl, { job_id: jobId, phone: phone }).then(function (result) {
+    function savePhoneBatch(jobId, phones) {
+      return postJson(phoneUrl, { job_id: jobId, phones: phones }).then(function (result) {
         if (!result.ok || !result.data.ok) {
-          var msg = (result.data && result.data.error) || 'خطا در ذخیره شماره';
+          var msg = (result.data && result.data.error) || 'خطا در ذخیره شماره‌ها';
           throw new Error(msg);
         }
-        if (result.data.saved) {
-          savedCount = result.data.phone_count;
-          updateCounter(savedCount);
-          appendToLiveList(phone);
+        savedCount = result.data.phone_count;
+        updateCounter(savedCount);
+        if (result.data.saved_phones && result.data.saved_phones.length) {
+          result.data.saved_phones.forEach(function (p) {
+            appendToLiveList(p);
+          });
         }
         return result.data;
       });
+    }
+
+    async function flushBatch(jobId) {
+      if (!pendingBatch.length) return;
+      var batch = pendingBatch.splice(0, pendingBatch.length);
+      await savePhoneBatch(jobId, batch);
+    }
+
+    async function queuePhone(jobId, phone) {
+      pendingBatch.push(phone);
+      if (pendingBatch.length >= BATCH_SIZE) {
+        await flushBatch(jobId);
+      }
     }
 
     async function runExtraction(file) {
       cancelled = false;
       running = true;
       savedCount = 0;
+      pendingBatch = [];
       hideAlerts();
       liveList.innerHTML = '';
       liveListWrap.classList.add('d-none');
@@ -409,11 +427,13 @@
             var phone = phones[j];
             if (seen.has(phone)) continue;
             seen.add(phone);
-            await savePhone(jobId, phone);
+            await queuePhone(jobId, phone);
           }
 
           await sleep(0);
         }
+
+        await flushBatch(jobId);
 
         updateStatus('نهایی‌سازی…', 98);
         var finishResult = await postJson(finishUrl, {

@@ -14,9 +14,11 @@ from instagram.forms import ActivityDomainForm
 from instagram.mixins import InstagramPanelMixin
 from instagram.models import ActivityDomain, ExtractedPhone, ExtractionJob
 from instagram.services.phones import (
+    BATCH_PHONE_MAX,
     finish_job,
     sanitize_source_filename,
     save_phone_for_job,
+    save_phones_batch_for_job,
     validate_iran_mobile,
 )
 from instagram.services.export import JOB_PHONE_EXPORT_HEADERS, PHONE_EXPORT_HEADERS
@@ -234,10 +236,6 @@ class ExtractionSavePhoneView(InstagramPanelMixin, View):
         except (TypeError, ValueError):
             return _json_error('شناسه عملیات نامعتبر است.')
 
-        phone = (data.get('phone') or '').strip()
-        if not validate_iran_mobile(phone):
-            return _json_error('فرمت شماره موبایل نامعتبر است.')
-
         job = get_object_or_404(
             ExtractionJob,
             pk=job_id,
@@ -246,12 +244,27 @@ class ExtractionSavePhoneView(InstagramPanelMixin, View):
         if job.status != ExtractionJob.Status.RUNNING:
             return _json_error('این عملیات استخراج دیگر فعال نیست.', status=409)
 
+        phones_raw = data.get('phones')
+        if phones_raw is not None:
+            if not isinstance(phones_raw, list):
+                return _json_error('فرمت لیست شماره‌ها نامعتبر است.')
+            if len(phones_raw) > BATCH_PHONE_MAX:
+                return _json_error(f'حداکثر {BATCH_PHONE_MAX} شماره در هر درخواست مجاز است.')
+            result = save_phones_batch_for_job(job, phones_raw)
+            return JsonResponse({'ok': True, **result})
+
+        phone = (data.get('phone') or '').strip()
+        if not validate_iran_mobile(phone):
+            return _json_error('فرمت شماره موبایل نامعتبر است.')
+
         _, created = save_phone_for_job(job, phone)
         job.refresh_from_db(fields=['phone_count'])
         return JsonResponse(
             {
                 'ok': True,
                 'saved': created,
+                'saved_count': 1 if created else 0,
+                'saved_phones': [phone] if created else [],
                 'phone_count': job.phone_count,
             },
         )
