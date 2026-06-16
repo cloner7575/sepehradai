@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 
-from django.http import JsonResponse
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -21,7 +21,13 @@ from balebot.models import (
     Subscriber,
 )
 from balebot.services import catalog_payment, miniapp_auth
-from balebot.services.catalog_media import absolute_media_url, absolutize_home_blocks
+from balebot.services.catalog_media import (
+    absolute_media_url,
+    absolutize_home_blocks,
+    guess_content_type,
+    request_public_base_url,
+    resolve_media_file,
+)
 from balebot.services.catalog_page_layout import get_home_blocks
 from balebot.services.public_url import resolve_public_base_url
 from balebot.services.channel_membership import is_channel_member
@@ -159,9 +165,7 @@ def catalog_config(request, public_id):
     hero_background_url = ''
     if catalog.hero_background:
         hero_background_url = absolute_media_url(request, catalog.hero_background.url, catalog=catalog)
-    public_base_url = resolve_public_base_url(cfg).rstrip('/')
-    if not public_base_url:
-        public_base_url = absolute_media_url(request, '/', catalog=catalog).rstrip('/')
+    public_base_url = request_public_base_url(request) or resolve_public_base_url(cfg).rstrip('/')
     methods = []
     for value, label in catalog.enabled_payment_methods():
         methods.append({'id': value, 'label': label})
@@ -183,6 +187,22 @@ def catalog_config(request, public_id):
         'payment_methods': methods if catalog.is_enabled else [],
         'payment_default': catalog.resolve_payment_method(None) if catalog.is_enabled else None,
     })
+
+
+@require_http_methods(['GET'])
+def catalog_media_file(request, public_id, file_path):
+    """سرو امن فایل‌های media برای مینی‌اپ (مستقل از nginx /media/)."""
+    catalog, err = _resolve_catalog(public_id)
+    if err:
+        return err
+    full = resolve_media_file(file_path)
+    if full is None:
+        raise Http404('فایل یافت نشد')
+    response = FileResponse(full.open('rb'), content_type=guess_content_type(full))
+    response['Access-Control-Allow-Origin'] = '*'
+    response['Cross-Origin-Resource-Policy'] = 'cross-origin'
+    response['Cache-Control'] = 'public, max-age=86400'
+    return response
 
 
 @require_http_methods(['GET'])

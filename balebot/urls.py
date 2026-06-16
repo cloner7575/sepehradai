@@ -96,6 +96,11 @@ urlpatterns = [
     path('catalog/orders/', views_panel_catalog.CatalogOrderListView.as_view(), name='catalog_order_list'),
     path('catalog/orders/<int:pk>/', views_panel_catalog.CatalogOrderDetailView.as_view(), name='catalog_order_detail'),
     path('api/shop/<uuid:public_id>/config/', views_miniapp_api.catalog_config, name='api_catalog_config'),
+    path(
+        'api/shop/<uuid:public_id>/media/<path:file_path>',
+        views_miniapp_api.catalog_media_file,
+        name='api_catalog_media',
+    ),
     path('api/shop/<uuid:public_id>/categories/', views_miniapp_api.catalog_categories, name='api_catalog_categories'),
     path('api/shop/<uuid:public_id>/items/', views_miniapp_api.catalog_items, name='api_catalog_items'),
     path('api/shop/<uuid:public_id>/items/<slug:slug>/', views_miniapp_api.catalog_item_detail, name='api_catalog_item_detail'),
