@@ -36,6 +36,9 @@
       <a href="#sec-payment" class="settings-nav-link" data-settings-nav="sec-payment">
         <i class="bi bi-credit-card"></i><span>پرداخت</span>
       </a>
+      <a href="#sec-checkout-form" class="settings-nav-link" data-settings-nav="sec-checkout-form">
+        <i class="bi bi-ui-checks"></i><span>فرم سفارش</span>
+      </a>
       <a href="#sec-link" class="settings-nav-link" data-settings-nav="sec-link">
         <i class="bi bi-link-45deg"></i><span>لینک</span>
       </a>
@@ -177,6 +180,48 @@
         </div>
       </section>
 
+      <section id="sec-checkout-form" class="settings-section panel-card mb-4">
+        <header class="panel-card-header settings-section-header">
+          <div>
+            <h2 class="panel-card-title mb-1"><i class="bi bi-ui-checks me-2"></i>فرم ثبت سفارش</h2>
+            <p class="panel-card-lead mb-0">تعیین کنید هنگام تسویه چه اطلاعاتی از کاربر گرفته شود.</p>
+          </div>
+        </header>
+        <div class="panel-card-body">
+          {{ form.checkout_form_json }}
+          <div class="form-check form-switch mb-3">
+            <input type="checkbox" class="form-check-input" role="switch" id="checkout-form-enabled">
+            <label class="form-check-label" for="checkout-form-enabled">نمایش فرم اطلاعات هنگام ثبت سفارش</label>
+          </div>
+          <div id="checkout-form-block">
+            <div class="mb-3">
+              <label class="form-label" for="checkout-form-title">عنوان فرم</label>
+              <input type="text" class="form-control panel-input" id="checkout-form-title" placeholder="اطلاعات تحویل">
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle checkout-form-table mb-3">
+                <thead>
+                  <tr>
+                    <th>فعال</th>
+                    <th>برچسب</th>
+                    <th>نوع</th>
+                    <th>الزامی</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="checkout-form-fields"></tbody>
+              </table>
+            </div>
+            <button type="button" class="btn btn-panel-ghost btn-sm" id="checkout-form-add-field">
+              <i class="bi bi-plus-lg me-1"></i>افزودن فیلد سفارشی
+            </button>
+          </div>
+          <p class="small text-muted mb-0 mt-3">
+            فیلدهای فعال در صفحه سبد خرید و هنگام خرید مستقیم نمایش داده می‌شوند و همراه سفارش برای ادمین ارسال می‌گردند.
+          </p>
+        </div>
+      </section>
+
       <section id="sec-link" class="settings-section panel-card mb-4">
         <header class="panel-card-header settings-section-header">
           <div>
@@ -228,5 +273,6 @@
 
 {% block extra_js %}
 <script src="{% static 'balebot/js/catalog_settings.js' %}"></script>
+<script src="{% static 'balebot/js/checkout_form_builder.js' %}"></script>
 <script src="{% static 'balebot/js/catalog_dashboard.js' %}"></script>
 {% endblock %}

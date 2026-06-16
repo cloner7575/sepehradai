@@ -303,6 +303,31 @@
 
 .app-platform-btn.is-active i { color: var(--app-accent); }
 
+.app-platform-sync { display: inline-flex; }
+
+.app-platform-sync-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px dashed var(--app-border);
+  border-radius: 999px;
+  background: var(--app-surface);
+  color: var(--app-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--app-transition);
+  white-space: nowrap;
+}
+
+.app-platform-sync-btn:hover {
+  color: var(--app-accent);
+  border-color: var(--app-accent);
+  background: var(--app-surface-2);
+}
+
 .app-icon-btn {
   position: relative;
   width: 38px;
@@ -743,6 +768,12 @@
 
 .btn-panel-accent:hover { background: var(--app-accent-2); color: #fff; }
 
+.btn-panel-accent:disabled,
+.btn-panel-accent[disabled] {
+  opacity: 0.72;
+  cursor: wait;
+}
+
 /* ── Forms ── */
 .panel-input, .app-input, .form-control, .form-select {
   background: var(--app-surface);
@@ -918,3 +949,22 @@
   background: var(--app-surface);
 }
 .app-content .alert a { color: var(--app-accent); }
+
+/* Bootstrap modal above panel chrome */
+.modal-backdrop { z-index: 1060 !important; }
+.modal { z-index: 1065 !important; }
+
+
+
+.campaign-send-progress { border-color: rgba(var(--app-accent-rgb), 0.35); }
+.campaign-send-track { height: 10px; border-radius: 999px; background: var(--app-surface-2); }
+.campaign-send-track .progress-bar { background: var(--app-accent); }
+.campaign-send-percent { font-size: 1.1rem; font-weight: 700; color: var(--app-accent); min-width: 3rem; text-align: center; }
+.campaign-send-spinner {
+  width: 28px; height: 28px; flex-shrink: 0;
+  border: 3px solid var(--app-border);
+  border-top-color: var(--app-accent);
+  border-radius: 50%;
+  animation: campaign-send-spin 0.75s linear infinite;
+}
+@keyframes campaign-send-spin { to { transform: rotate(360deg); } }

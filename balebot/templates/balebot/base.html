@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="{% static 'balebot/vendor/bootstrap/5.3.3/dist/css/bootstrap.rtl.min.css' %}" rel="stylesheet">
   <link href="{% static 'balebot/vendor/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css' %}" rel="stylesheet">
-  <link href="{% static 'balebot/css/panel-app.css' %}?v=5" rel="stylesheet">
+  <link href="{% static 'balebot/css/panel-app.css' %}?v=8" rel="stylesheet">
   <link href="{% static 'balebot/css/panel-builders.css' %}?v=15" rel="stylesheet">
   {% block extra_css %}{% endblock %}
 </head>
@@ -43,8 +43,10 @@
     </div>
   </div>
 
+  {% include "balebot/_platform_sync_modal.html" %}
+
   <script src="{% static 'balebot/vendor/bootstrap/5.3.3/dist/js/bootstrap.bundle.min.js' %}"></script>
-  <script src="{% static 'balebot/js/panel-app.js' %}?v=5"></script>
+  <script src="{% static 'balebot/js/panel-app.js' %}?v=6"></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

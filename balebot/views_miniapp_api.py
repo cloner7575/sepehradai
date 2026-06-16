@@ -21,6 +21,7 @@ from balebot.models import (
     Subscriber,
 )
 from balebot.services import catalog_payment, miniapp_auth
+from balebot.services.checkout_form import public_checkout_form, validate_customer_data
 from balebot.services.catalog_media import (
     absolute_media_url,
     absolutize_home_blocks,
@@ -186,6 +187,7 @@ def catalog_config(request, public_id):
         'mini_app_url': catalog.build_mini_app_url(cfg),
         'payment_methods': methods if catalog.is_enabled else [],
         'payment_default': catalog.resolve_payment_method(None) if catalog.is_enabled else None,
+        'checkout_form': public_checkout_form(catalog.checkout_form),
     })
 
 
@@ -406,6 +408,13 @@ def catalog_checkout(request, public_id):
     if not payment_method:
         return _json_error('هیچ روش پرداختی فعال نیست', 400)
 
+    customer_data, form_errors = validate_customer_data(
+        catalog.checkout_form,
+        body.get('customer_data'),
+    )
+    if form_errors:
+        return _json_error(form_errors[0], 400)
+
     item_id = body.get('item_id')
     use_cart = body.get('use_cart', True)
     order = None
@@ -423,6 +432,7 @@ def catalog_checkout(request, public_id):
             item=item,
             quantity=int(body.get('quantity') or 1),
             payment_method=payment_method,
+            customer_data=customer_data,
         )
     elif use_cart:
         cart = catalog_payment.get_or_create_cart(catalog.workspace, catalog.platform, sub)
@@ -431,6 +441,7 @@ def catalog_checkout(request, public_id):
             subscriber=sub,
             cart=cart,
             payment_method=payment_method,
+            customer_data=customer_data,
         )
     if not order or order.total_amount <= 0:
         return _json_error('سبد خرید خالی است یا قیمت نامعتبر')
@@ -501,6 +512,12 @@ def catalog_request(request, public_id):
     if item:
         lines = [(item, int(body.get('quantity') or 1))]
     note = (body.get('note') or '')[:2000]
+    customer_data, form_errors = validate_customer_data(
+        catalog.checkout_form,
+        body.get('customer_data'),
+    )
+    if form_errors:
+        return _json_error(form_errors[0], 400)
     order = catalog_payment.create_order_from_lines(
         workspace=catalog.workspace,
         platform=catalog.platform,
@@ -508,6 +525,7 @@ def catalog_request(request, public_id):
         lines=lines,
         status=CatalogOrder.Status.REQUEST,
         note=note or 'درخواست از مینی‌اپ',
+        customer_data=customer_data,
     )
     if not order:
         return _json_error('ثبت درخواست ناموفق')

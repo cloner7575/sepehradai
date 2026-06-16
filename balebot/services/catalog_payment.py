@@ -18,6 +18,7 @@ from balebot.models import (
     Subscriber,
 )
 from balebot.services import messenger_api, zarinpal
+from balebot.services.checkout_form import format_customer_data_for_message
 from balebot.services.webhook_logic import get_or_create_subscriber
 
 logger = logging.getLogger(__name__)
@@ -47,6 +48,7 @@ def create_order_from_lines(
     status: str = CatalogOrder.Status.PENDING,
     note: str = '',
     payment_method: str = '',
+    customer_data: dict | None = None,
 ) -> CatalogOrder | None:
     if not lines:
         return None
@@ -60,6 +62,7 @@ def create_order_from_lines(
             total_amount=0,
             note=note[:2000],
             payment_method=payment_method[:16],
+            customer_data=customer_data or {},
         )
         for item, qty in lines:
             price = item.price or 0
@@ -84,6 +87,7 @@ def create_checkout_order(
     item: CatalogItem | None = None,
     quantity: int = 1,
     payment_method: str = '',
+    customer_data: dict | None = None,
 ) -> CatalogOrder | None:
     if cart:
         lines = _line_items_from_cart(cart)
@@ -101,6 +105,7 @@ def create_checkout_order(
         lines=lines,
         status=status,
         payment_method=payment_method,
+        customer_data=customer_data,
     )
 
 
@@ -126,12 +131,17 @@ def submit_admin_cart_order(
 
     user_label = subscriber.first_name or subscriber.username or str(subscriber.messenger_user_id)
     phone = subscriber.phone_number or '—'
+    customer_block = format_customer_data_for_message(catalog.checkout_form, order.customer_data or {})
     text = (
         f'🛒 سفارش جدید #{order.pk}\n'
         f'کاربر: {user_label}\n'
         f'شماره: {phone}\n'
-        f'شناسه کاربر: {subscriber.messenger_user_id}\n\n'
-        f'{_format_order_lines(order)}\n\n'
+        f'شناسه کاربر: {subscriber.messenger_user_id}\n'
+    )
+    if customer_block:
+        text += f'\n📋 اطلاعات سفارش:\n{customer_block}\n'
+    text += (
+        f'\n{_format_order_lines(order)}\n\n'
         f'جمع کل: {_format_price(order.total_amount)}'
     )
     messenger_api.send_message(

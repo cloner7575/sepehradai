@@ -48,6 +48,7 @@
     {% else %}
     <span class="app-badge app-badge--info">{{ active_platform_label }}</span>
     {% endif %}
+    {% include 'balebot/_platform_sync.html' %}
   </div>
 
   {% if user.is_authenticated %}

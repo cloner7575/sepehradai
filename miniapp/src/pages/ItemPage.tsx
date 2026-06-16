@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { fetchItem, formatPrice, submitRequest, updateCart } from '../api';
 import { useApp } from '../App';
 import { PaymentMethodPicker } from '../components/PaymentMethodPicker';
+import { CheckoutForm, useCheckoutForm } from '../components/CheckoutForm';
 import { MediaGallery } from '../components/MediaGallery';
 import { IconDownload, IconPackage } from '../components/Icons';
 import { useCheckout } from '../hooks/useCheckout';
@@ -25,6 +26,7 @@ export function ItemPage() {
     runCheckout,
     methods,
   } = useCheckout();
+  const checkoutForm = useCheckoutForm(config?.checkout_form);
 
   useEffect(() => {
     if (!slug) return;
@@ -35,10 +37,12 @@ export function ItemPage() {
 
   const buyNow = async () => {
     if (!item) return;
+    if (checkoutForm.hasForm && !checkoutForm.validate()) return;
     const result = await runCheckout({
       item_id: item.id,
       quantity: 1,
       use_cart: false,
+      customer_data: checkoutForm.customerData,
     });
     if (result?.payment_method === 'admin_cart') {
       navigate('/cart?submitted=1');
@@ -138,8 +142,28 @@ export function ItemPage() {
           </dl>
         )}
         {showBuy && methods.length > 0 && (
-          <div className="mt-5">
+          <div className="mt-5 space-y-4">
+            <CheckoutForm
+              title={checkoutForm.title}
+              fields={checkoutForm.fields}
+              values={checkoutForm.values}
+              errors={checkoutForm.errors}
+              onChange={checkoutForm.setValue}
+              disabled={isBusy}
+            />
             <PaymentMethodPicker methods={methods} value={paymentMethod} onChange={setPaymentMethod} />
+          </div>
+        )}
+        {showBuy && methods.length === 0 && checkoutForm.hasForm && (
+          <div className="mt-5">
+            <CheckoutForm
+              title={checkoutForm.title}
+              fields={checkoutForm.fields}
+              values={checkoutForm.values}
+              errors={checkoutForm.errors}
+              onChange={checkoutForm.setValue}
+              disabled={isBusy}
+            />
           </div>
         )}
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}

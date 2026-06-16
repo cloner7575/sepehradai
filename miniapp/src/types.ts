@@ -3,6 +3,19 @@ export interface PaymentMethodOption {
   label: string;
 }
 
+export interface CheckoutFormField {
+  key: string;
+  label: string;
+  type: 'text' | 'tel' | 'email' | 'textarea';
+  required: boolean;
+}
+
+export interface CheckoutFormConfig {
+  enabled: boolean;
+  title: string;
+  fields: CheckoutFormField[];
+}
+
 export type HomeBlockType =
   | 'hero'
   | 'search'
@@ -88,6 +101,7 @@ export interface CatalogConfig {
   public_base_url: string;
   payment_methods?: PaymentMethodOption[];
   payment_default?: string;
+  checkout_form?: CheckoutFormConfig;
 }
 
 export interface AuthValidateResult {

@@ -116,4 +116,18 @@
       });
     });
   }
+
+  var syncForm = document.getElementById('platform-sync-form');
+  if (syncForm) {
+    syncForm.addEventListener('submit', function () {
+      var btn = document.getElementById('platform-sync-submit');
+      if (btn && !btn.disabled) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>در حال انتقال…';
+      }
+      syncForm.querySelectorAll('button[data-bs-dismiss="modal"]').forEach(function (el) {
+        el.disabled = true;
+      });
+    });
+  }
 })();

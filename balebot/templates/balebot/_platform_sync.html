@@ -1,0 +1,17 @@
+{% comment %}
+دکمهٔ باز کردن مودال انتقال (خود مودال در base.html رندر می‌شود)
+{% endcomment %}
+{% if other_platform and available_platforms|length > 1 %}
+<div class="app-platform-sync">
+  <button
+    type="button"
+    class="app-platform-sync-btn"
+    data-bs-toggle="modal"
+    data-bs-target="#platform-sync-modal"
+    title="انتقال به {{ other_platform_label }}"
+  >
+    <i class="bi bi-copy"></i>
+    <span class="d-none d-xl-inline">انتقال به {{ other_platform_label }}</span>
+  </button>
+</div>
+{% endif %}

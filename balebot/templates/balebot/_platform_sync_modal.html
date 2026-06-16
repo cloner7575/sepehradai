@@ -1,0 +1,56 @@
+{% comment %}
+مودال انتقال — باید مستقیم زیر body باشد تا backdrop بوت‌استرپ صفحه را قفل نکند.
+{% endcomment %}
+{% if other_platform and available_platforms|length > 1 %}
+<div class="modal fade" id="platform-sync-modal" tabindex="-1" aria-labelledby="platform-sync-modal-label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{% url 'panel_sync_platform' %}" id="platform-sync-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <input type="hidden" name="target_platform" value="{{ other_platform }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="platform-sync-modal-label">
+            انتقال از {{ active_platform_label }} به {{ other_platform_label }}
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted mb-3">
+            محتوای پلتفرم فعال (<strong>{{ active_platform_label }}</strong>) روی
+            <strong>{{ other_platform_label }}</strong> کپی می‌شود. داده‌های قبلی همان بخش‌ها در مقصد جایگزین می‌شوند.
+          </p>
+          <div class="vstack gap-2">
+            <label class="form-check">
+              <input class="form-check-input" type="checkbox" name="copy_bot" value="1" checked>
+              <span class="form-check-label">تنظیمات ربات، پیام‌ها و جریان /start (با رسانه‌ها)</span>
+            </label>
+            <label class="form-check">
+              <input class="form-check-input" type="checkbox" name="copy_catalog" value="1" checked>
+              <span class="form-check-label">فروشگاه مینی‌اپ: ظاهر، دسته‌ها و محصولات</span>
+            </label>
+            <label class="form-check">
+              <input class="form-check-input" type="checkbox" name="copy_tags" value="1" checked>
+              <span class="form-check-label">برچسب‌های مخاطبان</span>
+            </label>
+            <label class="form-check">
+              <input class="form-check-input" type="checkbox" name="copy_campaigns" value="1" checked>
+              <span class="form-check-label">کمپین‌ها (به‌صورت پیش‌نویس)</span>
+            </label>
+          </div>
+          <div class="alert alert-warning small mt-3 mb-0">
+            <strong>منتقل نمی‌شود:</strong> توکن ربات، چت‌آیدی ادمین سفارش‌ها، مخاطبین، سفارش‌ها و پیام‌ها.
+            بعد از انتقال، توکن {{ other_platform_label }} را جداگانه تنظیم و وب‌هوک را ثبت کنید.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-panel-ghost" data-bs-dismiss="modal">انصراف</button>
+          <button type="submit" class="btn btn-panel-accent" id="platform-sync-submit">
+            <i class="bi bi-copy me-1"></i>شروع انتقال
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}

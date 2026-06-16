@@ -43,6 +43,11 @@ urlpatterns = [
         views_panel.SwitchPlatformView.as_view(),
         name='panel_switch_platform',
     ),
+    path(
+        'sync-platform/',
+        views_panel.PlatformSyncView.as_view(),
+        name='panel_sync_platform',
+    ),
     path('bot/', views_panel.BotSettingsView.as_view(), name='bot_settings'),
     path('bot/flow/', views_panel.FlowEngineView.as_view(), name='bot_flow_engine'),
     path('subscribers/', views_panel.SubscriberListView.as_view(), name='subscriber_list'),
@@ -58,6 +63,11 @@ urlpatterns = [
         'campaigns/<int:pk>/',
         views_panel.CampaignDetailView.as_view(),
         name='campaign_detail',
+    ),
+    path(
+        'campaigns/<int:pk>/send-batch/',
+        views_panel.CampaignSendBatchView.as_view(),
+        name='campaign_send_batch',
     ),
     path(
         'campaigns/<int:pk>/edit/',

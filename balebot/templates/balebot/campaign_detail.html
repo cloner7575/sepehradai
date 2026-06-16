@@ -1,4 +1,5 @@
 {% extends "balebot/base.html" %}
+{% load static %}
 {% block title %}{{ object.title }}{% endblock %}
 {% block page_title %}{{ object.title }}{% endblock %}
 {% block page_subtitle %}
@@ -6,6 +7,41 @@
 {% endblock %}
 
 {% block content %}
+{% if object.status == 'sending' or campaign_send_autostart %}
+<div
+  id="campaign-send-progress"
+  class="campaign-send-progress panel-card mb-4"
+  data-batch-url="{{ campaign_send_batch_url }}"
+  data-autostart="{% if campaign_send_autostart %}1{% else %}0{% endif %}"
+  data-total="{{ send_progress.total }}"
+  data-sent="{{ send_progress.sent }}"
+  data-failed="{{ send_progress.failed }}"
+  data-pending="{{ send_progress.pending }}"
+  data-done="{% if object.status == 'completed' %}1{% else %}0{% endif %}"
+>
+  <div class="panel-card-body">
+    <div class="d-flex align-items-center gap-3 mb-3">
+      <div class="campaign-send-spinner" aria-hidden="true"></div>
+      <div class="flex-grow-1">
+        <strong class="d-block mb-1">ارسال کمپین</strong>
+        <span id="campaign-send-status" class="small text-secondary">{% if campaign_send_autostart %}در حال آماده‌سازی…{% else %}ارسال ناتمام — ادامه دهید{% endif %}</span>
+      </div>
+      <span id="campaign-send-label" class="campaign-send-percent">{{ send_progress.percent }}٪</span>
+    </div>
+    <div class="progress campaign-send-track mb-2" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ send_progress.percent }}">
+      <div id="campaign-send-bar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: {{ send_progress.percent }}%"></div>
+    </div>
+    <p id="campaign-send-stats" class="small text-muted mb-2">
+      {{ send_progress.sent }} ارسال · {{ send_progress.failed }} خطا · {{ send_progress.pending }} باقی‌مانده از {{ send_progress.total }}
+    </p>
+    <p id="campaign-send-error" class="small text-danger mb-2" hidden></p>
+    <button type="button" class="btn btn-panel-accent btn-sm" id="campaign-send-resume" {% if campaign_send_autostart %}hidden{% endif %}>
+      <i class="bi bi-play-fill me-1"></i>ادامه ارسال
+    </button>
+  </div>
+</div>
+{% endif %}
+
 <div class="d-grid d-sm-flex flex-wrap gap-2 mb-4">
   <a href="{% url 'campaign_edit' object.pk %}" class="btn btn-panel-primary btn-sm justify-content-center"><i class="bi bi-pencil me-1"></i>ویرایش</a>
   <a href="{% url 'campaign_list' %}" class="btn btn-panel-ghost btn-sm justify-content-center">بازگشت به لیست</a>
@@ -113,7 +149,7 @@
       <div class="panel-card-header"><h2 class="panel-card-title">اقدامات</h2></div>
       <div class="panel-card-body">
         {% if object.status == 'draft' or object.status == 'cancelled' %}
-        <form method="post" class="mb-3">
+        <form method="post" class="mb-3" id="campaign-queue-form">
           {% csrf_token %}
           <input type="hidden" name="action" value="queue">
           <button type="submit" class="btn btn-panel-primary w-100">
@@ -161,4 +197,8 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'balebot/js/campaign_send.js' %}?v=1"></script>
 {% endblock %}

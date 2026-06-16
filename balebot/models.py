@@ -790,7 +790,14 @@ def default_catalog_labels() -> dict:
         'cart': 'سبد خرید',
         'checkout': 'تسویه',
         'download': 'دانلود',
+        'remove_from_cart': 'حذف',
     }
+
+
+def default_checkout_form() -> dict:
+    from balebot.services.checkout_form import default_checkout_form as _default
+
+    return _default()
 
 
 class CatalogSettings(models.Model):
@@ -861,6 +868,7 @@ class CatalogSettings(models.Model):
     )
     theme_config = models.JSONField(default=default_catalog_theme, blank=True)
     labels = models.JSONField(default=default_catalog_labels, blank=True)
+    checkout_form = models.JSONField(default=default_checkout_form, blank=True)
     require_channel_membership = models.BooleanField(
         default=False,
         verbose_name='الزام عضویت در کانال',
@@ -1172,6 +1180,7 @@ class CatalogOrder(models.Model):
     payment_charge_id = models.CharField(max_length=256, blank=True, default='')
     zarinpal_authority = models.CharField(max_length=64, blank=True, default='')
     note = models.TextField(blank=True, default='')
+    customer_data = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

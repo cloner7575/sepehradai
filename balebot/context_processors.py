@@ -54,11 +54,21 @@ def panel_branding(request):
         branding = None
         if ws and ws.is_active and ws.has_platform_access(active):
             branding = BotSettings.get_for_platform(ws, active)
+        allowed = allowed_platforms_for_workspace(ws)
+        other_platform = ''
+        other_platform_label = ''
+        for value, label in allowed:
+            if value != active:
+                other_platform = value
+                other_platform_label = label
+                break
         return {
             'bot_branding': branding,
             'active_platform': active,
             'active_platform_label': platform_label(active),
-            'available_platforms': allowed_platforms_for_workspace(ws),
+            'available_platforms': allowed,
+            'other_platform': other_platform,
+            'other_platform_label': other_platform_label,
             'panel_workspace': ws,
             'has_miniapp_access': has_miniapp_access_for_request(request, ws),
             'has_instagram_access': has_instagram_access_for_request(request, ws),
@@ -71,6 +81,8 @@ def panel_branding(request):
             'active_platform': 'bale',
             'active_platform_label': 'بله',
             'available_platforms': allowed_platforms_for_workspace(None),
+            'other_platform': '',
+            'other_platform_label': '',
             'panel_workspace': None,
             'has_miniapp_access': False,
             'has_instagram_access': False,

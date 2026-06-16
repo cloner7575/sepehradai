@@ -4,8 +4,9 @@ import { formatPrice, updateCart } from '../api';
 import type { CartLine } from '../types';
 import { useApp } from '../App';
 import { AppHeader } from '../components/AppHeader';
+import { CheckoutForm, useCheckoutForm } from '../components/CheckoutForm';
 import { PaymentMethodPicker } from '../components/PaymentMethodPicker';
-import { IconCart, IconCheck, IconPackage, IconSend } from '../components/Icons';
+import { IconCart, IconCheck, IconPackage, IconSend, IconTrash } from '../components/Icons';
 import { useCheckout } from '../hooks/useCheckout';
 
 function SuccessView({
@@ -45,6 +46,7 @@ export function CartPage() {
     runCheckout,
     methods,
   } = useCheckout();
+  const checkoutForm = useCheckoutForm(config?.checkout_form);
 
   useEffect(() => {
     refreshCart();
@@ -61,8 +63,16 @@ export function CartPage() {
     }
   };
 
+  const removeLine = async (line: CartLine) => {
+    await changeQty(line, 0);
+  };
+
   const checkoutCart = async () => {
-    const result = await runCheckout({ use_cart: true });
+    if (checkoutForm.hasForm && !checkoutForm.validate()) return;
+    const result = await runCheckout({
+      use_cart: true,
+      customer_data: checkoutForm.customerData,
+    });
     if (result?.payment_method === 'admin_cart') {
       navigate('/cart?submitted=1');
     }
@@ -109,6 +119,14 @@ export function CartPage() {
           </div>
         ) : (
           <>
+            <CheckoutForm
+              title={checkoutForm.title}
+              fields={checkoutForm.fields}
+              values={checkoutForm.values}
+              errors={checkoutForm.errors}
+              onChange={checkoutForm.setValue}
+              disabled={busy}
+            />
             <PaymentMethodPicker methods={methods} value={paymentMethod} onChange={setPaymentMethod} />
             <div className="space-y-3">
               {cartItems.map((line) => (
@@ -123,7 +141,19 @@ export function CartPage() {
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-semibold">{line.title}</div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="truncate text-sm font-semibold">{line.title}</div>
+                      <button
+                        type="button"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-red-500 transition active:scale-95 disabled:opacity-40"
+                        disabled={busy}
+                        onClick={() => removeLine(line)}
+                        aria-label={labels.remove_from_cart || 'حذف'}
+                        title={labels.remove_from_cart || 'حذف'}
+                      >
+                        <IconTrash className="h-4 w-4" />
+                      </button>
+                    </div>
                     <div className="price-tag mt-0.5">{formatPrice(line.price)}</div>
                     <div className="mt-2 flex items-center gap-2">
                       <button

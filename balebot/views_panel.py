@@ -8,7 +8,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.files.storage import default_storage
 from django.db.models import Count, Q
 from django.http import HttpResponseRedirect, JsonResponse
-from django.urls import reverse_lazy
+from django.shortcuts import get_object_or_404
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView
@@ -31,7 +32,12 @@ from balebot.services.webhook_setup import (
     validate_webhook_url,
 )
 from balebot.services.public_url import ensure_webhook_config
-from balebot.services.campaign_runner import run_single_campaign_web
+from balebot.services.campaign_runner import (
+    campaign_delivery_progress,
+    run_campaign_delivery_batch,
+    transition_queued_to_sending_if_due,
+)
+from balebot.services.audience import snapshot_campaign_audience
 from balebot.services.keyboard_layout import keyboard_has_any_button, normalize_to_sections
 from balebot.models import (
     BotSettings,
@@ -118,6 +124,68 @@ class SwitchPlatformView(PanelAccessMixin, View):
         set_active_platform(request, platform, workspace)
         next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or '/'
         return HttpResponseRedirect(next_url)
+
+
+class PlatformSyncView(WorkspaceScopedMixin, PanelAccessMixin, View):
+    """کپی تنظیمات پلتفرم فعال به پلتفرم دیگر (بله ↔ تلگرام)."""
+
+    http_method_names = ['post']
+
+    def post(self, request, *args, **kwargs):
+        from balebot.services.platform_sync import sync_platform_data
+
+        workspace = self.get_workspace()
+        source = self.get_active_platform()
+        target = (request.POST.get('target_platform') or '').strip()
+        allowed = {value for value, _ in allowed_platforms_for_workspace(workspace)}
+        if target not in allowed or target == source:
+            messages.error(request, 'پلتفرم مقصد نامعتبر است.')
+            return HttpResponseRedirect(request.POST.get('next') or request.META.get('HTTP_REFERER') or '/')
+
+        copy_bot = request.POST.get('copy_bot') == '1'
+        copy_catalog = request.POST.get('copy_catalog') == '1'
+        copy_tags = request.POST.get('copy_tags') == '1'
+        copy_campaigns = request.POST.get('copy_campaigns') == '1'
+        if not any((copy_bot, copy_catalog, copy_tags, copy_campaigns)):
+            messages.error(request, 'حداقل یک بخش را برای انتقال انتخاب کنید.')
+            return HttpResponseRedirect(request.POST.get('next') or '/')
+
+        try:
+            result = sync_platform_data(
+                workspace,
+                source,
+                target,
+                copy_bot=copy_bot,
+                copy_catalog=copy_catalog,
+                copy_tags=copy_tags,
+                copy_campaigns=copy_campaigns,
+            )
+        except Exception as exc:
+            messages.error(request, f'انتقال ناموفق: {exc}')
+            return HttpResponseRedirect(request.POST.get('next') or '/')
+
+        parts = []
+        if result.bot_settings:
+            parts.append('تنظیمات و جریان ربات')
+        if result.flow_media:
+            parts.append(f'{result.flow_media} رسانهٔ جریان')
+        if result.catalog_settings:
+            parts.append('فروشگاه')
+        if result.categories:
+            parts.append(f'{result.categories} دسته')
+        if result.items:
+            parts.append(f'{result.items} محصول')
+        if result.tags:
+            parts.append(f'{result.tags} برچسب')
+        if result.campaigns:
+            parts.append(f'{result.campaigns} کمپین')
+        summary = '، '.join(parts) if parts else 'بدون تغییر'
+        messages.success(
+            request,
+            f'از {platform_label(source)} به {platform_label(target)} منتقل شد: {summary}. '
+            f'توکن و چت‌آیدی ادمین هر پلتفرم دست‌نخورده ماند.',
+        )
+        return HttpResponseRedirect(request.POST.get('next') or '/')
 
 
 class DashboardView(WorkspaceScopedMixin, PanelAccessMixin, TemplateView):
@@ -873,6 +941,19 @@ class CampaignDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
         )
         ctx['target_tags'] = self.object.target_tags.order_by('name')
         ctx['audience_snapshot_count'] = len(self.object.audience_snapshot or [])
+        progress = campaign_delivery_progress(self.object)
+        ctx['send_progress'] = progress
+        ctx['campaign_send_autostart'] = (
+            self.request.GET.get('autostart') == '1'
+            or (
+                self.object.status == Campaign.Status.SENDING
+                and progress['pending'] > 0
+            )
+        )
+        ctx['campaign_send_batch_url'] = reverse(
+            'campaign_send_batch',
+            kwargs={'pk': self.object.pk},
+        )
         return ctx
 
     def post(self, request, *args, **kwargs):
@@ -908,11 +989,14 @@ class CampaignDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
             )
 
             if should_send_now:
-                ok, msg = run_single_campaign_web(self.object.pk)
-                if ok:
-                    messages.success(request, f'{msg} (مخاطب Snapshot: {len(snapshot_ids)} نفر)')
-                else:
-                    messages.error(request, msg)
+                transition_queued_to_sending_if_due(self.object, timezone.now())
+                messages.success(
+                    request,
+                    f'ارسال آغاز شد (Snapshot: {len(snapshot_ids)} نفر). پیام‌ها دسته‌ای ارسال می‌شوند.',
+                )
+                return HttpResponseRedirect(
+                    self.object.get_absolute_url() + '?autostart=1',
+                )
             else:
                 messages.success(
                     request,
@@ -923,6 +1007,22 @@ class CampaignDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
             self.object.save(update_fields=['status', 'updated_at'])
             messages.warning(request, 'کمپین لغو شد.')
         return HttpResponseRedirect(self.object.get_absolute_url())
+
+
+class CampaignSendBatchView(WorkspaceScopedMixin, PanelAccessMixin, View):
+    """ارسال دسته‌ای کمپین (AJAX از صفحهٔ جزئیات)."""
+
+    http_method_names = ['post']
+
+    def post(self, request, pk, *args, **kwargs):
+        campaign = get_object_or_404(
+            Campaign.objects.filter(**self.scope_filter()),
+            pk=pk,
+        )
+        result = run_campaign_delivery_batch(campaign.pk)
+        if not result.get('ok'):
+            return JsonResponse(result, status=400)
+        return JsonResponse(result)
 
 
 class CallbackLogListView(WorkspaceScopedMixin, PanelAccessMixin, ListView):

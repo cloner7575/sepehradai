@@ -5,6 +5,7 @@ from django.utils.text import slugify
 
 from balebot.models import CatalogCategory, CatalogItem, CatalogSettings
 from balebot.services.catalog_page_layout import get_home_blocks, sanitize_home_blocks
+from balebot.services.checkout_form import default_checkout_form, sanitize_checkout_form
 
 _INPUT = 'form-control panel-input'
 
@@ -47,6 +48,11 @@ class CatalogSettingsForm(forms.ModelForm):
         required=False,
         label='دکمه دانلود',
         widget=forms.TextInput(attrs={'class': _INPUT}),
+    )
+    checkout_form_json = forms.CharField(
+        required=False,
+        label='',
+        widget=forms.HiddenInput(attrs={'id': 'id_checkout_form_json'}),
     )
 
     class Meta:
@@ -142,6 +148,9 @@ class CatalogSettingsForm(forms.ModelForm):
         self.fields['label_cart'].initial = labels.get('cart', 'سبد خرید')
         self.fields['label_checkout'].initial = labels.get('checkout', 'تسویه حساب')
         self.fields['label_download'].initial = labels.get('download', 'دانلود')
+        checkout = (self.instance.checkout_form or default_checkout_form()) if self.instance else default_checkout_form()
+        self.initial['checkout_form_json'] = json.dumps(checkout, ensure_ascii=False)
+        self.fields['checkout_form_json'].initial = self.initial['checkout_form_json']
         self.fields['hero_title'].help_text = 'در بالای مینی‌اپ نمایش داده می‌شود.'
         self.fields['hero_subtitle'].help_text = 'زیر عنوان — اختیاری.'
         self.fields['logo'].help_text = 'لوگوی کوچک روی بنر هیرو (جدا از پس‌زمینه).'
@@ -167,6 +176,10 @@ class CatalogSettingsForm(forms.ModelForm):
             'لینک دعوت کانال برای دکمه «عضویت در کانال» در مینی‌اپ.'
         )
 
+    def clean_checkout_form_json(self):
+        raw = self.cleaned_data.get('checkout_form_json')
+        return sanitize_checkout_form(raw)
+
     def save(self, commit=True):
         obj = super().save(commit=False)
         obj.theme_config = {
@@ -183,7 +196,9 @@ class CatalogSettingsForm(forms.ModelForm):
             'cart': (self.cleaned_data.get('label_cart') or '').strip() or 'سبد خرید',
             'checkout': (self.cleaned_data.get('label_checkout') or '').strip() or 'تسویه حساب',
             'download': (self.cleaned_data.get('label_download') or '').strip() or 'دانلود',
+            'remove_from_cart': (obj.labels or {}).get('remove_from_cart', 'حذف'),
         }
+        obj.checkout_form = self.cleaned_data.get('checkout_form_json') or default_checkout_form()
         if commit:
             obj.save()
         return obj
