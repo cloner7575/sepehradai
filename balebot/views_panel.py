@@ -847,6 +847,7 @@ class FlowMediaUploadView(WorkspaceScopedMixin, PanelAccessMixin, View):
                 'media_id': str(media.pk),
                 'media_kind': media_kind,
                 'name': Path(upload.name).name,
+                'url': media.file.url if media.file else '',
             },
         )
 

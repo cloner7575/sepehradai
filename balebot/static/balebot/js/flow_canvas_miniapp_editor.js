@@ -25,6 +25,9 @@
   var selection = null;
   var globalPanel = null;
   var movedFieldNodes = [];
+  var uploadUrl = '';
+  var logoSavedUrl = '';
+  var logoPreviewObjectUrl = '';
 
   function $(id) {
     return document.getElementById(id);
@@ -113,10 +116,126 @@
     e.stopPropagation();
   }
 
+  function logoUrl() {
+    if (logoPreviewObjectUrl) return logoPreviewObjectUrl;
+    return logoSavedUrl || '';
+  }
+
+  function mkImageThumb(imageUrl, className) {
+    if (imageUrl) {
+      var img = document.createElement('img');
+      img.className = className || 'miniapp-preview-thumb';
+      img.src = imageUrl;
+      img.alt = '';
+      img.loading = 'lazy';
+      return img;
+    }
+    var ph = document.createElement('div');
+    ph.className = (className || 'miniapp-preview-thumb') + ' miniapp-preview-thumb--empty';
+    ph.innerHTML = '<i class="bi bi-image"></i>';
+    return ph;
+  }
+
+  function mkPreviewCard(title, imageUrl, cardClass) {
+    var card = document.createElement('div');
+    card.className = cardClass;
+    card.appendChild(mkImageThumb(imageUrl, 'miniapp-preview-thumb'));
+    var label = document.createElement('span');
+    label.className = 'miniapp-preview-card-title';
+    label.textContent = title;
+    card.appendChild(label);
+    return card;
+  }
+
+  function uploadImage(file, onOk, onErr) {
+    if (!uploadUrl) {
+      if (onErr) onErr('آدرس آپلود تنظیم نشده.');
+      return;
+    }
+    var fd = new FormData();
+    fd.append('file', file);
+    var csrf = form && form.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrf) fd.append('csrfmiddlewaretoken', csrf.value);
+    fetch(uploadUrl, { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (j) {
+        if (j && j.ok && j.url) onOk(j.url);
+        else if (onErr) onErr((j && j.error) || 'آپلود ناموفق');
+      })
+      .catch(function () {
+        if (onErr) onErr('خطا در آپلود');
+      });
+  }
+
+  function imageUploadField(currentUrl, onUploaded) {
+    var wrap = document.createElement('div');
+    wrap.className = 'miniapp-image-upload mb-2';
+
+    if (currentUrl) {
+      var prev = mkImageThumb(currentUrl, 'miniapp-slide-preview-thumb');
+      wrap.appendChild(prev);
+    }
+
+    var fileInp = document.createElement('input');
+    fileInp.type = 'file';
+    fileInp.accept = 'image/*';
+    fileInp.className = 'visually-hidden';
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn-panel-ghost btn-sm';
+    btn.innerHTML = '<i class="bi bi-cloud-upload me-1"></i>' + (currentUrl ? 'تغییر تصویر' : 'آپلود تصویر');
+    btn.addEventListener('click', function () {
+      fileInp.click();
+    });
+
+    fileInp.addEventListener('change', function () {
+      var f = fileInp.files && fileInp.files[0];
+      if (!f) return;
+      btn.disabled = true;
+      btn.textContent = 'در حال آپلود…';
+      uploadImage(
+        f,
+        function (url) {
+          onUploaded(url);
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-cloud-upload me-1"></i>تغییر تصویر';
+          fileInp.value = '';
+        },
+        function () {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-cloud-upload me-1"></i>آپلود تصویر';
+          fileInp.value = '';
+        }
+      );
+    });
+
+    wrap.appendChild(btn);
+    wrap.appendChild(fileInp);
+    return wrap;
+  }
+
   function syncStoreTitle() {
     if (storeTitleEl) {
       storeTitleEl.textContent = formVal('hero_title') || 'فروشگاه';
     }
+  }
+
+  function bindLogoPreview() {
+    if (!form) return;
+    var logoInp = form.querySelector('[name="logo"]');
+    if (!logoInp) return;
+    logoInp.addEventListener('change', function () {
+      var f = logoInp.files && logoInp.files[0];
+      if (logoPreviewObjectUrl) {
+        URL.revokeObjectURL(logoPreviewObjectUrl);
+        logoPreviewObjectUrl = '';
+      }
+      if (f) logoPreviewObjectUrl = URL.createObjectURL(f);
+      renderCanvas();
+    });
   }
 
   function clearSelection() {
@@ -197,20 +316,37 @@
 
     if (block.type === 'hero') {
       var primary = formVal('theme_primary') || '#334155';
+      var logo = logoUrl();
       if (block.variant === 'banner') {
-        body.innerHTML =
-          '<div class="miniapp-preview-hero-banner" style="--hero-primary:' +
-          primary +
-          '"><strong>' +
+        var heroBanner = document.createElement('div');
+        heroBanner.className = 'miniapp-preview-hero-banner';
+        heroBanner.style.setProperty('--hero-primary', primary);
+        var heroInner = document.createElement('div');
+        heroInner.className = 'miniapp-preview-hero-banner-inner';
+        if (logo) {
+          heroInner.appendChild(mkImageThumb(logo, 'miniapp-preview-hero-logo'));
+        }
+        var heroText = document.createElement('div');
+        heroText.className = 'miniapp-preview-hero-text';
+        heroText.innerHTML =
+          '<strong>' +
           escapeHtml(formVal('hero_title') || 'فروشگاه') +
           '</strong><span>' +
           escapeHtml(formVal('hero_subtitle') || 'زیرعنوان') +
-          '</span></div>';
+          '</span>';
+        heroInner.appendChild(heroText);
+        heroBanner.appendChild(heroInner);
+        body.appendChild(heroBanner);
       } else {
-        body.innerHTML =
-          '<div class="miniapp-preview-hero-compact"><strong>' +
-          escapeHtml(formVal('hero_title') || 'فروشگاه') +
-          '</strong></div>';
+        var heroCompact = document.createElement('div');
+        heroCompact.className = 'miniapp-preview-hero-compact';
+        if (logo) {
+          heroCompact.appendChild(mkImageThumb(logo, 'miniapp-preview-hero-logo miniapp-preview-hero-logo--sm'));
+        }
+        var compactTitle = document.createElement('strong');
+        compactTitle.textContent = formVal('hero_title') || 'فروشگاه';
+        heroCompact.appendChild(compactTitle);
+        body.appendChild(heroCompact);
       }
     } else if (block.type === 'search') {
       body.innerHTML =
@@ -222,15 +358,19 @@
       track.className = 'miniapp-preview-slider-track';
       (block.slides || []).forEach(function (slide, si) {
         var card = document.createElement('div');
-        card.className = 'miniapp-preview-slide';
+        card.className = 'miniapp-preview-slide' + (slide.image_url ? ' has-image' : '');
         if (slide.image_url) {
-          card.style.backgroundImage = 'url(' + slide.image_url + ')';
+          card.style.backgroundImage =
+            'linear-gradient(to top, rgba(15,23,42,0.78), rgba(15,23,42,0.2)), url(' + slide.image_url + ')';
         }
-        card.innerHTML =
+        var slideText = document.createElement('div');
+        slideText.className = 'miniapp-preview-slide-text';
+        slideText.innerHTML =
           '<strong>' +
           escapeHtml(slide.title || 'اسلاید ' + (si + 1)) +
           '</strong>' +
           (slide.subtitle ? '<span>' + escapeHtml(slide.subtitle) + '</span>' : '');
+        card.appendChild(slideText);
         track.appendChild(card);
       });
       if (!track.children.length) {
@@ -243,13 +383,11 @@
       grid.className = 'miniapp-preview-cats cols-' + (block.columns || 2);
       var cats = categories.slice(0, block.limit || 8);
       if (!cats.length) {
-        grid.innerHTML = '<div class="miniapp-preview-cat">دسته نمونه</div><div class="miniapp-preview-cat">دسته</div>';
+        grid.appendChild(mkPreviewCard('دسته نمونه', '', 'miniapp-preview-cat'));
+        grid.appendChild(mkPreviewCard('دسته', '', 'miniapp-preview-cat'));
       } else {
         cats.forEach(function (c) {
-          var cell = document.createElement('div');
-          cell.className = 'miniapp-preview-cat';
-          cell.textContent = c.name;
-          grid.appendChild(cell);
+          grid.appendChild(mkPreviewCard(c.name, c.image_url || '', 'miniapp-preview-cat'));
         });
       }
       body.appendChild(grid);
@@ -260,13 +398,10 @@
       var list = featuredItems().slice(0, block.limit || 6);
       if (!list.length) list = items.slice(0, Math.min(block.limit || 4, 4));
       if (!list.length) {
-        row.innerHTML = '<div class="miniapp-preview-product-card">★ محصول ویژه</div>';
+        row.appendChild(mkPreviewCard('★ محصول ویژه', '', 'miniapp-preview-product-card'));
       } else {
         list.forEach(function (it) {
-          var card = document.createElement('div');
-          card.className = 'miniapp-preview-product-card';
-          card.textContent = it.title;
-          row.appendChild(card);
+          row.appendChild(mkPreviewCard(it.title, it.image_url || '', 'miniapp-preview-product-card'));
         });
       }
       body.appendChild(row);
@@ -278,13 +413,21 @@
         (block.layout === 'list' ? 'miniapp-preview-products--list' : 'miniapp-preview-products--grid');
       var prods = items.slice(0, block.limit || 4);
       if (!prods.length) {
-        gridP.innerHTML = '<div class="miniapp-preview-product">محصول</div><div class="miniapp-preview-product">محصول</div>';
+        gridP.appendChild(mkPreviewCard('محصول', '', 'miniapp-preview-product'));
+        gridP.appendChild(mkPreviewCard('محصول', '', 'miniapp-preview-product'));
       } else {
         prods.forEach(function (it) {
-          var p = document.createElement('div');
-          p.className = 'miniapp-preview-product';
-          p.innerHTML = '<strong>' + escapeHtml(it.title) + '</strong>';
-          gridP.appendChild(p);
+          if (block.layout === 'list') {
+            var listRow = document.createElement('div');
+            listRow.className = 'miniapp-preview-product miniapp-preview-product--list';
+            listRow.appendChild(mkImageThumb(it.image_url || '', 'miniapp-preview-thumb miniapp-preview-thumb--list'));
+            var listTitle = document.createElement('strong');
+            listTitle.textContent = it.title;
+            listRow.appendChild(listTitle);
+            gridP.appendChild(listRow);
+          } else {
+            gridP.appendChild(mkPreviewCard(it.title, it.image_url || '', 'miniapp-preview-product'));
+          }
         });
       }
       body.appendChild(gridP);
@@ -461,8 +604,14 @@
               bump();
             })
           );
+          card.appendChild(fieldLabel('تصویر اسلاید'));
           card.appendChild(
-            textInput(slide.image_url, 'آدرس تصویر (URL)', 512, function (v) {
+            imageUploadField(slide.image_url || '', function (url) {
+              slide.image_url = url;
+            })
+          );
+          card.appendChild(
+            textInput(slide.image_url, 'یا آدرس تصویر (URL)', 512, function (v) {
               slide.image_url = v;
               bump();
             })
@@ -695,6 +844,9 @@
     storeTitleEl = $('miniapp-canvas-store-title');
     if (!root || !form || !threadEl) return;
 
+    uploadUrl = root.getAttribute('data-upload-url') || '';
+    logoSavedUrl = root.getAttribute('data-logo-url') || '';
+
     try {
       categories = JSON.parse(root.getAttribute('data-categories') || '[]');
     } catch (e) {
@@ -745,6 +897,7 @@
     });
 
     bindFormThemeSync();
+    bindLogoPreview();
     if (form) {
       form.addEventListener('submit', syncHidden);
     }

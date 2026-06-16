@@ -4,6 +4,8 @@
   id="miniapp-canvas-editor"
   data-categories="{{ catalog_categories_json|escape }}"
   data-items="{{ catalog_items_json|escape }}"
+  data-upload-url="{% url 'flow_media_upload' %}"
+  data-logo-url="{% if catalog.logo %}{{ catalog.logo.url }}{% endif %}"
 >
   <div class="flow-canvas-editor-toolbar" id="miniapp-canvas-toolbar" role="toolbar" aria-label="افزودن المان">
     <span class="flow-canvas-editor-toolbar-label"><i class="bi bi-plus-circle"></i> افزودن</span>
