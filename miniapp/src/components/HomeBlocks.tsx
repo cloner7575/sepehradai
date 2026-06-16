@@ -14,6 +14,7 @@ import { IconCart, IconGrid, IconSearch } from './Icons';
 import { ItemCard } from './ItemCard';
 import { ItemsSection } from './ItemsSection';
 import { SafeImage } from './SafeImage';
+import { resolveMediaUrl } from '../utils/url';
 
 interface HomeBlocksProps {
   blocks: HomeBlock[];
@@ -30,6 +31,7 @@ function HeroBlockView({ block }: { block: HomeBlock }) {
   const shopEnabled = config?.is_enabled !== false;
   const variant = block.type === 'hero' ? block.variant || 'banner' : 'banner';
   const primary = config?.theme?.primary_color || '#334155';
+  const heroBackground = resolveMediaUrl(config?.hero_background_url || '');
 
   if (variant === 'compact') {
     return (
@@ -73,10 +75,18 @@ function HeroBlockView({ block }: { block: HomeBlock }) {
 
   return (
     <section
-      className="home-hero-banner mx-4 mt-4 overflow-hidden rounded-3xl px-4 py-5 text-white"
-      style={{
-        background: `linear-gradient(135deg, ${primary}, color-mix(in srgb, ${primary} 72%, #000))`,
-      }}
+      className="home-hero-banner relative mx-4 mt-4 overflow-hidden rounded-3xl px-4 py-5 text-white"
+      style={
+        heroBackground
+          ? {
+              backgroundImage: `linear-gradient(to top, rgba(15,23,42,0.82), rgba(15,23,42,0.35)), url(${heroBackground})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }
+          : {
+              background: `linear-gradient(135deg, ${primary}, color-mix(in srgb, ${primary} 72%, #000))`,
+            }
+      }
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -155,13 +165,14 @@ function SliderBlockView({ block }: { block: SliderHomeBlock }) {
     <section className="px-4 pt-4">
       <div className="home-slider-track flex gap-3 overflow-x-auto pb-1">
         {slides.map((slide, index) => {
+          const imageUrl = resolveMediaUrl(slide.image_url || '');
           const inner = (
             <div
               className="home-slider-slide relative min-h-[9rem] w-full overflow-hidden rounded-2xl bg-primary p-4 text-white"
               style={
-                slide.image_url
+                imageUrl
                   ? {
-                      backgroundImage: `linear-gradient(to top, rgba(15,23,42,0.78), rgba(15,23,42,0.2)), url(${slide.image_url})`,
+                      backgroundImage: `linear-gradient(to top, rgba(15,23,42,0.78), rgba(15,23,42,0.2)), url(${imageUrl})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
                     }

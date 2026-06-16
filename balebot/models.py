@@ -853,6 +853,12 @@ class CatalogSettings(models.Model):
     hero_title = models.CharField(max_length=200, blank=True, default='')
     hero_subtitle = models.CharField(max_length=300, blank=True, default='')
     logo = models.ImageField(upload_to='catalog/%Y/%m/', blank=True, null=True)
+    hero_background = models.ImageField(
+        upload_to='catalog/%Y/%m/',
+        blank=True,
+        null=True,
+        verbose_name='تصویر پس‌زمینه هیرو',
+    )
     theme_config = models.JSONField(default=default_catalog_theme, blank=True)
     labels = models.JSONField(default=default_catalog_labels, blank=True)
     require_channel_membership = models.BooleanField(

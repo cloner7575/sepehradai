@@ -28,6 +28,8 @@
   var uploadUrl = '';
   var logoSavedUrl = '';
   var logoPreviewObjectUrl = '';
+  var heroBgSavedUrl = '';
+  var heroBgPreviewObjectUrl = '';
 
   function $(id) {
     return document.getElementById(id);
@@ -119,6 +121,11 @@
   function logoUrl() {
     if (logoPreviewObjectUrl) return logoPreviewObjectUrl;
     return logoSavedUrl || '';
+  }
+
+  function heroBackgroundUrl() {
+    if (heroBgPreviewObjectUrl) return heroBgPreviewObjectUrl;
+    return heroBgSavedUrl || '';
   }
 
   function mkImageThumb(imageUrl, className) {
@@ -236,6 +243,17 @@
       if (f) logoPreviewObjectUrl = URL.createObjectURL(f);
       renderCanvas();
     });
+    var bgInp = form.querySelector('[name="hero_background"]');
+    if (!bgInp) return;
+    bgInp.addEventListener('change', function () {
+      var f = bgInp.files && bgInp.files[0];
+      if (heroBgPreviewObjectUrl) {
+        URL.revokeObjectURL(heroBgPreviewObjectUrl);
+        heroBgPreviewObjectUrl = '';
+      }
+      if (f) heroBgPreviewObjectUrl = URL.createObjectURL(f);
+      renderCanvas();
+    });
   }
 
   function clearSelection() {
@@ -317,10 +335,17 @@
     if (block.type === 'hero') {
       var primary = formVal('theme_primary') || '#334155';
       var logo = logoUrl();
+      var heroBg = heroBackgroundUrl();
       if (block.variant === 'banner') {
         var heroBanner = document.createElement('div');
         heroBanner.className = 'miniapp-preview-hero-banner';
-        heroBanner.style.setProperty('--hero-primary', primary);
+        if (heroBg) {
+          heroBanner.classList.add('has-background');
+          heroBanner.style.backgroundImage =
+            'linear-gradient(to top, rgba(15,23,42,0.78), rgba(15,23,42,0.25)), url(' + heroBg + ')';
+        } else {
+          heroBanner.style.setProperty('--hero-primary', primary);
+        }
         var heroInner = document.createElement('div');
         heroInner.className = 'miniapp-preview-hero-banner-inner';
         if (logo) {
@@ -538,7 +563,7 @@
   function mountHeroFields(host, block) {
     var staticFields = vault();
     if (!staticFields) return;
-    ['hero_title', 'hero_subtitle', 'logo'].forEach(function (name) {
+    ['hero_title', 'hero_subtitle', 'logo', 'hero_background'].forEach(function (name) {
       moveFormField(host, staticFields, name, function () {
         renderCanvas();
       });
@@ -846,6 +871,7 @@
 
     uploadUrl = root.getAttribute('data-upload-url') || '';
     logoSavedUrl = root.getAttribute('data-logo-url') || '';
+    heroBgSavedUrl = root.getAttribute('data-hero-background-url') || '';
 
     try {
       categories = JSON.parse(root.getAttribute('data-categories') || '[]');

@@ -3988,6 +3988,17 @@ select.panel-input {
 }
 
 /* ——— موتور فروشگاه: پیش‌نمایش بلوک‌ها داخل canvas ——— */
+.miniapp-preview-hero-banner.has-background {
+  background-size: cover;
+  background-position: center;
+  color: #fff;
+}
+
+.miniapp-preview-hero-banner.has-background .miniapp-preview-hero-text strong,
+.miniapp-preview-hero-banner.has-background .miniapp-preview-hero-text span {
+  color: #fff;
+}
+
 .miniapp-preview-hero-banner {
   border-radius: 12px;
   padding: 1rem 0.85rem;

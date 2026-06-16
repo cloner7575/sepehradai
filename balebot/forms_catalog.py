@@ -66,6 +66,7 @@ class CatalogSettingsForm(forms.ModelForm):
             'hero_title',
             'hero_subtitle',
             'logo',
+            'hero_background',
         ]
         widgets = {
             'is_enabled': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
@@ -82,6 +83,7 @@ class CatalogSettingsForm(forms.ModelForm):
             'hero_title': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'نام فروشگاه یا کسب‌وکار'}),
             'hero_subtitle': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'توضیح کوتاه زیر عنوان'}),
             'logo': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            'hero_background': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
         }
 
     def clean(self):
@@ -142,7 +144,8 @@ class CatalogSettingsForm(forms.ModelForm):
         self.fields['label_download'].initial = labels.get('download', 'دانلود')
         self.fields['hero_title'].help_text = 'در بالای مینی‌اپ نمایش داده می‌شود.'
         self.fields['hero_subtitle'].help_text = 'زیر عنوان — اختیاری.'
-        self.fields['logo'].help_text = 'لوگوی فروشگاه در هدر مینی‌اپ.'
+        self.fields['logo'].help_text = 'لوگوی کوچک روی بنر هیرو (جدا از پس‌زمینه).'
+        self.fields['hero_background'].help_text = 'تصویر پس‌زمینه بنر هیرو — اختیاری.'
         self.fields['theme_layout'].help_text = 'نحوه نمایش لیست آیتم‌ها در صفحه اصلی.'
         self.fields['admin_notify_chat_id'].help_text = (
             'شناسه عددی گفتگوی شما با ربات (از @userinfobot یا لاگ ربات).'
@@ -218,11 +221,12 @@ class MiniAppFlowForm(forms.ModelForm):
 
     class Meta:
         model = CatalogSettings
-        fields = ['hero_title', 'hero_subtitle', 'logo']
+        fields = ['hero_title', 'hero_subtitle', 'logo', 'hero_background']
         widgets = {
             'hero_title': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'نام فروشگاه'}),
             'hero_subtitle': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'توضیح کوتاه'}),
             'logo': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            'hero_background': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
         }
 
     def __init__(self, *args, **kwargs):

@@ -3,6 +3,7 @@ import type { ErrorInfo, ReactNode } from 'react';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { fetchCart, fetchConfig, validateAuth } from './api';
 import { applyTheme, createWebAppAdapter, type WebAppAdapter } from './platform';
+import { setMediaBaseUrl } from './utils/url';
 import type { AuthValidateResult, CartLine, CatalogConfig } from './types';
 import { HomePage } from './pages/HomePage';
 import { CategoryPage } from './pages/CategoryPage';
@@ -125,6 +126,7 @@ export default function App() {
     fetchConfig()
       .then(async (cfg) => {
         setLoadError('');
+        setMediaBaseUrl(cfg.public_base_url || '');
         setConfig(cfg);
         const platformAdapter = createWebAppAdapter();
         setAdapter(platformAdapter);

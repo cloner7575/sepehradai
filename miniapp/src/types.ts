@@ -84,6 +84,8 @@ export interface CatalogConfig {
   home_blocks?: HomeBlock[];
   labels: Record<string, string>;
   logo_url: string;
+  hero_background_url: string;
+  public_base_url: string;
   payment_methods?: PaymentMethodOption[];
   payment_default?: string;
 }

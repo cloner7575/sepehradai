@@ -21,8 +21,9 @@ from balebot.models import (
     Subscriber,
 )
 from balebot.services import catalog_payment, miniapp_auth
-from balebot.services.catalog_media import absolute_media_url
+from balebot.services.catalog_media import absolute_media_url, absolutize_home_blocks
 from balebot.services.catalog_page_layout import get_home_blocks
+from balebot.services.public_url import resolve_public_base_url
 from balebot.services.channel_membership import is_channel_member
 from balebot.services.webhook_logic import get_or_create_subscriber
 
@@ -155,10 +156,17 @@ def catalog_config(request, public_id):
     logo_url = ''
     if catalog.logo:
         logo_url = absolute_media_url(request, catalog.logo.url, catalog=catalog)
+    hero_background_url = ''
+    if catalog.hero_background:
+        hero_background_url = absolute_media_url(request, catalog.hero_background.url, catalog=catalog)
+    public_base_url = resolve_public_base_url(cfg).rstrip('/')
+    if not public_base_url:
+        public_base_url = absolute_media_url(request, '/', catalog=catalog).rstrip('/')
     methods = []
     for value, label in catalog.enabled_payment_methods():
         methods.append({'id': value, 'label': label})
     theme = catalog.theme_config or {}
+    home_blocks = absolutize_home_blocks(get_home_blocks(theme), request, catalog=catalog)
     return JsonResponse({
         'ok': True,
         'is_enabled': catalog.is_enabled,
@@ -166,9 +174,11 @@ def catalog_config(request, public_id):
         'hero_title': catalog.hero_title,
         'hero_subtitle': catalog.hero_subtitle,
         'theme': theme,
-        'home_blocks': get_home_blocks(theme),
+        'home_blocks': home_blocks,
         'labels': catalog.labels or {},
         'logo_url': logo_url,
+        'hero_background_url': hero_background_url,
+        'public_base_url': public_base_url,
         'mini_app_url': catalog.build_mini_app_url(cfg),
         'payment_methods': methods if catalog.is_enabled else [],
         'payment_default': catalog.resolve_payment_method(None) if catalog.is_enabled else None,

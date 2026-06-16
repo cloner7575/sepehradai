@@ -48,3 +48,29 @@ def absolute_media_url(request, url: str, *, catalog=None) -> str:
     if request:
         return request.build_absolute_uri(path)
     return path
+
+
+def absolutize_home_blocks(
+    blocks: list[dict],
+    request,
+    *,
+    catalog=None,
+) -> list[dict]:
+    """تبدیل URLهای نسبی بلوک‌های صفحهٔ اصلی به آدرس مطلق HTTPS."""
+    out: list[dict] = []
+    for block in blocks:
+        if not isinstance(block, dict):
+            continue
+        item = dict(block)
+        if item.get('type') == 'slider':
+            slides_out = []
+            for slide in item.get('slides') or []:
+                if not isinstance(slide, dict):
+                    continue
+                s = dict(slide)
+                if s.get('image_url'):
+                    s['image_url'] = absolute_media_url(request, s['image_url'], catalog=catalog)
+                slides_out.append(s)
+            item['slides'] = slides_out
+        out.append(item)
+    return out

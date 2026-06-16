@@ -6,6 +6,7 @@
   data-items="{{ catalog_items_json|escape }}"
   data-upload-url="{% url 'flow_media_upload' %}"
   data-logo-url="{% if catalog.logo %}{{ catalog.logo.url }}{% endif %}"
+  data-hero-background-url="{% if catalog.hero_background %}{{ catalog.hero_background.url }}{% endif %}"
 >
   <div class="flow-canvas-editor-toolbar" id="miniapp-canvas-toolbar" role="toolbar" aria-label="افزودن المان">
     <span class="flow-canvas-editor-toolbar-label"><i class="bi bi-plus-circle"></i> افزودن</span>
@@ -60,6 +61,7 @@
   {% include "balebot/_settings_field.html" with field=form.hero_title %}
   {% include "balebot/_settings_field.html" with field=form.hero_subtitle %}
   {% include "balebot/_settings_field.html" with field=form.logo %}
+  {% include "balebot/_settings_field.html" with field=form.hero_background %}
   {% include "balebot/_settings_field.html" with field=form.theme_layout %}
   {% include "balebot/_settings_field.html" with field=form.theme_primary %}
   {% include "balebot/_settings_field.html" with field=form.theme_accent %}

@@ -98,6 +98,13 @@
             <img src="{{ form.instance.logo.url }}" alt="" class="rounded catalog-settings-logo-preview">
           </div>
           {% endif %}
+          {% include "balebot/_settings_field.html" with field=form.hero_background hint=form.hero_background.help_text %}
+          {% if form.instance.hero_background %}
+          <div class="mb-3">
+            <label class="form-label">پس‌زمینهٔ هیرو</label>
+            <img src="{{ form.instance.hero_background.url }}" alt="" class="rounded catalog-settings-logo-preview">
+          </div>
+          {% endif %}
         </div>
       </section>
 
