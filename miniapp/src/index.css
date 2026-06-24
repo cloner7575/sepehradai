@@ -248,4 +248,62 @@ body {
   .checkout-footer-btn {
     @apply inline-flex items-center justify-center gap-2;
   }
+  .card-to-card-page {
+    @apply min-h-screen;
+  }
+  .payment-steps-banner {
+    @apply flex items-center justify-between gap-2 rounded-2xl bg-[var(--color-primary-soft)] px-3 py-2.5 text-[11px] font-medium text-muted;
+  }
+  .payment-step.is-active {
+    @apply rounded-full bg-primary px-2.5 py-1 text-white;
+  }
+  .bank-card-visual {
+    @apply relative overflow-hidden rounded-3xl p-5 text-white shadow-lg;
+    background: linear-gradient(135deg, var(--color-primary) 0%, #1e293b 55%, #0f172a 100%);
+    min-height: 190px;
+  }
+  .bank-card-visual-bg {
+    @apply absolute -left-8 -top-8 h-32 w-32 rounded-full opacity-20;
+    background: radial-gradient(circle, #fff 0%, transparent 70%);
+  }
+  .bank-card-visual-chip {
+    @apply mb-6 h-8 w-11 rounded-md;
+    background: linear-gradient(135deg, #fbbf24, #d97706);
+  }
+  .bank-card-visual-label {
+    @apply text-[10px] uppercase tracking-wider text-white/70;
+  }
+  .bank-card-visual-number {
+    @apply mt-1 w-full text-left text-lg font-bold tracking-[0.2em] text-white;
+  }
+  .bank-card-visual-row {
+    @apply mt-5 flex items-end justify-between gap-3;
+  }
+  .bank-card-visual-holder {
+    @apply text-sm font-semibold;
+  }
+  .bank-card-visual-amount {
+    @apply text-sm font-bold;
+  }
+  .sheba-block {
+    @apply flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 py-3;
+  }
+  .sheba-block-value {
+    @apply mt-1 text-sm font-semibold tracking-wide;
+  }
+  .payment-instructions {
+    @apply rounded-2xl border border-border bg-surface px-4 py-3;
+  }
+  .receipt-upload-panel {
+    @apply rounded-2xl border border-dashed border-border bg-surface p-4;
+  }
+  .receipt-upload-placeholder {
+    @apply flex w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-[var(--color-bg)] px-4 py-8 text-center;
+  }
+  .receipt-preview-btn {
+    @apply flex w-full flex-col items-center gap-2;
+  }
+  .receipt-preview-img {
+    @apply max-h-56 w-full rounded-2xl object-contain;
+  }
 }

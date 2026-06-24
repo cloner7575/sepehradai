@@ -7,6 +7,7 @@ import logging
 from typing import Any
 
 from django.db import transaction
+from django.db.models import F
 
 from balebot.models import (
     BotSettings,
@@ -15,10 +16,14 @@ from balebot.models import (
     CatalogOrder,
     CatalogOrderLine,
     CatalogSettings,
+    DiscountCode,
     Subscriber,
 )
-from balebot.services import messenger_api, zarinpal
+from balebot.services import messenger_api
+from balebot.services.card_to_card import build_card_to_card_payload
 from balebot.services.checkout_form import format_customer_data_for_message
+from balebot.services.discount import DiscountError, apply_discount_to_order, validate_discount_code
+from balebot.services.shipping import calculate_shipping
 from balebot.services.webhook_logic import get_or_create_subscriber
 
 logger = logging.getLogger(__name__)
@@ -39,6 +44,92 @@ def _line_items_from_single(item: CatalogItem, qty: int = 1) -> list[tuple[Catal
     return [(item, max(1, qty))]
 
 
+def extract_recipient_fields(
+    customer_data: dict | None = None,
+    *,
+    extra: dict | None = None,
+) -> dict[str, str]:
+    data = customer_data or {}
+    extra = extra or {}
+    return {
+        'recipient_name': (
+            (extra.get('recipient_name') or data.get('full_name') or '')[:120]
+        ),
+        'recipient_phone': (
+            (extra.get('recipient_phone') or data.get('phone') or '')[:20]
+        ),
+        'recipient_address': (
+            (extra.get('recipient_address') or data.get('address') or '')
+        )[:2000],
+        'recipient_postal_code': (
+            (extra.get('recipient_postal_code') or data.get('postal_code') or '')[:20]
+        ),
+        'customer_note': (
+            (extra.get('customer_note') or data.get('note') or '')[:2000]
+        ),
+    }
+
+
+def compute_cart_summary(
+    catalog: CatalogSettings,
+    subtotal: int,
+    *,
+    province: str = '',
+    discount_code: str = '',
+) -> dict[str, int | bool]:
+    subtotal = max(0, int(subtotal or 0))
+    shipping = calculate_shipping(catalog, subtotal, province=province)
+    discount_amount = 0
+    if discount_code:
+        try:
+            dc = validate_discount_code(catalog, discount_code, subtotal=subtotal)
+            _, discount_amount = apply_discount_to_order(dc, subtotal)
+        except DiscountError:
+            discount_amount = 0
+    total = max(0, subtotal + shipping - discount_amount)
+    threshold = catalog.free_shipping_threshold
+    free_shipping = (
+        catalog.shipping_mode == CatalogSettings.ShippingMode.FREE
+        or (threshold is not None and subtotal >= int(threshold))
+    )
+    return {
+        'subtotal': subtotal,
+        'shipping_cost': shipping,
+        'discount_amount': discount_amount,
+        'total': total,
+        'free_shipping': free_shipping,
+    }
+
+
+def _apply_checkout_totals(
+    order: CatalogOrder,
+    catalog: CatalogSettings,
+    subtotal: int,
+    *,
+    province: str = '',
+    discount_code: str = '',
+) -> None:
+    summary = compute_cart_summary(
+        catalog,
+        subtotal,
+        province=province,
+        discount_code=discount_code,
+    )
+    order.shipping_cost = int(summary['shipping_cost'])
+    order.discount_amount = int(summary['discount_amount'])
+    order.discount_code = (discount_code or '').strip()[:40] if summary['discount_amount'] else ''
+    order.total_amount = int(summary['total'])
+    order.save(
+        update_fields=[
+            'shipping_cost',
+            'discount_amount',
+            'discount_code',
+            'total_amount',
+            'updated_at',
+        ],
+    )
+
+
 def create_order_from_lines(
     *,
     workspace,
@@ -49,10 +140,12 @@ def create_order_from_lines(
     note: str = '',
     payment_method: str = '',
     customer_data: dict | None = None,
+    recipient_extra: dict | None = None,
 ) -> CatalogOrder | None:
     if not lines:
         return None
     total = 0
+    recipient = extract_recipient_fields(customer_data, extra=recipient_extra)
     with transaction.atomic():
         order = CatalogOrder.objects.create(
             workspace=workspace,
@@ -63,6 +156,7 @@ def create_order_from_lines(
             note=note[:2000],
             payment_method=payment_method[:16],
             customer_data=customer_data or {},
+            **recipient,
         )
         for item, qty in lines:
             price = item.price or 0
@@ -88,6 +182,9 @@ def create_checkout_order(
     quantity: int = 1,
     payment_method: str = '',
     customer_data: dict | None = None,
+    province: str = '',
+    discount_code: str = '',
+    recipient_extra: dict | None = None,
 ) -> CatalogOrder | None:
     if cart:
         lines = _line_items_from_cart(cart)
@@ -98,7 +195,7 @@ def create_checkout_order(
     status = CatalogOrder.Status.PENDING
     if payment_method == CatalogSettings.PaymentMethod.ADMIN_CART:
         status = CatalogOrder.Status.REQUEST
-    return create_order_from_lines(
+    order = create_order_from_lines(
         workspace=catalog.workspace,
         platform=catalog.platform,
         subscriber=subscriber,
@@ -106,7 +203,25 @@ def create_checkout_order(
         status=status,
         payment_method=payment_method,
         customer_data=customer_data,
+        recipient_extra=recipient_extra,
     )
+    if not order:
+        return None
+    subtotal = sum((ln.price_snapshot * ln.quantity) for ln in order.lines.all())
+    if discount_code:
+        validate_discount_code(catalog, discount_code, subtotal=subtotal)
+    try:
+        _apply_checkout_totals(
+            order,
+            catalog,
+            subtotal,
+            province=province,
+            discount_code=discount_code,
+        )
+    except Exception:
+        order.delete()
+        raise
+    return order
 
 
 def _format_order_lines(order: CatalogOrder) -> str:
@@ -118,6 +233,85 @@ def _format_order_lines(order: CatalogOrder) -> str:
 
 def _format_price(amount: int) -> str:
     return f'{amount:,} ریال'
+
+
+def mark_order_paid(order: CatalogOrder) -> CatalogOrder:
+    """پس از پرداخت موفق: وضعیت، موجودی، اعلان‌ها."""
+    if order.status == CatalogOrder.Status.PAID:
+        return order
+
+    from balebot.models import CatalogItem
+
+    with transaction.atomic():
+        order.status = CatalogOrder.Status.PAID
+        order.fulfillment_status = CatalogOrder.FulfillmentStatus.PAID
+        order.save(update_fields=['status', 'fulfillment_status', 'updated_at'])
+
+        if order.discount_code:
+            DiscountCode.objects.filter(
+                workspace=order.workspace,
+                platform=order.platform,
+                code__iexact=order.discount_code,
+            ).update(used_count=F('used_count') + 1)
+
+        for line in order.lines.select_related('item').all():
+            item = line.item
+            if item is None or item.stock is None:
+                continue
+            CatalogItem.objects.filter(pk=item.pk, stock__gte=line.quantity).update(
+                stock=F('stock') - line.quantity,
+            )
+
+    try:
+        catalog = CatalogSettings.get_for_platform(order.workspace, order.platform)
+        cfg = BotSettings.get_for_platform(order.workspace, order.platform)
+        sub = order.subscriber
+        if sub:
+            if order.payment_method == CatalogSettings.PaymentMethod.CARD_TO_CARD:
+                customer_text = (
+                    f'✅ سفارش شما تأیید شد.\n'
+                    f'شماره سفارش: #{order.pk}\n'
+                    f'مبلغ: {_format_price(order.total_amount)}'
+                )
+            else:
+                customer_text = (
+                    f'✅ پرداخت شما با موفقیت انجام شد.\n'
+                    f'شماره سفارش: #{order.pk}\n'
+                    f'مبلغ: {_format_price(order.total_amount)}'
+                )
+            messenger_api.send_message(
+                order.platform,
+                sub.chat_id,
+                customer_text,
+                settings=cfg,
+            )
+        if catalog.admin_notify_chat_id:
+            user_label = '—'
+            if sub:
+                user_label = sub.first_name or sub.username or str(sub.messenger_user_id)
+            text = (
+                f'💰 سفارش جدید پرداخت‌شده #{order.pk}\n'
+                f'کاربر: {user_label}\n'
+                f'مبلغ: {_format_price(order.total_amount)}\n\n'
+                f'{_format_order_lines(order)}'
+            )
+            messenger_api.send_message(
+                order.platform,
+                catalog.admin_notify_chat_id,
+                text,
+                settings=cfg,
+            )
+    except messenger_api.MessengerAPIError:
+        logger.exception('Failed to notify after order payment')
+
+    if order.subscriber_id:
+        CatalogCart.objects.filter(
+            workspace=order.workspace,
+            platform=order.platform,
+            subscriber_id=order.subscriber_id,
+        ).delete()
+
+    return order
 
 
 def submit_admin_cart_order(
@@ -165,67 +359,82 @@ def submit_admin_cart_order(
     ).delete()
 
 
-def start_zarinpal_checkout(
+def start_card_to_card_checkout(
     order: CatalogOrder,
     catalog: CatalogSettings,
-    callback_url: str,
-) -> str:
-    description = f'سفارش #{order.pk}'
-    authority = zarinpal.request_payment(
-        merchant_id=catalog.zarinpal_merchant_id,
-        amount_rials=order.total_amount,
-        callback_url=callback_url,
-        description=description,
-        sandbox=catalog.zarinpal_sandbox,
-        metadata={'order_id': str(order.pk)},
-    )
-    order.zarinpal_authority = authority
-    order.payment_method = CatalogSettings.PaymentMethod.ZARINPAL
-    order.save(update_fields=['zarinpal_authority', 'payment_method', 'updated_at'])
-    return zarinpal.build_payment_url(authority, sandbox=catalog.zarinpal_sandbox)
+) -> dict[str, str | int]:
+    order.payment_method = CatalogSettings.PaymentMethod.CARD_TO_CARD
+    order.save(update_fields=['payment_method', 'updated_at'])
+    card = build_card_to_card_payload(catalog)
+    return {
+        'order_id': order.pk,
+        'amount': order.total_amount,
+        **card,
+    }
 
 
-def verify_zarinpal_order(
+def submit_payment_receipt(
+    order: CatalogOrder,
+    catalog: CatalogSettings,
+    cfg: BotSettings,
     *,
-    order: CatalogOrder,
-    catalog: CatalogSettings,
-    authority: str,
+    receipt_file,
 ) -> CatalogOrder:
-    if order.status == CatalogOrder.Status.PAID:
-        return order
-    if order.zarinpal_authority and order.zarinpal_authority != authority:
-        raise zarinpal.ZarinpalError('شناسه پرداخت با سفارش مطابقت ندارد.')
+    if order.payment_method != CatalogSettings.PaymentMethod.CARD_TO_CARD:
+        raise ValueError('این سفارش با روش کارت به کارت ثبت نشده است.')
+    if order.status != CatalogOrder.Status.PENDING:
+        raise ValueError('این سفارش دیگر در انتظار پرداخت نیست.')
+    if order.payment_receipt:
+        raise ValueError('رسید قبلاً ارسال شده است.')
 
-    data = zarinpal.verify_payment(
-        merchant_id=catalog.zarinpal_merchant_id,
-        authority=authority,
-        amount_rials=order.total_amount,
-        sandbox=catalog.zarinpal_sandbox,
-    )
-    ref_id = str(data.get('ref_id') or data.get('refId') or '')
-    order.status = CatalogOrder.Status.PAID
-    order.payment_charge_id = ref_id[:256]
-    order.zarinpal_authority = authority[:64]
-    order.save(update_fields=['status', 'payment_charge_id', 'zarinpal_authority', 'updated_at'])
+    from django.utils import timezone
 
-    if order.subscriber_id:
-        CatalogCart.objects.filter(
-            workspace=order.workspace,
-            platform=order.platform,
-            subscriber_id=order.subscriber_id,
-        ).delete()
+    order.payment_receipt = receipt_file
+    order.receipt_uploaded_at = timezone.now()
+    order.save(update_fields=['payment_receipt', 'receipt_uploaded_at', 'updated_at'])
+
+    sub = order.subscriber
+    if sub:
+        messenger_api.send_message(
+            cfg.platform,
+            sub.chat_id,
+            (
+                f'📎 رسید واریز شما دریافت شد.\n'
+                f'شماره سفارش: #{order.pk}\n'
+                f'پس از بررسی، نتیجه به شما اطلاع داده می‌شود.'
+            ),
+            settings=cfg,
+        )
+
+    if catalog.admin_notify_chat_id:
+        user_label = '—'
+        if sub:
+            user_label = sub.first_name or sub.username or str(sub.messenger_user_id)
+        caption = (
+            f'📎 رسید واریز جدید — سفارش #{order.pk}\n'
+            f'کاربر: {user_label}\n'
+            f'مبلغ: {_format_price(order.total_amount)}\n'
+            f'برای تأیید به پنل مدیریت بروید.'
+        )
         try:
-            cfg = BotSettings.get_for_platform(order.workspace, order.platform)
-            sub = order.subscriber
-            if sub:
-                messenger_api.send_message(
-                    order.platform,
-                    sub.chat_id,
-                    f'پرداخت شما با موفقیت انجام شد. سفارش #{order.pk}',
-                    settings=cfg,
-                )
+            receipt_file.seek(0)
+            messenger_api.send_photo(
+                cfg.platform,
+                catalog.admin_notify_chat_id,
+                photo_file=receipt_file,
+                photo_filename=getattr(receipt_file, 'name', 'receipt.jpg'),
+                caption=caption,
+                settings=cfg,
+            )
         except messenger_api.MessengerAPIError:
-            logger.exception('Failed to notify user after Zarinpal payment')
+            logger.exception('Failed to send receipt photo to admin')
+            messenger_api.send_message(
+                cfg.platform,
+                catalog.admin_notify_chat_id,
+                caption,
+                settings=cfg,
+            )
+
     return order
 
 

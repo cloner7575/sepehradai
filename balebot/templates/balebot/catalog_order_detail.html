@@ -56,15 +56,58 @@
               {% endfor %}
             </tbody>
             <tfoot>
+              <tr>
+                <td colspan="3" class="text-end d-none d-sm-table-cell">جمع اقلام</td>
+                <td colspan="1" class="text-end d-sm-none">جمع اقلام</td>
+                <td class="text-end">{{ items_subtotal|floatformat:0 }} ریال</td>
+              </tr>
+              {% if order.shipping_cost %}
+              <tr>
+                <td colspan="3" class="text-end d-none d-sm-table-cell">هزینه ارسال</td>
+                <td colspan="1" class="text-end d-sm-none">ارسال</td>
+                <td class="text-end">{{ order.shipping_cost|floatformat:0 }} ریال</td>
+              </tr>
+              {% endif %}
+              {% if order.discount_amount %}
+              <tr>
+                <td colspan="3" class="text-end d-none d-sm-table-cell">تخفیف{% if order.discount_code %} ({{ order.discount_code }}){% endif %}</td>
+                <td colspan="1" class="text-end d-sm-none">تخفیف</td>
+                <td class="text-end text-danger">−{{ order.discount_amount|floatformat:0 }} ریال</td>
+              </tr>
+              {% endif %}
               <tr class="catalog-order-total-row">
-                <td colspan="3" class="text-end d-none d-sm-table-cell">جمع کل</td>
-                <td colspan="1" class="text-end d-sm-none">جمع</td>
+                <td colspan="3" class="text-end d-none d-sm-table-cell">مبلغ نهایی</td>
+                <td colspan="1" class="text-end d-sm-none">نهایی</td>
                 <td class="text-end fw-bold">{{ order.total_amount|floatformat:0 }} ریال</td>
               </tr>
             </tfoot>
           </table>
         </div>
       </div>
+
+      {% if order.recipient_name or order.recipient_phone or order.recipient_address %}
+      <div class="panel-card mb-4">
+        <div class="panel-card-header">
+          <h2 class="panel-card-title mb-0">اطلاعات گیرنده</h2>
+        </div>
+        <div class="panel-card-body">
+          <dl class="catalog-order-customer-dl">
+            {% if order.recipient_name %}
+            <div class="catalog-order-customer-row"><dt>نام</dt><dd>{{ order.recipient_name }}</dd></div>
+            {% endif %}
+            {% if order.recipient_phone %}
+            <div class="catalog-order-customer-row"><dt>تلفن</dt><dd dir="ltr">{{ order.recipient_phone }}</dd></div>
+            {% endif %}
+            {% if order.recipient_address %}
+            <div class="catalog-order-customer-row"><dt>آدرس</dt><dd>{{ order.recipient_address }}</dd></div>
+            {% endif %}
+            {% if order.recipient_postal_code %}
+            <div class="catalog-order-customer-row"><dt>کد پستی</dt><dd dir="ltr">{{ order.recipient_postal_code }}</dd></div>
+            {% endif %}
+          </dl>
+        </div>
+      </div>
+      {% endif %}
 
       {% if customer_rows %}
       <div class="panel-card mb-4">
@@ -107,7 +150,15 @@
         <div class="panel-card-body">
           <form method="post" action="{% url 'catalog_order_update' order.pk %}">
             {% csrf_token %}
+            {% if order.payment_method == 'card_to_card' and order.payment_receipt and order.status == 'pending' %}
+            <div class="alert alert-info small mb-3">
+              رسید واریز دریافت شده — با تأیید پرداخت، پیام تأیید برای مشتری ارسال می‌شود.
+            </div>
+            {% endif %}
             {% include "balebot/_settings_field.html" with field=update_form.status %}
+            {% include "balebot/_settings_field.html" with field=update_form.fulfillment_status %}
+            {% include "balebot/_settings_field.html" with field=update_form.tracking_code %}
+            {% include "balebot/_settings_field.html" with field=update_form.admin_note %}
             {% include "balebot/_settings_field.html" with field=update_form.note %}
             <button type="submit" class="btn btn-panel-primary w-100">
               <i class="bi bi-cloud-check me-1"></i>ذخیره تغییرات
@@ -163,10 +214,17 @@
               <dd dir="ltr"><code class="catalog-order-code">{{ order.payment_charge_id }}</code></dd>
             </div>
             {% endif %}
-            {% if order.zarinpal_authority %}
+            {% if order.payment_receipt %}
             <div class="catalog-order-meta-row">
-              <dt>Authority</dt>
-              <dd dir="ltr"><code class="catalog-order-code">{{ order.zarinpal_authority }}</code></dd>
+              <dt>رسید واریز</dt>
+              <dd>
+                <a href="{{ order.payment_receipt.url }}" target="_blank" rel="noopener">
+                  <img src="{{ order.payment_receipt.url }}" alt="رسید" style="max-width:100%;max-height:220px;border-radius:12px;border:1px solid var(--panel-border,#e2e8f0);">
+                </a>
+                {% if order.receipt_uploaded_at %}
+                <div class="small text-muted mt-1">{{ order.receipt_uploaded_at|date:"Y/m/d H:i" }}</div>
+                {% endif %}
+              </dd>
             </div>
             {% endif %}
             <div class="catalog-order-meta-row">

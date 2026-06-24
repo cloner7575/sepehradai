@@ -253,13 +253,23 @@
             <p id="payment-admin-status" class="payment-method-status small mb-0 mt-2" aria-live="polite"></p>
           </div>
 
-          <div class="bot-setup-option-card" data-payment-method="zarinpal">
-            {% include "balebot/_settings_switch.html" with field=form.payment_zarinpal_enabled title="درگاه زرین‌پال" desc="پرداخت آنلاین از طریق زرین‌پال." %}
-            <div id="zarinpal-payment-block" class="settings-step-fields mt-2">
-              {% include "balebot/_settings_field.html" with field=form.zarinpal_merchant_id hint=form.zarinpal_merchant_id.help_text %}
-              {% include "balebot/_settings_switch.html" with field=form.zarinpal_sandbox title="حالت تست (سندباکس)" desc="برای تست پرداخت بدون تراکنش واقعی." %}
+          <div class="bot-setup-option-card" data-payment-method="card_to_card">
+            {% include "balebot/_settings_switch.html" with field=form.payment_card_to_card_enabled title="کارت به کارت" desc="مشتری مبلغ را واریز می‌کند و رسید را آپلود می‌کند؛ پس از تأیید شما سفارش ثبت می‌شود." %}
+            <div id="card-to-card-payment-block" class="settings-step-fields mt-2">
+              {% include "balebot/_settings_field.html" with field=form.card_to_card_number hint=form.card_to_card_number.help_text %}
+              {% include "balebot/_settings_field.html" with field=form.card_to_card_sheba hint=form.card_to_card_sheba.help_text %}
+              {% include "balebot/_settings_field.html" with field=form.card_to_card_holder hint=form.card_to_card_holder.help_text %}
             </div>
-            <p id="payment-zarinpal-status" class="payment-method-status small mb-0 mt-2" aria-live="polite"></p>
+            <p id="payment-card-to-card-status" class="payment-method-status small mb-0 mt-2" aria-live="polite"></p>
+          </div>
+
+          <div class="bot-setup-option-card" data-payment-method="bale">
+            {% include "balebot/_settings_switch.html" with field=form.payment_bale_enabled title="پرداخت بله" desc="صورت‌حساب درون‌چتی — پول مستقیم به کارت شما واریز می‌شود." %}
+            <div id="bale-payment-block" class="settings-step-fields mt-2">
+              {% include "balebot/_settings_field.html" with field=form.bale_payment_card_number hint=form.bale_payment_card_number.help_text %}
+              {% include "balebot/_settings_field.html" with field=form.bale_payment_card_holder hint=form.bale_payment_card_holder.help_text %}
+            </div>
+            <p id="payment-bale-status" class="payment-method-status small mb-0 mt-2" aria-live="polite"></p>
           </div>
 
           {% include "balebot/_settings_field.html" with field=form.payment_default_method %}
@@ -313,6 +323,26 @@
           <p class="small text-muted mb-0 mt-3">
             فیلدهای فعال در صفحه سبد خرید و هنگام خرید مستقیم نمایش داده می‌شوند و همراه سفارش برای ادمین ارسال می‌گردند.
           </p>
+        </div>
+      </div>
+
+      <div class="panel-card mt-4">
+        <header class="panel-card-header">
+          <div>
+            <h2 class="panel-card-title mb-1">هزینه ارسال و اعلان‌ها</h2>
+            <p class="panel-card-lead mb-0">محاسبه ارسال در سبد و پیام خودکار به مشتری</p>
+          </div>
+        </header>
+        <div class="panel-card-body">
+          <div class="row g-3">
+            <div class="col-md-6">{% include "balebot/_settings_field.html" with field=form.shipping_mode %}</div>
+            <div class="col-md-6">{% include "balebot/_settings_field.html" with field=form.shipping_flat_cost %}</div>
+            <div class="col-md-6">{% include "balebot/_settings_field.html" with field=form.free_shipping_threshold %}</div>
+            <div class="col-md-6">{% include "balebot/_settings_field.html" with field=form.abandoned_cart_hours %}</div>
+            <div class="col-12">{% include "balebot/_settings_field.html" with field=form.order_notify_shipped_template %}</div>
+            <div class="col-12">{% include "balebot/_settings_field.html" with field=form.order_notify_delivered_template %}</div>
+            <div class="col-12">{% include "balebot/_settings_field.html" with field=form.abandoned_cart_message_template %}</div>
+          </div>
         </div>
       </div>
     </section>

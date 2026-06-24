@@ -67,11 +67,22 @@ class CatalogSettingsForm(forms.ModelForm):
             'channel_membership_message',
             'channel_invite_link',
             'payment_admin_enabled',
-            'payment_zarinpal_enabled',
+            'payment_card_to_card_enabled',
+            'payment_bale_enabled',
             'payment_default_method',
             'admin_notify_chat_id',
-            'zarinpal_merchant_id',
-            'zarinpal_sandbox',
+            'card_to_card_number',
+            'card_to_card_sheba',
+            'card_to_card_holder',
+            'bale_payment_card_number',
+            'bale_payment_card_holder',
+            'shipping_mode',
+            'shipping_flat_cost',
+            'free_shipping_threshold',
+            'order_notify_shipped_template',
+            'order_notify_delivered_template',
+            'abandoned_cart_message_template',
+            'abandoned_cart_hours',
             'hero_title',
             'hero_subtitle',
             'logo',
@@ -84,11 +95,22 @@ class CatalogSettingsForm(forms.ModelForm):
             'channel_membership_message': forms.Textarea(attrs={'class': _INPUT, 'rows': 3}),
             'channel_invite_link': forms.URLInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'https://...'}),
             'payment_admin_enabled': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
-            'payment_zarinpal_enabled': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
+            'payment_card_to_card_enabled': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
+            'payment_bale_enabled': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
             'payment_default_method': forms.Select(attrs={'class': _SELECT}),
             'admin_notify_chat_id': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
-            'zarinpal_merchant_id': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr', 'autocomplete': 'off'}),
-            'zarinpal_sandbox': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
+            'card_to_card_number': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': '6037...'}),
+            'card_to_card_sheba': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'IR...'}),
+            'card_to_card_holder': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'نام صاحب حساب'}),
+            'bale_payment_card_number': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': '6037...'}),
+            'bale_payment_card_holder': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'نام دارنده کارت'}),
+            'shipping_mode': forms.Select(attrs={'class': _SELECT}),
+            'shipping_flat_cost': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
+            'free_shipping_threshold': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
+            'order_notify_shipped_template': forms.Textarea(attrs={'class': _INPUT, 'rows': 2}),
+            'order_notify_delivered_template': forms.Textarea(attrs={'class': _INPUT, 'rows': 2}),
+            'abandoned_cart_message_template': forms.Textarea(attrs={'class': _INPUT, 'rows': 2}),
+            'abandoned_cart_hours': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr', 'min': 1}),
             'hero_title': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'نام ویترین یا کسب‌وکار'}),
             'hero_subtitle': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'توضیح کوتاه زیر عنوان'}),
             'logo': PersianClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
@@ -98,26 +120,46 @@ class CatalogSettingsForm(forms.ModelForm):
     def clean(self):
         cleaned = super().clean()
         admin_on = cleaned.get('payment_admin_enabled')
-        zarinpal_on = cleaned.get('payment_zarinpal_enabled')
-        merchant = (cleaned.get('zarinpal_merchant_id') or '').strip()
+        card_on = cleaned.get('payment_card_to_card_enabled')
+        bale_on = cleaned.get('payment_bale_enabled')
         admin_chat = cleaned.get('admin_notify_chat_id')
+        card_number = (cleaned.get('card_to_card_number') or '').strip()
+        card_sheba = (cleaned.get('card_to_card_sheba') or '').strip()
+        card_holder = (cleaned.get('card_to_card_holder') or '').strip()
         is_enabled = cleaned.get('is_enabled')
 
-        if zarinpal_on and not merchant:
-            self.add_error('zarinpal_merchant_id', 'برای فعال‌سازی زرین‌پال، مرچنت‌آیدی الزامی است.')
+        from balebot.services.card_to_card import validate_sheba
+
+        card_digits = ''.join(ch for ch in card_number if ch.isdigit())
+        if card_on:
+            if len(card_digits) < 16:
+                self.add_error('card_to_card_number', 'شماره کارت ۱۶ رقمی معتبر وارد کنید.')
+            if not validate_sheba(card_sheba):
+                self.add_error('card_to_card_sheba', 'شماره شبا معتبر وارد کنید (IR + ۲۴ رقم).')
+            if not card_holder:
+                self.add_error('card_to_card_holder', 'نام صاحب حساب الزامی است.')
         if admin_on and not admin_chat:
             self.add_error(
                 'admin_notify_chat_id',
                 'برای ارسال سبد به ادمین، چت‌آیدی ادمین الزامی است.',
             )
+        bale_card = (cleaned.get('bale_payment_card_number') or '').strip()
+        if bale_on:
+            digits = ''.join(ch for ch in bale_card if ch.isdigit())
+            if len(digits) < 16:
+                self.add_error(
+                    'bale_payment_card_number',
+                    'برای پرداخت بله، شماره کارت ۱۶ رقمی معتبر وارد کنید.',
+                )
 
         has_admin = bool(admin_on and admin_chat)
-        has_zarinpal = bool(zarinpal_on and merchant)
+        has_card = bool(card_on and len(card_digits) >= 16 and validate_sheba(card_sheba) and card_holder)
+        has_bale = bool(bale_on and len(''.join(ch for ch in bale_card if ch.isdigit())) >= 16)
 
-        if is_enabled and not has_admin and not has_zarinpal:
+        if is_enabled and not has_admin and not has_card and not has_bale:
             raise forms.ValidationError(
                 'برای فعال‌سازی مینی‌اپ، حداقل یک روش پرداخت را کامل تنظیم کنید '
-                '(چت‌آیدی ادمین یا مرچنت‌آیدی زرین‌پال).',
+                '(چت‌آیدی ادمین، کارت به کارت، یا شماره کارت بله).',
             )
 
         require_channel = cleaned.get('require_channel_membership')
@@ -132,8 +174,10 @@ class CatalogSettingsForm(forms.ModelForm):
         enabled = set()
         if has_admin:
             enabled.add(CatalogSettings.PaymentMethod.ADMIN_CART)
-        if has_zarinpal:
-            enabled.add(CatalogSettings.PaymentMethod.ZARINPAL)
+        if has_card:
+            enabled.add(CatalogSettings.PaymentMethod.CARD_TO_CARD)
+        if has_bale:
+            enabled.add(CatalogSettings.PaymentMethod.BALE)
         if enabled and default not in enabled:
             cleaned['payment_default_method'] = next(iter(enabled))
         return cleaned
@@ -162,7 +206,13 @@ class CatalogSettingsForm(forms.ModelForm):
         self.fields['admin_notify_chat_id'].help_text = (
             'شناسه عددی گفتگوی شما با ربات (از @userinfobot یا لاگ ربات).'
         )
-        self.fields['zarinpal_merchant_id'].help_text = 'از پنل زرین‌پال → درگاه پرداخت.'
+        self.fields['card_to_card_number'].help_text = 'شماره کارت مقصد برای واریز مشتری.'
+        self.fields['card_to_card_sheba'].help_text = 'شماره شبا (IR + ۲۴ رقم) — در صفحه پرداخت نمایش داده می‌شود.'
+        self.fields['card_to_card_holder'].help_text = 'نام دارنده حساب برای نمایش به مشتری.'
+        self.fields['bale_payment_card_number'].help_text = (
+            'شماره کارت فروشنده — در بله به‌عنوان provider_token استفاده می‌شود و پول مستقیم به کارت واریز می‌شود.'
+        )
+        self.fields['bale_payment_card_holder'].help_text = 'برای نمایش به مشتری در توضیحات صورت‌حساب.'
         self.fields['is_enabled'].help_text = (
             'فقط وقتی فعال کنید که حداقل یک روش پرداخت را کامل پر کرده‌اید.'
         )
@@ -500,13 +550,32 @@ class CatalogItemForm(forms.ModelForm):
 
 class CatalogOrderUpdateForm(forms.Form):
     status = forms.ChoiceField(
-        label='وضعیت سفارش',
+        label='وضعیت پرداخت',
         choices=CatalogOrder.Status.choices,
         widget=forms.Select(attrs={'class': _SELECT}),
     )
+    fulfillment_status = forms.ChoiceField(
+        label='وضعیت ارسال / تحویل',
+        choices=CatalogOrder.FulfillmentStatus.choices,
+        widget=forms.Select(attrs={'class': _SELECT}),
+    )
+    tracking_code = forms.CharField(
+        required=False,
+        label='کد رهگیری پستی',
+        widget=forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
+    )
+    admin_note = forms.CharField(
+        required=False,
+        label='یادداشت ادمین',
+        widget=forms.Textarea(attrs={
+            'class': _INPUT,
+            'rows': 3,
+            'placeholder': 'یادداشت داخلی برای تیم',
+        }),
+    )
     note = forms.CharField(
         required=False,
-        label='یادداشت داخلی',
+        label='یادداشت سفارش',
         widget=forms.Textarea(attrs={
             'class': _INPUT,
             'rows': 4,

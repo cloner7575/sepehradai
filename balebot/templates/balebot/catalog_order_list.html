@@ -91,7 +91,7 @@
         <p class="panel-card-lead mb-0 small">{% if is_paginated %}نمایش {{ page_obj.start_index }}–{{ page_obj.end_index }} از {{ paginator.count }}{% else %}{{ orders|length }} سفارش{% endif %}</p>
       </div>
       <div class="catalog-orders-payment-filters">
-        <a href="?{% if filter_base_qs %}{{ filter_base_qs }}&{% endif %}payment=zarinpal" class="catalog-mini-filter{% if current_payment == 'zarinpal' %} is-active{% endif %}">زرین‌پال</a>
+        <a href="?{% if filter_base_qs %}{{ filter_base_qs }}&{% endif %}payment=card_to_card" class="catalog-mini-filter{% if current_payment == 'card_to_card' %} is-active{% endif %}">کارت به کارت</a>
         <a href="?{% if filter_base_qs %}{{ filter_base_qs }}&{% endif %}payment=admin_cart" class="catalog-mini-filter{% if current_payment == 'admin_cart' %} is-active{% endif %}">ارسال به ادمین</a>
         {% if current_payment %}
         <a href="?{{ filter_base_qs }}" class="catalog-mini-filter catalog-mini-filter--clear">همه روش‌ها</a>
@@ -147,7 +147,7 @@
               {% endif %}
             </td>
             <td class="d-none d-xl-table-cell small">
-              {% if o.payment_method == 'zarinpal' %}زرین‌پال
+              {% if o.payment_method == 'card_to_card' %}کارت به کارت
               {% elif o.payment_method == 'admin_cart' %}ارسال به ادمین
               {% else %}—{% endif %}
             </td>

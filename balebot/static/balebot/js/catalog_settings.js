@@ -9,7 +9,8 @@
 
   var PAYMENT_METHODS = {
     admin_cart: 'ارسال سبد به ادمین',
-    zarinpal: 'زرین‌پال',
+    card_to_card: 'کارت به کارت',
+    bale: 'پرداخت بله',
   };
 
   function setBlockVisible(block, show) {
@@ -35,16 +36,33 @@
     return !!(cb && cb.checked && chat && String(chat.value || '').trim());
   }
 
-  function paymentZarinpalReady() {
-    var cb = document.getElementById('id_payment_zarinpal_enabled');
-    var merchant = document.getElementById('id_zarinpal_merchant_id');
-    return !!(cb && cb.checked && merchant && String(merchant.value || '').trim());
+  function paymentCardToCardReady() {
+    var cb = document.getElementById('id_payment_card_to_card_enabled');
+    var card = document.getElementById('id_card_to_card_number');
+    var sheba = document.getElementById('id_card_to_card_sheba');
+    var holder = document.getElementById('id_card_to_card_holder');
+    if (!cb || !cb.checked || !card || !sheba || !holder) return false;
+    var digits = String(card.value || '').replace(/\D/g, '');
+    var shebaVal = String(sheba.value || '').replace(/\s/g, '').toUpperCase();
+    if (!shebaVal.startsWith('IR')) {
+      shebaVal = 'IR' + shebaVal.replace(/\D/g, '');
+    }
+    return digits.length >= 16 && /^IR\d{24}$/.test(shebaVal) && String(holder.value || '').trim().length > 0;
+  }
+
+  function paymentBaleReady() {
+    var cb = document.getElementById('id_payment_bale_enabled');
+    var card = document.getElementById('id_bale_payment_card_number');
+    if (!cb || !cb.checked || !card) return false;
+    var digits = String(card.value || '').replace(/\D/g, '');
+    return digits.length >= 16;
   }
 
   function readyPaymentMethodIds() {
     var ids = [];
     if (paymentAdminReady()) ids.push('admin_cart');
-    if (paymentZarinpalReady()) ids.push('zarinpal');
+    if (paymentCardToCardReady()) ids.push('card_to_card');
+    if (paymentBaleReady()) ids.push('bale');
     return ids;
   }
 
@@ -103,8 +121,9 @@
   function updatePaymentReadiness() {
     var box = document.getElementById('payment-readiness');
     var adminReady = paymentAdminReady();
-    var zarinpalReady = paymentZarinpalReady();
-    var anyReady = adminReady || zarinpalReady;
+    var cardReady = paymentCardToCardReady();
+    var baleReady = paymentBaleReady();
+    var anyReady = adminReady || cardReady || baleReady;
     var isEnabled = !!(document.getElementById('id_is_enabled') && document.getElementById('id_is_enabled').checked);
 
     setStatusEl(
@@ -114,10 +133,16 @@
       'برای فعال شدن، چت‌آیدی ادمین را وارد کنید.',
     );
     setStatusEl(
-      document.getElementById('payment-zarinpal-status'),
-      zarinpalReady,
+      document.getElementById('payment-card-to-card-status'),
+      cardReady,
       'این روش برای خرید کاربران آماده است.',
-      'برای فعال شدن، مرچنت‌آیدی زرین‌پال را وارد کنید.',
+      'برای فعال شدن، شماره کارت، شبا و نام صاحب حساب را کامل کنید.',
+    );
+    setStatusEl(
+      document.getElementById('payment-bale-status'),
+      baleReady,
+      'این روش برای خرید کاربران آماده است.',
+      'برای فعال شدن، شماره کارت ۱۶ رقمی را وارد کنید.',
     );
 
     var labels = readyPaymentMethodIds().map(function (id) {
@@ -151,8 +176,12 @@
     [
       'id_payment_admin_enabled',
       'id_admin_notify_chat_id',
-      'id_payment_zarinpal_enabled',
-      'id_zarinpal_merchant_id',
+      'id_payment_card_to_card_enabled',
+      'id_card_to_card_number',
+      'id_card_to_card_sheba',
+      'id_card_to_card_holder',
+      'id_payment_bale_enabled',
+      'id_bale_payment_card_number',
       'id_is_enabled',
     ].forEach(function (id) {
       var el = document.getElementById(id);
@@ -230,7 +259,8 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     bindToggle('id_payment_admin_enabled', 'admin-payment-block');
-    bindToggle('id_payment_zarinpal_enabled', 'zarinpal-payment-block');
+    bindToggle('id_payment_card_to_card_enabled', 'card-to-card-payment-block');
+    bindToggle('id_payment_bale_enabled', 'bale-payment-block');
     bindToggle('id_require_channel_membership', 'channel-access-block');
     bindPaymentInputs();
     initTabs();

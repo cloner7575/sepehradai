@@ -9,6 +9,7 @@ import { HomePage } from './pages/HomePage';
 import { CategoryPage } from './pages/CategoryPage';
 import { ItemPage } from './pages/ItemPage';
 import { CartPage } from './pages/CartPage';
+import { CardToCardPaymentPage } from './pages/CardToCardPaymentPage';
 import { ChannelGate } from './components/ChannelGate';
 import { IconAlert } from './components/Icons';
 
@@ -18,7 +19,11 @@ interface AppContextValue {
   auth: AuthValidateResult | null;
   cartItems: CartLine[];
   cartTotal: number;
-  refreshCart: () => Promise<void>;
+  cartSubtotal: number;
+  cartShipping: number;
+  cartDiscount: number;
+  freeShipping: boolean;
+  refreshCart: (opts?: { province?: string; discount_code?: string }) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -91,6 +96,7 @@ function AppRoutes() {
       <Route path="/category/:slug" element={<CategoryPage />} />
       <Route path="/item/:slug" element={<ItemPage />} />
       <Route path="/cart" element={<CartPage />} />
+      <Route path="/payment/:orderId" element={<CardToCardPaymentPage />} />
     </Routes>
   );
 }
@@ -100,19 +106,31 @@ export default function App() {
   const [adapter, setAdapter] = useState<WebAppAdapter>(() => createWebAppAdapter());
   const [cartItems, setCartItems] = useState<CartLine[]>([]);
   const [cartTotal, setCartTotal] = useState(0);
+  const [cartSubtotal, setCartSubtotal] = useState(0);
+  const [cartShipping, setCartShipping] = useState(0);
+  const [cartDiscount, setCartDiscount] = useState(0);
+  const [freeShipping, setFreeShipping] = useState(false);
   const [auth, setAuth] = useState<AuthValidateResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [unsupported, setUnsupported] = useState(false);
 
-  const refreshCart = useCallback(async () => {
+  const refreshCart = useCallback(async (opts?: { province?: string; discount_code?: string }) => {
     if (!adapter.initData) return;
     try {
-      const data = await fetchCart(adapter.initData);
+      const data = await fetchCart(adapter.initData, opts);
       setCartItems(data.items);
+      setCartSubtotal(data.subtotal ?? data.total);
+      setCartShipping(data.shipping_cost ?? 0);
+      setCartDiscount(data.discount_amount ?? 0);
+      setFreeShipping(Boolean(data.free_shipping));
       setCartTotal(data.total);
     } catch {
       setCartItems([]);
+      setCartSubtotal(0);
+      setCartShipping(0);
+      setCartDiscount(0);
+      setFreeShipping(false);
       setCartTotal(0);
     }
   }, [adapter.initData]);
@@ -148,6 +166,10 @@ export default function App() {
           fetchCart(platformAdapter.initData)
             .then((d) => {
               setCartItems(d.items);
+              setCartSubtotal(d.subtotal ?? d.total);
+              setCartShipping(d.shipping_cost ?? 0);
+              setCartDiscount(d.discount_amount ?? 0);
+              setFreeShipping(Boolean(d.free_shipping));
               setCartTotal(d.total);
             })
             .catch(() => {});
@@ -163,8 +185,19 @@ export default function App() {
     auth?.channel_required === true && auth?.is_channel_member === false;
 
   const value = useMemo(
-    () => ({ config, adapter, auth, cartItems, cartTotal, refreshCart }),
-    [config, adapter, auth, cartItems, cartTotal, refreshCart],
+    () => ({
+      config,
+      adapter,
+      auth,
+      cartItems,
+      cartTotal,
+      cartSubtotal,
+      cartShipping,
+      cartDiscount,
+      freeShipping,
+      refreshCart,
+    }),
+    [config, adapter, auth, cartItems, cartTotal, cartSubtotal, cartShipping, cartDiscount, freeShipping, refreshCart],
   );
 
   if (loading) {

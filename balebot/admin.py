@@ -13,6 +13,8 @@ from .models import (
     FlowMedia,
     InboundMessage,
     Platform,
+    DiscountCode,
+    StoreTemplate,
     Subscriber,
     SubscriberTag,
     Tag,
@@ -131,3 +133,18 @@ class CatalogItemAdmin(admin.ModelAdmin):
 class CatalogOrderAdmin(admin.ModelAdmin):
     list_display = ('pk', 'workspace', 'platform', 'status', 'total_amount', 'created_at')
     list_filter = ('platform', 'status')
+
+
+@admin.register(DiscountCode)
+class DiscountCodeAdmin(admin.ModelAdmin):
+    list_display = ('code', 'workspace', 'platform', 'kind', 'value', 'used_count', 'is_active')
+    list_filter = ('platform', 'kind', 'is_active')
+    search_fields = ('code',)
+
+
+@admin.register(StoreTemplate)
+class StoreTemplateAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'industry', 'sort_order', 'is_active', 'updated_at')
+    list_filter = ('industry', 'is_active')
+    search_fields = ('name', 'slug', 'description')
+    prepopulated_fields = {'slug': ('name',)}

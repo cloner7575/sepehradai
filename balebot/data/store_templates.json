@@ -1,0 +1,5353 @@
+{
+  "version": 1,
+  "description": "مجموعه الگوهای آماده‌ی فروشگاهی برای پلتفرم ربات بله/تلگرام، با استراتژی مارکتینگ تعبیه‌شده.",
+  "currency": "IRR (ریال)",
+  "schema": {
+    "slug": "شناسه یکتای الگو",
+    "name": "نام نمایشی",
+    "industry": "صنف",
+    "data.settings": "تنظیمات فروشگاه: hero و theme و labels",
+    "data.bot_settings": "پیشنهاد تنظیم ربات (collect_contact_on_start برای جمع‌آوری شماره)",
+    "data.categories": "دسته‌بندی‌ها (slug,name,icon,sort_order,parent)",
+    "data.items": "محصولات نمونه (price به ریال؛ price=0 یعنی استعلامی/quote؛ stock=null یعنی نامحدود)",
+    "data.start_flow": "فلوی /start نسخه ۲ — فروش‌محور؛ {shop_url} را هنگام apply با لینک واقعی فروشگاه جایگزین کن",
+    "data.marketing": "استراتژی، کد تخفیف خوش‌آمد، نکات عملی و کمپین‌های آماده (هر کمپین یک trigger دارد: welcome/abandoned_cart/restock/seasonal/loyalty)"
+  },
+  "templates": [
+    {
+      "slug": "women-clothing",
+      "name": "بوتیک پوشاک زنانه",
+      "industry": "clothing",
+      "description": "فروشگاه لباس زنانه با تمرکز بر کالکشن فصلی و خرید تکراری",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "بوتیک [نام شما]",
+          "hero_subtitle": "جدیدترین کالکشن • ارسال به سراسر کشور",
+          "theme": {
+            "primary": "#b3456b",
+            "background": "#fdf6f8",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "افزودن به سبد",
+            "cart": "سبد خرید",
+            "categories": "دسته‌بندی‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای اطلاع از تخفیف‌ها و کالکشن جدید، شماره‌ت رو با دکمه‌ی پایین به اشتراک بذار 🌸"
+        },
+        "categories": [
+          {
+            "slug": "manto",
+            "name": "مانتو و پالتو",
+            "icon": "🧥",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "shomiz",
+            "name": "شومیز و بلوز",
+            "icon": "👚",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "shalvar",
+            "name": "شلوار و دامن",
+            "icon": "👖",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "accessory",
+            "name": "شال و اکسسوری",
+            "icon": "🧣",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "manto-krep",
+            "name": "مانتو جلوباز کرپ",
+            "category": "manto",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 3850000,
+            "stock": 12,
+            "is_featured": true,
+            "description": "کرپ مازراتی، آزاد، رنگ‌بندی مشکی/شتری/سرمه‌ای، سایز ۳۶ تا ۴۸",
+            "image_url": ""
+          },
+          {
+            "slug": "manto-mokhmal",
+            "name": "مانتو مخمل پاییزه",
+            "category": "manto",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 4200000,
+            "stock": 8,
+            "is_featured": false,
+            "description": "مخمل کشی، آستین گشاد، مناسب پاییز و زمستان",
+            "image_url": ""
+          },
+          {
+            "slug": "shomiz-saten",
+            "name": "شومیز ساتن مجلسی",
+            "category": "shomiz",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1950000,
+            "stock": 20,
+            "is_featured": true,
+            "description": "ساتن درجه‌یک، یقه هفت، رنگ‌بندی متنوع",
+            "image_url": ""
+          },
+          {
+            "slug": "shalvar-bag",
+            "name": "شلوار بگ جین",
+            "category": "shalvar",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 2450000,
+            "stock": 15,
+            "is_featured": false,
+            "description": "جین سنگشور، فاق بلند، سایز ۳۸ تا ۵۰",
+            "image_url": ""
+          },
+          {
+            "slug": "shal-nakh",
+            "name": "شال نخی پاییزه",
+            "category": "accessory",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 690000,
+            "stock": null,
+            "is_featured": true,
+            "description": "نخ ابریشم، ۱۸۰×۷۰، طرح‌های متنوع",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام 🌸 به بوتیک ما خوش اومدی! هر هفته کالکشن جدید می‌ذاریم. از منوی زیر شروع کن:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🛍 ورود به فروشگاه",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_offer",
+                      "label": "🎁 تخفیف اولین خرید",
+                      "label_slug": "offer",
+                      "action": {
+                        "type": "text",
+                        "text": "کد WELCOME15 رو موقع پرداخت بزن و ۱۵٪ تخفیف اولین خریدت رو بگیر."
+                      }
+                    },
+                    {
+                      "id": "n_trust",
+                      "label": "🔄 ضمانت تعویض",
+                      "label_slug": "trust",
+                      "action": {
+                        "type": "text",
+                        "text": "تا ۷ روز امکان تعویض سایز و رنگ داری، با خیال راحت خرید کن."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_lead",
+                      "label": "🔔 عضویت در لیست تخفیف",
+                      "label_slug": "lead",
+                      "action": {
+                        "type": "text",
+                        "text": "شماره‌ت رو ثبت کن تا از حراج‌ها و کالکشن جدید قبل از همه باخبر شی."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو همینجا بفرست، همکارامون سریع پاسخ می‌دن."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "خانم‌های ۲۰ تا ۴۰ سال علاقه‌مند به مد، خریدِ احساسی و فصلی",
+          "strategy": "اهرم اصلی: تکرار خرید. مشتری یک‌بار می‌خرد، با کمپین کالکشن جدید و حراج فصلی برمی‌گردد. شماره را همان اول بگیر تا بتوانی بارها بازاریابی کنی.",
+          "welcome_discount": {
+            "code": "WELCOME15",
+            "kind": "percent",
+            "value": 15,
+            "note": "۱۵٪ تخفیف اولین خرید برای جذب"
+          },
+          "tips": [
+            "هفته‌ای یک‌بار کالکشن جدید را به کل لیست اعلام کن تا ربات زنده بماند",
+            "از عکس مشتری‌های راضی به‌عنوان نظر استفاده کن؛ اعتماد در پوشاک حرف اول را می‌زند",
+            "سبد رهاشده را بعد از ۶ ساعت با یک کد ۱۰٪ یادآوری کن"
+          ],
+          "campaigns": [
+            {
+              "title": "تخفیف اولین خرید",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "🎀 خوش اومدی! با کد WELCOME15 ده‌ها مدل مانتو و شومیز رو با ۱۵٪ تخفیف بخر. فقط برای اولین سفارش."
+            },
+            {
+              "title": "یادآوری سبد",
+              "trigger": "abandoned_cart",
+              "content_type": "text",
+              "body": "🛍 سبدت هنوز منتظرته! با کد BACK10 ده درصد تخفیف بگیر و خریدت رو کامل کن — موجودی بعضی سایزها محدوده."
+            },
+            {
+              "title": "کالکشن جدید",
+              "trigger": "restock",
+              "content_type": "text",
+              "body": "✨ کالکشن پاییزه رسید! جدیدترین مانتوها و شومیزها رو ببین، بهترین مدل‌ها سریع تموم می‌شن."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "men-clothing",
+      "name": "پوشاک مردانه",
+      "industry": "clothing",
+      "description": "فروشگاه لباس مردانه با تمرکز بر ست‌فروشی و افزایش سبد خرید",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "گالری مردانه [نام شما]",
+          "hero_subtitle": "استایل روزمره و رسمی • کیفیت تضمینی",
+          "theme": {
+            "primary": "#2c3e50",
+            "background": "#f4f6f8",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "افزودن به سبد",
+            "cart": "سبد خرید",
+            "categories": "دسته‌بندی‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای اطلاع از تخفیف‌ها شماره‌ت رو به اشتراک بذار."
+        },
+        "categories": [
+          {
+            "slug": "tshirt",
+            "name": "تیشرت و پولوشرت",
+            "icon": "👕",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "shirt",
+            "name": "پیراهن",
+            "icon": "👔",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "pants",
+            "name": "شلوار",
+            "icon": "👖",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "acc",
+            "name": "اکسسوری",
+            "icon": "⌚",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "polo-naxi",
+            "name": "پولوشرت نخ پنبه",
+            "category": "tshirt",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1250000,
+            "stock": 30,
+            "is_featured": true,
+            "description": "نخ پنبه درجه‌یک، یقه‌دار، ۸ رنگ",
+            "image_url": ""
+          },
+          {
+            "slug": "shirt-rasmi",
+            "name": "پیراهن رسمی ساده",
+            "category": "shirt",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1850000,
+            "stock": 18,
+            "is_featured": true,
+            "description": "پارچه نخ‌ریون، اسلیم‌فیت، مناسب کار و مهمانی",
+            "image_url": ""
+          },
+          {
+            "slug": "shalvar-keton",
+            "name": "شلوار کتان راسته",
+            "category": "pants",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1650000,
+            "stock": 22,
+            "is_featured": false,
+            "description": "کتان کش، راحت و خوش‌فرم",
+            "image_url": ""
+          },
+          {
+            "slug": "kamarband",
+            "name": "کمربند چرم",
+            "category": "acc",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 850000,
+            "stock": null,
+            "is_featured": false,
+            "description": "چرم طبیعی، سگک استیل",
+            "image_url": ""
+          },
+          {
+            "slug": "set-pira-shalvar",
+            "name": "ست پیراهن و شلوار",
+            "category": "shirt",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 3200000,
+            "stock": 10,
+            "is_featured": true,
+            "description": "ست هماهنگ، با ۱۰٪ تخفیف نسبت به خرید جداگانه",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام 👋 به گالری مردانه خوش اومدی. ست‌های هماهنگ ما رو از دست نده:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🛍 ورود به فروشگاه",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_offer",
+                      "label": "🔥 ست با تخفیف",
+                      "label_slug": "offer",
+                      "action": {
+                        "type": "text",
+                        "text": "ست‌های پیراهن و شلوار ما ۱۰٪ ارزون‌تر از خرید جداگانه‌ست. توی فروشگاه ببین."
+                      }
+                    },
+                    {
+                      "id": "n_trust",
+                      "label": "✅ ضمانت کیفیت",
+                      "label_slug": "trust",
+                      "action": {
+                        "type": "text",
+                        "text": "اگه از کیفیت راضی نبودی، تا ۷ روز مرجوع کن."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_lead",
+                      "label": "🔔 خبر حراج",
+                      "label_slug": "lead",
+                      "action": {
+                        "type": "text",
+                        "text": "شماره‌ت رو بده تا از حراج‌ها زودتر باخبر شی."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو همینجا بفرست، همکارامون سریع پاسخ می‌دن."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "آقایان ۲۵ تا ۴۵ سال، خرید هدف‌مند و سریع",
+          "strategy": "اهرم اصلی: افزایش ارزش سبد با ست‌فروشی (cross-sell). مرد معمولاً تک‌خرید می‌کند؛ با پیشنهاد ست و تخفیف ترکیبی، مبلغ سبد را بالا ببر.",
+          "welcome_discount": {
+            "code": "WELCOME10",
+            "kind": "percent",
+            "value": 10,
+            "note": "۱۰٪ اولین خرید"
+          },
+          "tips": [
+            "همیشه کنار هر محصول، یک ست هماهنگ پیشنهاد بده",
+            "حراج‌های مناسبتی مردانه (یلدا، عید، روز مرد) فروش را می‌ترکانند"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "👔 با کد WELCOME10 اولین خریدت رو با تخفیف انجام بده."
+            },
+            {
+              "title": "پیشنهاد ست",
+              "trigger": "loyalty",
+              "content_type": "text",
+              "body": "🔥 ست کامل بخر، ۱۰٪ کمتر بده! ست‌های جدید پیراهن و شلوار اضافه شدن."
+            },
+            {
+              "title": "حراج روز مرد",
+              "trigger": "seasonal",
+              "content_type": "text",
+              "body": "🎁 به مناسبت روز مرد، تخفیف ویژه روی کل گالری. فرصت محدوده."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "baby-kids",
+      "name": "سیسمونی و پوشاک کودک",
+      "industry": "kids",
+      "description": "فروشگاه لوازم و لباس نوزاد و کودک با تمرکز بر اعتماد و خرید دوره‌ای",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "سیسمونی [نام شما]",
+          "hero_subtitle": "همراه مادرها از روز اول 👶",
+          "theme": {
+            "primary": "#57b8a9",
+            "background": "#f1faf8",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "افزودن به سبد",
+            "cart": "سبد خرید",
+            "categories": "دسته‌بندی‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای دریافت پیشنهادهای متناسب با سن کودکت، شماره‌ت رو به اشتراک بذار 💚"
+        },
+        "categories": [
+          {
+            "slug": "newborn",
+            "name": "نوزاد",
+            "icon": "🍼",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "clothes",
+            "name": "لباس کودک",
+            "icon": "👶",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "toys",
+            "name": "اسباب‌بازی",
+            "icon": "🧸",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "care",
+            "name": "بهداشت و مراقبت",
+            "icon": "🧴",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "set-sismoni",
+            "name": "ست سیسمونی ۱۰ تکه",
+            "category": "newborn",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 4500000,
+            "stock": 15,
+            "is_featured": true,
+            "description": "پنبه ۱۰۰٪، ضدحساسیت، سایز نوزاد تا ۶ ماه",
+            "image_url": ""
+          },
+          {
+            "slug": "body-noozad",
+            "name": "بادی آستین‌بلند",
+            "category": "clothes",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 420000,
+            "stock": null,
+            "is_featured": true,
+            "description": "نخ پنبه، بسته ۳ عددی",
+            "image_url": ""
+          },
+          {
+            "slug": "pa-poosh",
+            "name": "پاپوش بافت",
+            "category": "clothes",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 320000,
+            "stock": 40,
+            "is_featured": false,
+            "description": "گرم و نرم، مناسب فصل سرد",
+            "image_url": ""
+          },
+          {
+            "slug": "jaghjagheh",
+            "name": "جغجغه آموزشی",
+            "category": "toys",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 680000,
+            "stock": 25,
+            "is_featured": false,
+            "description": "بدون BPA، تقویت حواس",
+            "image_url": ""
+          },
+          {
+            "slug": "shampoo-bache",
+            "name": "شامپو بچه بدون اشک",
+            "category": "care",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 290000,
+            "stock": null,
+            "is_featured": false,
+            "description": "ملایم، pH متعادل",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام مامان عزیز 💚 هر چی برای کوچولوت لازم داری اینجاست. با خیال راحت خرید کن:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🛍 ورود به فروشگاه",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_offer",
+                      "label": "🎁 هدیه اولین خرید",
+                      "label_slug": "offer",
+                      "action": {
+                        "type": "text",
+                        "text": "با کد BABY15 پانزده درصد تخفیف بگیر؛ ما همراه روزهای خاص شماییم."
+                      }
+                    },
+                    {
+                      "id": "n_trust",
+                      "label": "🛡 اصالت و سلامت کالا",
+                      "label_slug": "trust",
+                      "action": {
+                        "type": "text",
+                        "text": "همه‌ی محصولات ضدحساسیت و دارای استاندارد بهداشتی هستند."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_lead",
+                      "label": "🔔 باشگاه مادران",
+                      "label_slug": "lead",
+                      "action": {
+                        "type": "text",
+                        "text": "شماره‌ت رو ثبت کن تا متناسب با سن کودکت پیشنهاد و تخفیف بگیری."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو همینجا بفرست، همکارامون سریع پاسخ می‌دن."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "مادران باردار و دارای کودک زیر ۳ سال",
+          "strategy": "اهرم اصلی: چرخه‌ی نیاز. نیاز کودک هر چند ماه تغییر می‌کند؛ با ثبت سن کودک می‌توانی به‌موقع محصول مرحله‌ی بعد را پیشنهاد بدهی. اعتماد و سلامت کالا مهم‌ترین حرف فروش است.",
+          "welcome_discount": {
+            "code": "BABY15",
+            "kind": "percent",
+            "value": 15,
+            "note": "۱۵٪ اولین خرید برای جلب اعتماد"
+          },
+          "tips": [
+            "سن کودک را بپرس و ذخیره کن؛ بازاریابی مرحله‌به‌مرحله طلاست",
+            "تأکید روی ضدحساسیت و استاندارد بهداشتی، نگرانی مادر را کم می‌کند"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "👶 خوش اومدی! با کد BABY15 اولین خریدت رو با تخفیف انجام بده."
+            },
+            {
+              "title": "یادآوری سبد",
+              "trigger": "abandoned_cart",
+              "content_type": "text",
+              "body": "🍼 سبدت منتظره! بعضی ست‌های سیسمونی موجودی محدودی دارن، خریدت رو کامل کن."
+            },
+            {
+              "title": "پیشنهاد مرحله بعد",
+              "trigger": "loyalty",
+              "content_type": "text",
+              "body": "🌱 کوچولوت داره بزرگ می‌شه! لباس و لوازم مرحله بعد رو با تخفیف ببین."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "cosmetics",
+      "name": "آرایشی و بهداشتی",
+      "industry": "cosmetics",
+      "description": "فروشگاه لوازم آرایشی با تمرکز بر اصالت کالا و مشاوره",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "آرایشی [نام شما]",
+          "hero_subtitle": "اورجینال • با ضمانت اصالت کالا",
+          "theme": {
+            "primary": "#7b4fb0",
+            "background": "#faf7fd",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "افزودن به سبد",
+            "cart": "سبد خرید",
+            "categories": "دسته‌بندی‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای مشاوره و تخفیف‌های اختصاصی، شماره‌ت رو به اشتراک بذار 💜"
+        },
+        "categories": [
+          {
+            "slug": "makeup",
+            "name": "آرایشی",
+            "icon": "💄",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "skincare",
+            "name": "مراقبت پوست",
+            "icon": "🧴",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "haircare",
+            "name": "مراقبت مو",
+            "icon": "💇",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "perfume",
+            "name": "عطر",
+            "icon": "🌸",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "foundation",
+            "name": "کرم پودر مات",
+            "category": "makeup",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1850000,
+            "stock": 25,
+            "is_featured": true,
+            "description": "پوشش بالا، مات مخملی، ۶ شماره رنگ",
+            "image_url": ""
+          },
+          {
+            "slug": "lip-mat",
+            "name": "رژ لب مایع مات",
+            "category": "makeup",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 720000,
+            "stock": 40,
+            "is_featured": true,
+            "description": "ماندگاری بالا، بدون خشکی",
+            "image_url": ""
+          },
+          {
+            "slug": "serum-vitc",
+            "name": "سرم ویتامین C",
+            "category": "skincare",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 2350000,
+            "stock": 18,
+            "is_featured": true,
+            "description": "روشن‌کننده و ضدلک، ۲۰٪ ویتامین سی پایدار",
+            "image_url": ""
+          },
+          {
+            "slug": "sunscreen",
+            "name": "ضدآفتاب SPF50",
+            "category": "skincare",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1450000,
+            "stock": 30,
+            "is_featured": false,
+            "description": "بدون چربی، مناسب زیرسازی آرایش",
+            "image_url": ""
+          },
+          {
+            "slug": "hair-mask",
+            "name": "ماسک موی کراتینه",
+            "category": "haircare",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 980000,
+            "stock": null,
+            "is_featured": false,
+            "description": "ترمیم موهای آسیب‌دیده، ۵۰۰ میل",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام عزیزم 💜 به فروشگاه آرایشی ما خوش اومدی. قبل از خرید می‌تونی مشاوره بگیری:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🛍 ورود به فروشگاه",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_offer",
+                      "label": "🎁 تخفیف خوش‌آمد",
+                      "label_slug": "offer",
+                      "action": {
+                        "type": "text",
+                        "text": "با کد GLOW15 پانزده درصد تخفیف اولین خریدت رو بگیر."
+                      }
+                    },
+                    {
+                      "id": "n_trust",
+                      "label": "✅ ضمانت اصالت",
+                      "label_slug": "trust",
+                      "action": {
+                        "type": "text",
+                        "text": "همه‌ی محصولات اورجینال و دارای کد رهگیری اصالت هستند."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_lead",
+                      "label": "💁 مشاوره رایگان پوست",
+                      "label_slug": "lead",
+                      "action": {
+                        "type": "text",
+                        "text": "نوع پوست/مو و دغدغه‌ت رو بگو تا بهترین محصول رو معرفی کنیم."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو همینجا بفرست، همکارامون سریع پاسخ می‌دن."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "خانم‌های ۱۸ تا ۴۵ سال، خرید بر پایه‌ی اعتماد و توصیه",
+          "strategy": "اهرم اصلی: مشاوره به‌عنوان قلاب فروش. مشتری با سوال پوستی می‌آید؛ با مشاوره‌ی رایگان اعتماد می‌سازی و محصول مرتبط را می‌فروشی. اصالت کالا بزرگ‌ترین دغدغه است.",
+          "welcome_discount": {
+            "code": "GLOW15",
+            "kind": "percent",
+            "value": 15,
+            "note": "۱۵٪ اولین خرید"
+          },
+          "tips": [
+            "محصولات مصرفی (سرم، ضدآفتاب) تمام می‌شوند؛ ۴۵ روز بعد از خرید، یادآوری خرید مجدد بفرست",
+            "مشاوره را به یک سبد پیشنهادی ختم کن، نه فقط حرف"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "💄 خوش اومدی! با کد GLOW15 اولین خریدت رو با ۱۵٪ تخفیف ثبت کن."
+            },
+            {
+              "title": "یادآوری خرید مجدد",
+              "trigger": "loyalty",
+              "content_type": "text",
+              "body": "🧴 سرم/ضدآفتابت احتمالاً رو به اتمامه! با کد KEEP10 ده درصد تخفیف بگیر و قبل از تموم شدن سفارش بده."
+            },
+            {
+              "title": "ارسال رایگان",
+              "trigger": "seasonal",
+              "content_type": "text",
+              "body": "🚚 این هفته خرید بالای ۵۰۰ هزار تومان = ارسال رایگان!"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "perfume",
+      "name": "عطر و ادکلن",
+      "industry": "perfume",
+      "description": "فروشگاه عطر با تمرکز بر معرفی رایحه و فروش دکانت",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "گالری عطر [نام شما]",
+          "hero_subtitle": "رایحه‌ای که به یاد می‌مونه",
+          "theme": {
+            "primary": "#14524a",
+            "background": "#f3f7f6",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "افزودن به سبد",
+            "cart": "سبد خرید",
+            "categories": "دسته‌بندی‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای دریافت پیشنهاد رایحه و تخفیف، شماره‌ت رو به اشتراک بذار."
+        },
+        "categories": [
+          {
+            "slug": "women",
+            "name": "زنانه",
+            "icon": "🌸",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "men",
+            "name": "مردانه",
+            "icon": "🖤",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "unisex",
+            "name": "یونیسکس",
+            "icon": "🤍",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "decant",
+            "name": "دکانت و تستر",
+            "icon": "💧",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "perfume-w1",
+            "name": "ادوپرفیوم زنانه گلی",
+            "category": "women",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 4900000,
+            "stock": 12,
+            "is_featured": true,
+            "description": "رایحه گل یاس و وانیل، ماندگاری بالا، ۱۰۰ میل",
+            "image_url": ""
+          },
+          {
+            "slug": "perfume-m1",
+            "name": "ادوپرفیوم مردانه چوبی",
+            "category": "men",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 5200000,
+            "stock": 10,
+            "is_featured": true,
+            "description": "رایحه چوب صندل و عنبر، مناسب پاییز",
+            "image_url": ""
+          },
+          {
+            "slug": "perfume-u1",
+            "name": "عطر یونیسکس مرکباتی",
+            "category": "unisex",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 4500000,
+            "stock": 8,
+            "is_featured": false,
+            "description": "خنک و تازه، مناسب روزانه",
+            "image_url": ""
+          },
+          {
+            "slug": "decant-10",
+            "name": "دکانت ۱۰ میل (به انتخاب شما)",
+            "category": "decant",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 650000,
+            "stock": null,
+            "is_featured": true,
+            "description": "امتحان رایحه قبل از خرید فول‌سایز",
+            "image_url": ""
+          },
+          {
+            "slug": "tester-set",
+            "name": "ست تستر ۵ رایحه",
+            "category": "decant",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1200000,
+            "stock": null,
+            "is_featured": false,
+            "description": "پنج رایحه پرفروش برای انتخاب",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام 🖤 رایحه‌ت رو پیدا کن. اگه مطمئن نیستی، اول دکانت رو امتحان کن:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🛍 ورود به فروشگاه",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_offer",
+                      "label": "💧 اول تست کن",
+                      "label_slug": "offer",
+                      "action": {
+                        "type": "text",
+                        "text": "با دکانت ۱۰ میل، رایحه رو امتحان کن و بعد فول‌سایز بخر — ریسک صفر."
+                      }
+                    },
+                    {
+                      "id": "n_trust",
+                      "label": "✅ اصالت تضمینی",
+                      "label_slug": "trust",
+                      "action": {
+                        "type": "text",
+                        "text": "همه‌ی عطرها اورجینال با ضمانت اصالت‌اند."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_lead",
+                      "label": "🔔 رایحه‌یاب",
+                      "label_slug": "lead",
+                      "action": {
+                        "type": "text",
+                        "text": "سلیقه‌ت (گرم/خنک، روز/شب) رو بگو تا بهت رایحه پیشنهاد بدیم."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو همینجا بفرست، همکارامون سریع پاسخ می‌دن."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "علاقه‌مندان عطر، خرید با تردید بالا (چون رایحه را نمی‌توان از روی عکس فهمید)",
+          "strategy": "اهرم اصلی: حذف ریسک خرید با دکانت/تستر. مشتری از خرید آنلاین عطر می‌ترسد؛ دکانت ارزان را به‌عنوان نقطه‌ی ورود بفروش، بعد فول‌سایز را پیشنهاد بده.",
+          "welcome_discount": {
+            "code": "SCENT10",
+            "kind": "percent",
+            "value": 10,
+            "note": "۱۰٪ اولین خرید"
+          },
+          "tips": [
+            "دکانت را به‌عنوان «قیف» بفروش؛ هرکس دکانت خرید، پیگیری فول‌سایز کن",
+            "رایحه‌ها را با احساس و موقعیت توصیف کن، نه فقط نام نُت‌ها"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "🖤 با کد SCENT10 اولین خریدت رو با تخفیف انجام بده. مطمئن نیستی؟ از دکانت شروع کن."
+            },
+            {
+              "title": "پیگیری دکانت",
+              "trigger": "loyalty",
+              "content_type": "text",
+              "body": "💧 دکانتی که گرفتی رو دوست داشتی؟ فول‌سایزش رو با ۱۰٪ تخفیف بگیر."
+            },
+            {
+              "title": "ست هدیه",
+              "trigger": "seasonal",
+              "content_type": "text",
+              "body": "🎁 ست‌های کادویی عطر برای مناسبت‌ها آماده شد — با بسته‌بندی ویژه."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "homemade-food",
+      "name": "خوراکی و شیرینی خانگی",
+      "industry": "food",
+      "description": "فروش خوراکی خانگی با تمرکز بر سفارش دوره‌ای و منوی هفتگی",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "آشپزخانه [نام شما]",
+          "hero_subtitle": "تازه • خانگی • با عشق پخته می‌شه",
+          "theme": {
+            "primary": "#c2691f",
+            "background": "#fdf8f1",
+            "font": "Vazirmatn",
+            "layout": "list"
+          },
+          "labels": {
+            "buy": "سفارش",
+            "cart": "سبد سفارش",
+            "categories": "منو"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای دریافت منوی هفتگی و تخفیف‌ها، شماره‌ت رو به اشتراک بذار 🍰"
+        },
+        "categories": [
+          {
+            "slug": "sweets",
+            "name": "شیرینی",
+            "icon": "🍰",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "cake",
+            "name": "کیک سفارشی",
+            "icon": "🎂",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "jam",
+            "name": "مربا و ترشی",
+            "icon": "🍯",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "food",
+            "name": "غذای آماده",
+            "icon": "🍲",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "danmarki",
+            "name": "شیرینی دانمارکی (کیلویی)",
+            "category": "sweets",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 890000,
+            "stock": null,
+            "is_featured": true,
+            "description": "تازه پخت روز، کره حیوانی، حداقل نیم کیلو",
+            "image_url": ""
+          },
+          {
+            "slug": "cake-custom",
+            "name": "کیک تولد سفارشی",
+            "category": "cake",
+            "item_type": "service",
+            "sale_mode": "quote",
+            "price": 0,
+            "stock": null,
+            "is_featured": true,
+            "description": "طرح و وزن دلخواه؛ طرحت رو بفرست تا قیمت بدیم",
+            "image_url": ""
+          },
+          {
+            "slug": "moraba-albalu",
+            "name": "مربای آلبالو خانگی",
+            "category": "jam",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 320000,
+            "stock": 24,
+            "is_featured": false,
+            "description": "بدون مواد نگهدارنده، شیشه ۸۰۰ گرمی",
+            "image_url": ""
+          },
+          {
+            "slug": "torshi",
+            "name": "ترشی مخلوط",
+            "category": "jam",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 280000,
+            "stock": 15,
+            "is_featured": false,
+            "description": "خانگی، ترش و تند، شیشه ۱ کیلویی",
+            "image_url": ""
+          },
+          {
+            "slug": "ghorme",
+            "name": "خورش قرمه‌سبزی ۴ نفره",
+            "category": "food",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1250000,
+            "stock": null,
+            "is_featured": true,
+            "description": "گوشت گوسفندی، تحویل گرم همان روز",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام 👋 به آشپزخونه‌ی خونگی ما خوش اومدی! منوی این هفته آماده‌ست:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "📖 دیدن منو",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_cake",
+                      "label": "🎂 سفارش کیک",
+                      "label_slug": "order_cake",
+                      "action": {
+                        "type": "text",
+                        "text": "طرح، وزن و تاریخ تحویل کیک رو بفرست تا قیمت بدیم."
+                      }
+                    },
+                    {
+                      "id": "n_time",
+                      "label": "🕐 ساعت تحویل",
+                      "label_slug": "time",
+                      "action": {
+                        "type": "text",
+                        "text": "سفارش‌ها تا ساعت ۱۲ ظهر، همون روز تحویل داده می‌شن."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_weekly",
+                      "label": "🔔 منوی هفتگی",
+                      "label_slug": "weekly",
+                      "action": {
+                        "type": "text",
+                        "text": "شماره‌ت رو ثبت کن تا منوی هر هفته رو برات بفرستیم."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 تماس با ما",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو بپرس."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "خانواده‌ها و افراد شاغل دنبال غذای خانگی و باکیفیت",
+          "strategy": "اهرم اصلی: تکرار سفارش هفتگی. غذا مصرف‌شدنی است؛ با اعلام «منوی هفتگی» به لیست، مشتری را به سفارش دوره‌ای عادت بده. این بالاترین نرخ بازگشت را دارد.",
+          "welcome_discount": {
+            "code": "TASTE10",
+            "kind": "percent",
+            "value": 10,
+            "note": "۱۰٪ اولین سفارش"
+          },
+          "tips": [
+            "هر هفته منوی جدید را به کل لیست بفرست؛ این تنها کاری است که فروش غذا را زنده نگه می‌دارد",
+            "عکس واقعی و اشتها‌برانگیز بگذار، نه عکس استوک",
+            "سفارش‌های مناسبتی (نذری، مهمانی، عید) را تبلیغ کن"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "🍲 خوش اومدی! با کد TASTE10 اولین سفارشت رو با تخفیف ثبت کن."
+            },
+            {
+              "title": "منوی هفتگی",
+              "trigger": "restock",
+              "content_type": "text",
+              "body": "📖 منوی این هفته آماده‌ست! سفارش‌ها رو تا پنجشنبه ثبت کن، ظرفیت محدوده."
+            },
+            {
+              "title": "سفارش مناسبتی",
+              "trigger": "seasonal",
+              "content_type": "text",
+              "body": "🎉 برای مهمونی و مناسبت‌ها، سفارش‌های ویژه می‌گیریم. زودتر هماهنگ کن."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "bakery",
+      "name": "قنادی و کیک سفارشی",
+      "industry": "food",
+      "description": "قنادی با تمرکز بر سفارش مناسبتی و کیک اختصاصی",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "قنادی [نام شما]",
+          "hero_subtitle": "کیک و دسر برای روزهای خاص 🎂",
+          "theme": {
+            "primary": "#d46a8a",
+            "background": "#fdf4f7",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "سفارش",
+            "cart": "سبد سفارش",
+            "categories": "منو"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای یادآوری مناسبت‌ها و تخفیف، شماره‌ت رو ثبت کن 🎂"
+        },
+        "categories": [
+          {
+            "slug": "cake",
+            "name": "کیک",
+            "icon": "🎂",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "dessert",
+            "name": "دسر",
+            "icon": "🍮",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "cookie",
+            "name": "کوکی و شیرینی خشک",
+            "icon": "🍪",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "event",
+            "name": "سفارش مناسبتی",
+            "icon": "🎉",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "cake-tavalod",
+            "name": "کیک تولد (کیلویی)",
+            "category": "cake",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1450000,
+            "stock": null,
+            "is_featured": true,
+            "description": "اسفنجی نرم، فیلینگ دلخواه، تزیین اختصاصی",
+            "image_url": ""
+          },
+          {
+            "slug": "cake-custom2",
+            "name": "کیک طرح‌دار سفارشی",
+            "category": "cake",
+            "item_type": "service",
+            "sale_mode": "quote",
+            "price": 0,
+            "stock": null,
+            "is_featured": true,
+            "description": "عکس/طرحت رو بفرست تا قیمت بدیم",
+            "image_url": ""
+          },
+          {
+            "slug": "panacota",
+            "name": "پاناکوتا (تکی)",
+            "category": "dessert",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 180000,
+            "stock": null,
+            "is_featured": false,
+            "description": "در لیوان شیشه‌ای، بسته حداقل ۶ تایی",
+            "image_url": ""
+          },
+          {
+            "slug": "cookie-box",
+            "name": "باکس کوکی هدیه",
+            "category": "cookie",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 750000,
+            "stock": 20,
+            "is_featured": true,
+            "description": "۱۲ عدد کوکی متنوع در بسته‌بندی کادویی",
+            "image_url": ""
+          },
+          {
+            "slug": "event-table",
+            "name": "میز دسر مناسبتی",
+            "category": "event",
+            "item_type": "service",
+            "sale_mode": "quote",
+            "price": 0,
+            "stock": null,
+            "is_featured": false,
+            "description": "برای مهمانی و عقد؛ برای مشاوره و قیمت پیام بده",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام 🎂 برای کدوم مناسبت کیک می‌خوای؟ طرح دلخواهت رو برامون بفرست:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🎂 دیدن نمونه‌ها",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_custom",
+                      "label": "🎨 سفارش طرح دلخواه",
+                      "label_slug": "custom",
+                      "action": {
+                        "type": "text",
+                        "text": "عکس یا توضیح طرح، وزن و تاریخ تحویل رو بفرست تا قیمت اعلام کنیم."
+                      }
+                    },
+                    {
+                      "id": "n_deliver",
+                      "label": "🚚 زمان تحویل",
+                      "label_slug": "deliver",
+                      "action": {
+                        "type": "text",
+                        "text": "سفارش کیک حداقل ۲ روز قبل ثبت بشه. تحویل در روز و ساعت مقرر."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_event",
+                      "label": "🎉 سفارش مهمانی",
+                      "label_slug": "event",
+                      "action": {
+                        "type": "text",
+                        "text": "برای میز دسر و سفارش‌های بزرگ، با پشتیبانی هماهنگ کن."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو بپرس."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "افراد در آستانه‌ی مناسبت (تولد، سالگرد، عقد)، خرید برنامه‌ریزی‌شده",
+          "strategy": "اهرم اصلی: مناسبت‌محوری. خرید کیک رویدادمحور است؛ تاریخ تولد مشتری/عزیزانش را بگیر و چند روز قبل یادآوری کن. این کمپین تقریباً همیشه می‌فروشد.",
+          "welcome_discount": {
+            "code": "SWEET10",
+            "kind": "percent",
+            "value": 10,
+            "note": "۱۰٪ اولین سفارش"
+          },
+          "tips": [
+            "تاریخ تولد مشتری و نزدیکانش را بپرس و چند روز قبل یادآوری بفرست",
+            "نمونه‌کارهای واقعی کیک‌های قبلی بزرگ‌ترین عامل فروش است",
+            "سفارش‌های فصلی (یلدا، ولنتاین، روز مادر) را از قبل تبلیغ کن"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "🎂 خوش اومدی! با کد SWEET10 اولین سفارشت رو با تخفیف ثبت کن."
+            },
+            {
+              "title": "یادآوری مناسبت",
+              "trigger": "loyalty",
+              "content_type": "text",
+              "body": "🎉 یه مناسبت نزدیکه! همین حالا کیک سفارش بده تا به‌موقع آماده بشه."
+            },
+            {
+              "title": "سفارش فصلی",
+              "trigger": "seasonal",
+              "content_type": "text",
+              "body": "🍓 سفارش کیک و دسر ویژه‌ی [مناسبت] رو زود ثبت کن، ظرفیت محدوده."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "coffee",
+      "name": "کافه و قهوه",
+      "industry": "food",
+      "description": "فروش دانه قهوه و لوازم دم‌آوری با تمرکز بر اشتراک و باشگاه مشتری",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "کافه [نام شما]",
+          "hero_subtitle": "قهوه‌ی تازه برشت • مستقیم درِ خونه",
+          "theme": {
+            "primary": "#6f4a2f",
+            "background": "#f7f2ec",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "افزودن به سبد",
+            "cart": "سبد خرید",
+            "categories": "دسته‌بندی‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای خبر از برشت‌های تازه و تخفیف، شماره‌ت رو ثبت کن ☕"
+        },
+        "categories": [
+          {
+            "slug": "beans",
+            "name": "دانه و پودر",
+            "icon": "☕",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "tools",
+            "name": "لوازم دم‌آوری",
+            "icon": "⚗️",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "syrup",
+            "name": "سیروپ و افزودنی",
+            "icon": "🍯",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "sub",
+            "name": "اشتراک قهوه",
+            "icon": "🔁",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "espresso-blend",
+            "name": "بلند اسپرسو میکس",
+            "category": "beans",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 980000,
+            "stock": null,
+            "is_featured": true,
+            "description": "۸۰٪ عربیکا ۲۰٪ روبوستا، برشت روز، ۲۵۰ گرم",
+            "image_url": ""
+          },
+          {
+            "slug": "filter-light",
+            "name": "قهوه فیلتری لایت روست",
+            "category": "beans",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1150000,
+            "stock": null,
+            "is_featured": true,
+            "description": "تک‌خاستگاه، نوت میوه‌ای، ۲۵۰ گرم",
+            "image_url": ""
+          },
+          {
+            "slug": "v60",
+            "name": "قیف V60 سرامیکی",
+            "category": "tools",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1450000,
+            "stock": 15,
+            "is_featured": false,
+            "description": "همراه با ۴۰ فیلتر کاغذی",
+            "image_url": ""
+          },
+          {
+            "slug": "syrup-caramel",
+            "name": "سیروپ کارامل",
+            "category": "syrup",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 420000,
+            "stock": 30,
+            "is_featured": false,
+            "description": "۷۵۰ میل، مناسب لاته",
+            "image_url": ""
+          },
+          {
+            "slug": "sub-monthly",
+            "name": "اشتراک ماهانه قهوه",
+            "category": "sub",
+            "item_type": "service",
+            "sale_mode": "buy",
+            "price": 2400000,
+            "stock": null,
+            "is_featured": true,
+            "description": "هر ماه ۵۰۰ گرم قهوه‌ی تازه، با ۱۵٪ تخفیف",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام ☕ عاشق قهوه‌ای؟ قهوه‌ی تازه برشت ما رو امتحان کن:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🛍 ورود به فروشگاه",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_offer",
+                      "label": "🔁 اشتراک قهوه",
+                      "label_slug": "offer",
+                      "action": {
+                        "type": "text",
+                        "text": "با اشتراک ماهانه، هر ماه قهوه‌ی تازه درِ خونه + ۱۵٪ تخفیف دائمی."
+                      }
+                    },
+                    {
+                      "id": "n_trust",
+                      "label": "🌱 برشت روز",
+                      "label_slug": "trust",
+                      "action": {
+                        "type": "text",
+                        "text": "قهوه‌ها سفارشی و تازه برشت می‌شن، نه انبارمونده."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_lead",
+                      "label": "🔔 باشگاه قهوه",
+                      "label_slug": "lead",
+                      "action": {
+                        "type": "text",
+                        "text": "شماره‌ت رو بده تا از برشت‌های جدید و تخفیف‌ها باخبر شی."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو همینجا بفرست، همکارامون سریع پاسخ می‌دن."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "علاقه‌مندان قهوه‌ی تخصصی، مصرف‌کننده‌ی دائمی",
+          "strategy": "اهرم اصلی: مدل اشتراک (subscription). قهوه هر ماه تمام می‌شود؛ اشتراک ماهانه درآمد تکرارشونده‌ی پایدار می‌سازد. این بهترین مدل برای کالای مصرفی است.",
+          "welcome_discount": {
+            "code": "BREW10",
+            "kind": "percent",
+            "value": 10,
+            "note": "۱۰٪ اولین خرید"
+          },
+          "tips": [
+            "اشتراک ماهانه را پررنگ تبلیغ کن؛ درآمد ثابت می‌سازد",
+            "۳ هفته بعد از خرید دانه، یادآوری خرید مجدد بفرست (قهوه تمام شده)"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "☕ خوش اومدی! با کد BREW10 اولین خریدت رو با تخفیف انجام بده."
+            },
+            {
+              "title": "یادآوری اتمام",
+              "trigger": "loyalty",
+              "content_type": "text",
+              "body": "☕ قهوه‌ت احتمالاً رو به اتمامه! سفارش بعدی رو ثبت کن یا اشتراک ماهانه بگیر و دیگه نگران نباش."
+            },
+            {
+              "title": "برشت جدید",
+              "trigger": "restock",
+              "content_type": "text",
+              "body": "🌱 یه دانه‌ی تک‌خاستگاه جدید برشت کردیم! محدود و تازه — امتحانش کن."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "nuts",
+      "name": "آجیل و خشکبار",
+      "industry": "food",
+      "description": "فروش آجیل و خشکبار با تمرکز بر فروش مناسبتی و بسته‌بندی هدیه",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "آجیل [نام شما]",
+          "hero_subtitle": "تازه • مرغوب • بسته‌بندی شیک",
+          "theme": {
+            "primary": "#9a6a2f",
+            "background": "#faf5ec",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "افزودن به سبد",
+            "cart": "سبد خرید",
+            "categories": "دسته‌بندی‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای خبر از تخفیف‌های مناسبتی، شماره‌ت رو ثبت کن 🥜"
+        },
+        "categories": [
+          {
+            "slug": "nuts",
+            "name": "آجیل",
+            "icon": "🥜",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "dried",
+            "name": "میوه خشک",
+            "icon": "🍇",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "gift",
+            "name": "باکس هدیه",
+            "icon": "🎁",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "seeds",
+            "name": "تخمه",
+            "icon": "🌻",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "ajil-shor",
+            "name": "آجیل شور مخلوط (کیلویی)",
+            "category": "nuts",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 2200000,
+            "stock": null,
+            "is_featured": true,
+            "description": "تازه و مرغوب، مخلوط ممتاز",
+            "image_url": ""
+          },
+          {
+            "slug": "pesteh",
+            "name": "پسته اکبری",
+            "category": "nuts",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 3800000,
+            "stock": null,
+            "is_featured": true,
+            "description": "درشت و خندان، تازه",
+            "image_url": ""
+          },
+          {
+            "slug": "anjir",
+            "name": "انجیر خشک",
+            "category": "dried",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": "",
+            "stock": null,
+            "is_featured": false,
+            "description": "پرک، شیرین طبیعی",
+            "image_url": ""
+          },
+          {
+            "slug": "gift-box",
+            "name": "باکس آجیل هدیه",
+            "category": "gift",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1500000,
+            "stock": 30,
+            "is_featured": true,
+            "description": "بسته‌بندی شیک، مناسب کادو و مهمانی",
+            "image_url": ""
+          },
+          {
+            "slug": "tokhmeh",
+            "name": "تخمه ژاپنی",
+            "category": "seeds",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 650000,
+            "stock": null,
+            "is_featured": false,
+            "description": "دودی، تازه بوداده",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام 🥜 آجیل تازه و مرغوب می‌خوای؟ برای مهمونی و کادو هم باکس آماده داریم:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🛍 ورود به فروشگاه",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_offer",
+                      "label": "🎁 باکس هدیه",
+                      "label_slug": "offer",
+                      "action": {
+                        "type": "text",
+                        "text": "برای کادو و مهمونی، باکس‌های شیک آماده داریم. توی فروشگاه ببین."
+                      }
+                    },
+                    {
+                      "id": "n_trust",
+                      "label": "🌱 تضمین تازگی",
+                      "label_slug": "trust",
+                      "action": {
+                        "type": "text",
+                        "text": "آجیل‌ها تازه و روز هستن، با تضمین کیفیت."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_lead",
+                      "label": "🔔 تخفیف مناسبتی",
+                      "label_slug": "lead",
+                      "action": {
+                        "type": "text",
+                        "text": "شماره‌ت رو بده تا تخفیف‌های یلدا و عید رو از دست ندی."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو همینجا بفرست، همکارامون سریع پاسخ می‌دن."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "خانواده‌ها، خرید مناسبتی و پذیرایی",
+          "strategy": "اهرم اصلی: اوج فروش مناسبتی (یلدا، عید، مهمانی). آجیل خرید فصلی است؛ از چند هفته قبل از مناسبت‌ها کمپین بزن و باکس هدیه را پررنگ کن (ارزش سبد بالاتر).",
+          "welcome_discount": {
+            "code": "NUT10",
+            "kind": "percent",
+            "value": 10,
+            "note": "۱۰٪ اولین خرید"
+          },
+          "tips": [
+            "باکس هدیه ارزش سبد را بالا می‌برد؛ همیشه پیشنهادش بده",
+            "۳ تا ۴ هفته قبل از یلدا/عید کمپین فروش بزن، نه روز آخر"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "🥜 خوش اومدی! با کد NUT10 اولین خریدت رو با تخفیف انجام بده."
+            },
+            {
+              "title": "کمپین یلدا",
+              "trigger": "seasonal",
+              "content_type": "text",
+              "body": "🍉 شب یلدا نزدیکه! باکس‌های آجیل و خشکبار ویژه‌ی یلدا آماده شد، زود سفارش بده."
+            },
+            {
+              "title": "یادآوری سبد",
+              "trigger": "abandoned_cart",
+              "content_type": "text",
+              "body": "🛒 سبدت منتظره! آجیل تازه رو از دست نده، خریدت رو کامل کن."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "plants",
+      "name": "گل و گیاه آپارتمانی",
+      "industry": "plants",
+      "description": "فروش گیاه آپارتمانی با تمرکز بر آموزش نگهداری و خرید تکمیلی",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "گلخانه [نام شما]",
+          "hero_subtitle": "سبزی رو به خونه‌ت بیار 🌿",
+          "theme": {
+            "primary": "#3f8f4f",
+            "background": "#f2f9f3",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "افزودن به سبد",
+            "cart": "سبد خرید",
+            "categories": "دسته‌بندی‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای دریافت نکات نگهداری و تخفیف، شماره‌ت رو ثبت کن 🌿"
+        },
+        "categories": [
+          {
+            "slug": "plant",
+            "name": "گیاه",
+            "icon": "🪴",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "pot",
+            "name": "گلدان",
+            "icon": "🏺",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "soil",
+            "name": "خاک و کود",
+            "icon": "🌱",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "tools",
+            "name": "ابزار باغبانی",
+            "icon": "✂️",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "monstera",
+            "name": "مونسترا",
+            "category": "plant",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1200000,
+            "stock": 15,
+            "is_featured": true,
+            "description": "تصفیه‌کننده هوا، نگهداری آسان، ارتفاع ~۴۰ سانت",
+            "image_url": ""
+          },
+          {
+            "slug": "cactus-set",
+            "name": "ست کاکتوس ۳ تایی",
+            "category": "plant",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 680000,
+            "stock": 25,
+            "is_featured": true,
+            "description": "مقاوم، مناسب مبتدی‌ها",
+            "image_url": ""
+          },
+          {
+            "slug": "pot-ceramic",
+            "name": "گلدان سرامیکی",
+            "category": "pot",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 450000,
+            "stock": 40,
+            "is_featured": false,
+            "description": "همراه زیرگلدانی، رنگ‌بندی متنوع",
+            "image_url": ""
+          },
+          {
+            "slug": "soil-mix",
+            "name": "خاک مخصوص گیاه آپارتمانی",
+            "category": "soil",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 250000,
+            "stock": null,
+            "is_featured": false,
+            "description": "سبک و زهکش‌دار، ۵ لیتری",
+            "image_url": ""
+          },
+          {
+            "slug": "kood",
+            "name": "کود مایع رشد",
+            "category": "soil",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 180000,
+            "stock": null,
+            "is_featured": false,
+            "description": "تقویت برگ و ریشه",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام 🌿 می‌خوای خونه‌ت سبز بشه؟ حتی اگه تازه‌کاری، گیاه مناسبت رو معرفی می‌کنیم:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🛍 ورود به فروشگاه",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_offer",
+                      "label": "🌱 راهنمای نگهداری",
+                      "label_slug": "offer",
+                      "action": {
+                        "type": "text",
+                        "text": "با هر گیاه، راهنمای نگهداری رایگان می‌دیم تا گیاهت زنده بمونه."
+                      }
+                    },
+                    {
+                      "id": "n_trust",
+                      "label": "🪴 مناسب مبتدی",
+                      "label_slug": "trust",
+                      "action": {
+                        "type": "text",
+                        "text": "گیاه‌های مقاوم برای تازه‌کارها رو جدا مشخص کردیم."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_lead",
+                      "label": "🔔 یادآور آبیاری",
+                      "label_slug": "lead",
+                      "action": {
+                        "type": "text",
+                        "text": "شماره‌ت رو بده تا نکات نگهداری و پیشنهاد بهت بفرستیم."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو همینجا بفرست، همکارامون سریع پاسخ می‌دن."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "ساکنان آپارتمان، علاقه‌مند به دکور سبز، اغلب مبتدی",
+          "strategy": "اهرم اصلی: آموزش به‌عنوان خدمت پس از فروش. ترس مشتری «گیاه می‌میره» است؛ با راهنمای نگهداری و پیگیری، اعتماد و خرید مجدد (گیاه دوم، گلدان، کود) می‌سازی.",
+          "welcome_discount": {
+            "code": "GREEN10",
+            "kind": "percent",
+            "value": 10,
+            "note": "۱۰٪ اولین خرید"
+          },
+          "tips": [
+            "محصول تکمیلی (خاک، کود، گلدان) را همراه گیاه پیشنهاد بده",
+            "چند هفته بعد، نکته‌ی نگهداری بفرست و گیاه بعدی را معرفی کن"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "🌿 خوش اومدی! با کد GREEN10 اولین خریدت رو با تخفیف انجام بده."
+            },
+            {
+              "title": "نکته نگهداری",
+              "trigger": "loyalty",
+              "content_type": "text",
+              "body": "🪴 وقت کوددهیه! کود و خاک تازه رو با تخفیف بگیر و یه گیاه جدید هم ببین."
+            },
+            {
+              "title": "یادآوری سبد",
+              "trigger": "abandoned_cart",
+              "content_type": "text",
+              "body": "🌱 سبدت منتظره! بعضی گیاه‌ها موجودی محدودی دارن."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "home-decor",
+      "name": "دکوراسیون و لوازم خانه",
+      "industry": "decor",
+      "description": "فروش لوازم دکوری با تمرکز بر فروش ست و الهام‌بخشی",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "خانه‌آرا [نام شما]",
+          "hero_subtitle": "خونه‌ت رو قشنگ‌تر کن 🏡",
+          "theme": {
+            "primary": "#5a6b7a",
+            "background": "#f5f7f9",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "افزودن به سبد",
+            "cart": "سبد خرید",
+            "categories": "دسته‌بندی‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای دریافت ایده‌های دکور و تخفیف، شماره‌ت رو ثبت کن 🏡"
+        },
+        "categories": [
+          {
+            "slug": "light",
+            "name": "نور و آباژور",
+            "icon": "💡",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "textile",
+            "name": "نساجی و کوسن",
+            "icon": "🛋️",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "vase",
+            "name": "گلدان و مجسمه",
+            "icon": "🏺",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "kitchen",
+            "name": "لوازم آشپزخانه دکوری",
+            "icon": "🍽️",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "abajoor",
+            "name": "آباژور پایه‌بلند",
+            "category": "light",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 2200000,
+            "stock": 12,
+            "is_featured": true,
+            "description": "طراحی مدرن، نور گرم",
+            "image_url": ""
+          },
+          {
+            "slug": "cushion-set",
+            "name": "ست ۴تایی کوسن",
+            "category": "textile",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 980000,
+            "stock": 20,
+            "is_featured": true,
+            "description": "مخمل، رنگ‌بندی هماهنگ",
+            "image_url": ""
+          },
+          {
+            "slug": "vase-set",
+            "name": "ست گلدان سرامیکی",
+            "category": "vase",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 750000,
+            "stock": 18,
+            "is_featured": false,
+            "description": "۳ سایز، مات",
+            "image_url": ""
+          },
+          {
+            "slug": "frame-set",
+            "name": "ست تابلو دکوری",
+            "category": "textile",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1400000,
+            "stock": 15,
+            "is_featured": true,
+            "description": "۳ تابلو هماهنگ با قاب",
+            "image_url": ""
+          },
+          {
+            "slug": "tray",
+            "name": "سینی پذیرایی چوبی",
+            "category": "kitchen",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 560000,
+            "stock": null,
+            "is_featured": false,
+            "description": "چوب طبیعی، دسته‌دار",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام 🏡 دنبال یه تغییر تو خونه‌ای؟ ست‌های هماهنگ ما کار رو راحت می‌کنن:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🛍 ورود به فروشگاه",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_offer",
+                      "label": "🎨 خرید ستی",
+                      "label_slug": "offer",
+                      "action": {
+                        "type": "text",
+                        "text": "ست‌های هماهنگ بخر تا دکورت یکدست بشه — راحت‌تر و شیک‌تر."
+                      }
+                    },
+                    {
+                      "id": "n_trust",
+                      "label": "🚚 بسته‌بندی ایمن",
+                      "label_slug": "trust",
+                      "action": {
+                        "type": "text",
+                        "text": "لوازم شکستنی با بسته‌بندی ضدضربه ارسال می‌شن."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_lead",
+                      "label": "🔔 ایده دکور",
+                      "label_slug": "lead",
+                      "action": {
+                        "type": "text",
+                        "text": "شماره‌ت رو بده تا ایده و تخفیف بهت بفرستیم."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو همینجا بفرست، همکارامون سریع پاسخ می‌دن."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "خانم‌های خانه‌دار و زوج‌های جوان، خرید الهام‌محور",
+          "strategy": "اهرم اصلی: فروش ست به‌جای تک‌محصول. مشتری دنبال «حس یکدست» است؛ ست‌های هماهنگ هم تصمیم را آسان می‌کنند هم ارزش سبد را بالا می‌برند. عکس محیطی (نه تک‌محصول) بفروش.",
+          "welcome_discount": {
+            "code": "HOME10",
+            "kind": "percent",
+            "value": 10,
+            "note": "۱۰٪ اولین خرید"
+          },
+          "tips": [
+            "محصولات را در یک صحنه‌ی واقعی عکس بگیر تا مشتری «حس» را بخرد",
+            "ست‌های هماهنگ را پررنگ کن؛ هم آسان‌تر هم گران‌تر"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "🏡 خوش اومدی! با کد HOME10 اولین خریدت رو با تخفیف انجام بده."
+            },
+            {
+              "title": "کالکشن فصلی",
+              "trigger": "seasonal",
+              "content_type": "text",
+              "body": "🍂 کالکشن دکور پاییزه رسید! خونه‌ت رو با رنگ‌های گرم نو کن."
+            },
+            {
+              "title": "یادآوری سبد",
+              "trigger": "abandoned_cart",
+              "content_type": "text",
+              "body": "🛋 سبدت منتظره! ست موردعلاقه‌ت رو از دست نده."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "jewelry",
+      "name": "زیورآلات و بدلیجات",
+      "industry": "jewelry",
+      "description": "فروش زیورآلات با تمرکز بر هدیه و فروش ست",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "گالری زیور [نام شما]",
+          "hero_subtitle": "درخشش رو به استایلت اضافه کن ✨",
+          "theme": {
+            "primary": "#a9852f",
+            "background": "#faf6ec",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "افزودن به سبد",
+            "cart": "سبد خرید",
+            "categories": "دسته‌بندی‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای خبر از مدل‌های جدید و تخفیف، شماره‌ت رو ثبت کن ✨"
+        },
+        "categories": [
+          {
+            "slug": "necklace",
+            "name": "گردنبند",
+            "icon": "📿",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "ring",
+            "name": "انگشتر",
+            "icon": "💍",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "earring",
+            "name": "گوشواره",
+            "icon": "👂",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "set",
+            "name": "ست و نیم‌ست",
+            "icon": "💎",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "necklace-steel",
+            "name": "گردنبند استیل طلایی",
+            "category": "necklace",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 680000,
+            "stock": 30,
+            "is_featured": true,
+            "description": "ضدحساسیت، رنگ‌ثابت",
+            "image_url": ""
+          },
+          {
+            "slug": "ring-zircon",
+            "name": "انگشتر نگین زیرکن",
+            "category": "ring",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 520000,
+            "stock": 25,
+            "is_featured": true,
+            "description": "درخشان، آبکاری مقاوم",
+            "image_url": ""
+          },
+          {
+            "slug": "earring-pearl",
+            "name": "گوشواره مروارید",
+            "category": "earring",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 450000,
+            "stock": 40,
+            "is_featured": false,
+            "description": "کلاسیک، مناسب مجلسی",
+            "image_url": ""
+          },
+          {
+            "slug": "half-set",
+            "name": "نیم‌ست گردنبند و گوشواره",
+            "category": "set",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1100000,
+            "stock": 20,
+            "is_featured": true,
+            "description": "هماهنگ، با بسته‌بندی کادویی",
+            "image_url": ""
+          },
+          {
+            "slug": "bracelet",
+            "name": "دستبند ظریف",
+            "category": "necklace",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 380000,
+            "stock": null,
+            "is_featured": false,
+            "description": "مناسب استفاده روزانه",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام ✨ دنبال یه زیور خاص برای خودت یا کادو هستی؟"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🛍 ورود به فروشگاه",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_offer",
+                      "label": "🎁 آماده‌ی کادو",
+                      "label_slug": "offer",
+                      "action": {
+                        "type": "text",
+                        "text": "همه‌ی سفارش‌ها با بسته‌بندی کادویی شیک ارسال می‌شن."
+                      }
+                    },
+                    {
+                      "id": "n_trust",
+                      "label": "🛡 ضدحساسیت",
+                      "label_slug": "trust",
+                      "action": {
+                        "type": "text",
+                        "text": "استیل و آبکاری مقاوم، رنگ نمی‌ده و حساسیت نداره."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_lead",
+                      "label": "🔔 خبر مدل جدید",
+                      "label_slug": "lead",
+                      "action": {
+                        "type": "text",
+                        "text": "شماره‌ت رو بده تا مدل‌های جدید و تخفیف رو ببینی."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو همینجا بفرست، همکارامون سریع پاسخ می‌دن."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "خانم‌های جوان، خرید برای خود + خرید کادویی",
+          "strategy": "اهرم اصلی: دوگانه‌ی خود-مصرفی و کادو. روی بسته‌بندی کادویی و نیم‌ست‌ها مانور بده (ارزش سبد بالاتر). محصول کم‌قیمت و خرید تکراری بالا دارد؛ روی تکرار حساب کن.",
+          "welcome_discount": {
+            "code": "SHINE10",
+            "kind": "percent",
+            "value": 10,
+            "note": "۱۰٪ اولین خرید"
+          },
+          "tips": [
+            "بسته‌بندی کادویی را یک مزیت کن، نه یک هزینه",
+            "نیم‌ست را به‌جای تک‌محصول پیشنهاد بده"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "✨ خوش اومدی! با کد SHINE10 اولین خریدت رو با تخفیف انجام بده."
+            },
+            {
+              "title": "مدل جدید",
+              "trigger": "restock",
+              "content_type": "text",
+              "body": "💎 مدل‌های جدید رسید! ظریف و خاص — قبل از تموم شدن ببین."
+            },
+            {
+              "title": "کادوی مناسبتی",
+              "trigger": "seasonal",
+              "content_type": "text",
+              "body": "🎁 دنبال کادوی خاصی؟ نیم‌ست‌های ما با بسته‌بندی ویژه آماده‌ست."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "bags-shoes",
+      "name": "کیف و کفش",
+      "industry": "fashion",
+      "description": "فروش کیف و کفش با تمرکز بر راهنمای سایز و کاهش مرجوعی",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "کیف و کفش [نام شما]",
+          "hero_subtitle": "استایلت رو از پا تا دست کامل کن",
+          "theme": {
+            "primary": "#7a3b2e",
+            "background": "#f9f3f0",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "افزودن به سبد",
+            "cart": "سبد خرید",
+            "categories": "دسته‌بندی‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای خبر از مدل‌ها و حراج، شماره‌ت رو ثبت کن."
+        },
+        "categories": [
+          {
+            "slug": "women-shoes",
+            "name": "کفش زنانه",
+            "icon": "👠",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "men-shoes",
+            "name": "کفش مردانه",
+            "icon": "👞",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "bag",
+            "name": "کیف",
+            "icon": "👜",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "sport",
+            "name": "کفش اسپرت",
+            "icon": "👟",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "heel",
+            "name": "کفش پاشنه‌دار مجلسی",
+            "category": "women-shoes",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 2100000,
+            "stock": 15,
+            "is_featured": true,
+            "description": "چرم مصنوعی، پاشنه ۷ سانت، سایز ۳۶ تا ۴۰",
+            "image_url": ""
+          },
+          {
+            "slug": "loafer",
+            "name": "کفش کالج مردانه",
+            "category": "men-shoes",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 2400000,
+            "stock": 12,
+            "is_featured": true,
+            "description": "چرم طبیعی، مناسب رسمی",
+            "image_url": ""
+          },
+          {
+            "slug": "bag-shoulder",
+            "name": "کیف دوشی زنانه",
+            "category": "bag",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1650000,
+            "stock": 20,
+            "is_featured": true,
+            "description": "چند جیب، بند قابل‌تنظیم",
+            "image_url": ""
+          },
+          {
+            "slug": "sneaker",
+            "name": "کتانی اسپرت یونیسکس",
+            "category": "sport",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1950000,
+            "stock": 25,
+            "is_featured": false,
+            "description": "سبک و راحت، مناسب پیاده‌روی",
+            "image_url": ""
+          },
+          {
+            "slug": "backpack",
+            "name": "کوله‌پشتی روزمره",
+            "category": "bag",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1450000,
+            "stock": null,
+            "is_featured": false,
+            "description": "ضدآب، جای لپ‌تاپ",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام 👟 قبل از خرید، حتماً راهنمای سایز رو ببین تا سایزت دقیق باشه:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🛍 ورود به فروشگاه",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_offer",
+                      "label": "📏 راهنمای سایز",
+                      "label_slug": "offer",
+                      "action": {
+                        "type": "text",
+                        "text": "جدول سایز رو ببین و طول کف پات رو اندازه بگیر تا سایز دقیق سفارش بدی."
+                      }
+                    },
+                    {
+                      "id": "n_trust",
+                      "label": "🔄 ضمانت تعویض سایز",
+                      "label_slug": "trust",
+                      "action": {
+                        "type": "text",
+                        "text": "اگه سایز نخورد، رایگان تعویض می‌کنیم."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_lead",
+                      "label": "🔔 خبر حراج",
+                      "label_slug": "lead",
+                      "action": {
+                        "type": "text",
+                        "text": "شماره‌ت رو بده تا حراج‌ها رو از دست ندی."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو همینجا بفرست، همکارامون سریع پاسخ می‌دن."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "خریداران مد ۲۰ تا ۴۵ سال، نگران سایز",
+          "strategy": "اهرم اصلی: کاهش ترس سایز = کاهش مرجوعی. بزرگ‌ترین مانع خرید آنلاین کفش، سایز است؛ راهنمای سایز دقیق و ضمانت تعویض، نرخ تبدیل را بالا و مرجوعی را پایین می‌آورد.",
+          "welcome_discount": {
+            "code": "STEP10",
+            "kind": "percent",
+            "value": 10,
+            "note": "۱۰٪ اولین خرید"
+          },
+          "tips": [
+            "راهنمای سایز با اندازه‌ی واقعی (سانتی‌متر کف پا) بگذار، نه فقط شماره",
+            "ضمانت تعویض را پررنگ تبلیغ کن؛ ترس را برمی‌دارد"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "👟 خوش اومدی! با کد STEP10 اولین خریدت رو با تخفیف انجام بده."
+            },
+            {
+              "title": "یادآوری سبد",
+              "trigger": "abandoned_cart",
+              "content_type": "text",
+              "body": "👜 سبدت منتظره! سایز موردنظرت ممکنه زود تموم بشه."
+            },
+            {
+              "title": "حراج فصل",
+              "trigger": "seasonal",
+              "content_type": "text",
+              "body": "🔥 حراج پایان فصل! کفش‌های منتخب تا ۳۰٪ تخفیف."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "mobile-acc",
+      "name": "لوازم جانبی موبایل و دیجیتال",
+      "industry": "digital",
+      "description": "فروش گجت و لوازم جانبی با تمرکز بر فروش مکمل و گارانتی",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "دیجیتال [نام شما]",
+          "hero_subtitle": "گجت‌های به‌روز • گارانتی معتبر",
+          "theme": {
+            "primary": "#2563a8",
+            "background": "#f1f5fb",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "افزودن به سبد",
+            "cart": "سبد خرید",
+            "categories": "دسته‌بندی‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای خبر از تخفیف‌های روزانه، شماره‌ت رو ثبت کن."
+        },
+        "categories": [
+          {
+            "slug": "case",
+            "name": "قاب و گلس",
+            "icon": "📱",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "audio",
+            "name": "هندزفری و اسپیکر",
+            "icon": "🎧",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "charge",
+            "name": "شارژر و پاوربانک",
+            "icon": "🔌",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "gadget",
+            "name": "گجت",
+            "icon": "🖥️",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "case-magsafe",
+            "name": "قاب مگ‌سیف",
+            "category": "case",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 450000,
+            "stock": null,
+            "is_featured": true,
+            "description": "محافظ گوشه، سازگار با شارژ بی‌سیم",
+            "image_url": ""
+          },
+          {
+            "slug": "airbuds",
+            "name": "هندزفری بلوتوث",
+            "category": "audio",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1850000,
+            "stock": 30,
+            "is_featured": true,
+            "description": "کیفیت صدا بالا، نویزگیر، گارانتی ۶ ماه",
+            "image_url": ""
+          },
+          {
+            "slug": "powerbank",
+            "name": "پاوربانک ۲۰۰۰۰",
+            "category": "charge",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1450000,
+            "stock": 25,
+            "is_featured": true,
+            "description": "شارژ سریع، دو پورت",
+            "image_url": ""
+          },
+          {
+            "slug": "glass",
+            "name": "گلس فول‌چسب",
+            "category": "case",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 180000,
+            "stock": null,
+            "is_featured": false,
+            "description": "محافظ صفحه، بدون حباب",
+            "image_url": ""
+          },
+          {
+            "slug": "smartwatch",
+            "name": "ساعت هوشمند",
+            "category": "gadget",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 3200000,
+            "stock": 15,
+            "is_featured": false,
+            "description": "نمایشگر آمولد، گارانتی ۱۲ ماه",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام 📱 گجت یا لوازم جانبی می‌خوای؟ همه با گارانتی و اصالت:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🛍 ورود به فروشگاه",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_offer",
+                      "label": "🎁 خرید مکمل",
+                      "label_slug": "offer",
+                      "action": {
+                        "type": "text",
+                        "text": "قاب خریدی؟ گلس و شارژرش رو هم با تخفیف بردار."
+                      }
+                    },
+                    {
+                      "id": "n_trust",
+                      "label": "🛡 گارانتی معتبر",
+                      "label_slug": "trust",
+                      "action": {
+                        "type": "text",
+                        "text": "محصولات گارانتی‌دار با ضمانت اصالت و تعویض."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_lead",
+                      "label": "🔔 خبر تخفیف",
+                      "label_slug": "lead",
+                      "action": {
+                        "type": "text",
+                        "text": "شماره‌ت رو بده تا تخفیف‌های روزانه رو ببینی."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو همینجا بفرست، همکارامون سریع پاسخ می‌دن."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "کاربران موبایل و گجت، خرید سریع و مقایسه‌ای",
+          "strategy": "اهرم اصلی: فروش مکمل (bundle). هرکس قاب می‌خرد، به گلس و شارژر هم نیاز دارد؛ پیشنهاد باندل ارزش سبد را بالا می‌برد. گارانتی، تمایز اصلی نسبت به فروشنده‌های بی‌نام است.",
+          "welcome_discount": {
+            "code": "TECH10",
+            "kind": "percent",
+            "value": 10,
+            "note": "۱۰٪ اولین خرید"
+          },
+          "tips": [
+            "برای هر محصول یک باندل پیشنهادی بساز",
+            "گارانتی و اصالت را پررنگ کن؛ بازار پر از جنس بی‌گارانتی است"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "📱 خوش اومدی! با کد TECH10 اولین خریدت رو با تخفیف انجام بده."
+            },
+            {
+              "title": "پیشنهاد باندل",
+              "trigger": "loyalty",
+              "content_type": "text",
+              "body": "🎧 لوازم جانبی گوشیت رو کامل کن! گلس و شارژر سریع با تخفیف ویژه."
+            },
+            {
+              "title": "حراج هفته",
+              "trigger": "seasonal",
+              "content_type": "text",
+              "body": "🔥 حراج این هفته روی هندزفری و پاوربانک. موجودی محدود."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "books",
+      "name": "کتاب و لوازم‌التحریر",
+      "industry": "books",
+      "description": "فروش کتاب و نوشت‌افزار با تمرکز بر باشگاه کتاب‌خوان و فروش فصلی",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "کتاب‌فروشی [نام شما]",
+          "hero_subtitle": "هر صفحه یه دنیای تازه 📚",
+          "theme": {
+            "primary": "#34607a",
+            "background": "#f1f6f9",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "افزودن به سبد",
+            "cart": "سبد خرید",
+            "categories": "دسته‌بندی‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای دریافت پیشنهاد کتاب و تخفیف، شماره‌ت رو ثبت کن 📚"
+        },
+        "categories": [
+          {
+            "slug": "book",
+            "name": "کتاب",
+            "icon": "📚",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "notebook",
+            "name": "دفتر و دفترچه",
+            "icon": "📓",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "pen",
+            "name": "نوشت‌افزار",
+            "icon": "✏️",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "gift",
+            "name": "پک هدیه",
+            "icon": "🎁",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "novel-best",
+            "name": "رمان پرفروش ماه",
+            "category": "book",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1800000,
+            "stock": null,
+            "is_featured": true,
+            "description": "منتخب باشگاه کتاب، چاپ جدید",
+            "image_url": ""
+          },
+          {
+            "slug": "notebook-set",
+            "name": "ست دفتر طرح‌دار",
+            "category": "notebook",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 650000,
+            "stock": 40,
+            "is_featured": true,
+            "description": "۳ دفتر هماهنگ، کاغذ مرغوب",
+            "image_url": ""
+          },
+          {
+            "slug": "pen-set",
+            "name": "ست خودکار و روان‌نویس",
+            "category": "pen",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 480000,
+            "stock": null,
+            "is_featured": false,
+            "description": "نوشتار نرم، رنگ‌بندی",
+            "image_url": ""
+          },
+          {
+            "slug": "planner",
+            "name": "پلنر هفتگی",
+            "category": "notebook",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 550000,
+            "stock": 30,
+            "is_featured": true,
+            "description": "برنامه‌ریزی و عادت‌سازی",
+            "image_url": ""
+          },
+          {
+            "slug": "gift-book",
+            "name": "پک هدیه کتاب + دفتر",
+            "category": "gift",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 2200000,
+            "stock": 20,
+            "is_featured": false,
+            "description": "با بسته‌بندی کادویی",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام 📚 دنبال یه کتاب خوب یا لوازم‌التحریر شیک می‌گردی؟"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🛍 ورود به فروشگاه",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_offer",
+                      "label": "📖 پیشنهاد ماه",
+                      "label_slug": "offer",
+                      "action": {
+                        "type": "text",
+                        "text": "منتخب باشگاه کتاب رو ببین — تضمینی خوب می‌خونیشون."
+                      }
+                    },
+                    {
+                      "id": "n_trust",
+                      "label": "🚚 ارسال سریع",
+                      "label_slug": "trust",
+                      "action": {
+                        "type": "text",
+                        "text": "سفارش‌ها سریع و با بسته‌بندی ایمن ارسال می‌شن."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_lead",
+                      "label": "🔔 باشگاه کتاب",
+                      "label_slug": "lead",
+                      "action": {
+                        "type": "text",
+                        "text": "شماره‌ت رو بده تا پیشنهاد کتاب و تخفیف بگیری."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو همینجا بفرست، همکارامون سریع پاسخ می‌دن."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "کتاب‌خوان‌ها و دانشجوها، خرید بر پایه‌ی پیشنهاد و فصل تحصیلی",
+          "strategy": "اهرم اصلی: پیشنهاد دوره‌ای (باشگاه کتاب) + اوج فروش مهر/بازگشت به مدرسه. کتاب خرید مکرر نیست مگر پیشنهاد بدهی؛ ماهانه «منتخب ماه» بفرست.",
+          "welcome_discount": {
+            "code": "READ10",
+            "kind": "percent",
+            "value": 10,
+            "note": "۱۰٪ اولین خرید"
+          },
+          "tips": [
+            "ماهانه «کتاب منتخب» معرفی کن تا دلیل بازگشت بسازی",
+            "مهرماه و شب امتحان، اوج فروش نوشت‌افزار است"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "📚 خوش اومدی! با کد READ10 اولین خریدت رو با تخفیف انجام بده."
+            },
+            {
+              "title": "منتخب ماه",
+              "trigger": "restock",
+              "content_type": "text",
+              "body": "📖 کتاب منتخب این ماه رسید! تعداد محدود از چاپ جدید."
+            },
+            {
+              "title": "بازگشت به مدرسه",
+              "trigger": "seasonal",
+              "content_type": "text",
+              "body": "✏️ فصل مدرسه‌ست! پک‌های لوازم‌التحریر با تخفیف ویژه."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "sports",
+      "name": "پوشاک ورزشی و مکمل",
+      "industry": "sports",
+      "description": "فروش لوازم و مکمل ورزشی با تمرکز بر اشتراک و خرید دوره‌ای مکمل",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "اسپرت [نام شما]",
+          "hero_subtitle": "برای بهترین نسخه‌ی خودت 💪",
+          "theme": {
+            "primary": "#c2402f",
+            "background": "#fbf2f0",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "افزودن به سبد",
+            "cart": "سبد خرید",
+            "categories": "دسته‌بندی‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای دریافت نکات و تخفیف، شماره‌ت رو ثبت کن 💪"
+        },
+        "categories": [
+          {
+            "slug": "wear",
+            "name": "پوشاک ورزشی",
+            "icon": "🎽",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "supp",
+            "name": "مکمل",
+            "icon": "💊",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "gear",
+            "name": "لوازم تمرین",
+            "icon": "🏋️",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "acc",
+            "name": "اکسسوری",
+            "icon": "🧢",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "legging",
+            "name": "لگ ورزشی زنانه",
+            "category": "wear",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1250000,
+            "stock": 30,
+            "is_featured": true,
+            "description": "کشسانی بالا، عرق‌گیر",
+            "image_url": ""
+          },
+          {
+            "slug": "protein",
+            "name": "پودر پروتئین وی",
+            "category": "supp",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 4500000,
+            "stock": null,
+            "is_featured": true,
+            "description": "۲ کیلویی، طعم شکلات، اصل با کد رهگیری",
+            "image_url": ""
+          },
+          {
+            "slug": "bcaa",
+            "name": "آمینو BCAA",
+            "category": "supp",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1800000,
+            "stock": null,
+            "is_featured": false,
+            "description": "ریکاوری سریع‌تر",
+            "image_url": ""
+          },
+          {
+            "slug": "dumbbell",
+            "name": "دمبل قابل‌تنظیم",
+            "category": "gear",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 2900000,
+            "stock": 12,
+            "is_featured": false,
+            "description": "تا ۲۰ کیلو، فضای کم",
+            "image_url": ""
+          },
+          {
+            "slug": "shaker",
+            "name": "شیکر",
+            "category": "acc",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 250000,
+            "stock": null,
+            "is_featured": false,
+            "description": "بدون نشتی، مدرج",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام 💪 دنبال پوشاک یا مکمل ورزشی هستی؟ همه اصل و باکیفیت:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🛍 ورود به فروشگاه",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_offer",
+                      "label": "🛡 اصالت مکمل",
+                      "label_slug": "offer",
+                      "action": {
+                        "type": "text",
+                        "text": "همه‌ی مکمل‌ها اصل و دارای کد رهگیری اصالت‌اند."
+                      }
+                    },
+                    {
+                      "id": "n_trust",
+                      "label": "🔁 خرید دوره‌ای",
+                      "label_slug": "trust",
+                      "action": {
+                        "type": "text",
+                        "text": "مکملت رو هر ماه با تخفیف ثابت بگیر، یادت بمونه."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_lead",
+                      "label": "🔔 برنامه و تخفیف",
+                      "label_slug": "lead",
+                      "action": {
+                        "type": "text",
+                        "text": "شماره‌ت رو بده تا نکات تمرین و تخفیف بگیری."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو همینجا بفرست، همکارامون سریع پاسخ می‌دن."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "ورزشکاران و علاقه‌مندان تناسب‌اندام",
+          "strategy": "اهرم اصلی: مصرف دوره‌ای مکمل. پروتئین و مکمل هر ماه تمام می‌شود؛ یادآوری خرید مجدد و تخفیف دوره‌ای، درآمد تکرارشونده می‌سازد. اصالت کالا حرف اصلی فروش است.",
+          "welcome_discount": {
+            "code": "FIT10",
+            "kind": "percent",
+            "value": 10,
+            "note": "۱۰٪ اولین خرید"
+          },
+          "tips": [
+            "۴ هفته بعد از خرید مکمل، یادآوری خرید مجدد بفرست",
+            "کد اصالت و عکس واقعی محصول، ترس تقلبی بودن را برمی‌دارد"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "💪 خوش اومدی! با کد FIT10 اولین خریدت رو با تخفیف انجام بده."
+            },
+            {
+              "title": "یادآوری مکمل",
+              "trigger": "loyalty",
+              "content_type": "text",
+              "body": "💊 مکملت رو به اتمامه! با کد KEEP10 ده درصد تخفیف بگیر و قبل از تموم شدن سفارش بده."
+            },
+            {
+              "title": "کالکشن جدید",
+              "trigger": "restock",
+              "content_type": "text",
+              "body": "🎽 کالکشن جدید پوشاک ورزشی رسید! سبک و حرفه‌ای."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "toys",
+      "name": "اسباب‌بازی و سرگرمی کودک",
+      "industry": "kids",
+      "description": "فروش اسباب‌بازی با تمرکز بر سن‌بندی و خرید مناسبتی",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "اسباب‌بازی [نام شما]",
+          "hero_subtitle": "بازی، یعنی یادگیری 🧸",
+          "theme": {
+            "primary": "#e0612e",
+            "background": "#fff6f0",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "افزودن به سبد",
+            "cart": "سبد خرید",
+            "categories": "دسته‌بندی‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای پیشنهاد بر اساس سن کودکت، شماره‌ت رو ثبت کن 🧸"
+        },
+        "categories": [
+          {
+            "slug": "edu",
+            "name": "آموزشی",
+            "icon": "🧩",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "doll",
+            "name": "عروسک",
+            "icon": "🪆",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "car",
+            "name": "ماشین و کنترلی",
+            "icon": "🚗",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "game",
+            "name": "بازی فکری",
+            "icon": "♟️",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "lego",
+            "name": "ساختنی ۲۰۰ تکه",
+            "category": "edu",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1450000,
+            "stock": 20,
+            "is_featured": true,
+            "description": "تقویت خلاقیت، مناسب ۵ سال به بالا",
+            "image_url": ""
+          },
+          {
+            "slug": "doll-set",
+            "name": "ست عروسک و لوازم",
+            "category": "doll",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 980000,
+            "stock": 25,
+            "is_featured": true,
+            "description": "همراه با اکسسوری",
+            "image_url": ""
+          },
+          {
+            "slug": "rc-car",
+            "name": "ماشین کنترلی شارژی",
+            "category": "car",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1850000,
+            "stock": 15,
+            "is_featured": false,
+            "description": "باتری قابل‌شارژ، مناسب ۶ سال به بالا",
+            "image_url": ""
+          },
+          {
+            "slug": "puzzle",
+            "name": "پازل ۱۰۰۰ تکه",
+            "category": "game",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 650000,
+            "stock": null,
+            "is_featured": false,
+            "description": "مناسب خانواده",
+            "image_url": ""
+          },
+          {
+            "slug": "blocks",
+            "name": "بلوک‌های چوبی",
+            "category": "edu",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 750000,
+            "stock": 30,
+            "is_featured": true,
+            "description": "بدون رنگ سمی، مناسب ۲ سال به بالا",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام 🧸 برای چه سنی اسباب‌بازی می‌خوای؟ ما بر اساس سن پیشنهاد می‌دیم:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🛍 ورود به فروشگاه",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_offer",
+                      "label": "🎂 هدیه تولد",
+                      "label_slug": "offer",
+                      "action": {
+                        "type": "text",
+                        "text": "دنبال کادوی تولدی؟ بر اساس سن و علاقه پیشنهاد می‌دیم."
+                      }
+                    },
+                    {
+                      "id": "n_trust",
+                      "label": "🛡 ایمن و استاندارد",
+                      "label_slug": "trust",
+                      "action": {
+                        "type": "text",
+                        "text": "همه‌ی اسباب‌بازی‌ها بدون مواد سمی و دارای استانداردند."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_lead",
+                      "label": "🔔 بر اساس سن",
+                      "label_slug": "lead",
+                      "action": {
+                        "type": "text",
+                        "text": "سن کودکت رو بگو تا پیشنهاد و تخفیف مناسب بگیری."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو همینجا بفرست، همکارامون سریع پاسخ می‌دن."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "والدین و خریداران کادو برای کودکان",
+          "strategy": "اهرم اصلی: سن‌بندی + خرید مناسبتی (تولد، عید، روز کودک). با ثبت سن کودک می‌توانی هم پیشنهاد دقیق بدهی هم نزدیک تولد یادآوری کنی.",
+          "welcome_discount": {
+            "code": "PLAY10",
+            "kind": "percent",
+            "value": 10,
+            "note": "۱۰٪ اولین خرید"
+          },
+          "tips": [
+            "سن کودک را ذخیره کن و نزدیک تولد کادو پیشنهاد بده",
+            "ایمنی و استاندارد، نگرانی اصلی والدین است؛ پررنگش کن"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "🧸 خوش اومدی! با کد PLAY10 اولین خریدت رو با تخفیف انجام بده."
+            },
+            {
+              "title": "کادوی تولد",
+              "trigger": "loyalty",
+              "content_type": "text",
+              "body": "🎂 یه تولد نزدیکه! بهترین کادوها بر اساس سن رو ببین."
+            },
+            {
+              "title": "روز کودک",
+              "trigger": "seasonal",
+              "content_type": "text",
+              "body": "🎈 به مناسبت روز کودک، تخفیف ویژه روی منتخب اسباب‌بازی‌ها."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "handicraft",
+      "name": "صنایع دستی و هنری",
+      "industry": "handicraft",
+      "description": "فروش صنایع دستی با تمرکز بر داستان محصول و خرید هدیه",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "دست‌ساز [نام شما]",
+          "hero_subtitle": "هنر ایرانی، ساخت دست 🪡",
+          "theme": {
+            "primary": "#8a6d3b",
+            "background": "#f8f4ec",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "افزودن به سبد",
+            "cart": "سبد خرید",
+            "categories": "دسته‌بندی‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای خبر از کارهای جدید، شماره‌ت رو ثبت کن 🪡"
+        },
+        "categories": [
+          {
+            "slug": "pottery",
+            "name": "سفال و سرامیک",
+            "icon": "🏺",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "textile",
+            "name": "بافت و گلیم",
+            "icon": "🧶",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "wood",
+            "name": "چوب و خاتم",
+            "icon": "🪵",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "decor",
+            "name": "دکوری",
+            "icon": "🎨",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "vase-clay",
+            "name": "گلدان سفالی دست‌ساز",
+            "category": "pottery",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 980000,
+            "stock": 12,
+            "is_featured": true,
+            "description": "نقاشی دستی، هر قطعه منحصربه‌فرد",
+            "image_url": ""
+          },
+          {
+            "slug": "gabe",
+            "name": "گلیم دست‌باف کوچک",
+            "category": "textile",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 2400000,
+            "stock": 8,
+            "is_featured": true,
+            "description": "پشم طبیعی، رنگ گیاهی",
+            "image_url": ""
+          },
+          {
+            "slug": "box-khatam",
+            "name": "جعبه خاتم",
+            "category": "wood",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1650000,
+            "stock": 10,
+            "is_featured": false,
+            "description": "کار دست اصفهان، مناسب کادو",
+            "image_url": ""
+          },
+          {
+            "slug": "mug-handmade",
+            "name": "ماگ سفالی",
+            "category": "pottery",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 450000,
+            "stock": null,
+            "is_featured": false,
+            "description": "لعاب دستی، هر کدام متفاوت",
+            "image_url": ""
+          },
+          {
+            "slug": "wall-art",
+            "name": "تابلو نمدی",
+            "category": "decor",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 890000,
+            "stock": 15,
+            "is_featured": true,
+            "description": "دست‌دوز، طرح سنتی",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام 🪡 هر قطعه‌ی ما با دست و با داستان ساخته شده. ببین و انتخاب کن:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🛍 ورود به فروشگاه",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_offer",
+                      "label": "🎁 هدیه‌ی خاص",
+                      "label_slug": "offer",
+                      "action": {
+                        "type": "text",
+                        "text": "صنایع دستی، کادوی فراموش‌نشدنیه. با بسته‌بندی ویژه ارسال می‌شه."
+                      }
+                    },
+                    {
+                      "id": "n_trust",
+                      "label": "✋ اصالت دست‌ساز",
+                      "label_slug": "trust",
+                      "action": {
+                        "type": "text",
+                        "text": "هر قطعه منحصربه‌فرده و با دست ساخته شده."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_lead",
+                      "label": "🔔 کار جدید",
+                      "label_slug": "lead",
+                      "action": {
+                        "type": "text",
+                        "text": "شماره‌ت رو بده تا کارهای جدید و محدود رو ببینی."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو همینجا بفرست، همکارامون سریع پاسخ می‌دن."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "علاقه‌مندان هنر و خریداران کادوی خاص",
+          "strategy": "اهرم اصلی: داستان و کمیابی. صنایع دستی را با روایت ساخت و «هر قطعه منحصربه‌فرد» بفروش؛ این ارزش ادراکی و قیمت را بالا می‌برد. خرید کادویی، بخش بزرگی از فروش است.",
+          "welcome_discount": {
+            "code": "ART10",
+            "kind": "percent",
+            "value": 10,
+            "note": "۱۰٪ اولین خرید"
+          },
+          "tips": [
+            "برای هر محصول داستان ساخت بگو؛ همین تمایز و قیمت می‌سازد",
+            "کمیابی واقعی («فقط ۳ عدد») را پررنگ کن"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "🪡 خوش اومدی! با کد ART10 اولین خریدت رو با تخفیف انجام بده."
+            },
+            {
+              "title": "کار محدود",
+              "trigger": "restock",
+              "content_type": "text",
+              "body": "🎨 یه کار دست‌ساز جدید و محدود اضافه شد — فقط چند عدد."
+            },
+            {
+              "title": "کادوی مناسبتی",
+              "trigger": "seasonal",
+              "content_type": "text",
+              "body": "🎁 دنبال کادوی خاص و ایرانی؟ صنایع دستی ما با بسته‌بندی ویژه آماده‌ست."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "organic",
+      "name": "محصولات ارگانیک و عسل",
+      "industry": "food",
+      "description": "فروش محصولات طبیعی با تمرکز بر اعتماد به اصالت و خرید دوره‌ای",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "ارگانیک [نام شما]",
+          "hero_subtitle": "طبیعی، بدون افزودنی، مستقیم از طبیعت 🍯",
+          "theme": {
+            "primary": "#b08524",
+            "background": "#fbf6ea",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "افزودن به سبد",
+            "cart": "سبد خرید",
+            "categories": "دسته‌بندی‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای خبر از محصولات فصلی و تخفیف، شماره‌ت رو ثبت کن 🍯"
+        },
+        "categories": [
+          {
+            "slug": "honey",
+            "name": "عسل",
+            "icon": "🍯",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "oil",
+            "name": "روغن و عرقیجات",
+            "icon": "🫒",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "dried",
+            "name": "خشکبار طبیعی",
+            "icon": "🌰",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "herbal",
+            "name": "دمنوش و گیاهان",
+            "icon": "🌿",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "honey-kohi",
+            "name": "عسل کوهی طبیعی",
+            "category": "honey",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1900000,
+            "stock": null,
+            "is_featured": true,
+            "description": "بدون شکر، با برگه آزمایش، ۱ کیلویی",
+            "image_url": ""
+          },
+          {
+            "slug": "honey-konar",
+            "name": "عسل کنار",
+            "category": "honey",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 2600000,
+            "stock": null,
+            "is_featured": true,
+            "description": "خاص و کمیاب، ۹۰۰ گرمی",
+            "image_url": ""
+          },
+          {
+            "slug": "oil-zeytoon",
+            "name": "روغن زیتون فرابکر",
+            "category": "oil",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1450000,
+            "stock": 20,
+            "is_featured": false,
+            "description": "اولین فشار سرد، ۵۰۰ میل",
+            "image_url": ""
+          },
+          {
+            "slug": "badam",
+            "name": "بادام درختی خام",
+            "category": "dried",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1800000,
+            "stock": null,
+            "is_featured": false,
+            "description": "تازه، بدون نمک",
+            "image_url": ""
+          },
+          {
+            "slug": "damnoosh",
+            "name": "دمنوش آرامش",
+            "category": "herbal",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 380000,
+            "stock": 30,
+            "is_featured": true,
+            "description": "بابونه و گل‌گاوزبان",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام 🍯 دنبال محصول طبیعی و سالم می‌گردی؟ همه با تضمین اصالت:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🛍 ورود به فروشگاه",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_offer",
+                      "label": "🧪 برگه آزمایش",
+                      "label_slug": "offer",
+                      "action": {
+                        "type": "text",
+                        "text": "عسل‌ها همراه با برگه آزمایش ساکارز ارسال می‌شن — اصالت تضمینی."
+                      }
+                    },
+                    {
+                      "id": "n_trust",
+                      "label": "🌿 صددرصد طبیعی",
+                      "label_slug": "trust",
+                      "action": {
+                        "type": "text",
+                        "text": "بدون افزودنی و مواد نگهدارنده."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_lead",
+                      "label": "🔔 خبر و تخفیف",
+                      "label_slug": "lead",
+                      "action": {
+                        "type": "text",
+                        "text": "شماره‌ت رو بده تا از محصولات فصلی باخبر شی."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو همینجا بفرست، همکارامون سریع پاسخ می‌دن."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "خانواده‌های سلامت‌محور، خرید بر پایه‌ی اعتماد به اصالت",
+          "strategy": "اهرم اصلی: اثبات اصالت + مصرف دوره‌ای. بزرگ‌ترین تردید مشتری «اصل بودن» است؛ برگه آزمایش و شفافیت اعتماد می‌سازد. عسل/روغن مصرف‌شدنی است، پس خرید تکرار می‌شود.",
+          "welcome_discount": {
+            "code": "PURE10",
+            "kind": "percent",
+            "value": 10,
+            "note": "۱۰٪ اولین خرید"
+          },
+          "tips": [
+            "برگه آزمایش و منشأ محصول را نشان بده؛ این تنها راه غلبه بر بی‌اعتمادی است",
+            "۲ ماه بعد از خرید عسل/روغن، یادآوری خرید مجدد بفرست"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "🍯 خوش اومدی! با کد PURE10 اولین خریدت رو با تخفیف انجام بده."
+            },
+            {
+              "title": "یادآوری اتمام",
+              "trigger": "loyalty",
+              "content_type": "text",
+              "body": "🍯 عسلت رو به اتمامه؟ سفارش بعدی رو با تخفیف ثبت کن."
+            },
+            {
+              "title": "محصول فصلی",
+              "trigger": "restock",
+              "content_type": "text",
+              "body": "🌿 محصول فصلی جدید رسید — طبیعی و محدود."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "petshop",
+      "name": "پت‌شاپ",
+      "industry": "pet",
+      "description": "فروش لوازم حیوانات خانگی با تمرکز بر خرید دوره‌ای غذا",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "پت‌شاپ [نام شما]",
+          "hero_subtitle": "بهترین‌ها برای رفیق کوچولوت 🐾",
+          "theme": {
+            "primary": "#4a8d8a",
+            "background": "#f1f8f7",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "افزودن به سبد",
+            "cart": "سبد خرید",
+            "categories": "دسته‌بندی‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای یادآوری غذا و تخفیف، شماره‌ت رو ثبت کن 🐾"
+        },
+        "categories": [
+          {
+            "slug": "food",
+            "name": "غذا",
+            "icon": "🍖",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "toy",
+            "name": "اسباب‌بازی",
+            "icon": "🧶",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "health",
+            "name": "بهداشت و درمان",
+            "icon": "💊",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "acc",
+            "name": "لوازم",
+            "icon": "🦴",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "cat-food",
+            "name": "غذای خشک گربه",
+            "category": "food",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1650000,
+            "stock": null,
+            "is_featured": true,
+            "description": "کیسه ۲ کیلویی، مخصوص بالغ",
+            "image_url": ""
+          },
+          {
+            "slug": "dog-food",
+            "name": "غذای خشک سگ",
+            "category": "food",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 2200000,
+            "stock": null,
+            "is_featured": true,
+            "description": "کیسه ۳ کیلویی",
+            "image_url": ""
+          },
+          {
+            "slug": "litter",
+            "name": "خاک گربه معطر",
+            "category": "health",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 420000,
+            "stock": 40,
+            "is_featured": false,
+            "description": "کلوخه‌شونده، کم‌گرد و غبار",
+            "image_url": ""
+          },
+          {
+            "slug": "toy-mouse",
+            "name": "اسباب‌بازی موش",
+            "category": "toy",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 180000,
+            "stock": null,
+            "is_featured": false,
+            "description": "کاتنیپ‌دار",
+            "image_url": ""
+          },
+          {
+            "slug": "brush",
+            "name": "برس مخصوص شانه",
+            "category": "acc",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 350000,
+            "stock": 25,
+            "is_featured": false,
+            "description": "کاهش ریزش مو",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام 🐾 برای گربه یا سگت چی لازم داری؟ غذای دوره‌ای رو فراموش نکن:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🛍 ورود به فروشگاه",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_offer",
+                      "label": "🔁 خرید دوره‌ای",
+                      "label_slug": "offer",
+                      "action": {
+                        "type": "text",
+                        "text": "غذای حیوونت تموم شد؟ یادآوری می‌کنیم و با تخفیف می‌فرستیم."
+                      }
+                    },
+                    {
+                      "id": "n_trust",
+                      "label": "🛡 اصل و باکیفیت",
+                      "label_slug": "trust",
+                      "action": {
+                        "type": "text",
+                        "text": "همه‌ی غذاها اصل و تاریخ‌دار با تضمین کیفیت."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_lead",
+                      "label": "🔔 یادآور غذا",
+                      "label_slug": "lead",
+                      "action": {
+                        "type": "text",
+                        "text": "شماره‌ت و نوع حیوونت رو بده تا به‌موقع یادآوری کنیم."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو همینجا بفرست، همکارامون سریع پاسخ می‌دن."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "صاحبان حیوانات خانگی، خرید دوره‌ای و حساس به کیفیت",
+          "strategy": "اهرم اصلی: چرخه‌ی غذای حیوان. غذا هر ۲ تا ۴ هفته تمام می‌شود؛ با یادآوری دوره‌ای، خرید را تضمینی تکرار می‌کنی. این یکی از پایدارترین مدل‌های خرید مجدد است.",
+          "welcome_discount": {
+            "code": "PET10",
+            "kind": "percent",
+            "value": 10,
+            "note": "۱۰٪ اولین خرید"
+          },
+          "tips": [
+            "نوع و وزن حیوان را بپرس تا زمان اتمام غذا را تخمین بزنی و یادآوری بفرستی",
+            "بسته‌های بزرگ‌تر با تخفیف، ارزش سبد را بالا می‌برد"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "🐾 خوش اومدی! با کد PET10 اولین خریدت رو با تخفیف انجام بده."
+            },
+            {
+              "title": "یادآوری غذا",
+              "trigger": "loyalty",
+              "content_type": "text",
+              "body": "🍖 غذای رفیق کوچولوت احتمالاً رو به اتمامه! سفارش بعدی رو با تخفیف ثبت کن."
+            },
+            {
+              "title": "یادآوری سبد",
+              "trigger": "abandoned_cart",
+              "content_type": "text",
+              "body": "🛒 سبدت منتظره! خریدت رو کامل کن."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "salon",
+      "name": "سالن زیبایی و آرایشگاه",
+      "industry": "service",
+      "description": "رزرو نوبت سالن زیبایی با تمرکز بر پر کردن وقت‌های خالی و بازگشت مشتری",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "سالن [نام شما]",
+          "hero_subtitle": "زیبایی، با یه نوبت ساده ✨",
+          "theme": {
+            "primary": "#b04f7a",
+            "background": "#fbf3f7",
+            "font": "Vazirmatn",
+            "layout": "list"
+          },
+          "labels": {
+            "buy": "رزرو نوبت",
+            "cart": "نوبت‌های من",
+            "categories": "خدمات"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای رزرو نوبت و یادآوری، شماره‌ت رو به اشتراک بذار ✨"
+        },
+        "categories": [
+          {
+            "slug": "hair",
+            "name": "مو",
+            "icon": "💇",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "nail",
+            "name": "ناخن",
+            "icon": "💅",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "skin",
+            "name": "پوست و صورت",
+            "icon": "🧖",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "makeup",
+            "name": "میکاپ",
+            "icon": "💄",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "haircut",
+            "name": "کوتاهی و براشینگ",
+            "category": "hair",
+            "item_type": "service",
+            "sale_mode": "quote",
+            "price": 0,
+            "stock": null,
+            "is_featured": true,
+            "description": "برای رزرو نوبت پیام بده",
+            "image_url": ""
+          },
+          {
+            "slug": "color",
+            "name": "رنگ و مش",
+            "category": "hair",
+            "item_type": "service",
+            "sale_mode": "quote",
+            "price": 0,
+            "stock": null,
+            "is_featured": true,
+            "description": "مشاوره رنگ رایگان؛ برای قیمت پیام بده",
+            "image_url": ""
+          },
+          {
+            "slug": "nail-gel",
+            "name": "کاشت/ژلیش ناخن",
+            "category": "nail",
+            "item_type": "service",
+            "sale_mode": "quote",
+            "price": 0,
+            "stock": null,
+            "is_featured": true,
+            "description": "طرح دلخواه",
+            "image_url": ""
+          },
+          {
+            "slug": "facial",
+            "name": "پاکسازی پوست",
+            "category": "skin",
+            "item_type": "service",
+            "sale_mode": "quote",
+            "price": 0,
+            "stock": null,
+            "is_featured": false,
+            "description": "مناسب انواع پوست",
+            "image_url": ""
+          },
+          {
+            "slug": "bride",
+            "name": "میکاپ عروس",
+            "category": "makeup",
+            "item_type": "service",
+            "sale_mode": "quote",
+            "price": 0,
+            "stock": null,
+            "is_featured": false,
+            "description": "با تست قبلی؛ رزرو زودهنگام",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام ✨ برای کدوم خدمت نوبت می‌خوای؟ وقت‌های خالی این هفته رو ببین:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_book",
+                      "label": "📅 رزرو نوبت",
+                      "label_slug": "book",
+                      "action": {
+                        "type": "text",
+                        "text": "خدمت موردنظر و روز دلخواهت رو بفرست تا نوبت خالی رو بهت بگیم."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_price",
+                      "label": "💰 لیست قیمت",
+                      "label_slug": "price",
+                      "action": {
+                        "type": "text",
+                        "text": "لیست خدمات و قیمت‌ها رو توی فروشگاه ببین."
+                      }
+                    },
+                    {
+                      "id": "n_gallery",
+                      "label": "📸 نمونه‌کارها",
+                      "label_slug": "gallery",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_off",
+                      "label": "🎁 تخفیف وقت خالی",
+                      "label_slug": "off",
+                      "action": {
+                        "type": "text",
+                        "text": "برای نوبت‌های وسط هفته (شنبه تا سه‌شنبه) تخفیف ویژه داریم."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو بپرس."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "خانم‌ها، خرید خدمت با چرخه‌ی منظم (رنگ مو هر ماه، ناخن هر ۳ هفته)",
+          "strategy": "اهرم اصلی: پر کردن وقت‌های خالی + بازگشت دوره‌ای. صندلی خالی = درآمد ازدست‌رفته؛ برای روزهای خلوت تخفیف بزن. خدمات دوره‌ای دارند، پس بعد از هر نوبت، نوبت بعدی را یادآوری کن.",
+          "welcome_discount": {
+            "code": "BEAUTY10",
+            "kind": "percent",
+            "value": 10,
+            "note": "۱۰٪ اولین نوبت"
+          },
+          "tips": [
+            "روزهای خلوت (وسط هفته) را با تخفیف پر کن",
+            "۳ تا ۴ هفته بعد از هر نوبت، یادآوری نوبت بعدی بفرست (رنگ ریشه، ترمیم ناخن)",
+            "نمونه‌کار واقعی، قوی‌ترین عامل جذب در این صنف است"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "✨ خوش اومدی! با کد BEAUTY10 اولین نوبتت رو با تخفیف رزرو کن."
+            },
+            {
+              "title": "یادآوری نوبت",
+              "trigger": "loyalty",
+              "content_type": "text",
+              "body": "💇 وقت ترمیم رنگ/ناخنته! همین حالا نوبت بعدی‌ت رو رزرو کن."
+            },
+            {
+              "title": "تخفیف وقت خالی",
+              "trigger": "seasonal",
+              "content_type": "text",
+              "body": "🎁 این هفته وسط هفته خلوته! نوبت بگیر و تخفیف ویژه بگیر."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "education",
+      "name": "آموزشگاه و دوره آنلاین",
+      "industry": "education",
+      "description": "فروش دوره و کلاس با تمرکز بر ثبت‌نام، نمونه رایگان و آپ‌سل",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "آموزشگاه [نام شما]",
+          "hero_subtitle": "یاد بگیر، رشد کن 🎓",
+          "theme": {
+            "primary": "#3d5aa0",
+            "background": "#f2f4fb",
+            "font": "Vazirmatn",
+            "layout": "list"
+          },
+          "labels": {
+            "buy": "ثبت‌نام",
+            "cart": "دوره‌های من",
+            "categories": "دوره‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای دریافت جلسه‌ی نمونه و مشاوره، شماره‌ت رو به اشتراک بذار 🎓"
+        },
+        "categories": [
+          {
+            "slug": "lang",
+            "name": "زبان",
+            "icon": "🗣️",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "skill",
+            "name": "مهارت و فنی",
+            "icon": "💻",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "art",
+            "name": "هنر",
+            "icon": "🎨",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "free",
+            "name": "نمونه رایگان",
+            "icon": "🎁",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "english-a1",
+            "name": "دوره انگلیسی مقدماتی",
+            "category": "lang",
+            "item_type": "service",
+            "sale_mode": "buy",
+            "price": 4500000,
+            "stock": null,
+            "is_featured": true,
+            "description": "۲۰ جلسه آنلاین + پشتیبانی",
+            "image_url": ""
+          },
+          {
+            "slug": "excel",
+            "name": "دوره اکسل کاربردی",
+            "category": "skill",
+            "item_type": "service",
+            "sale_mode": "buy",
+            "price": 2900000,
+            "stock": null,
+            "is_featured": true,
+            "description": "پروژه‌محور، گواهی پایان دوره",
+            "image_url": ""
+          },
+          {
+            "slug": "paint",
+            "name": "کلاس نقاشی مبتدی",
+            "category": "art",
+            "item_type": "service",
+            "sale_mode": "buy",
+            "price": 3200000,
+            "stock": null,
+            "is_featured": false,
+            "description": "آنلاین، همراه با بازخورد",
+            "image_url": ""
+          },
+          {
+            "slug": "demo-lesson",
+            "name": "جلسه نمونه رایگان",
+            "category": "free",
+            "item_type": "service",
+            "sale_mode": "free",
+            "price": 0,
+            "stock": null,
+            "is_featured": true,
+            "description": "قبل از ثبت‌نام، کیفیت رو بسنج",
+            "image_url": ""
+          },
+          {
+            "slug": "private",
+            "name": "کلاس خصوصی",
+            "category": "skill",
+            "item_type": "service",
+            "sale_mode": "quote",
+            "price": 0,
+            "stock": null,
+            "is_featured": false,
+            "description": "برنامه‌ی شخصی؛ برای قیمت پیام بده",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام 🎓 می‌خوای یه مهارت جدید یاد بگیری؟ اول یه جلسه نمونه رایگان بگیر:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_courses",
+                      "label": "📚 دیدن دوره‌ها",
+                      "label_slug": "courses",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_free",
+                      "label": "🎁 جلسه نمونه رایگان",
+                      "label_slug": "free",
+                      "action": {
+                        "type": "text",
+                        "text": "برای دریافت جلسه‌ی نمونه‌ی رایگان، دوره‌ی موردعلاقه‌ت رو بگو."
+                      }
+                    },
+                    {
+                      "id": "n_cert",
+                      "label": "🏅 گواهی پایان دوره",
+                      "label_slug": "cert",
+                      "action": {
+                        "type": "text",
+                        "text": "پایان هر دوره، گواهی معتبر دریافت می‌کنی."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_consult",
+                      "label": "💬 مشاوره انتخاب دوره",
+                      "label_slug": "consult",
+                      "action": {
+                        "type": "text",
+                        "text": "هدفت رو بگو تا بهترین مسیر یادگیری رو پیشنهاد بدیم."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "📞 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو بپرس."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "افراد دنبال یادگیری مهارت/زبان، تصمیم‌گیری با تردید و مقایسه",
+          "strategy": "اهرم اصلی: نمونه‌ی رایگان به‌عنوان قلاب + آپ‌سل دوره‌ی بعدی. تصمیم ثبت‌نام سخت است؛ با جلسه‌ی نمونه‌ی رایگان اعتماد بساز، بعد دوره را بفروش و در پایان دوره‌ی سطح بعد را پیشنهاد بده.",
+          "welcome_discount": {
+            "code": "LEARN15",
+            "kind": "percent",
+            "value": 15,
+            "note": "۱۵٪ ثبت‌نام اول"
+          },
+          "tips": [
+            "جلسه‌ی نمونه‌ی رایگان، بالاترین نرخ تبدیل را در آموزش می‌سازد",
+            "پایان هر دوره، دوره‌ی سطح بعد را با تخفیف پیشنهاد بده (آپ‌سل)",
+            "تخفیف ثبت‌نام زودهنگام (early bird) برای دوره‌های جدید بگذار"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "🎓 خوش اومدی! یه جلسه‌ی نمونه‌ی رایگان بگیر و بعد با کد LEARN15 با تخفیف ثبت‌نام کن."
+            },
+            {
+              "title": "ثبت‌نام زودهنگام",
+              "trigger": "seasonal",
+              "content_type": "text",
+              "body": "⏰ ثبت‌نام ترم جدید شروع شد! ظرفیت محدود، با تخفیف زودهنگام جاتو رزرو کن."
+            },
+            {
+              "title": "دوره سطح بعد",
+              "trigger": "loyalty",
+              "content_type": "text",
+              "body": "🚀 دوره‌ت رو تموم کردی؟ آفرین! دوره‌ی سطح بعد رو با تخفیف ویژه‌ی فارغ‌التحصیل‌ها ببین."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "restaurant",
+      "name": "رستوران و فست‌فود",
+      "industry": "food",
+      "description": "سفارش آنلاین غذا با تمرکز بر سفارش تکراری و پیشنهاد روزانه",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "رستوران [نام شما]",
+          "hero_subtitle": "گرم، سریع، خوشمزه 🍔",
+          "theme": {
+            "primary": "#c43a2b",
+            "background": "#fbf2f0",
+            "font": "Vazirmatn",
+            "layout": "list"
+          },
+          "labels": {
+            "buy": "سفارش",
+            "cart": "سبد سفارش",
+            "categories": "منو"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای دریافت پیشنهاد روزانه و تخفیف، شماره‌ت رو به اشتراک بذار 🍔"
+        },
+        "categories": [
+          {
+            "slug": "burger",
+            "name": "برگر و ساندویچ",
+            "icon": "🍔",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "pizza",
+            "name": "پیتزا",
+            "icon": "🍕",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "iranian",
+            "name": "غذای ایرانی",
+            "icon": "🍚",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "side",
+            "name": "پیش‌غذا و نوشیدنی",
+            "icon": "🥤",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "burger-special",
+            "name": "برگر ویژه",
+            "category": "burger",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 980000,
+            "stock": null,
+            "is_featured": true,
+            "description": "دست‌ساز، گوشت ۱۵۰ گرمی، سیب‌زمینی",
+            "image_url": ""
+          },
+          {
+            "slug": "pizza-mix",
+            "name": "پیتزا مخصوص (متوسط)",
+            "category": "pizza",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1250000,
+            "stock": null,
+            "is_featured": true,
+            "description": "خمیر تازه، پنیر فراوان",
+            "image_url": ""
+          },
+          {
+            "slug": "kebab",
+            "name": "چلوکباب کوبیده",
+            "category": "iranian",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1650000,
+            "stock": null,
+            "is_featured": true,
+            "description": "دو سیخ، برنج ایرانی",
+            "image_url": ""
+          },
+          {
+            "slug": "fries",
+            "name": "سیب‌زمینی سرخ‌کرده",
+            "category": "side",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 380000,
+            "stock": null,
+            "is_featured": false,
+            "description": "همراه با سس مخصوص",
+            "image_url": ""
+          },
+          {
+            "slug": "combo",
+            "name": "کمبو دونفره",
+            "category": "burger",
+            "item_type": "product",
+            "sale_mode": "buy",
+            "price": 1900000,
+            "stock": null,
+            "is_featured": false,
+            "description": "۲ برگر + ۲ نوشابه + سیب‌زمینی بزرگ",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام 🍔 گشنه‌ای؟ منوی امروز آماده‌ست، سفارشت رو سریع تحویل می‌گیری:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_menu",
+                      "label": "🍽 دیدن منو و سفارش",
+                      "label_slug": "menu",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_combo",
+                      "label": "🔥 پیشنهاد ویژه امروز",
+                      "label_slug": "combo",
+                      "action": {
+                        "type": "text",
+                        "text": "کمبوهای ما همیشه به‌صرفه‌ترن! توی منو ببین."
+                      }
+                    },
+                    {
+                      "id": "n_time",
+                      "label": "🕐 زمان تحویل",
+                      "label_slug": "time",
+                      "action": {
+                        "type": "text",
+                        "text": "سفارش‌ها معمولاً ۳۰ تا ۴۵ دقیقه‌ای آماده و ارسال می‌شن."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_club",
+                      "label": "🔔 باشگاه مشتری",
+                      "label_slug": "club",
+                      "action": {
+                        "type": "text",
+                        "text": "شماره‌ت رو بده تا پیشنهادهای روزانه و تخفیف بگیری."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو بپرس."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "ساکنان محله و مشتری‌های گرسنه‌ی همین حالا، خرید مکرر",
+          "strategy": "اهرم اصلی: تکرار سفارش با پیشنهاد روزانه. غذا پرتکرارترین خرید است؛ ساعت ناهار/شام پیشنهاد روز را به لیست بفرست. کمبو ارزش سبد را بالا می‌برد.",
+          "welcome_discount": {
+            "code": "YUM10",
+            "kind": "percent",
+            "value": 10,
+            "note": "۱۰٪ اولین سفارش"
+          },
+          "tips": [
+            "نزدیک ساعت ناهار و شام، پیشنهاد روز را بفرست؛ زمان‌بندی همه‌چیز است",
+            "کمبو و پیشنهاد ویژه، میانگین سبد را بالا می‌برد",
+            "بعد از چند سفارش، یک کد وفاداری بده"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "🍔 خوش اومدی! با کد YUM10 اولین سفارشت رو با تخفیف ثبت کن."
+            },
+            {
+              "title": "پیشنهاد ناهار",
+              "trigger": "restock",
+              "content_type": "text",
+              "body": "🍕 وقت ناهاره! پیشنهاد ویژه‌ی امروز رو ببین و سریع سفارش بده."
+            },
+            {
+              "title": "کد وفاداری",
+              "trigger": "loyalty",
+              "content_type": "text",
+              "body": "🎁 چون مشتری خوبمونی، این کد تخفیف رو برای سفارش بعدیت بگیر."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "digital-products",
+      "name": "محصولات دیجیتال و فایل",
+      "industry": "digital",
+      "description": "فروش فایل و محصول دانلودی با تمرکز بر تحویل آنی و آپ‌سل",
+      "preview_image": "",
+      "data": {
+        "settings": {
+          "hero_title": "فروشگاه دیجیتال [نام شما]",
+          "hero_subtitle": "تحویل آنی، بدون معطلی ⚡",
+          "theme": {
+            "primary": "#5b4b8a",
+            "background": "#f5f3fb",
+            "font": "Vazirmatn",
+            "layout": "list"
+          },
+          "labels": {
+            "buy": "خرید و دانلود",
+            "cart": "خریدهای من",
+            "categories": "دسته‌ها"
+          }
+        },
+        "bot_settings": {
+          "collect_contact_on_start": false,
+          "start_message_contact": ""
+        },
+        "categories": [
+          {
+            "slug": "template",
+            "name": "قالب و فایل آماده",
+            "icon": "🗂️",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "ebook",
+            "name": "کتاب الکترونیک",
+            "icon": "📘",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "course",
+            "name": "ویدیو آموزشی",
+            "icon": "🎬",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "asset",
+            "name": "منابع گرافیکی",
+            "icon": "🎨",
+            "sort_order": 4,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "notion-template",
+            "name": "قالب نوشن مدیریت کار",
+            "category": "template",
+            "item_type": "download",
+            "sale_mode": "download",
+            "price": 350000,
+            "stock": null,
+            "is_featured": true,
+            "description": "آماده، قابل‌شخصی‌سازی، تحویل آنی",
+            "image_url": ""
+          },
+          {
+            "slug": "resume-pack",
+            "name": "پک رزومه حرفه‌ای",
+            "category": "template",
+            "item_type": "download",
+            "sale_mode": "download",
+            "price": 250000,
+            "stock": null,
+            "is_featured": true,
+            "description": "۵ قالب ورد و PDF",
+            "image_url": ""
+          },
+          {
+            "slug": "ebook-market",
+            "name": "کتاب الکترونیک بازاریابی",
+            "category": "ebook",
+            "item_type": "download",
+            "sale_mode": "download",
+            "price": 450000,
+            "stock": null,
+            "is_featured": false,
+            "description": "PDF، ۱۲۰ صفحه",
+            "image_url": ""
+          },
+          {
+            "slug": "video-pack",
+            "name": "پک ویدیو آموزش طراحی",
+            "category": "course",
+            "item_type": "download",
+            "sale_mode": "download",
+            "price": 1200000,
+            "stock": null,
+            "is_featured": true,
+            "description": "۸ ساعت، دسترسی دائم",
+            "image_url": ""
+          },
+          {
+            "slug": "icon-set",
+            "name": "ست ۵۰۰ آیکون",
+            "category": "asset",
+            "item_type": "download",
+            "sale_mode": "download",
+            "price": 550000,
+            "stock": null,
+            "is_featured": false,
+            "description": "SVG و PNG، لایسنس تجاری",
+            "image_url": ""
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام ⚡ هر چی بخری همون لحظه تحویل می‌گیری. دسته موردنظرت رو ببین:"
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_shop",
+                      "label": "🗂 دیدن محصولات",
+                      "label_slug": "shop",
+                      "action": {
+                        "type": "url",
+                        "url": "{shop_url}"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_instant",
+                      "label": "⚡ تحویل آنی",
+                      "label_slug": "instant",
+                      "action": {
+                        "type": "text",
+                        "text": "بعد از پرداخت، فایل بلافاصله برات ارسال می‌شه — بدون انتظار."
+                      }
+                    },
+                    {
+                      "id": "n_sample",
+                      "label": "👀 پیش‌نمایش",
+                      "label_slug": "sample",
+                      "action": {
+                        "type": "text",
+                        "text": "برای هر محصول پیش‌نمایش رایگان داریم تا مطمئن بخری."
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_bundle",
+                      "label": "🎁 باندل تخفیف‌دار",
+                      "label_slug": "bundle",
+                      "action": {
+                        "type": "text",
+                        "text": "چند فایل رو با هم بخر و تا ۳۰٪ کمتر بده."
+                      }
+                    },
+                    {
+                      "id": "n_support",
+                      "label": "💬 پشتیبانی",
+                      "label_slug": "support",
+                      "action": {
+                        "type": "text",
+                        "text": "سوالت رو بپرس."
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "target": "فریلنسرها، دانشجوها و کسب‌وکارهای کوچک دنبال راه‌حل آماده",
+          "strategy": "اهرم اصلی: تحویل آنی + باندل. محصول دیجیتال هزینه‌ی تکثیر صفر دارد؛ با باندل و آپ‌سل، حاشیه‌ی سود بالا را بالاتر ببر. پیش‌نمایش رایگان ریسک خرید را برمی‌دارد.",
+          "welcome_discount": {
+            "code": "DIGI15",
+            "kind": "percent",
+            "value": 15,
+            "note": "۱۵٪ اولین خرید"
+          },
+          "tips": [
+            "باندل بساز (چند فایل با هم ارزان‌تر)؛ سود دیجیتال در آپ‌سل است",
+            "پیش‌نمایش رایگان بگذار تا تردید خرید را برداری",
+            "محصول مکمل را بعد از خرید پیشنهاد بده (مثلاً بعد از قالب رزومه، پک کاورلتر)"
+          ],
+          "campaigns": [
+            {
+              "title": "خوش‌آمد",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "⚡ خوش اومدی! با کد DIGI15 اولین خریدت رو با ۱۵٪ تخفیف انجام بده. تحویل آنی."
+            },
+            {
+              "title": "پیشنهاد باندل",
+              "trigger": "loyalty",
+              "content_type": "text",
+              "body": "🎁 این فایل رو دوست داشتی؟ باندل کاملش رو با ۳۰٪ تخفیف بگیر."
+            },
+            {
+              "title": "محصول جدید",
+              "trigger": "restock",
+              "content_type": "text",
+              "body": "🆕 یه محصول دیجیتال جدید اضافه شد — با تخفیف معرفی اولیه."
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

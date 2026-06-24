@@ -42,10 +42,15 @@ export function useCheckout() {
         payment_method: paymentMethod,
         ...body,
       });
-      if (result.payment_method === 'zarinpal' && result.payment_url) {
-        adapter.openLink(result.payment_url);
+      if (result.payment_method === 'card_to_card' || result.method === 'card_to_card') {
+        await refreshCart();
       } else if (result.payment_method === 'admin_cart') {
         await refreshCart();
+      } else if (result.payment_method === 'bale' || result.method === 'bale_invoice') {
+        await refreshCart();
+        if (adapter.kind === 'bale') {
+          adapter.close();
+        }
       }
       return result;
     } catch (e: unknown) {

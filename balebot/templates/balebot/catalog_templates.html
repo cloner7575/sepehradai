@@ -1,0 +1,143 @@
+{% extends "balebot/base.html" %}
+{% block title %}الگوهای آماده{% endblock %}
+{% block page_title %}الگوهای آماده فروشگاه{% endblock %}
+{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">یک الگوی صنف خود را انتخاب کنید و با یک کلیک فروشگاه نمونه بسازید</p>{% endblock %}
+
+{% block content %}
+<div class="catalog-panel">
+  {% include "balebot/_catalog_subnav.html" %}
+
+  <div class="panel-card mb-4">
+    <div class="panel-card-body">
+      <p class="mb-3 text-muted small">
+        {{ templates|length }} الگوی آماده برای صنف‌های مختلف — هر الگو شامل دسته‌بندی، محصولات نمونه، ظاهر ویترین،
+        منوی خوش‌آمد ربات، کد تخفیف خوش‌آمد و کمپین‌های پیش‌نویس است.
+        پس از اعمال، از <a href="{% url 'catalog_onboarding' %}">ویزارد راه‌اندازی</a> ادامه دهید.
+      </p>
+      {% if industries|length > 1 %}
+      <div class="d-flex flex-wrap gap-2" id="template-industry-filter">
+        <button type="button" class="btn btn-sm btn-panel-primary template-filter-btn is-active" data-industry="all">همه</button>
+        {% for ind in industries %}
+        <button type="button" class="btn btn-sm btn-panel-ghost template-filter-btn" data-industry="{{ ind.key }}">{{ ind.label }}</button>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="row g-4" id="template-grid">
+    {% for tpl in templates %}
+    <div class="col-md-6 col-xl-4 template-card-col" data-industry="{{ tpl.industry }}">
+      <article class="panel-card h-100">
+        <div class="p-3 text-center" style="background: var(--panel-surface-muted, #f8fafc); min-height: 120px; display: flex; align-items: center; justify-content: center;">
+          {% if tpl.preview_image %}
+          <img src="{{ tpl.preview_image.url }}" alt="" style="max-height: 100px; max-width: 100%; object-fit: contain;">
+          {% else %}
+          <i class="bi bi-shop fs-1 text-muted opacity-50"></i>
+          {% endif %}
+        </div>
+        <div class="panel-card-body d-flex flex-column">
+          <span class="catalog-pill mb-2">{{ tpl.industry_label }}</span>
+          <h2 class="h6 fw-bold mb-1">{{ tpl.name }}</h2>
+          <p class="text-muted small flex-grow-1 mb-3">{{ tpl.description }}</p>
+          <button
+            type="button"
+            class="btn btn-panel-primary btn-sm w-100"
+            data-bs-toggle="modal"
+            data-bs-target="#apply-template-modal"
+            data-template-slug="{{ tpl.slug }}"
+            data-template-name="{{ tpl.name }}"
+          >
+            استفاده از این الگو
+          </button>
+        </div>
+      </article>
+    </div>
+    {% empty %}
+    <div class="col-12">
+      <div class="catalog-empty-state">
+        <i class="bi bi-layout-text-window-reverse"></i>
+        <p>الگوی فعالی یافت نشد</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="modal fade" id="apply-template-modal" tabindex="-1" aria-labelledby="apply-template-title" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" id="apply-template-form" action="">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h2 class="modal-title h5" id="apply-template-title">اعمال الگو</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-3">
+            الگوی <strong id="apply-template-name"></strong> به فروشگاه شما اضافه می‌شود.
+            نحوهٔ اعمال را انتخاب کنید:
+          </p>
+          <div class="d-grid gap-3">
+            <label class="d-flex gap-2 align-items-start">
+              <input type="radio" name="mode" value="append" class="mt-1" checked>
+              <span>
+                <strong>افزودن به موجود</strong>
+                <small class="d-block text-muted">دسته‌ها و محصولات با slug تکراری نادیده گرفته می‌شوند.</small>
+              </span>
+            </label>
+            <label class="d-flex gap-2 align-items-start">
+              <input type="radio" name="mode" value="replace" class="mt-1">
+              <span>
+                <strong>جایگزینی کامل</strong>
+                <small class="d-block text-muted">همهٔ دسته‌ها و محصولات فعلی حذف و از نو ساخته می‌شوند.</small>
+              </span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-panel-ghost" data-bs-dismiss="modal">انصراف</button>
+          <button type="submit" class="btn btn-panel-primary">اعمال الگو</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var modal = document.getElementById('apply-template-modal');
+  var form = document.getElementById('apply-template-form');
+  if (!modal || !form) return;
+  var urlPattern = "{% url 'catalog_template_apply' '___SLUG___' %}";
+  modal.addEventListener('show.bs.modal', function (e) {
+    var btn = e.relatedTarget;
+    if (!btn) return;
+    var slug = btn.getAttribute('data-template-slug');
+    var name = btn.getAttribute('data-template-name');
+    document.getElementById('apply-template-name').textContent = name || '';
+    form.action = urlPattern.replace('___SLUG___', slug);
+  });
+
+  var filterWrap = document.getElementById('template-industry-filter');
+  if (filterWrap) {
+    filterWrap.addEventListener('click', function (e) {
+      var btn = e.target.closest('.template-filter-btn');
+      if (!btn) return;
+      var industry = btn.getAttribute('data-industry');
+      filterWrap.querySelectorAll('.template-filter-btn').forEach(function (el) {
+        el.classList.toggle('is-active', el === btn);
+        el.classList.toggle('btn-panel-primary', el === btn);
+        el.classList.toggle('btn-panel-ghost', el !== btn);
+      });
+      document.querySelectorAll('.template-card-col').forEach(function (card) {
+        var show = industry === 'all' || card.getAttribute('data-industry') === industry;
+        card.style.display = show ? '' : 'none';
+      });
+    });
+  }
+})();
+</script>
+{% endblock %}

@@ -833,15 +833,33 @@ class CatalogSettings(models.Model):
 
     class PaymentMethod(models.TextChoices):
         ADMIN_CART = 'admin_cart', 'ارسال سبد به ادمین'
-        ZARINPAL = 'zarinpal', 'زرین‌پال'
+        CARD_TO_CARD = 'card_to_card', 'کارت به کارت'
+        BALE = 'bale', 'پرداخت بله'
 
     payment_admin_enabled = models.BooleanField(
         default=False,
         verbose_name='فعال‌سازی ارسال سبد به ادمین',
     )
-    payment_zarinpal_enabled = models.BooleanField(
+    payment_card_to_card_enabled = models.BooleanField(
         default=False,
-        verbose_name='فعال‌سازی زرین‌پال',
+        verbose_name='فعال‌سازی کارت به کارت',
+    )
+    payment_bale_enabled = models.BooleanField(
+        default=False,
+        verbose_name='فعال‌سازی پرداخت بله',
+    )
+    bale_payment_card_number = models.CharField(
+        max_length=32,
+        blank=True,
+        default='',
+        verbose_name='شماره کارت فروشنده (بله)',
+        help_text='به‌عنوان provider_token در sendInvoice استفاده می‌شود.',
+    )
+    bale_payment_card_holder = models.CharField(
+        max_length=128,
+        blank=True,
+        default='',
+        verbose_name='نام دارنده کارت',
     )
     payment_default_method = models.CharField(
         max_length=16,
@@ -855,15 +873,23 @@ class CatalogSettings(models.Model):
         verbose_name='چت‌آیدی ادمین برای سفارش‌ها',
         help_text='شناسه گفتگوی ادمین در بله/تلگرام برای دریافت سبد خرید.',
     )
-    zarinpal_merchant_id = models.CharField(
-        max_length=64,
+    card_to_card_number = models.CharField(
+        max_length=32,
         blank=True,
         default='',
-        verbose_name='مرچنت‌آیدی زرین‌پال',
+        verbose_name='شماره کارت',
     )
-    zarinpal_sandbox = models.BooleanField(
-        default=True,
-        verbose_name='حالت تست زرین‌پال (سندباکس)',
+    card_to_card_sheba = models.CharField(
+        max_length=34,
+        blank=True,
+        default='',
+        verbose_name='شماره شبا',
+    )
+    card_to_card_holder = models.CharField(
+        max_length=128,
+        blank=True,
+        default='',
+        verbose_name='نام صاحب حساب',
     )
     provider_token = models.CharField(
         max_length=256,
@@ -905,6 +931,50 @@ class CatalogSettings(models.Model):
         default='',
         verbose_name='لینک پیوستن به کانال',
     )
+    class ShippingMode(models.TextChoices):
+        FREE = 'free', 'رایگان'
+        FLAT = 'flat', 'ثابت'
+        BY_PROVINCE = 'by_province', 'بر اساس استان'
+
+    shipping_mode = models.CharField(
+        max_length=20,
+        choices=ShippingMode.choices,
+        default=ShippingMode.FLAT,
+        verbose_name='روش محاسبه ارسال',
+    )
+    shipping_flat_cost = models.BigIntegerField(
+        default=0,
+        verbose_name='هزینه ثابت ارسال (ریال)',
+    )
+    free_shipping_threshold = models.BigIntegerField(
+        null=True,
+        blank=True,
+        verbose_name='آستانه ارسال رایگان (ریال)',
+    )
+    shipping_by_province = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name='هزینه ارسال به تفکیک استان',
+    )
+    order_notify_shipped_template = models.TextField(
+        blank=True,
+        default='سفارش شما ارسال شد 📦 کد رهگیری: {tracking_code}',
+        verbose_name='پیام وضعیت «ارسال‌شده»',
+    )
+    order_notify_delivered_template = models.TextField(
+        blank=True,
+        default='سفارش شما تحویل داده شد. ممنون از خریدتان 🌹',
+        verbose_name='پیام وضعیت «تحویل‌شده»',
+    )
+    abandoned_cart_message_template = models.TextField(
+        blank=True,
+        default='سبد خریدت منتظرته 🛍 با کد {code} ۱۰٪ تخفیف بگیر.',
+        verbose_name='پیام سبد رها‌شده',
+    )
+    abandoned_cart_hours = models.PositiveIntegerField(
+        default=24,
+        verbose_name='ساعت انتظار قبل از یادآوری سبد',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -944,15 +1014,26 @@ class CatalogSettings(models.Model):
     def payment_admin_ready(self) -> bool:
         return bool(self.payment_admin_enabled and self.admin_notify_chat_id)
 
-    def payment_zarinpal_ready(self) -> bool:
-        return bool(self.payment_zarinpal_enabled and (self.zarinpal_merchant_id or '').strip())
+    def payment_card_to_card_ready(self) -> bool:
+        from balebot.services.card_to_card import payment_card_to_card_ready
+
+        return payment_card_to_card_ready(self)
+
+    def payment_bale_ready(self) -> bool:
+        card = (self.bale_payment_card_number or '').strip()
+        if not self.payment_bale_enabled or not card:
+            return False
+        digits = ''.join(ch for ch in card if ch.isdigit())
+        return len(digits) >= 16
 
     def enabled_payment_methods(self) -> list[tuple[str, str]]:
         methods: list[tuple[str, str]] = []
         if self.payment_admin_ready():
             methods.append((self.PaymentMethod.ADMIN_CART, self.PaymentMethod.ADMIN_CART.label))
-        if self.payment_zarinpal_ready():
-            methods.append((self.PaymentMethod.ZARINPAL, self.PaymentMethod.ZARINPAL.label))
+        if self.payment_card_to_card_ready():
+            methods.append((self.PaymentMethod.CARD_TO_CARD, self.PaymentMethod.CARD_TO_CARD.label))
+        if self.payment_bale_ready() and self.platform == Platform.BALE:
+            methods.append((self.PaymentMethod.BALE, self.PaymentMethod.BALE.label))
         return methods
 
     def is_payment_ready(self) -> bool:
@@ -1179,6 +1260,10 @@ class CatalogItemMedia(models.Model):
         return f'{self.item_id} — {self.media_type} — {self.sort_order}'
 
 
+def _order_public_token() -> str:
+    return uuid.uuid4().hex
+
+
 class CatalogOrder(models.Model):
     class Status(models.TextChoices):
         PENDING = 'pending', 'در انتظار پرداخت'
@@ -1212,11 +1297,44 @@ class CatalogOrder(models.Model):
         default=Status.PENDING,
         db_index=True,
     )
+    class FulfillmentStatus(models.TextChoices):
+        PENDING = 'pending', 'در انتظار پرداخت'
+        PAID = 'paid', 'پرداخت‌شده'
+        PREPARING = 'preparing', 'در حال آماده‌سازی'
+        SHIPPED = 'shipped', 'ارسال‌شده'
+        DELIVERED = 'delivered', 'تحویل‌شده'
+        CANCELLED = 'cancelled', 'لغو‌شده'
+        RETURNED = 'returned', 'مرجوعی'
+
+    fulfillment_status = models.CharField(
+        max_length=20,
+        choices=FulfillmentStatus.choices,
+        default=FulfillmentStatus.PENDING,
+        db_index=True,
+    )
+    tracking_code = models.CharField(max_length=64, blank=True, default='')
+    customer_note = models.TextField(blank=True, default='')
+    admin_note = models.TextField(blank=True, default='')
+    recipient_name = models.CharField(max_length=120, blank=True, default='')
+    recipient_phone = models.CharField(max_length=20, blank=True, default='')
+    recipient_address = models.TextField(blank=True, default='')
+    recipient_postal_code = models.CharField(max_length=20, blank=True, default='')
+    shipping_cost = models.BigIntegerField(default=0)
+    discount_code = models.CharField(max_length=40, blank=True, default='')
+    discount_amount = models.BigIntegerField(default=0)
+    public_token = models.CharField(
+        max_length=64,
+        unique=True,
+        default=_order_public_token,
+        editable=False,
+        db_index=True,
+    )
     total_amount = models.PositiveBigIntegerField(default=0)
     currency = models.CharField(max_length=8, default='IRR')
     payment_method = models.CharField(max_length=16, blank=True, default='')
     payment_charge_id = models.CharField(max_length=256, blank=True, default='')
-    zarinpal_authority = models.CharField(max_length=64, blank=True, default='')
+    payment_receipt = models.ImageField(upload_to='catalog/receipts/%Y/%m/', blank=True, null=True)
+    receipt_uploaded_at = models.DateTimeField(null=True, blank=True)
     note = models.TextField(blank=True, default='')
     customer_data = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -1274,6 +1392,7 @@ class CatalogCart(models.Model):
         on_delete=models.CASCADE,
         related_name='catalog_carts',
     )
+    reminder_sent_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -1311,3 +1430,68 @@ class CatalogCartItem(models.Model):
 
     def __str__(self):
         return f'{self.catalog_item_id} x{self.quantity}'
+
+
+class StoreTemplate(models.Model):
+    """الگوی آماده فروشگاه — سراسری (بدون workspace)."""
+
+    slug = models.SlugField(unique=True, max_length=80)
+    name = models.CharField(max_length=120)
+    industry = models.CharField(max_length=60, db_index=True)
+    description = models.CharField(max_length=255, blank=True, default='')
+    preview_image = models.ImageField(upload_to='store_templates/', blank=True)
+    data = models.JSONField(default=dict, blank=True)
+    sort_order = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['sort_order', 'name']
+        verbose_name = 'الگوی فروشگاه'
+        verbose_name_plural = 'الگوهای فروشگاه'
+
+    def __str__(self):
+        return self.name
+
+
+class DiscountCode(models.Model):
+    class Kind(models.TextChoices):
+        PERCENT = 'percent', 'درصدی'
+        AMOUNT = 'amount', 'مبلغی'
+
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name='discount_codes',
+        db_index=True,
+    )
+    platform = models.CharField(
+        max_length=16,
+        choices=Platform.choices,
+        default=Platform.BALE,
+        db_index=True,
+    )
+    code = models.CharField(max_length=40)
+    kind = models.CharField(max_length=10, choices=Kind.choices)
+    value = models.BigIntegerField(help_text='درصد یا مبلغ به ریال')
+    max_uses = models.IntegerField(null=True, blank=True)
+    used_count = models.IntegerField(default=0)
+    min_order_amount = models.BigIntegerField(default=0)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'کد تخفیف'
+        verbose_name_plural = 'کدهای تخفیف'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['workspace', 'platform', 'code'],
+                name='unique_discount_code_workspace_platform',
+            ),
+        ]
+
+    def __str__(self):
+        return self.code

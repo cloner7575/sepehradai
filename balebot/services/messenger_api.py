@@ -330,6 +330,45 @@ def answer_callback_query(
     return call_method(platform, 'answerCallbackQuery', settings=settings, json_body=payload)
 
 
+def send_invoice(
+    platform: str,
+    chat_id: int | str,
+    *,
+    title: str,
+    description: str,
+    payload: str,
+    provider_token: str,
+    prices: list[dict[str, Any]],
+    settings: BotSettings | None = None,
+    currency: str = 'IRR',
+    photo_url: str | None = None,
+    need_name: bool = False,
+    need_phone_number: bool = False,
+    need_shipping_address: bool = False,
+    is_flexible: bool = False,
+) -> dict[str, Any]:
+    """ارسال صورت‌حساب درون‌چتی (sendInvoice)."""
+    body: dict[str, Any] = {
+        'chat_id': chat_id,
+        'title': (title or 'سفارش')[:32],
+        'description': (description or '')[:255],
+        'payload': payload[:128],
+        'provider_token': provider_token,
+        'currency': currency,
+        'prices': [
+            {'label': (p.get('label') or 'قلم')[:128], 'amount': int(p.get('amount') or 0)}
+            for p in prices
+        ],
+        'need_name': need_name,
+        'need_phone_number': need_phone_number,
+        'need_shipping_address': need_shipping_address,
+        'is_flexible': is_flexible,
+    }
+    if photo_url:
+        body['photo_url'] = photo_url[:512]
+    return call_method(platform, 'sendInvoice', settings=settings, json_body=body)
+
+
 def get_file(platform: str, file_id: str, *, settings: BotSettings | None = None) -> dict[str, Any]:
     return call_method(platform, 'getFile', settings=settings, json_body={'file_id': file_id})
 

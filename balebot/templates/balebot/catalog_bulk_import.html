@@ -1,0 +1,94 @@
+{% extends "balebot/base.html" %}
+{% block title %}ورود گروهی محصولات{% endblock %}
+{% block page_title %}ورود گروهی محصولات{% endblock %}
+{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">آپلود Excel یا CSV — دسته‌بندی‌های جدید خودکار ساخته می‌شوند</p>{% endblock %}
+
+{% block content %}
+<div class="catalog-panel">
+  {% include "balebot/_catalog_subnav.html" %}
+
+  <div class="row g-4">
+    <div class="col-lg-5">
+      <div class="panel-card h-100">
+        <div class="panel-card-header">
+          <h2 class="panel-card-title mb-0">آپلود فایل</h2>
+        </div>
+        <div class="panel-card-body">
+          <p class="small text-muted">ستون‌های لازم: <code dir="ltr">name, category, price</code> — اختیاری: <code dir="ltr">stock, description, image_url</code></p>
+          <a href="{% url 'catalog_bulk_import_sample' %}" class="btn btn-panel-ghost btn-sm mb-3">
+            <i class="bi bi-download me-1"></i>دانلود قالب نمونه Excel
+          </a>
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="preview">
+            <div class="mb-3">
+              <input type="file" name="file" class="form-control" accept=".xlsx,.csv" required>
+            </div>
+            <button type="submit" class="btn btn-panel-primary w-100">
+              <i class="bi bi-eye me-1"></i>پیش‌نمایش
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-7">
+      <div class="panel-card h-100">
+        <div class="panel-card-header">
+          <h2 class="panel-card-title mb-0">پیش‌نمایش</h2>
+          {% if preview_rows %}
+          <form method="post" class="m-0">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="import">
+            <button type="submit" class="btn btn-panel-primary btn-sm">
+              <i class="bi bi-check2-circle me-1"></i>ثبت {{ preview_rows|length }} محصول
+            </button>
+          </form>
+          {% endif %}
+        </div>
+        <div class="panel-card-body">
+          {% if preview_errors %}
+          <div class="alert alert-warning small">
+            <strong>خطاها:</strong>
+            <ul class="mb-0 ps-3">
+              {% for err in preview_errors %}
+              <li>{{ err }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+
+          {% if preview_rows %}
+          <div class="table-responsive">
+            <table class="table table-sm panel-table">
+              <thead>
+                <tr>
+                  <th>نام</th>
+                  <th>دسته</th>
+                  <th>قیمت (ریال)</th>
+                  <th>موجودی</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in preview_rows %}
+                <tr>
+                  <td>{{ row.name }}</td>
+                  <td>{{ row.category }}</td>
+                  <td>{{ row.price|floatformat:0 }}</td>
+                  <td>{% if row.stock != None %}{{ row.stock }}{% else %}—{% endif %}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="catalog-empty-state">
+            <i class="bi bi-file-earmark-spreadsheet"></i>
+            <p>فایلی آپلود نشده یا ردیف معتبری نیست</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

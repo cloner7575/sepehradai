@@ -103,6 +103,21 @@ export interface CatalogConfig {
   payment_methods?: PaymentMethodOption[];
   payment_default?: string;
   checkout_form?: CheckoutFormConfig;
+  shipping?: {
+    mode: string;
+    flat_cost: number;
+    free_threshold: number | null;
+    provinces: string[];
+  };
+}
+
+export interface CartSummary {
+  items: CartLine[];
+  subtotal: number;
+  shipping_cost: number;
+  discount_amount: number;
+  total: number;
+  free_shipping: boolean;
 }
 
 export interface AuthValidateResult {
@@ -123,7 +138,26 @@ export interface CheckoutResult {
   payment_method: string;
   status?: string;
   message?: string;
-  payment_url?: string;
+  method?: string;
+  amount?: number;
+  card?: CardToCardDetails;
+}
+
+export interface CardToCardDetails {
+  number: string;
+  number_display: string;
+  sheba: string;
+  sheba_display: string;
+  holder: string;
+}
+
+export interface OrderPaymentInfo {
+  order_id: number;
+  amount: number;
+  status: string;
+  receipt_uploaded: boolean;
+  receipt_url: string;
+  card: CardToCardDetails;
 }
 
 export type MediaType = 'image' | 'video' | 'file';

@@ -27,6 +27,7 @@ from balebot.models import (
     CatalogItemMedia,
     CatalogOrder,
     CatalogSettings,
+    StoreTemplate,
 )
 from balebot.platform import get_bot_settings_for_request, require_miniapp_access_for_request
 from balebot.services.catalog_item_types import ITEM_TYPE_GUIDES, get_item_type_guide
@@ -34,7 +35,40 @@ from balebot.services.catalog_media import detect_media_type
 from balebot.services.catalog_page_layout import get_home_blocks, sanitize_home_blocks
 from balebot.services.checkout_form import get_checkout_form
 from balebot.services.public_url import resolve_public_base_url
+from balebot.services.store_template import apply_template
+from balebot.services.catalog_bulk_import import (
+    build_sample_workbook,
+    import_rows,
+    parse_import_file,
+    preview_import_rows,
+)
 from balebot.views_panel import PanelAccessMixin, WorkspaceScopedMixin
+
+STORE_TEMPLATE_INDUSTRY_LABELS = {
+    'clothing': 'پوشاک',
+    'cosmetics': 'آرایشی و بهداشتی',
+    'food': 'خوراکی',
+    'bakery': 'شیرینی و نان',
+    'coffee': 'کافه',
+    'nuts': 'آجیل و خشکبار',
+    'plants': 'گل و گیاه',
+    'home-decor': 'دکوراسیون',
+    'jewelry': 'جواهر و اکسسوری',
+    'bags-shoes': 'کیف و کفش',
+    'mobile-acc': 'موبایل و لوازم جانبی',
+    'books': 'کتاب',
+    'sports': 'ورزشی',
+    'toys': 'اسباب‌بازی',
+    'handicraft': 'صنایع دستی',
+    'organic': 'ارگانیک',
+    'petshop': 'پت‌شاپ',
+    'salon': 'سالن زیبایی',
+    'education': 'آموزش',
+    'restaurant': 'رستوران',
+    'digital-products': 'محصولات دیجیتال',
+    'perfume': 'عطر و ادکلن',
+    'general': 'عمومی',
+}
 
 
 def _attach_item_preview_image(item: CatalogItem) -> None:
@@ -118,6 +152,61 @@ def _order_list_querystring(request, *, exclude_page: bool = True, exclude_keys:
     for key in exclude_keys or []:
         params.pop(key, None)
     return params.urlencode()
+
+
+def _build_onboarding_steps(
+    *,
+    catalog: CatalogSettings,
+    bot: BotSettings,
+    scope: dict,
+) -> list[dict]:
+    item_count = CatalogItem.objects.filter(**scope, is_active=True).count()
+    category_count = CatalogCategory.objects.filter(**scope, is_active=True).count()
+    bot_ready = bool((bot.bot_token or '').strip()) and bool(resolve_public_base_url(bot).strip())
+    payment_ready = catalog.is_payment_ready()
+
+    return [
+        {
+            'key': 'bot',
+            'done': bot_ready,
+            'label': 'اتصال ربات و وب‌هوک',
+            'hint': 'توکن ربات و آدرس عمومی سرور',
+            'url_name': 'bot_settings',
+            'url_hash': '',
+        },
+        {
+            'key': 'template',
+            'done': category_count > 0 and item_count >= 3,
+            'label': 'انتخاب الگو',
+            'hint': 'دسته‌ها و محصولات نمونه',
+            'url_name': 'catalog_templates',
+            'url_hash': '',
+        },
+        {
+            'key': 'payment',
+            'done': payment_ready,
+            'label': 'ثبت روش پرداخت',
+            'hint': 'بله، زرین‌پال یا ارسال به ادمین',
+            'url_name': 'catalog_settings',
+            'url_hash': 'sec-payment',
+        },
+        {
+            'key': 'products',
+            'done': item_count >= 3,
+            'label': 'حداقل ۳ محصول',
+            'hint': 'ویرایش یا افزودن محصولات',
+            'url_name': 'catalog_item_list',
+            'url_hash': '',
+        },
+        {
+            'key': 'publish',
+            'done': catalog.is_enabled and payment_ready,
+            'label': 'انتشار فروشگاه',
+            'hint': 'فعال‌سازی مینی‌اپ برای مشتریان',
+            'url_name': 'catalog_settings',
+            'url_hash': 'sec-status',
+        },
+    ]
 
 
 class MiniAppPanelMixin(WorkspaceScopedMixin, PanelAccessMixin):
@@ -267,7 +356,7 @@ class CatalogDashboardView(MiniAppPanelMixin, TemplateView):
                 'key': 'payment',
                 'done': catalog.is_payment_ready(),
                 'label': 'روش پرداخت',
-                'hint': 'زرین‌پال یا ارسال به ادمین',
+                'hint': 'زرین‌پال، پرداخت بله یا ارسال به ادمین',
                 'url_name': 'catalog_settings',
                 'url_hash': 'sec-payment',
             },
@@ -585,30 +674,214 @@ class CatalogOrderDetailView(MiniAppPanelMixin, DetailView):
         ctx['customer_rows'] = _order_customer_rows(catalog, order)
         ctx['payment_method_label'] = _order_payment_label(order.payment_method)
         ctx['update_form'] = CatalogOrderUpdateForm(
-            initial={'status': order.status, 'note': order.note},
+            initial={
+                'status': order.status,
+                'fulfillment_status': order.fulfillment_status,
+                'tracking_code': order.tracking_code,
+                'admin_note': order.admin_note,
+                'note': order.note,
+            },
         )
         ctx['line_count'] = order.lines.count()
+        ctx['items_subtotal'] = sum(line.line_total for line in order.lines.all())
         return ctx
 
 
 class CatalogOrderUpdateView(MiniAppPanelMixin, View):
     def post(self, request, pk):
         order = get_object_or_404(CatalogOrder, pk=pk, **self.scope_filter())
+        catalog = self.get_catalog_settings()
         form = CatalogOrderUpdateForm(request.POST)
         if not form.is_valid():
             messages.error(request, 'ذخیره نشد. وضعیت را بررسی کنید.')
             return redirect('catalog_order_detail', pk=pk)
 
         old_status = order.status
+        old_fulfillment = order.fulfillment_status
         order.status = form.cleaned_data['status']
+        order.fulfillment_status = form.cleaned_data['fulfillment_status']
+        order.tracking_code = (form.cleaned_data.get('tracking_code') or '')[:64]
+        order.admin_note = form.cleaned_data.get('admin_note') or ''
         order.note = form.cleaned_data['note']
-        order.save(update_fields=['status', 'note', 'updated_at'])
+        order.save(
+            update_fields=[
+                'status',
+                'fulfillment_status',
+                'tracking_code',
+                'admin_note',
+                'note',
+                'updated_at',
+            ],
+        )
+
+        if (
+            order.status == CatalogOrder.Status.PAID
+            and old_status != CatalogOrder.Status.PAID
+        ):
+            from balebot.services.catalog_payment import mark_order_paid
+
+            mark_order_paid(order)
+            if form.cleaned_data['fulfillment_status'] != CatalogOrder.FulfillmentStatus.PAID:
+                order.fulfillment_status = form.cleaned_data['fulfillment_status']
+                order.save(update_fields=['fulfillment_status', 'updated_at'])
+
+        from balebot.services.order_fulfillment import notify_fulfillment_status_change
+
+        if old_fulfillment != order.fulfillment_status:
+            notify_fulfillment_status_change(
+                order,
+                catalog,
+                old_status=old_fulfillment,
+                new_status=order.fulfillment_status,
+            )
 
         if old_status != order.status:
             messages.success(
                 request,
-                f'وضعیت سفارش #{order.pk} به «{order.get_status_display()}» تغییر کرد.',
+                f'وضعیت پرداخت سفارش #{order.pk} به «{order.get_status_display()}» تغییر کرد.',
+            )
+        elif old_fulfillment != order.fulfillment_status:
+            messages.success(
+                request,
+                f'وضعیت ارسال سفارش #{order.pk} به «{order.get_fulfillment_status_display()}» تغییر کرد.',
             )
         else:
-            messages.success(request, 'یادداشت سفارش ذخیره شد.')
+            messages.success(request, 'سفارش ذخیره شد.')
         return redirect('catalog_order_detail', pk=pk)
+
+
+class StoreTemplateListView(MiniAppPanelMixin, ListView):
+    model = StoreTemplate
+    template_name = 'balebot/catalog_templates.html'
+    context_object_name = 'templates'
+
+    def get_queryset(self):
+        return StoreTemplate.objects.filter(is_active=True).order_by('sort_order', 'name')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['industry_labels'] = STORE_TEMPLATE_INDUSTRY_LABELS
+        templates = list(ctx['templates'])
+        for tpl in templates:
+            tpl.industry_label = STORE_TEMPLATE_INDUSTRY_LABELS.get(tpl.industry, tpl.industry)
+        ctx['templates'] = templates
+        industries = sorted({tpl.industry for tpl in templates})
+        ctx['industries'] = [
+            {
+                'key': key,
+                'label': STORE_TEMPLATE_INDUSTRY_LABELS.get(key, key),
+            }
+            for key in industries
+        ]
+        return ctx
+
+
+class StoreTemplateApplyView(MiniAppPanelMixin, View):
+    def post(self, request, slug):
+        template = get_object_or_404(StoreTemplate, slug=slug, is_active=True)
+        mode = (request.POST.get('mode') or 'append').strip()
+        if mode not in ('append', 'replace'):
+            mode = 'append'
+        try:
+            stats = apply_template(
+                template,
+                self.get_workspace(),
+                self.get_active_platform(),
+                mode=mode,
+            )
+        except Exception as exc:
+            messages.error(request, f'اعمال الگو ناموفق بود: {exc}')
+            return redirect('catalog_templates')
+
+        messages.success(
+            request,
+            (
+                f'الگوی «{template.name}» اعمال شد — '
+                f'{stats["categories_created"]} دسته، '
+                f'{stats["items_created"]} محصول'
+                + (f'، {stats["campaign_created"]} کمپین نمونه' if stats['campaign_created'] else '')
+                + (f'، {stats["discount_created"]} کد تخفیف' if stats.get('discount_created') else '')
+                + '.'
+            ),
+        )
+        return redirect('catalog_onboarding')
+
+
+class CatalogBulkImportView(MiniAppPanelMixin, TemplateView):
+    template_name = 'balebot/catalog_bulk_import.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['preview_rows'] = self.request.session.pop('bulk_import_preview', None)
+        ctx['preview_errors'] = self.request.session.pop('bulk_import_errors', None)
+        return ctx
+
+    def post(self, request, *args, **kwargs):
+        action = (request.POST.get('action') or 'preview').strip()
+        if action == 'import':
+            rows = request.session.get('bulk_import_preview') or []
+            if not rows:
+                messages.error(request, 'ابتدا فایل را پیش‌نمایش کنید.')
+                return redirect('catalog_bulk_import')
+            stats = import_rows(self.get_catalog_settings(), rows)
+            request.session.pop('bulk_import_preview', None)
+            request.session.pop('bulk_import_errors', None)
+            messages.success(
+                request,
+                f'{stats["items_created"]} محصول و {stats["categories_created"]} دسته جدید ثبت شد.',
+            )
+            return redirect('catalog_item_list')
+
+        upload = request.FILES.get('file')
+        if not upload:
+            messages.error(request, 'فایلی انتخاب نشده است.')
+            return redirect('catalog_bulk_import')
+        try:
+            raw_rows = parse_import_file(upload.name, upload.read())
+            valid, errors = preview_import_rows(raw_rows)
+        except Exception as exc:
+            messages.error(request, str(exc))
+            return redirect('catalog_bulk_import')
+        request.session['bulk_import_preview'] = valid
+        request.session['bulk_import_errors'] = errors
+        if not valid:
+            messages.warning(request, 'هیچ ردیف معتبری یافت نشد.')
+        else:
+            messages.info(request, f'{len(valid)} ردیف آماده ثبت است. پیش‌نمایش را بررسی کنید.')
+        return redirect('catalog_bulk_import')
+
+
+class CatalogBulkImportSampleView(MiniAppPanelMixin, View):
+    def get(self, request):
+        from django.http import HttpResponse
+
+        content = build_sample_workbook()
+        response = HttpResponse(
+            content,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response['Content-Disposition'] = 'attachment; filename="catalog-import-sample.xlsx"'
+        return response
+
+
+class CatalogOnboardingView(MiniAppPanelMixin, TemplateView):
+    template_name = 'balebot/catalog_onboarding.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        scope = self.scope_filter()
+        catalog = self.get_catalog_settings()
+        bot = get_bot_settings_for_request(self.request)
+        steps = _build_onboarding_steps(catalog=catalog, bot=bot, scope=scope)
+        done = sum(1 for s in steps if s['done'])
+        total = len(steps)
+        ctx.update({
+            'catalog': catalog,
+            'bot': bot,
+            'mini_app_url': catalog.build_mini_app_url(bot),
+            'onboarding_steps': steps,
+            'onboarding_done': done,
+            'onboarding_total': total,
+            'onboarding_percent': int((done / total) * 100) if total else 0,
+        })
+        return ctx

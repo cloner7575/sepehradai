@@ -18,6 +18,7 @@ from balebot.models import (
     CatalogItemMedia,
     CatalogOrder,
     CatalogSettings,
+    Platform,
     Subscriber,
 )
 from balebot.services import catalog_payment, miniapp_auth
@@ -190,6 +191,16 @@ def catalog_config(request, public_id):
         'payment_methods': methods if can_purchase else [],
         'payment_default': catalog.resolve_payment_method(None) if can_purchase else None,
         'checkout_form': public_checkout_form(catalog.checkout_form),
+        'shipping': {
+            'mode': catalog.shipping_mode,
+            'flat_cost': int(catalog.shipping_flat_cost or 0),
+            'free_threshold': (
+                int(catalog.free_shipping_threshold)
+                if catalog.free_shipping_threshold is not None
+                else None
+            ),
+            'provinces': list((catalog.shipping_by_province or {}).keys()),
+        },
     })
 
 
@@ -352,7 +363,20 @@ def catalog_cart(request, public_id):
             line = _cart_line_dict(entry, request, catalog)
             total += line['line_total']
             items.append(line)
-        return JsonResponse({'ok': True, 'items': items, 'total': total})
+        province = (request.GET.get('province') or '').strip()
+        discount_code = (request.GET.get('discount_code') or '').strip()
+        summary = catalog_payment.compute_cart_summary(
+            catalog, total, province=province, discount_code=discount_code,
+        )
+        return JsonResponse({
+            'ok': True,
+            'items': items,
+            'subtotal': summary['subtotal'],
+            'shipping_cost': summary['shipping_cost'],
+            'discount_amount': summary['discount_amount'],
+            'total': summary['total'],
+            'free_shipping': summary['free_shipping'],
+        })
 
     body = _parse_body(request)
     init_data = (body.get('initData') or '').strip()
@@ -394,7 +418,20 @@ def catalog_cart(request, public_id):
         line = _cart_line_dict(entry, request, catalog)
         total += line['line_total']
         items.append(line)
-    return JsonResponse({'ok': True, 'items': items, 'total': total})
+    province = (body.get('province') or '').strip()
+    discount_code = (body.get('discount_code') or '').strip()
+    summary = catalog_payment.compute_cart_summary(
+        catalog, total, province=province, discount_code=discount_code,
+    )
+    return JsonResponse({
+        'ok': True,
+        'items': items,
+        'subtotal': summary['subtotal'],
+        'shipping_cost': summary['shipping_cost'],
+        'discount_amount': summary['discount_amount'],
+        'total': summary['total'],
+        'free_shipping': summary['free_shipping'],
+    })
 
 
 @csrf_exempt
@@ -420,34 +457,57 @@ def catalog_checkout(request, public_id):
     if form_errors:
         return _json_error(form_errors[0], 400)
 
+    province = (body.get('province') or customer_data.get('city') or '').strip()
+    discount_code = (body.get('discount_code') or '').strip()
+    recipient_extra = {
+        'recipient_name': body.get('recipient_name'),
+        'recipient_phone': body.get('recipient_phone'),
+        'recipient_address': body.get('recipient_address'),
+        'recipient_postal_code': body.get('recipient_postal_code'),
+        'customer_note': body.get('customer_note'),
+    }
+
     item_id = body.get('item_id')
     use_cart = body.get('use_cart', True)
     order = None
-    if item_id:
-        item = get_object_or_404(
-            CatalogItem,
-            pk=item_id,
-            workspace=catalog.workspace,
-            platform=catalog.platform,
-            is_active=True,
-        )
-        order = catalog_payment.create_checkout_order(
-            catalog=catalog,
-            subscriber=sub,
-            item=item,
-            quantity=int(body.get('quantity') or 1),
-            payment_method=payment_method,
-            customer_data=customer_data,
-        )
-    elif use_cart:
-        cart = catalog_payment.get_or_create_cart(catalog.workspace, catalog.platform, sub)
-        order = catalog_payment.create_checkout_order(
-            catalog=catalog,
-            subscriber=sub,
-            cart=cart,
-            payment_method=payment_method,
-            customer_data=customer_data,
-        )
+    try:
+        if item_id:
+            item = get_object_or_404(
+                CatalogItem,
+                pk=item_id,
+                workspace=catalog.workspace,
+                platform=catalog.platform,
+                is_active=True,
+            )
+            order = catalog_payment.create_checkout_order(
+                catalog=catalog,
+                subscriber=sub,
+                item=item,
+                quantity=int(body.get('quantity') or 1),
+                payment_method=payment_method,
+                customer_data=customer_data,
+                province=province,
+                discount_code=discount_code,
+                recipient_extra=recipient_extra,
+            )
+        elif use_cart:
+            cart = catalog_payment.get_or_create_cart(catalog.workspace, catalog.platform, sub)
+            order = catalog_payment.create_checkout_order(
+                catalog=catalog,
+                subscriber=sub,
+                cart=cart,
+                payment_method=payment_method,
+                customer_data=customer_data,
+                province=province,
+                discount_code=discount_code,
+                recipient_extra=recipient_extra,
+            )
+    except Exception as e:
+        from balebot.services.discount import DiscountError
+
+        if isinstance(e, DiscountError):
+            return _json_error(str(e), 400)
+        raise
     if not order or order.total_amount <= 0:
         return _json_error('سبد خرید خالی است یا قیمت نامعتبر')
 
@@ -467,25 +527,42 @@ def catalog_checkout(request, public_id):
             'message': 'سبد خرید برای ادمین ارسال شد',
         })
 
-    if payment_method == CatalogSettings.PaymentMethod.ZARINPAL:
-        from balebot.services.public_url import resolve_public_base_url
-
-        base = resolve_public_base_url(cfg).rstrip('/')
-        if not base:
-            return _json_error('آدرس عمومی سرور (BASE_URL) در تنظیمات سرور پیکربندی نشده است', 500)
-        callback_url = f'{base}/shop/{catalog.public_id}/payment/zarinpal/callback/?order_id={order.pk}'
-        try:
-            payment_url = catalog_payment.start_zarinpal_checkout(order, catalog, callback_url)
-        except Exception as e:
-            logger.exception('zarinpal request failed')
-            order.status = CatalogOrder.Status.FAILED
-            order.save(update_fields=['status', 'updated_at'])
-            return _json_error(str(e) or 'خطا در اتصال به زرین‌پال', 500)
+    if payment_method == CatalogSettings.PaymentMethod.CARD_TO_CARD:
+        card_payload = catalog_payment.start_card_to_card_checkout(order, catalog)
         return JsonResponse({
             'ok': True,
             'order_id': order.pk,
             'payment_method': payment_method,
-            'payment_url': payment_url,
+            'method': 'card_to_card',
+            'amount': order.total_amount,
+            'card': {
+                'number': card_payload['number'],
+                'number_display': card_payload['number_display'],
+                'sheba': card_payload['sheba'],
+                'sheba_display': card_payload['sheba_display'],
+                'holder': card_payload['holder'],
+            },
+            'message': 'لطفاً مبلغ را واریز کنید و رسید را آپلود نمایید.',
+        })
+
+    if payment_method == CatalogSettings.PaymentMethod.BALE:
+        if catalog.platform != Platform.BALE:
+            return _json_error('پرداخت بله فقط در مینی‌اپ بله در دسترس است', 400)
+        try:
+            from balebot.services.bale_payment import start_bale_checkout
+
+            start_bale_checkout(order, catalog, cfg)
+        except Exception as e:
+            logger.exception('bale invoice failed')
+            order.status = CatalogOrder.Status.FAILED
+            order.save(update_fields=['status', 'updated_at'])
+            return _json_error(str(e) or 'ارسال صورت‌حساب بله ناموفق بود', 500)
+        return JsonResponse({
+            'ok': True,
+            'order_id': order.pk,
+            'payment_method': payment_method,
+            'method': 'bale_invoice',
+            'message': 'صورت‌حساب به گفت‌وگوی شما در بله ارسال شد؛ برای تکمیل خرید، روی پرداخت بزنید.',
         })
 
     return _json_error('روش پرداخت نامعتبر', 400)
@@ -535,3 +612,80 @@ def catalog_request(request, public_id):
     if not order:
         return _json_error('ثبت درخواست ناموفق')
     return JsonResponse({'ok': True, 'order_id': order.pk, 'status': 'request'})
+
+
+@require_http_methods(['GET'])
+def catalog_order_payment(request, public_id, order_id):
+    catalog, err = _resolve_catalog(public_id, require_enabled=True)
+    if err:
+        return err
+    init_data = (request.GET.get('initData') or '').strip()
+    sub = _resolve_subscriber(catalog, init_data)
+    if not sub:
+        return _json_error('احراز هویت لازم است', 401)
+    order = get_object_or_404(
+        CatalogOrder,
+        pk=order_id,
+        workspace=catalog.workspace,
+        platform=catalog.platform,
+        subscriber=sub,
+    )
+    if order.payment_method != CatalogSettings.PaymentMethod.CARD_TO_CARD:
+        return _json_error('این سفارش کارت به کارت نیست', 400)
+    from balebot.services.card_to_card import build_card_to_card_payload
+
+    card = build_card_to_card_payload(catalog)
+    receipt_url = ''
+    if order.payment_receipt:
+        receipt_url = absolute_media_url(request, order.payment_receipt.url, catalog=catalog)
+    return JsonResponse({
+        'ok': True,
+        'order_id': order.pk,
+        'amount': order.total_amount,
+        'status': order.status,
+        'receipt_uploaded': bool(order.payment_receipt),
+        'receipt_url': receipt_url,
+        'card': card,
+    })
+
+
+@csrf_exempt
+@require_http_methods(['POST'])
+def catalog_order_receipt(request, public_id, order_id):
+    catalog, err = _resolve_catalog(public_id, require_enabled=True)
+    if err:
+        return err
+    init_data = (request.POST.get('initData') or '').strip()
+    sub = _resolve_subscriber(catalog, init_data)
+    if not sub:
+        return _json_error('احراز هویت لازم است', 401)
+    order = get_object_or_404(
+        CatalogOrder,
+        pk=order_id,
+        workspace=catalog.workspace,
+        platform=catalog.platform,
+        subscriber=sub,
+        payment_method=CatalogSettings.PaymentMethod.CARD_TO_CARD,
+    )
+    upload = request.FILES.get('receipt')
+    if not upload:
+        return _json_error('فایل رسید انتخاب نشده است', 400)
+    if upload.size > 10 * 1024 * 1024:
+        return _json_error('حداکثر حجم فایل ۱۰ مگابایت است', 400)
+    content_type = (upload.content_type or '').lower()
+    if not content_type.startswith('image/'):
+        return _json_error('فقط تصویر رسید قابل قبول است', 400)
+    cfg = BotSettings.get_for_platform(catalog.workspace, catalog.platform)
+    try:
+        catalog_payment.submit_payment_receipt(order, catalog, cfg, receipt_file=upload)
+    except ValueError as exc:
+        return _json_error(str(exc), 400)
+    except Exception:
+        logger.exception('receipt upload failed')
+        return _json_error('آپلود رسید ناموفق بود', 500)
+    return JsonResponse({
+        'ok': True,
+        'order_id': order.pk,
+        'status': 'receipt_submitted',
+        'message': 'رسید شما دریافت شد. پس از بررسی، نتیجه اطلاع داده می‌شود.',
+    })

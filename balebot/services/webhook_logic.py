@@ -248,6 +248,26 @@ def handle_message(cfg: BotSettings, msg: dict[str, Any]) -> None:
         catalog_payment.handle_web_app_data(cfg, msg)
         return
 
+    if msg.get('successful_payment'):
+        sp = msg['successful_payment']
+        payload = (sp.get('invoice_payload') or sp.get('payload') or '').strip()
+        if payload.startswith('order:'):
+            from balebot.models import CatalogOrder
+
+            token = payload.split(':', 1)[1]
+            order = CatalogOrder.objects.filter(
+                public_token=token,
+                workspace=cfg.workspace,
+                platform=cfg.platform,
+            ).first()
+            if order and order.status != CatalogOrder.Status.PAID:
+                charge_id = str(sp.get('telegram_payment_charge_id') or sp.get('provider_payment_charge_id') or '')
+                if charge_id:
+                    order.payment_charge_id = charge_id[:256]
+                    order.save(update_fields=['payment_charge_id', 'updated_at'])
+                catalog_payment.mark_order_paid(order)
+        return
+
     sub = get_or_create_subscriber(cfg, from_user, chat)
     text = (msg.get('text') or '').strip()
     platform = cfg.platform

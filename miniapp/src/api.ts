@@ -1,4 +1,4 @@
-import type { AuthValidateResult, CartLine, CatalogConfig, CatalogItem, Category, CheckoutResult } from './types';
+import type { AuthValidateResult, CartLine, CartSummary, CatalogConfig, CatalogItem, Category, CheckoutResult, OrderPaymentInfo } from './types';
 
 function getPublicId(): string {
   const parts = window.location.pathname.split('/').filter(Boolean);
@@ -70,14 +70,24 @@ export async function fetchItem(slug: string) {
   return data.item;
 }
 
-export async function fetchCart(initData: string) {
-  return request<{ items: CartLine[]; total: number }>(`/cart/?initData=${encodeURIComponent(initData)}`);
+export async function fetchCart(
+  initData: string,
+  params?: { province?: string; discount_code?: string },
+) {
+  const qs = new URLSearchParams({ initData });
+  if (params?.province) qs.set('province', params.province);
+  if (params?.discount_code) qs.set('discount_code', params.discount_code);
+  return request<CartSummary & { ok?: boolean }>(`/cart/?${qs}`);
 }
 
-export async function updateCart(initData: string, body: Record<string, unknown>) {
-  return request<{ items: CartLine[]; total: number }>('/cart/', {
+export async function updateCart(
+  initData: string,
+  body: Record<string, unknown>,
+  params?: { province?: string; discount_code?: string },
+) {
+  return request<CartSummary & { ok?: boolean }>('/cart/', {
     method: 'POST',
-    body: JSON.stringify({ initData, ...body }),
+    body: JSON.stringify({ initData, ...body, ...params }),
   });
 }
 
@@ -86,6 +96,26 @@ export async function checkout(initData: string, body: Record<string, unknown> =
     method: 'POST',
     body: JSON.stringify({ initData, ...body }),
   });
+}
+
+export async function fetchOrderPayment(initData: string, orderId: number) {
+  const qs = new URLSearchParams({ initData });
+  return request<OrderPaymentInfo>(`/orders/${orderId}/payment/?${qs}`);
+}
+
+export async function uploadOrderReceipt(initData: string, orderId: number, file: File) {
+  const form = new FormData();
+  form.append('initData', initData);
+  form.append('receipt', file);
+  const res = await fetch(`${API_BASE}/orders/${orderId}/receipt/`, {
+    method: 'POST',
+    body: form,
+  });
+  const data = await res.json();
+  if (!data.ok) {
+    throw new Error(data.error || 'خطای سرور');
+  }
+  return data;
 }
 
 export async function submitRequest(initData: string, body: Record<string, unknown>) {

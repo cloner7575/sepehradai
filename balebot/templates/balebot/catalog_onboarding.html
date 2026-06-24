@@ -1,0 +1,68 @@
+{% extends "balebot/base.html" %}
+{% block title %}ویزارد راه‌اندازی{% endblock %}
+{% block page_title %}ویزارد راه‌اندازی فروشگاه{% endblock %}
+{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">۵ گام تا آماده‌سازی فروشگاه برای مشتریان</p>{% endblock %}
+
+{% block content %}
+<div class="catalog-panel">
+  {% include "balebot/_catalog_subnav.html" %}
+
+  <div class="panel-card mb-4">
+    <div class="panel-card-header">
+      <div>
+        <h2 class="panel-card-title mb-1">پیشرفت راه‌اندازی</h2>
+        <p class="panel-card-lead mb-0">{{ onboarding_done }} از {{ onboarding_total }} گام تکمیل شده</p>
+      </div>
+      <span class="catalog-pill {% if onboarding_percent == 100 %}catalog-pill--ok{% endif %}">{{ onboarding_percent }}%</span>
+    </div>
+    <div class="panel-card-body">
+      <div class="catalog-setup-progress mb-0">
+        <div class="catalog-setup-progress-bar" style="width: {{ onboarding_percent }}%"></div>
+      </div>
+    </div>
+  </div>
+
+  <ul class="catalog-setup-list list-unstyled mb-4">
+    {% for step in onboarding_steps %}
+    <li class="catalog-setup-item catalog-onboarding-step {% if step.done %}is-done{% endif %}">
+      <span class="catalog-setup-icon">
+        {% if step.done %}<i class="bi bi-check-lg"></i>{% else %}<i class="bi bi-circle"></i>{% endif %}
+      </span>
+      <div class="flex-grow-1 min-w-0">
+        <div class="catalog-setup-label">{{ forloop.counter }}. {{ step.label }}</div>
+        <div class="catalog-setup-hint">{{ step.hint }}</div>
+      </div>
+      {% if not step.done %}
+      <a href="{% url step.url_name %}{% if step.url_hash %}#{{ step.url_hash }}{% endif %}" class="btn btn-panel-primary btn-sm flex-shrink-0">
+        انجام بده
+      </a>
+      {% else %}
+      <span class="catalog-pill catalog-pill--ok flex-shrink-0">انجام شد</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+
+  {% if onboarding_percent == 100 %}
+  <div class="catalog-status catalog-status--on mb-4">
+    <i class="bi bi-party-popper"></i>
+    <div>
+      <strong>فروشگاه شما آماده است!</strong>
+      <span>لینک مینی‌اپ را با مشتریان به اشتراک بگذارید.</span>
+    </div>
+    {% if mini_app_url %}
+    <a href="{{ mini_app_url }}" target="_blank" rel="noopener" class="btn btn-panel-ghost btn-sm ms-auto flex-shrink-0">
+      <i class="bi bi-box-arrow-up-right me-1"></i>باز کردن مینی‌اپ
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'catalog_templates' %}" class="btn btn-panel-primary">
+      <i class="bi bi-layout-text-window-reverse me-1"></i>الگوهای آماده
+    </a>
+    <a href="{% url 'catalog_dashboard' %}" class="btn btn-panel-ghost">بازگشت به داشبورد</a>
+  </div>
+</div>
+{% endblock %}
