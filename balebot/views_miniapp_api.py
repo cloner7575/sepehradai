@@ -365,7 +365,10 @@ def catalog_cart(request, public_id):
         cart.items.all().delete()
         return JsonResponse({'ok': True, 'items': [], 'total': 0})
     item_id = body.get('item_id')
-    quantity = int(body.get('quantity') or 1)
+    if 'quantity' not in body:
+        quantity = 1
+    else:
+        quantity = int(body['quantity'])
     if not item_id:
         return _json_error('item_id الزامی است')
     item = get_object_or_404(

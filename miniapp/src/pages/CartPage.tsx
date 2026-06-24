@@ -1,12 +1,13 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { formatPrice, updateCart } from '../api';
 import type { CartLine } from '../types';
 import { useApp } from '../App';
 import { AppHeader } from '../components/AppHeader';
+import { CartQuantityControl } from '../components/CartQuantityControl';
 import { CheckoutForm, useCheckoutForm } from '../components/CheckoutForm';
 import { PaymentMethodPicker } from '../components/PaymentMethodPicker';
-import { IconCart, IconCheck, IconPackage, IconSend, IconTrash } from '../components/Icons';
+import { IconCart, IconCheck, IconPackage, IconSend } from '../components/Icons';
 import { useCheckout } from '../hooks/useCheckout';
 
 function SuccessView({
@@ -36,11 +37,12 @@ export function CartPage() {
   const { adapter, refreshCart, cartTotal, cartItems, config } = useApp();
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  const [cartBusy, setCartBusy] = useState(false);
   const paid = params.get('paid');
   const {
     paymentMethod,
     setPaymentMethod,
-    busy,
+    busy: checkoutBusy,
     error,
     setError,
     runCheckout,
@@ -54,18 +56,20 @@ export function CartPage() {
   }, [refreshCart]);
 
   const changeQty = async (line: CartLine, qty: number) => {
-    if (!adapter.initData) return;
+    if (!adapter.initData) {
+      setError('احراز هویت لازم است');
+      return;
+    }
+    setCartBusy(true);
     setError('');
     try {
       await updateCart(adapter.initData, { item_id: line.item_id, quantity: qty });
       await refreshCart();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'خطا');
+    } finally {
+      setCartBusy(false);
     }
-  };
-
-  const removeLine = async (line: CartLine) => {
-    await changeQty(line, 0);
   };
 
   const checkoutCart = async () => {
@@ -80,6 +84,7 @@ export function CartPage() {
   };
 
   const labels = config?.labels || {};
+  const busy = cartBusy || checkoutBusy;
 
   if (paid) {
     return (
@@ -120,24 +125,13 @@ export function CartPage() {
           </div>
         ) : (
           <>
-            <CheckoutForm
-              title={checkoutForm.title}
-              fields={checkoutForm.fields}
-              values={checkoutForm.values}
-              errors={checkoutForm.errors}
-              onChange={checkoutForm.setValue}
-              disabled={busy}
-            />
-            <PaymentMethodPicker methods={methods} value={paymentMethod} onChange={setPaymentMethod} />
-            {!canPurchase && (
-              <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
-                پرداخت هنوز در این فروشگاه فعال نشده است. لطفاً بعداً دوباره تلاش کنید.
-              </p>
-            )}
             <div className="space-y-3">
               {cartItems.map((line) => (
                 <div key={line.item_id} className="card flex gap-3 p-3">
-                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[var(--color-primary-soft)]">
+                  <Link
+                    to={`/item/${line.slug}`}
+                    className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[var(--color-primary-soft)]"
+                  >
                     {line.image ? (
                       <img src={line.image} alt="" className="h-full w-full object-cover" />
                     ) : (
@@ -145,47 +139,42 @@ export function CartPage() {
                         <IconPackage className="h-6 w-6" />
                       </div>
                     )}
-                  </div>
+                  </Link>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="truncate text-sm font-semibold">{line.title}</div>
-                      <button
-                        type="button"
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-red-500 transition active:scale-95 disabled:opacity-40"
-                        disabled={busy}
-                        onClick={() => removeLine(line)}
-                        aria-label={labels.remove_from_cart || 'حذف'}
-                        title={labels.remove_from_cart || 'حذف'}
-                      >
-                        <IconTrash className="h-4 w-4" />
-                      </button>
-                    </div>
+                    <Link to={`/item/${line.slug}`} className="block truncate text-sm font-semibold">
+                      {line.title}
+                    </Link>
                     <div className="price-tag mt-0.5">{formatPrice(line.price)}</div>
-                    <div className="mt-2 flex items-center gap-2">
-                      <button
-                        type="button"
-                        className="qty-btn"
+                    <div className="mt-2">
+                      <CartQuantityControl
+                        quantity={line.quantity}
                         disabled={busy}
-                        onClick={() => changeQty(line, line.quantity - 1)}
-                        aria-label="کاهش"
-                      >
-                        −
-                      </button>
-                      <span className="w-6 text-center text-sm font-medium">{line.quantity}</span>
-                      <button
-                        type="button"
-                        className="qty-btn"
-                        disabled={busy}
-                        onClick={() => changeQty(line, line.quantity + 1)}
-                        aria-label="افزایش"
-                      >
-                        +
-                      </button>
+                        onChange={(qty) => changeQty(line, qty)}
+                      />
                     </div>
                   </div>
-                  <div className="shrink-0 text-sm font-bold">{formatPrice(line.line_total)}</div>
+                  <div className="shrink-0 self-start pt-0.5 text-sm font-bold">
+                    {formatPrice(line.line_total)}
+                  </div>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <CheckoutForm
+                title={checkoutForm.title}
+                fields={checkoutForm.fields}
+                values={checkoutForm.values}
+                errors={checkoutForm.errors}
+                onChange={checkoutForm.setValue}
+                disabled={busy}
+              />
+              <PaymentMethodPicker methods={methods} value={paymentMethod} onChange={setPaymentMethod} />
+              {!canPurchase && (
+                <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
+                  پرداخت هنوز در این فروشگاه فعال نشده است. لطفاً بعداً دوباره تلاش کنید.
+                </p>
+              )}
             </div>
           </>
         )}
