@@ -4,33 +4,40 @@ export function PaymentMethodPicker({
   methods,
   value,
   onChange,
+  embedded = false,
 }: {
   methods: PaymentMethodOption[];
   value: string;
   onChange: (id: string) => void;
+  embedded?: boolean;
 }) {
-  if (methods.length <= 1) return null;
+  if (!methods.length) return null;
+
+  if (methods.length === 1) {
+    return (
+      <div className={embedded ? '' : 'mb-5'}>
+        {!embedded && <div className="section-title mb-3">روش پرداخت</div>}
+        <div className="payment-method-single">
+          <span className="payment-method-dot" aria-hidden />
+          <span className="text-sm font-medium">{methods[0].label}</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="mb-5">
-      <div className="section-title mb-3">روش پرداخت</div>
+    <div className={embedded ? 'space-y-2' : 'mb-5'}>
+      {!embedded && <div className="section-title mb-3">روش پرداخت</div>}
       <div className="space-y-2">
         {methods.map((m) => {
           const selected = value === m.id;
           return (
             <label
               key={m.id}
-              className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3.5 transition ${
-                selected
-                  ? 'border-primary bg-[var(--color-primary-soft)]'
-                  : 'border-border bg-surface'
-              }`}
+              className={`payment-method-option ${selected ? 'payment-method-option--selected' : ''}`}
             >
-              <span
-                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition ${
-                  selected ? 'border-primary' : 'border-border'
-                }`}
-              >
-                {selected && <span className="h-2 w-2 rounded-full bg-primary" />}
+              <span className={`payment-method-radio ${selected ? 'payment-method-radio--selected' : ''}`}>
+                {selected && <span className="payment-method-radio-dot" />}
               </span>
               <input
                 type="radio"

@@ -4,10 +4,11 @@ import { formatPrice, updateCart } from '../api';
 import type { CartLine } from '../types';
 import { useApp } from '../App';
 import { AppHeader } from '../components/AppHeader';
-import { CartQuantityControl } from '../components/CartQuantityControl';
+import { CartLineCard } from '../components/CartLineCard';
+import { CartSection } from '../components/CartSection';
 import { CheckoutForm, useCheckoutForm } from '../components/CheckoutForm';
 import { PaymentMethodPicker } from '../components/PaymentMethodPicker';
-import { IconCart, IconCheck, IconPackage, IconSend } from '../components/Icons';
+import { IconCart, IconCheck, IconChevronLeft, IconSend } from '../components/Icons';
 import { useCheckout } from '../hooks/useCheckout';
 
 function SuccessView({
@@ -85,6 +86,8 @@ export function CartPage() {
 
   const labels = config?.labels || {};
   const busy = cartBusy || checkoutBusy;
+  const itemCount = cartItems.reduce((sum, line) => sum + line.quantity, 0);
+  const hasCheckoutStep = checkoutForm.hasForm || methods.length > 0;
 
   if (paid) {
     return (
@@ -107,88 +110,121 @@ export function CartPage() {
   }
 
   return (
-    <div className="pb-36">
+    <div className="cart-page pb-44">
       <AppHeader
         title={labels.cart || 'سبد خرید'}
-        subtitle={cartItems.length > 0 ? `${cartItems.length} قلم` : undefined}
+        subtitle={cartItems.length > 0 ? `${itemCount} قلم` : undefined}
         showCart={false}
       />
 
-      <div className="px-4 pt-4">
+      <div className="px-4 pt-3">
         {cartItems.length === 0 ? (
-          <div className="empty-state">
-            <IconCart className="h-8 w-8 text-muted/40" />
-            <p className="text-sm text-muted">سبد خرید خالی است</p>
+          <div className="empty-state mt-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-muted/50">
+              <IconCart className="h-7 w-7" />
+            </div>
+            <p className="text-sm font-semibold">سبد خرید خالی است</p>
+            <p className="text-xs text-muted">محصولی انتخاب نکرده‌اید</p>
             <Link to="/" className="btn-primary mt-2 max-w-xs">
               مشاهده محصولات
             </Link>
           </div>
         ) : (
-          <>
-            <div className="space-y-3">
-              {cartItems.map((line) => (
-                <div key={line.item_id} className="card flex gap-3 p-3">
-                  <Link
-                    to={`/item/${line.slug}`}
-                    className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[var(--color-primary-soft)]"
-                  >
-                    {line.image ? (
-                      <img src={line.image} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-muted/30">
-                        <IconPackage className="h-6 w-6" />
-                      </div>
-                    )}
-                  </Link>
-                  <div className="min-w-0 flex-1">
-                    <Link to={`/item/${line.slug}`} className="block truncate text-sm font-semibold">
-                      {line.title}
-                    </Link>
-                    <div className="price-tag mt-0.5">{formatPrice(line.price)}</div>
-                    <div className="mt-2">
-                      <CartQuantityControl
-                        quantity={line.quantity}
-                        disabled={busy}
-                        onChange={(qty) => changeQty(line, qty)}
-                      />
-                    </div>
-                  </div>
-                  <div className="shrink-0 self-start pt-0.5 text-sm font-bold">
-                    {formatPrice(line.line_total)}
-                  </div>
+          <div className="space-y-5">
+            <div className="cart-summary-banner">
+              <div className="flex items-center gap-3">
+                <div className="cart-summary-icon">
+                  <IconCart className="h-5 w-5" />
                 </div>
-              ))}
+                <div>
+                  <p className="text-sm font-bold">{itemCount} قلم در سبد</p>
+                  <p className="text-xs text-muted">جمع موقت {formatPrice(cartTotal)}</p>
+                </div>
+              </div>
+              <Link to="/" className="cart-continue-link">
+                ادامه خرید
+              </Link>
             </div>
 
-            <div className="mt-6 space-y-4">
-              <CheckoutForm
-                title={checkoutForm.title}
-                fields={checkoutForm.fields}
-                values={checkoutForm.values}
-                errors={checkoutForm.errors}
-                onChange={checkoutForm.setValue}
-                disabled={busy}
-              />
-              <PaymentMethodPicker methods={methods} value={paymentMethod} onChange={setPaymentMethod} />
-              {!canPurchase && (
-                <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
-                  پرداخت هنوز در این فروشگاه فعال نشده است. لطفاً بعداً دوباره تلاش کنید.
-                </p>
-              )}
-            </div>
-          </>
+            <CartSection step={1} title="محصولات" subtitle="موارد انتخاب‌شده در سبد">
+              <div className="cart-lines-panel">
+                {cartItems.map((line, idx) => (
+                  <div key={line.item_id}>
+                    {idx > 0 && <div className="cart-line-divider" />}
+                    <CartLineCard
+                      line={line}
+                      disabled={busy}
+                      onChangeQty={(qty) => changeQty(line, qty)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </CartSection>
+
+            {hasCheckoutStep && (
+              <CartSection
+                step={2}
+                title="تکمیل سفارش"
+                subtitle="اطلاعات و روش پرداخت را وارد کنید"
+              >
+                <div className="cart-checkout-panel">
+                  {checkoutForm.hasForm && (
+                    <CheckoutForm
+                      fields={checkoutForm.fields}
+                      values={checkoutForm.values}
+                      errors={checkoutForm.errors}
+                      onChange={checkoutForm.setValue}
+                      disabled={busy}
+                      embedded
+                    />
+                  )}
+                  {checkoutForm.hasForm && methods.length > 0 && (
+                    <div className="cart-checkout-divider" />
+                  )}
+                  <PaymentMethodPicker
+                    methods={methods}
+                    value={paymentMethod}
+                    onChange={setPaymentMethod}
+                    embedded
+                  />
+                  {!canPurchase && (
+                    <p className="cart-warning">
+                      پرداخت هنوز در این فروشگاه فعال نشده است. لطفاً بعداً دوباره تلاش کنید.
+                    </p>
+                  )}
+                </div>
+              </CartSection>
+            )}
+          </div>
         )}
-        {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+
+        {error && (
+          <div className="cart-error-banner mt-4">
+            {error}
+          </div>
+        )}
       </div>
 
       {cartItems.length > 0 && (
-        <div className="bottom-bar mx-auto max-w-lg p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm text-muted">جمع کل</span>
-            <span className="text-lg font-bold text-primary">{formatPrice(cartTotal)}</span>
+        <div className="checkout-footer">
+          <div className="checkout-footer-summary">
+            <div>
+              <p className="text-xs text-muted">مبلغ قابل پرداخت</p>
+              <p className="checkout-footer-price">{formatPrice(cartTotal)}</p>
+            </div>
+            <div className="text-left">
+              <p className="text-xs text-muted">تعداد</p>
+              <p className="text-sm font-bold">{itemCount} قلم</p>
+            </div>
           </div>
-          <button type="button" className="btn-primary" disabled={busy || !canPurchase} onClick={checkoutCart}>
-            {labels.checkout || 'تسویه حساب'}
+          <button
+            type="button"
+            className="btn-primary checkout-footer-btn"
+            disabled={busy || !canPurchase}
+            onClick={checkoutCart}
+          >
+            <span>{labels.checkout || 'تسویه حساب'}</span>
+            <IconChevronLeft className="h-4 w-4" />
           </button>
         </div>
       )}

@@ -58,12 +58,13 @@ export function useCheckoutForm(config: CheckoutFormConfig | undefined) {
 }
 
 interface CheckoutFormProps {
-  title: string;
+  title?: string;
   fields: CheckoutFormField[];
   values: Record<string, string>;
   errors: Record<string, string>;
   onChange: (key: string, value: string) => void;
   disabled?: boolean;
+  embedded?: boolean;
 }
 
 export function CheckoutForm({
@@ -73,23 +74,25 @@ export function CheckoutForm({
   errors,
   onChange,
   disabled,
+  embedded = false,
 }: CheckoutFormProps) {
   if (!fields.length) return null;
 
   return (
-    <div className="card mb-4 p-4">
-      <h2 className="mb-3 text-sm font-bold">{title}</h2>
+    <div className={embedded ? 'space-y-3' : 'card mb-4 p-4'}>
+      {title && !embedded && <h2 className="mb-3 text-sm font-bold">{title}</h2>}
       <div className="space-y-3">
         {fields.map((field) => (
           <div key={field.key}>
-            <label className="mb-1.5 block text-xs font-medium text-muted" htmlFor={`checkout-${field.key}`}>
+            <label className="checkout-field-label" htmlFor={`checkout-${field.key}`}>
               {field.label}
               {field.required && <span className="text-red-500"> *</span>}
             </label>
             {field.type === 'textarea' ? (
               <textarea
                 id={`checkout-${field.key}`}
-                className="input-field min-h-[96px] resize-y"
+                className="input-field min-h-[88px] resize-y"
+                placeholder={`${field.label} را وارد کنید`}
                 value={values[field.key] || ''}
                 disabled={disabled}
                 onChange={(e) => onChange(field.key, e.target.value)}
@@ -99,6 +102,7 @@ export function CheckoutForm({
                 id={`checkout-${field.key}`}
                 type={field.type === 'tel' ? 'tel' : field.type === 'email' ? 'email' : 'text'}
                 className="input-field"
+                placeholder={`${field.label} را وارد کنید`}
                 value={values[field.key] || ''}
                 disabled={disabled}
                 dir={field.type === 'tel' || field.type === 'email' ? 'ltr' : undefined}
