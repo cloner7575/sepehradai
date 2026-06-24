@@ -180,7 +180,7 @@ def _payment_result_html(message: str, *, success: bool, catalog: CatalogSetting
   <div class="card">
     <div style="font-size:3rem">{icon}</div>
     <div class="msg">{message}</div>
-    <a href="{shop_url}{paid_q}">بازگشت به فروشگاه</a>
+    <a href="{shop_url}{paid_q}">بازگشت به مینی‌اپ</a>
   </div>
 </body>
 </html>"""

@@ -108,7 +108,7 @@
       </div>
       <div class="app-card-body">
         <div class="widget-stat-row">
-          <div class="widget-stat-item"><span class="label">محصولات</span><span class="value">{{ catalog_item_count }}</span></div>
+          <div class="widget-stat-item"><span class="label">آیتم‌ها</span><span class="value">{{ catalog_item_count }}</span></div>
           <div class="widget-stat-item"><span class="label">سفارش</span><span class="value">{{ catalog_order_pending }}</span></div>
         </div>
       </div>
@@ -120,14 +120,14 @@
 <div class="app-hub-grid mt-4">
   <a href="{% url 'bot_flow_engine' %}" class="app-hub-card">
     <div class="app-hub-card-icon"><i class="bi bi-diagram-3"></i></div>
-    <h3>موتور جریان</h3>
-    <p>ساخت گرافیکی /start برای {{ active_platform_label }}</p>
+    <h3>طراحی منوی ربات</h3>
+    <p>منو و دکمه‌های /start در {{ active_platform_label }}</p>
   </a>
   {% if has_miniapp_access %}
   <a href="{% url 'catalog_flow_engine' %}" class="app-hub-card">
-    <div class="app-hub-card-icon"><i class="bi bi-shop"></i></div>
-    <h3>موتور فروشگاه</h3>
-    <p>ویرایش گرافیکی مینی‌اپ</p>
+    <div class="app-hub-card-icon"><i class="bi bi-palette"></i></div>
+    <h3>طراحی صفحهٔ اصلی</h3>
+    <p>چیدمان ویترین مینی‌اپ {{ active_platform_label }}</p>
   </a>
   {% endif %}
   <a href="{% url 'campaign_create' %}" class="app-hub-card">

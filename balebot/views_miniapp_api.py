@@ -46,11 +46,11 @@ def _resolve_catalog(
     try:
         catalog = CatalogSettings.objects.select_related('workspace').get(public_id=public_id)
     except CatalogSettings.DoesNotExist:
-        return None, _json_error('فروشگاه یافت نشد', 404)
+        return None, _json_error('مینی‌اپ یافت نشد', 404)
     if not catalog.workspace.is_active:
-        return None, _json_error('حساب فروشگاه غیرفعال است', 403)
+        return None, _json_error('حساب مینی‌اپ غیرفعال است', 403)
     if require_enabled and not catalog.is_enabled:
-        return None, _json_error('فروشگاه هنوز فعال نشده است. از پنل مدیریت فعال کنید.', 403)
+        return None, _json_error('مینی‌اپ هنوز فعال نشده است. از پنل مدیریت فعال کنید.', 403)
     return catalog, None
 
 
@@ -149,7 +149,7 @@ def _channel_auth_payload(catalog: CatalogSettings, user_id: int) -> dict:
         'channel_required': True,
         'is_channel_member': is_member,
         'channel_message': (catalog.channel_membership_message or '').strip()
-        or 'برای استفاده از فروشگاه ابتدا در کانال ما عضو شوید.',
+        or 'برای استفاده از مینی‌اپ ابتدا در کانال ما عضو شوید.',
         'channel_invite_link': (catalog.channel_invite_link or '').strip(),
     }
 

@@ -2,7 +2,7 @@
 {% load static %}
 {% block title %}داشبورد مینی‌اپ{% endblock %}
 {% block page_title %}داشبورد مینی‌اپ{% endblock %}
-{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">مدیریت فروشگاه {{ active_platform_label }}</p>{% endblock %}
+{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">ویترین و محتوای مینی‌اپ {{ active_platform_label }}</p>{% endblock %}
 
 {% block content %}
 <div class="catalog-panel">
@@ -13,7 +13,7 @@
     <i class="bi bi-check-circle-fill"></i>
     <div>
       <strong>مینی‌اپ فعال است</strong>
-      <span>کاربران می‌توانند خرید و دانلود کنند.</span>
+      <span>کاربران می‌توانند محتوا ببینند، خرید کنند یا دانلود کنند.</span>
     </div>
     {% if mini_app_url %}
     <a href="{{ mini_app_url }}" target="_blank" rel="noopener" class="btn btn-panel-ghost btn-sm ms-auto flex-shrink-0">
@@ -149,7 +149,7 @@
                 <div class="catalog-preview-logo-placeholder"><i class="bi bi-shop"></i></div>
                 {% endif %}
                 <div class="min-w-0">
-                  <div class="catalog-preview-title">{{ catalog.hero_title|default:"فروشگاه" }}</div>
+                  <div class="catalog-preview-title">{{ catalog.hero_title|default:"ویترین" }}</div>
                   {% if catalog.hero_subtitle %}
                   <div class="catalog-preview-sub">{{ catalog.hero_subtitle }}</div>
                   {% endif %}

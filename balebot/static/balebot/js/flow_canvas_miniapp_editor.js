@@ -226,7 +226,7 @@
 
   function syncStoreTitle() {
     if (storeTitleEl) {
-      storeTitleEl.textContent = formVal('hero_title') || 'فروشگاه';
+      storeTitleEl.textContent = formVal('hero_title') || 'ویترین';
     }
   }
 
@@ -355,7 +355,7 @@
         heroText.className = 'miniapp-preview-hero-text';
         heroText.innerHTML =
           '<strong>' +
-          escapeHtml(formVal('hero_title') || 'فروشگاه') +
+          escapeHtml(formVal('hero_title') || 'ویترین') +
           '</strong><span>' +
           escapeHtml(formVal('hero_subtitle') || 'زیرعنوان') +
           '</span>';
@@ -369,7 +369,7 @@
           heroCompact.appendChild(mkImageThumb(logo, 'miniapp-preview-hero-logo miniapp-preview-hero-logo--sm'));
         }
         var compactTitle = document.createElement('strong');
-        compactTitle.textContent = formVal('hero_title') || 'فروشگاه';
+        compactTitle.textContent = formVal('hero_title') || 'ویترین';
         heroCompact.appendChild(compactTitle);
         body.appendChild(heroCompact);
       }

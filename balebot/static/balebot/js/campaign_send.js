@@ -5,22 +5,44 @@
   if (!panel) return;
 
   var batchUrl = panel.dataset.batchUrl;
+  var batchSize = parseInt(panel.dataset.batchSize || '5', 10);
   var autostart = panel.dataset.autostart === '1';
   var csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
   var csrf = csrfInput ? csrfInput.value : '';
   var running = false;
   var stopped = false;
+  var batchCount = 0;
 
   var bar = document.getElementById('campaign-send-bar');
   var label = document.getElementById('campaign-send-label');
-  var stats = document.getElementById('campaign-send-stats');
+  var statsMain = document.getElementById('campaign-send-stats-main');
+  var statsExtra = document.getElementById('campaign-send-stats-extra');
   var statusEl = document.getElementById('campaign-send-status');
+  var batchHint = document.getElementById('campaign-send-batch-hint');
   var resumeBtn = document.getElementById('campaign-send-resume');
   var errorEl = document.getElementById('campaign-send-error');
+  var spinner = document.getElementById('campaign-send-spinner');
+
+  var metricSent = document.getElementById('campaign-send-metric-sent');
+  var metricFailed = document.getElementById('campaign-send-metric-failed');
+  var metricPending = document.getElementById('campaign-send-metric-pending');
+  var metricTotal = document.getElementById('campaign-send-metric-total');
 
   function pct(data) {
     if (!data.total) return 0;
     return Math.min(100, Math.round(((data.sent + data.failed) / data.total) * 100));
+  }
+
+  function setSpinner(active) {
+    if (!spinner) return;
+    spinner.classList.toggle('is-active', !!active);
+    panel.classList.toggle('is-live', !!active);
+  }
+
+  function setBarAnimated(active) {
+    if (!bar) return;
+    bar.classList.toggle('progress-bar-animated', !!active);
+    bar.classList.toggle('progress-bar-striped', !!active);
   }
 
   function updateUi(data) {
@@ -32,15 +54,23 @@
     if (label) {
       label.textContent = percent + '٪';
     }
-    if (stats) {
-      stats.textContent =
-        (data.sent || 0) +
-        ' ارسال · ' +
-        (data.failed || 0) +
-        ' خطا · ' +
-        (data.pending || 0) +
-        ' باقی‌مانده از ' +
-        (data.total || 0);
+    if (metricSent) metricSent.textContent = String(data.sent || 0);
+    if (metricFailed) metricFailed.textContent = String(data.failed || 0);
+    if (metricPending) metricPending.textContent = String(data.pending || 0);
+    if (metricTotal) metricTotal.textContent = String(data.total || 0);
+    if (statsMain) {
+      statsMain.textContent =
+        (data.sent || 0) + ' از ' + (data.total || 0) + ' پیام ارسال شد';
+    }
+    if (statsExtra) {
+      var extra = '';
+      if (data.failed) extra += ' · ' + data.failed + ' خطا';
+      if (data.pending) extra += ' · ' + data.pending + ' باقی‌مانده';
+      statsExtra.textContent = extra;
+    }
+    if (batchHint && !data.done && !data.waiting) {
+      batchHint.textContent =
+        'هر دسته ' + batchSize + ' پیام — دستهٔ ' + batchCount;
     }
     if (statusEl) {
       if (data.done) {
@@ -48,7 +78,16 @@
       } else if (data.waiting) {
         statusEl.textContent = data.message || 'در انتظار زمان‌بندی…';
       } else if (running) {
-        statusEl.textContent = 'در حال ارسال دسته‌ای…';
+        var batchNote = '';
+        if (typeof data.batch_sent === 'number') {
+          batchNote =
+            ' — ' + data.batch_sent + ' ارسال';
+          if (data.batch_failed) {
+            batchNote += '، ' + data.batch_failed + ' خطا';
+          }
+          batchNote += ' در این دسته';
+        }
+        statusEl.textContent = 'در حال ارسال…' + batchNote;
       } else {
         statusEl.textContent = 'آمادهٔ ادامهٔ ارسال';
       }
@@ -56,6 +95,8 @@
     if (resumeBtn) {
       resumeBtn.hidden = running || !!data.done || !!data.waiting;
     }
+    setSpinner(running && !data.done && !data.waiting);
+    setBarAnimated(running && !data.done && !data.waiting);
   }
 
   function showError(message) {
@@ -67,15 +108,22 @@
       statusEl.textContent = 'ارسال متوقف شد.';
     }
     running = false;
+    setSpinner(false);
+    setBarAnimated(false);
     if (resumeBtn) resumeBtn.hidden = false;
   }
 
   function runBatch() {
     if (stopped || !batchUrl || running) return;
     running = true;
+    batchCount += 1;
     if (errorEl) errorEl.hidden = true;
     if (resumeBtn) resumeBtn.hidden = true;
-    if (statusEl) statusEl.textContent = 'در حال ارسال دسته‌ای…';
+    setSpinner(true);
+    setBarAnimated(true);
+    if (statusEl) {
+      statusEl.textContent = 'در حال ارسال دستهٔ ' + batchCount + '…';
+    }
 
     fetch(batchUrl, {
       method: 'POST',
@@ -95,13 +143,17 @@
         updateUi(data);
         running = false;
         if (data.ok && !data.done && !data.waiting) {
-          window.setTimeout(runBatch, 120);
+          window.setTimeout(runBatch, 200);
           return;
         }
+        setSpinner(false);
+        setBarAnimated(false);
         if (data.done) {
+          if (statusEl) statusEl.textContent = 'ارسال کامل شد.';
+          if (batchHint) batchHint.textContent = 'همهٔ پیام‌ها ارسال شدند.';
           window.setTimeout(function () {
             window.location.href = window.location.pathname;
-          }, 1200);
+          }, 1500);
         }
       })
       .catch(function (err) {
@@ -119,9 +171,12 @@
   var queueForm = document.getElementById('campaign-queue-form');
   if (queueForm) {
     queueForm.addEventListener('submit', function () {
-      panel.hidden = false;
-      if (statusEl) statusEl.textContent = 'در حال آماده‌سازی…';
-      if (resumeBtn) resumeBtn.hidden = true;
+      var btn = queueForm.querySelector('button[type=submit]');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML =
+          '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>در حال آماده‌سازی…';
+      }
     });
   }
 

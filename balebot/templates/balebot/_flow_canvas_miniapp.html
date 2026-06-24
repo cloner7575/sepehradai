@@ -10,7 +10,7 @@
           <div class="catalog-preview-logo-placeholder"><i class="bi bi-shop"></i></div>
           {% endif %}
           <div class="min-w-0">
-            <div class="catalog-preview-title">{{ catalog.hero_title|default:"فروشگاه" }}</div>
+            <div class="catalog-preview-title">{{ catalog.hero_title|default:"ویترین" }}</div>
             {% if catalog.hero_subtitle %}
             <div class="catalog-preview-sub">{{ catalog.hero_subtitle }}</div>
             {% endif %}
@@ -56,7 +56,7 @@
         </li>
         <li class="{% if catalog.is_enabled %}is-done{% endif %}">
           <i class="bi bi-{% if catalog.is_enabled %}check-circle-fill{% else %}circle{% endif %}"></i>
-          <span>فعال‌سازی فروشگاه</span>
+          <span>فعال‌سازی مینی‌اپ</span>
         </li>
         <li class="{% if mini_app_url %}is-done{% endif %}">
           <i class="bi bi-{% if mini_app_url %}check-circle-fill{% else %}circle{% endif %}"></i>

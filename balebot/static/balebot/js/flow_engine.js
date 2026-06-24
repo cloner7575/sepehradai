@@ -48,7 +48,7 @@
 
     function syncMiniPreview() {
       if (previewTitle && titleInput) {
-        previewTitle.textContent = titleInput.value.trim() || 'فروشگاه';
+        previewTitle.textContent = titleInput.value.trim() || 'ویترین';
       }
       if (previewSub && subInput) {
         previewSub.textContent = subInput.value.trim();

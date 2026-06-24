@@ -10,8 +10,9 @@
 {% if object.status == 'sending' or campaign_send_autostart %}
 <div
   id="campaign-send-progress"
-  class="campaign-send-progress panel-card mb-4"
+  class="campaign-send-progress panel-card mb-4{% if campaign_send_autostart %} is-live{% endif %}"
   data-batch-url="{{ campaign_send_batch_url }}"
+  data-batch-size="{{ campaign_send_batch_size }}"
   data-autostart="{% if campaign_send_autostart %}1{% else %}0{% endif %}"
   data-total="{{ send_progress.total }}"
   data-sent="{{ send_progress.sent }}"
@@ -21,18 +22,40 @@
 >
   <div class="panel-card-body">
     <div class="d-flex align-items-center gap-3 mb-3">
-      <div class="campaign-send-spinner" aria-hidden="true"></div>
-      <div class="flex-grow-1">
+      <div class="campaign-send-spinner" id="campaign-send-spinner" aria-hidden="true"></div>
+      <div class="flex-grow-1 min-w-0">
         <strong class="d-block mb-1">ارسال کمپین</strong>
-        <span id="campaign-send-status" class="small text-secondary">{% if campaign_send_autostart %}در حال آماده‌سازی…{% else %}ارسال ناتمام — ادامه دهید{% endif %}</span>
+        <span id="campaign-send-status" class="small text-secondary">{% if campaign_send_autostart %}در حال آماده‌سازی ارسال…{% else %}ارسال ناتمام — ادامه دهید{% endif %}</span>
+        <span id="campaign-send-batch-hint" class="d-block small text-muted mt-1">هر دسته {{ campaign_send_batch_size }} پیام ارسال می‌شود.</span>
       </div>
       <span id="campaign-send-label" class="campaign-send-percent">{{ send_progress.percent }}٪</span>
     </div>
-    <div class="progress campaign-send-track mb-2" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ send_progress.percent }}">
+
+    <div class="campaign-send-metrics mb-3">
+      <div class="campaign-send-metric">
+        <span class="campaign-send-metric-value" id="campaign-send-metric-sent">{{ send_progress.sent }}</span>
+        <span class="campaign-send-metric-label">ارسال‌شده</span>
+      </div>
+      <div class="campaign-send-metric">
+        <span class="campaign-send-metric-value" id="campaign-send-metric-failed">{{ send_progress.failed }}</span>
+        <span class="campaign-send-metric-label">خطا</span>
+      </div>
+      <div class="campaign-send-metric">
+        <span class="campaign-send-metric-value" id="campaign-send-metric-pending">{{ send_progress.pending }}</span>
+        <span class="campaign-send-metric-label">باقی‌مانده</span>
+      </div>
+      <div class="campaign-send-metric">
+        <span class="campaign-send-metric-value" id="campaign-send-metric-total">{{ send_progress.total }}</span>
+        <span class="campaign-send-metric-label">کل مخاطبان</span>
+      </div>
+    </div>
+
+    <div class="progress campaign-send-track mb-2" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ send_progress.percent }}" aria-labelledby="campaign-send-status">
       <div id="campaign-send-bar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: {{ send_progress.percent }}%"></div>
     </div>
     <p id="campaign-send-stats" class="small text-muted mb-2">
-      {{ send_progress.sent }} ارسال · {{ send_progress.failed }} خطا · {{ send_progress.pending }} باقی‌مانده از {{ send_progress.total }}
+      <span id="campaign-send-stats-main">{{ send_progress.sent }} از {{ send_progress.total }} پیام ارسال شد</span>
+      <span id="campaign-send-stats-extra">{% if send_progress.failed %} · {{ send_progress.failed }} خطا{% endif %}</span>
     </p>
     <p id="campaign-send-error" class="small text-danger mb-2" hidden></p>
     <button type="button" class="btn btn-panel-accent btn-sm" id="campaign-send-resume" {% if campaign_send_autostart %}hidden{% endif %}>
@@ -200,5 +223,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'balebot/js/campaign_send.js' %}?v=1"></script>
+<script src="{% static 'balebot/js/campaign_send.js' %}?v=2"></script>
 {% endblock %}

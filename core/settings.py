@@ -176,7 +176,7 @@ STATICFILES_DIRS = [
 
 # Campaign sending
 CAMPAIGN_SEND_DELAY_MS = int(os.environ.get('CAMPAIGN_SEND_DELAY_MS', '80'))
-CAMPAIGN_SEND_BATCH_SIZE = int(os.environ.get('CAMPAIGN_SEND_BATCH_SIZE', '15'))
+CAMPAIGN_SEND_BATCH_SIZE = int(os.environ.get('CAMPAIGN_SEND_BATCH_SIZE', '5'))
 # Legacy env vars (migrated to BotSettings in DB on first migrate)
 _LEGACY_BALE_BOT_TOKEN = os.environ.get('BALE_BOT_TOKEN', '')
 _LEGACY_BALE_WEBHOOK_SECRET = os.environ.get('BALE_WEBHOOK_SECRET', '')

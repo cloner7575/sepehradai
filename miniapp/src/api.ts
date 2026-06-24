@@ -21,7 +21,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   try {
     data = await res.json();
   } catch {
-    throw new Error(res.status === 404 ? 'فروشگاه یافت نشد' : `خطای سرور (${res.status})`);
+    throw new Error(res.status === 404 ? 'مینی‌اپ یافت نشد' : `خطای سرور (${res.status})`);
   }
   if (!data.ok) {
     throw new Error(data.error || 'خطای سرور');

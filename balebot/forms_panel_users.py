@@ -42,13 +42,13 @@ class PanelUserCreateForm(forms.Form):
         required=False,
         initial=False,
         label='دسترسی مینی‌اپ بله',
-        help_text='مدیریت فروشگاه/نمونه‌کار مینی‌اپ بله در پنل.',
+        help_text='مدیریت ویترین و محتوای مینی‌اپ بله در پنل.',
     )
     allow_telegram_miniapp = forms.BooleanField(
         required=False,
         initial=False,
         label='دسترسی مینی‌اپ تلگرام',
-        help_text='مدیریت فروشگاه/نمونه‌کار مینی‌اپ تلگرام در پنل.',
+        help_text='مدیریت ویترین و محتوای مینی‌اپ تلگرام در پنل.',
     )
     allow_instagram = forms.BooleanField(
         required=False,
@@ -124,13 +124,13 @@ class PanelUserUpdateForm(forms.Form):
         required=False,
         initial=False,
         label='دسترسی مینی‌اپ بله',
-        help_text='مدیریت فروشگاه/نمونه‌کار مینی‌اپ بله در پنل.',
+        help_text='مدیریت ویترین و محتوای مینی‌اپ بله در پنل.',
     )
     allow_telegram_miniapp = forms.BooleanField(
         required=False,
         initial=False,
         label='دسترسی مینی‌اپ تلگرام',
-        help_text='مدیریت فروشگاه/نمونه‌کار مینی‌اپ تلگرام در پنل.',
+        help_text='مدیریت ویترین و محتوای مینی‌اپ تلگرام در پنل.',
     )
     allow_instagram = forms.BooleanField(
         required=False,

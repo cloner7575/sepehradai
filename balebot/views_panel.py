@@ -38,7 +38,6 @@ from balebot.services.campaign_runner import (
     transition_queued_to_sending_if_due,
 )
 from balebot.services.audience import snapshot_campaign_audience
-from balebot.services.keyboard_layout import keyboard_has_any_button, normalize_to_sections
 from balebot.models import (
     BotSettings,
     CallbackLog,
@@ -170,7 +169,7 @@ class PlatformSyncView(WorkspaceScopedMixin, PanelAccessMixin, View):
         if result.flow_media:
             parts.append(f'{result.flow_media} رسانهٔ جریان')
         if result.catalog_settings:
-            parts.append('فروشگاه')
+            parts.append('مینی‌اپ')
         if result.categories:
             parts.append(f'{result.categories} دسته')
         if result.items:
@@ -719,7 +718,6 @@ class CampaignCreateView(WorkspaceScopedMixin, PanelAccessMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['campaign_keyboard_expanded'] = False
         ctx.update(campaign_form_media_context(self.request, None))
         return ctx
 
@@ -747,9 +745,6 @@ class CampaignUpdateView(WorkspaceScopedMixin, PanelAccessMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['campaign_keyboard_expanded'] = keyboard_has_any_button(
-            normalize_to_sections(self.object.inline_keyboard),
-        )
         ctx.update(campaign_form_media_context(self.request, self.object))
         return ctx
 
@@ -954,6 +949,7 @@ class CampaignDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
             'campaign_send_batch',
             kwargs={'pk': self.object.pk},
         )
+        ctx['campaign_send_batch_size'] = getattr(settings, 'CAMPAIGN_SEND_BATCH_SIZE', 5)
         return ctx
 
     def post(self, request, *args, **kwargs):

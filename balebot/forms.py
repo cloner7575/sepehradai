@@ -5,18 +5,26 @@ from django.core.files import File
 from django.core.files.storage import default_storage
 
 from balebot.models import BotSettings, Campaign, Platform, Tag
+from balebot.widgets import PersianClearableFileInput
 from balebot.services.jalali_datetime import aware_to_jalali_parts, parse_jalali_date_time
 
 # هم‌نام با مقدار سشن در views_panel (آپلود ویدیو)
 _CAMPAIGN_PENDING_MEDIA_SESSION_KEY = 'campaign_pending_media'
 from balebot.services.flow_sanitize import empty_start_flow, sanitize_start_flow
-from balebot.services.keyboard_layout import (
-    keyboard_has_any_button,
-    normalize_to_sections,
-    sanitize_keyboard_for_storage,
-)
 
 _SETTINGS_INPUT_CLASS = 'form-control panel-input'
+
+_CAMPAIGN_PANEL_CONTENT_CHOICES = [
+    (Campaign.ContentType.TEXT, 'متن'),
+    (Campaign.ContentType.PHOTO, 'عکس'),
+    (Campaign.ContentType.VIDEO, 'ویدیو'),
+    (Campaign.ContentType.DOCUMENT, 'فایل'),
+]
+
+_LEGACY_CAMPAIGN_CONTENT_LABELS = {
+    Campaign.ContentType.TEXT_BUTTONS: 'متن + دکمه (قدیمی)',
+    Campaign.ContentType.VOICE: 'صدا (قدیمی)',
+}
 
 
 class BotSettingsForm(forms.ModelForm):
@@ -231,11 +239,6 @@ class FlowEngineForm(BotSettingsForm):
 
 
 class CampaignForm(forms.ModelForm):
-    inline_keyboard = forms.CharField(
-        required=False,
-        label='',
-        widget=forms.HiddenInput(attrs={'id': 'id_inline_keyboard'}),
-    )
     jalali_scheduled_date = forms.CharField(
         required=False,
         label='تاریخ شمسی ارسال',
@@ -293,14 +296,31 @@ class CampaignForm(forms.ModelForm):
             'target_tags',
             'body',
             'media',
-            'inline_keyboard',
         ]
+        labels = {
+            'title': 'عنوان کمپین',
+            'schedule_kind': 'نوع زمان ارسال',
+            'content_type': 'نوع محتوا',
+            'body': 'متن پیام',
+            'media': 'فایل',
+        }
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control panel-input'}),
+            'title': forms.TextInput(
+                attrs={
+                    'class': 'form-control panel-input',
+                    'placeholder': 'مثلاً: اطلاع‌رسانی جشنواره بهاره',
+                },
+            ),
             'schedule_kind': forms.Select(attrs={'class': 'form-select panel-input'}),
             'content_type': forms.Select(attrs={'class': 'form-select panel-input'}),
-            'body': forms.Textarea(attrs={'class': 'form-control panel-input', 'rows': 5}),
-            'media': forms.ClearableFileInput(attrs={'class': 'form-control panel-input'}),
+            'body': forms.Textarea(
+                attrs={
+                    'class': 'form-control panel-input',
+                    'rows': 5,
+                    'placeholder': 'متن پیامی که برای مخاطبان ارسال می‌شود…',
+                },
+            ),
+            'media': PersianClearableFileInput(attrs={'class': 'form-control panel-input'}),
         }
 
     field_order = [
@@ -313,7 +333,6 @@ class CampaignForm(forms.ModelForm):
         'target_tags',
         'body',
         'media',
-        'inline_keyboard',
     ]
 
     def __init__(self, *args, request=None, platform=None, workspace=None, **kwargs):
@@ -329,11 +348,18 @@ class CampaignForm(forms.ModelForm):
             self.initial['audience_mode'] = self.AUDIENCE_TAGS
         else:
             self.initial['audience_mode'] = self.AUDIENCE_ALL
-        raw = self.instance.inline_keyboard if self.instance.pk else None
-        norm = normalize_to_sections(raw)
-        dumped = json.dumps(norm, ensure_ascii=False)
-        self.initial['inline_keyboard'] = dumped
-        self.fields['inline_keyboard'].initial = dumped
+
+        panel_choices = list(_CAMPAIGN_PANEL_CONTENT_CHOICES)
+        if self.instance.pk:
+            current = self.instance.content_type
+            if current and current not in {value for value, _ in panel_choices}:
+                panel_choices = [
+                    (current, _LEGACY_CAMPAIGN_CONTENT_LABELS.get(current, current)),
+                    *panel_choices,
+                ]
+        self.fields['content_type'].choices = panel_choices
+        if not self.instance.pk and not self.initial.get('content_type'):
+            self.initial['content_type'] = Campaign.ContentType.TEXT
 
         # Preserve field order: jalali fields sit after schedule_kind in Meta.fields
         if self.instance.pk and self.instance.schedule_kind == Campaign.ScheduleKind.SCHEDULED:
@@ -367,16 +393,6 @@ class CampaignForm(forms.ModelForm):
         path = (pending or {}).get('path')
         return bool(path and default_storage.exists(path))
 
-    def clean_inline_keyboard(self):
-        raw = self.cleaned_data.get('inline_keyboard')
-        if raw is None or (isinstance(raw, str) and not raw.strip()):
-            return sanitize_keyboard_for_storage(None)
-        try:
-            data = json.loads(raw) if isinstance(raw, str) else raw
-        except json.JSONDecodeError as e:
-            raise forms.ValidationError(f'دادهٔ نامعتبر: {e}') from e
-        return sanitize_keyboard_for_storage(data)
-
     def clean(self):
         cleaned = super().clean()
         ct = cleaned.get('content_type')
@@ -405,18 +421,14 @@ class CampaignForm(forms.ModelForm):
         if ct in (
             Campaign.ContentType.PHOTO,
             Campaign.ContentType.VIDEO,
-            Campaign.ContentType.VOICE,
             Campaign.ContentType.DOCUMENT,
+            Campaign.ContentType.VOICE,
         ):
             if not has_media:
-                raise forms.ValidationError('برای این نوع محتوا بارگذاری فایل الزامی است.')
+                raise forms.ValidationError('برای این نوع محتوا انتخاب یا بارگذاری فایل الزامی است.')
 
-        kb = cleaned.get('inline_keyboard')
-        if ct == Campaign.ContentType.TEXT_BUTTONS:
-            if not keyboard_has_any_button(kb):
-                raise forms.ValidationError(
-                    'برای «متن + دکمه» حداقل یک دکمه در سازندهٔ صفحه‌کلید اضافه کنید.',
-                )
+        if ct == Campaign.ContentType.TEXT and not (cleaned.get('body') or '').strip():
+            raise forms.ValidationError('برای کمپین متنی، متن پیام را وارد کنید.')
 
         kind = cleaned.get('schedule_kind')
         j_date = (cleaned.get('jalali_scheduled_date') or '').strip()
@@ -446,6 +458,7 @@ class CampaignForm(forms.ModelForm):
     def save(self, commit=True):
         obj = super().save(commit=False)
         obj.scheduled_at = self.cleaned_data['resolved_scheduled_at']
+        obj.inline_keyboard = []
         if commit:
             obj.save()
             if self.cleaned_data.get('audience_mode') == self.AUDIENCE_ALL:

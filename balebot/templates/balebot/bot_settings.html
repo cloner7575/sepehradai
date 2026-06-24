@@ -1,228 +1,214 @@
 {% extends "balebot/base.html" %}
 {% load static %}
-{% block title %}تنظیمات ربات{% endblock %}
-{% block page_title %}تنظیمات ربات{% endblock %}
+{% block title %}راه‌اندازی ربات{% endblock %}
+{% block page_title %}راه‌اندازی ربات{% endblock %}
 {% block page_subtitle %}
-<p class="topbar-meta mb-0 mt-1">تغییرات بعد از «ذخیره» بلافاصله روی ربات اعمال می‌شود.</p>
+<p class="topbar-meta mb-0 mt-1">اتصال، پیام‌های اولیه و رفتار ربات در {{ active_platform_label }} — تغییرات با «ذخیره» اعمال می‌شوند.</p>
 {% endblock %}
 
 {% block content %}
-<form method="post" class="settings-page-form" id="settings-page-form">
+<form method="post" class="bot-setup-form" id="settings-page-form">
   {% csrf_token %}
   {% if form.non_field_errors %}
     <div class="alert alert-danger mb-4">{{ form.non_field_errors }}</div>
   {% endif %}
 
-  <div class="settings-page-layout">
-    <nav class="settings-nav panel-card" aria-label="بخش‌های تنظیمات">
-      <div class="settings-nav-title">برو به</div>
-      <a href="#sec-connection" class="settings-nav-link" data-settings-nav="sec-connection">
-        <i class="bi bi-plug"></i>
-        <span>اتصال ربات</span>
-      </a>
-      <a href="#sec-start" class="settings-nav-link active" data-settings-nav="sec-start">
-        <i class="bi bi-play-circle"></i>
-        <span>استارت و منو</span>
-      </a>
-      <a href="#sec-commands" class="settings-nav-link" data-settings-nav="sec-commands">
-        <i class="bi bi-terminal"></i>
-        <span>دستورها</span>
-      </a>
-      <a href="#sec-support" class="settings-nav-link" data-settings-nav="sec-support">
-        <i class="bi bi-life-preserver"></i>
-        <span>پشتیبانی</span>
-      </a>
-      <a href="#sec-advanced" class="settings-nav-link" data-settings-nav="sec-advanced">
-        <i class="bi bi-sliders"></i>
-        <span>پیشرفته</span>
-      </a>
-    </nav>
+  <div class="bot-setup-status" aria-label="وضعیت اتصال">
+    <div class="bot-setup-status-item {% if object.is_enabled %}is-ok{% else %}is-off{% endif %}">
+      <span class="bot-setup-status-icon"><i class="bi bi-power"></i></span>
+      <span class="bot-setup-status-label">وضعیت ربات</span>
+      <span class="bot-setup-status-value">{% if object.is_enabled %}فعال{% else %}غیرفعال{% endif %}</span>
+    </div>
+    <div class="bot-setup-status-item {% if connection_status.has_token %}is-ok{% else %}is-warn{% endif %}">
+      <span class="bot-setup-status-icon"><i class="bi bi-key"></i></span>
+      <span class="bot-setup-status-label">توکن</span>
+      <span class="bot-setup-status-value">{% if connection_status.has_token %}تنظیم شده{% else %}نیاز به تنظیم{% endif %}</span>
+    </div>
+    <div class="bot-setup-status-item {% if connection_status.bot_ok %}is-ok{% endif %}">
+      <span class="bot-setup-status-icon"><i class="bi bi-robot"></i></span>
+      <span class="bot-setup-status-label">شناسه ربات</span>
+      <span class="bot-setup-status-value">{% if connection_status.bot_username %}@{{ connection_status.bot_username }}{% else %}—{% endif %}</span>
+    </div>
+    <div class="bot-setup-status-item {% if connection_status.webhook_ok %}is-ok{% elif connection_status.webhook_url %}is-warn{% endif %}">
+      <span class="bot-setup-status-icon"><i class="bi bi-broadcast"></i></span>
+      <span class="bot-setup-status-label">وب‌هوک</span>
+      <span class="bot-setup-status-value">{% if connection_status.webhook_ok %}متصل{% elif connection_status.webhook_url %}نیاز به همگام‌سازی{% else %}ثبت نشده{% endif %}</span>
+    </div>
+  </div>
 
-    <div class="settings-main">
+  {% if connection_status.error %}
+  <div class="alert alert-danger bot-setup-alert mb-4">
+    <i class="bi bi-exclamation-triangle me-2"></i>{{ connection_status.error }}
+  </div>
+  {% endif %}
 
-      <section id="sec-connection" class="settings-section panel-card mb-4">
-        <header class="panel-card-header settings-section-header">
+  <div class="bot-setup-tabs app-tabs" role="tablist" aria-label="بخش‌های راه‌اندازی">
+    <button type="button" class="app-tab is-active" role="tab" aria-selected="true" data-bot-setup-tab="connection" id="tab-connection">
+      <i class="bi bi-plug"></i><span>اتصال</span>
+    </button>
+    <button type="button" class="app-tab" role="tab" aria-selected="false" data-bot-setup-tab="welcome" id="tab-welcome">
+      <i class="bi bi-chat-heart"></i><span>خوش‌آمدگویی</span>
+    </button>
+    <button type="button" class="app-tab" role="tab" aria-selected="false" data-bot-setup-tab="commands" id="tab-commands">
+      <i class="bi bi-terminal"></i><span>دستورات</span>
+    </button>
+    <button type="button" class="app-tab" role="tab" aria-selected="false" data-bot-setup-tab="support" id="tab-support">
+      <i class="bi bi-life-preserver"></i><span>پشتیبانی</span>
+    </button>
+    <button type="button" class="app-tab" role="tab" aria-selected="false" data-bot-setup-tab="panel" id="tab-panel">
+      <i class="bi bi-palette"></i><span>ظاهر پنل</span>
+    </button>
+  </div>
+
+  <div class="bot-setup-panels">
+    <section class="bot-setup-panel is-active" data-bot-setup-panel="connection" id="sec-connection" role="tabpanel" aria-labelledby="tab-connection">
+      <div class="panel-card">
+        <header class="panel-card-header">
           <div>
-            <h2 class="panel-card-title mb-1"><i class="bi bi-plug me-2"></i>اتصال ربات ({{ active_platform_label }})</h2>
-            <p class="panel-card-lead mb-0">توکن ربات را وارد کنید؛ آدرس عمومی و رمز وب‌هوک خودکار از تنظیمات سرور تنظیم می‌شوند.</p>
+            <h2 class="panel-card-title mb-1">اتصال به {{ active_platform_label }}</h2>
+            <p class="panel-card-lead mb-0">توکن را وارد کنید و وب‌هوک را ثبت کنید تا ربات پاسخ دهد.</p>
           </div>
         </header>
         <div class="panel-card-body">
-          {% include "balebot/_settings_switch.html" with field=form.is_enabled title=form.is_enabled.label desc="اگر خاموش باشد وب‌هوک پاسخ نمی‌دهد." %}
+          {% include "balebot/_settings_switch.html" with field=form.is_enabled title=form.is_enabled.label desc="خاموش = ربات به پیام‌ها پاسخ نمی‌دهد." %}
           {% include "balebot/_settings_field.html" with field=form.bot_token hint=form.bot_token.help_text %}
 
           {% if webhook_url_preview %}
-          <div class="alert alert-secondary small mb-3">
-            <strong>URL وب‌هوک:</strong>
-            <code dir="ltr" class="user-select-all">{{ webhook_url_preview }}</code>
+          <div class="bot-setup-webhook-box">
+            <span class="bot-setup-webhook-label">آدرس وب‌هوک</span>
+            <code dir="ltr" class="bot-setup-webhook-url user-select-all">{{ webhook_url_preview }}</code>
           </div>
           {% endif %}
 
-          <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
-            <button type="submit" name="action" value="register_webhook" class="btn btn-outline-primary">
-              <i class="bi bi-broadcast me-1"></i>ثبت و اتصال ربات
+          <div class="bot-setup-actions">
+            <button type="submit" name="action" value="register_webhook" class="btn-panel-primary">
+              <i class="bi bi-broadcast"></i>ثبت و اتصال ربات
             </button>
           </div>
-
-          <div class="settings-connection-status small">
-            <div>توکن: {% if connection_status.has_token %}<span class="text-success">تنظیم شده</span>{% else %}<span class="text-danger">تنظیم نشده</span>{% endif %}</div>
-            <div>اتصال API: {% if connection_status.bot_ok %}<span class="text-success">موفق{% if connection_status.bot_username %} (@{{ connection_status.bot_username }}){% endif %}</span>{% else %}<span class="text-muted">—</span>{% endif %}</div>
-            <div>وب‌هوک: {% if connection_status.webhook_ok %}<span class="text-success">ثبت شده</span>{% elif connection_status.webhook_url %}<span class="text-warning">URL متفاوت</span>{% else %}<span class="text-muted">ثبت نشده</span>{% endif %}</div>
-            {% if connection_status.error %}
-            <div class="text-danger mt-1">{{ connection_status.error }}</div>
-            {% endif %}
-          </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <div class="settings-flow-map panel-card mb-4">
+    <section class="bot-setup-panel" data-bot-setup-panel="welcome" id="sec-start" role="tabpanel" aria-labelledby="tab-welcome" hidden>
+      <div class="bot-setup-flow-hint panel-card mb-4">
         <div class="panel-card-body py-3">
-          <div class="settings-flow-map-title"><i class="bi bi-diagram-2 me-2"></i>کاربر در {{ active_platform_label }} چه می‌بیند؟</div>
-          <div class="settings-flow-map-grid">
-            <div class="settings-flow-map-col">
-              <span class="settings-flow-map-badge settings-flow-map-badge--first">بار اول</span>
-              <p class="mb-0 small">اگر شماره نداده → پیام دریافت شماره + دکمه تماس</p>
+          <div class="bot-setup-flow-hint-inner">
+            <div>
+              <strong>مسیر کاربر جدید</strong>
+              <p class="mb-0 small text-muted">اولین بار: دریافت شماره (اختیاری) ← خوش‌آمد ← منوی دکمه‌ها</p>
             </div>
-            <div class="settings-flow-map-arrow" aria-hidden="true"><i class="bi bi-arrow-left"></i></div>
-            <div class="settings-flow-map-col">
-              <span class="settings-flow-map-badge settings-flow-map-badge--return">بعداً</span>
-              <p class="mb-0 small">پیام خوش‌آمد + منوی دکمه‌ها (متن، عکس، زیرمنو)</p>
-            </div>
+            <a href="{% url 'bot_flow_engine' %}" class="btn-panel-ghost btn-sm">
+              <i class="bi bi-diagram-3"></i>طراحی منوی ربات
+            </a>
           </div>
         </div>
       </div>
 
-      {# ——— استارت ——— #}
-      <section id="sec-start" class="settings-section panel-card mb-4">
-        <header class="panel-card-header settings-section-header">
-          <div>
-            <h2 class="panel-card-title mb-1"><i class="bi bi-play-circle me-2"></i>استارت و منوی اصلی</h2>
-            <p class="panel-card-lead mb-0">سه مرحله زیر را به ترتیب پر کنید.</p>
-          </div>
-        </header>
-
-        <div class="panel-card-body settings-steps">
-
-          <div class="settings-step">
-            <div class="settings-step-head">
-              <span class="settings-step-num">۱</span>
-              <div>
-                <h3 class="settings-step-title">دریافت شماره (اختیاری)</h3>
-                <p class="settings-step-lead mb-0">اگر روشن باشد، کاربر جدید قبل از منو باید شماره بدهد.</p>
-              </div>
-            </div>
-            <div class="settings-step-body">
-              {% include "balebot/_settings_switch.html" with field=form.collect_contact_on_start title=form.collect_contact_on_start.label desc="روشن = فقط برای کسی که هنوز شماره ثبت نکرده" %}
-              <div class="settings-step-fields" id="contact-fields-block">
-                {% include "balebot/_settings_field.html" with field=form.start_message_contact hint="متنی که قبل از دکمهٔ «ارسال شماره» نمایش داده می‌شود." %}
-                {% include "balebot/_settings_field.html" with field=form.contact_button_label hint="برچسب روی دکمهٔ اشتراک شماره در بله." %}
-                {% include "balebot/_settings_field.html" with field=form.registration_success_message hint="بلافاصله بعد از اینکه کاربر شماره را فرستاد." %}
-              </div>
-            </div>
-          </div>
-
-          <div class="settings-step">
-            <div class="settings-step-head">
-              <span class="settings-step-num">۲</span>
-              <div>
-                <h3 class="settings-step-title">پیام خوش‌آمد (کاربر ثبت‌نام‌شده)</h3>
-                <p class="settings-step-lead mb-0">هر بار که /start بزند و قبلاً شماره داده باشد.</p>
-              </div>
-            </div>
-            <div class="settings-step-body">
-              {% include "balebot/_settings_field.html" with field=form.start_message_normal hint="مثلاً خوش آمدید و راهنمای کوتاه." %}
-            </div>
-          </div>
-
-          <div class="settings-step settings-step--flow">
-            <div class="settings-step-head">
-              <span class="settings-step-num">۳</span>
-              <div>
-                <h3 class="settings-step-title">منو و دکمه‌ها بعد از استارت</h3>
-                <p class="settings-step-lead mb-0">ساخت گرافیکی جریان در صفحهٔ اختصاصی موتور جریان انجام می‌شود.</p>
-              </div>
-            </div>
-            <div class="settings-step-body">
-              <a href="{% url 'bot_flow_engine' %}" class="btn btn-panel-primary">
-                <i class="bi bi-diagram-3 me-1"></i> باز کردن موتور جریان /start
-              </a>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {# ——— دستورها ——— #}
-      <section id="sec-commands" class="settings-section panel-card mb-4">
-        <header class="panel-card-header settings-section-header">
-          <h2 class="panel-card-title mb-0"><i class="bi bi-terminal me-2"></i>دستورهای /help و /stop</h2>
+      <div class="panel-card mb-4">
+        <header class="panel-card-header">
+          <h2 class="panel-card-title mb-0">دریافت شماره تماس</h2>
         </header>
         <div class="panel-card-body">
-          <div class="row g-4">
-            <div class="col-md-6">
-              <div class="settings-command-box">
-                <div class="settings-command-box-head">/help</div>
-                {% include "balebot/_settings_switch.html" with field=form.enable_help_command title="فعال بودن" %}
-                {% include "balebot/_settings_field.html" with field=form.help_message label="متن پاسخ" %}
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="settings-command-box">
-                <div class="settings-command-box-head">/stop</div>
-                {% include "balebot/_settings_switch.html" with field=form.enable_stop_command title="فعال بودن" %}
-                {% include "balebot/_settings_field.html" with field=form.unsubscribe_message label="متن پاسخ" %}
-              </div>
+          {% include "balebot/_settings_switch.html" with field=form.collect_contact_on_start title=form.collect_contact_on_start.label desc="فقط برای کاربری که هنوز شماره نداده." %}
+          <div class="settings-step-fields" id="contact-fields-block">
+            {% include "balebot/_settings_field.html" with field=form.start_message_contact hint="قبل از دکمه «ارسال شماره»." %}
+            {% include "balebot/_settings_field.html" with field=form.contact_button_label %}
+            {% include "balebot/_settings_field.html" with field=form.registration_success_message hint="بلافاصله بعد از ارسال شماره." %}
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <header class="panel-card-header">
+          <h2 class="panel-card-title mb-0">پیام خوش‌آمد</h2>
+        </header>
+        <div class="panel-card-body">
+          <p class="panel-card-lead mb-3">وقتی کاربر /start می‌زند و قبلاً ثبت‌نام کرده.</p>
+          {% include "balebot/_settings_field.html" with field=form.start_message_normal %}
+        </div>
+      </div>
+    </section>
+
+    <section class="bot-setup-panel" data-bot-setup-panel="commands" id="sec-commands" role="tabpanel" aria-labelledby="tab-commands" hidden>
+      <div class="row g-4">
+        <div class="col-md-6">
+          <div class="panel-card h-100">
+            <header class="panel-card-header">
+              <h2 class="panel-card-title mb-0"><span class="bot-setup-cmd-tag">/help</span></h2>
+            </header>
+            <div class="panel-card-body">
+              {% include "balebot/_settings_switch.html" with field=form.enable_help_command title="فعال" %}
+              {% include "balebot/_settings_field.html" with field=form.help_message label="متن پاسخ" %}
             </div>
           </div>
         </div>
-      </section>
+        <div class="col-md-6">
+          <div class="panel-card h-100">
+            <header class="panel-card-header">
+              <h2 class="panel-card-title mb-0"><span class="bot-setup-cmd-tag">/stop</span></h2>
+            </header>
+            <div class="panel-card-body">
+              {% include "balebot/_settings_switch.html" with field=form.enable_stop_command title="فعال" %}
+              {% include "balebot/_settings_field.html" with field=form.unsubscribe_message label="متن پاسخ" %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-      {# ——— پشتیبانی ——— #}
-      <section id="sec-support" class="settings-section panel-card mb-4">
-        <header class="panel-card-header settings-section-header">
+    <section class="bot-setup-panel" data-bot-setup-panel="support" id="sec-support" role="tabpanel" aria-labelledby="tab-support" hidden>
+      <div class="panel-card">
+        <header class="panel-card-header">
           <div>
-            <h2 class="panel-card-title mb-1"><i class="bi bi-life-preserver me-2"></i>پیام به پشتیبانی</h2>
-            <p class="panel-card-lead mb-0">دکمهٔ پشتیبانی در استارت (در صورت فعال بودن) به این بخش وصل است.</p>
+            <h2 class="panel-card-title mb-1">دکمه پشتیبانی در منو</h2>
+            <p class="panel-card-lead mb-0">کاربر از داخل ربات پیام مستقیم به تیم پشتیبانی می‌فرستد.</p>
           </div>
         </header>
         <div class="panel-card-body">
-          {% include "balebot/_settings_switch.html" with field=form.enable_support title=form.enable_support.label desc="با روشن بودن، دکمهٔ پشتیبانی به منوی استارت اضافه می‌شود." %}
+          {% include "balebot/_settings_switch.html" with field=form.enable_support title=form.enable_support.label desc="دکمه پشتیبانی به منوی استارت اضافه می‌شود." %}
           <div class="settings-step-fields mt-2" id="support-fields-block">
             {% include "balebot/_settings_field.html" with field=form.support_button_label %}
-            {% include "balebot/_settings_field.html" with field=form.support_start_prompt_message hint="وقتی کاربر روی دکمهٔ پشتیبانی زد." %}
+            {% include "balebot/_settings_field.html" with field=form.support_start_prompt_message hint="با کلیک روی دکمه پشتیبانی." %}
             {% include "balebot/_settings_field.html" with field=form.support_waiting_message hint="بعد از ارسال پیام توسط کاربر." %}
           </div>
+          <div class="bot-setup-inline-link mt-3">
+            <a href="{% url 'inbound_list' %}" class="btn-panel-ghost btn-sm">
+              <i class="bi bi-ticket-detailed"></i>مشاهده تیکت‌های پشتیبانی
+            </a>
+          </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      {# ——— پیشرفته ——— #}
-      <section id="sec-advanced" class="settings-section panel-card mb-4">
-        <header class="panel-card-header settings-section-header">
-          <h2 class="panel-card-title mb-0"><i class="bi bi-sliders me-2"></i>تنظیمات پیشرفته</h2>
+    <section class="bot-setup-panel" data-bot-setup-panel="panel" id="sec-advanced" role="tabpanel" aria-labelledby="tab-panel" hidden>
+      <div class="panel-card mb-4">
+        <header class="panel-card-header">
+          <h2 class="panel-card-title mb-0">بازخورد کلیک دکمه</h2>
         </header>
         <div class="panel-card-body">
-          <div class="settings-advanced-block mb-4">
-            <h3 class="h6 mb-2">کلیک روی دکمهٔ اینلاین</h3>
-            {% include "balebot/_settings_field.html" with field=form.callback_ack_message hint="پیام کوتاه «ثبت شد» بالای صفحه هنگام کلیک (اختیاری)." %}
-          </div>
-          <div class="settings-advanced-block">
-            <h3 class="h6 mb-2">ظاهر همین پنل (روی ربات اثر ندارد)</h3>
-            {% include "balebot/_settings_field.html" with field=form.panel_brand_title %}
-            {% include "balebot/_settings_field.html" with field=form.panel_brand_subtitle %}
-          </div>
+          {% include "balebot/_settings_field.html" with field=form.callback_ack_message hint="پیام کوتاه بالای صفحه هنگام کلیک روی دکمه اینلاین (اختیاری)." %}
         </div>
-      </section>
-
-    </div>
+      </div>
+      <div class="panel-card">
+        <header class="panel-card-header">
+          <h2 class="panel-card-title mb-0">برندینگ پنل</h2>
+        </header>
+        <div class="panel-card-body">
+          <p class="panel-card-lead mb-3">فقط روی ظاهر همین داشبورد اثر دارد، نه ربات.</p>
+          {% include "balebot/_settings_field.html" with field=form.panel_brand_title %}
+          {% include "balebot/_settings_field.html" with field=form.panel_brand_subtitle %}
+        </div>
+      </div>
+    </section>
   </div>
 
-  <div class="settings-save-bar">
-    <div class="settings-save-bar-inner">
-      <button type="submit" class="btn btn-panel-primary px-4 py-2">
-        <i class="bi bi-cloud-check me-2"></i>ذخیرهٔ تنظیمات
+  <div class="bot-setup-save-bar">
+    <div class="bot-setup-save-bar-inner">
+      <button type="submit" class="btn-panel-primary">
+        <i class="bi bi-cloud-check"></i>ذخیره تنظیمات
       </button>
       {% if object.updated_at %}
-      <span class="text-muted small"><i class="bi bi-clock-history me-1"></i>آخرین ذخیره: {{ object.updated_at }}</span>
+      <span class="bot-setup-save-meta"><i class="bi bi-clock-history"></i>آخرین ذخیره: {{ object.updated_at|date:"Y/m/d H:i" }}</span>
       {% endif %}
     </div>
   </div>
@@ -230,5 +216,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'balebot/js/bot_settings.js' %}"></script>
+<script src="{% static 'balebot/js/bot_settings.js' %}?v=3"></script>
 {% endblock %}

@@ -4,126 +4,138 @@
     <div class="app-sidebar-logo"><i class="bi bi-robot"></i></div>
     <div class="app-sidebar-brand-text">
       <strong>{% if bot_branding %}{{ bot_branding.panel_brand_title }}{% else %}Sepehrad AI Bot{% endif %}</strong>
-      <span>پنل مدیریت · {{ active_platform_label|default:"بله" }}</span>
+      <span class="app-platform-chip app-platform-chip--{{ active_platform|default:'bale' }}">{{ active_platform_label|default:"بله" }}</span>
     </div>
   </div>
 
   <div class="app-sidebar-scroll">
-    <div class="app-nav-group {% if panel_module == 'home' %}is-open{% endif %}">
-      <div class="app-nav-group-head"><i class="bi bi-grid-1x2"></i><span>نمای کلی</span></div>
-      <nav class="app-nav">
-        <a href="{% url 'panel_dashboard' %}" class="app-nav-link {% if name == 'panel_dashboard' %}is-active{% endif %}">
-          <i class="bi bi-speedometer2 app-nav-icon"></i><span>داشبورد</span>
-        </a>
-      </nav>
-    </div>
+    <nav class="app-nav app-nav--global" aria-label="نمای کلی">
+      <a href="{% url 'panel_dashboard' %}" class="app-nav-link {% if name == 'panel_dashboard' %}is-active{% endif %}">
+        <i class="bi bi-speedometer2 app-nav-icon"></i><span>داشبورد</span>
+      </a>
+    </nav>
 
-    <div class="app-nav-group {% if panel_module == 'bot' %}is-open{% endif %}">
-      <div class="app-nav-group-head"><i class="bi bi-robot"></i><span>ربات و مخاطبین</span></div>
-      <nav class="app-nav">
-        <a href="{% url 'subscriber_list' %}" class="app-nav-link {% if name == 'subscriber_list' or name == 'subscriber_detail' %}is-active{% endif %}">
-          <i class="bi bi-people app-nav-icon"></i><span>مخاطبین</span>
-        </a>
-        <a href="{% url 'bot_flow_engine' %}" class="app-nav-link {% if name == 'bot_flow_engine' %}is-active{% endif %}">
-          <i class="bi bi-diagram-3 app-nav-icon"></i><span>موتور جریان /start</span>
-        </a>
-        <a href="{% url 'bot_settings' %}" class="app-nav-link {% if name == 'bot_settings' %}is-active{% endif %}">
-          <i class="bi bi-plug app-nav-icon"></i><span>اتصال و تنظیمات</span>
-        </a>
-        <a href="{% url 'bot_settings' %}#sec-commands" class="app-nav-link">
-          <i class="bi bi-terminal app-nav-icon"></i><span>دستورات</span>
-        </a>
-      </nav>
-    </div>
+    <section class="app-nav-product app-nav-product--bot {% if panel_product == 'bot' %}is-current{% endif %}" aria-label="ربات پیام‌رسان">
+      <header class="app-nav-product-head">
+        <span class="app-nav-product-icon"><i class="bi bi-robot"></i></span>
+        <span class="app-nav-product-title">ربات</span>
+        <span class="app-nav-product-meta">{{ active_platform_label|default:"بله" }}</span>
+      </header>
 
-    <div class="app-nav-group {% if panel_module == 'marketing' %}is-open{% endif %}">
-      <div class="app-nav-group-head"><i class="bi bi-megaphone"></i><span>کمپین‌ها</span></div>
-      <nav class="app-nav">
-        <a href="{% url 'campaign_list' %}" class="app-nav-link {% if name == 'campaign_list' or name == 'campaign_detail' or name == 'campaign_edit' %}is-active{% endif %}">
-          <i class="bi bi-send app-nav-icon"></i><span>لیست کمپین‌ها</span>
-        </a>
-        <a href="{% url 'campaign_create' %}" class="app-nav-link {% if name == 'campaign_create' %}is-active{% endif %}">
-          <i class="bi bi-plus-circle app-nav-icon"></i><span>ارسال انبوه</span>
-        </a>
-      </nav>
-    </div>
+      <div class="app-nav-subgroup">
+        <span class="app-nav-subgroup-label">مخاطبین و جریان</span>
+        <nav class="app-nav">
+          <a href="{% url 'subscriber_list' %}" class="app-nav-link {% if name == 'subscriber_list' or name == 'subscriber_detail' %}is-active{% endif %}">
+            <i class="bi bi-people app-nav-icon"></i><span>مخاطبین</span>
+          </a>
+          <a href="{% url 'bot_flow_engine' %}" class="app-nav-link {% if name == 'bot_flow_engine' %}is-active{% endif %}">
+            <i class="bi bi-diagram-3 app-nav-icon"></i><span>طراحی منوی ربات</span>
+          </a>
+          <a href="{% url 'bot_settings' %}" class="app-nav-link {% if name == 'bot_settings' %}is-active{% endif %}">
+            <i class="bi bi-sliders2 app-nav-icon"></i><span>راه‌اندازی ربات</span>
+          </a>
+        </nav>
+      </div>
 
-    <div class="app-nav-group {% if panel_module == 'audience' %}is-open{% endif %}">
-      <div class="app-nav-group-head"><i class="bi bi-headset"></i><span>پشتیبانی</span></div>
-      <nav class="app-nav">
-        <a href="{% url 'inbound_list' %}" class="app-nav-link {% if name == 'inbound_list' %}is-active{% endif %}">
-          <i class="bi bi-ticket-detailed app-nav-icon"></i><span>تیکت‌ها</span>
-          {% if inbound_open_count %}<em class="app-nav-badge">{{ inbound_open_count }}</em>{% endif %}
-        </a>
-        <a href="{% url 'callback_log_list' %}" class="app-nav-link {% if name == 'callback_log_list' %}is-active{% endif %}">
-          <i class="bi bi-chat-dots app-nav-icon"></i><span>گفتگوهای فعال</span>
+      <div class="app-nav-subgroup">
+        <span class="app-nav-subgroup-label">بازاریابی</span>
+        <nav class="app-nav">
+          <a href="{% url 'campaign_list' %}" class="app-nav-link {% if name == 'campaign_list' or name == 'campaign_detail' or name == 'campaign_edit' %}is-active{% endif %}">
+            <i class="bi bi-send app-nav-icon"></i><span>لیست کمپین‌ها</span>
+          </a>
+          <a href="{% url 'campaign_create' %}" class="app-nav-link {% if name == 'campaign_create' %}is-active{% endif %}">
+            <i class="bi bi-plus-circle app-nav-icon"></i><span>ارسال انبوه</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="app-nav-subgroup">
+        <span class="app-nav-subgroup-label">پشتیبانی</span>
+        <nav class="app-nav">
+          <a href="{% url 'inbound_list' %}" class="app-nav-link {% if name == 'inbound_list' %}is-active{% endif %}">
+            <i class="bi bi-ticket-detailed app-nav-icon"></i><span>تیکت‌ها</span>
+            {% if inbound_open_count %}<em class="app-nav-badge">{{ inbound_open_count }}</em>{% endif %}
+          </a>
+          <a href="{% url 'callback_log_list' %}" class="app-nav-link {% if name == 'callback_log_list' %}is-active{% endif %}">
+            <i class="bi bi-chat-dots app-nav-icon"></i><span>گفتگوهای فعال</span>
+          </a>
+        </nav>
+      </div>
+
+      {% if user.is_superuser %}
+      <nav class="app-nav app-nav--admin" aria-label="مدیریت پنل">
+        <a href="{% url 'panel_user_list' %}" class="app-nav-link app-nav-link--admin {% if name == 'panel_user_list' or name == 'panel_user_create' or name == 'panel_user_edit' %}is-active{% endif %}">
+          <i class="bi bi-shield-lock app-nav-icon"></i><span>مدیریت کاربران</span>
         </a>
       </nav>
-    </div>
+      {% endif %}
+    </section>
 
     {% if has_miniapp_access %}
-    <div class="app-nav-group {% if panel_module == 'catalog' %}is-open{% endif %}">
-      <div class="app-nav-group-head"><i class="bi bi-shop"></i><span>فروشگاه / مینی‌اپ</span></div>
-      <nav class="app-nav">
-        <a href="{% url 'catalog_dashboard' %}" class="app-nav-link {% if name == 'catalog_dashboard' %}is-active{% endif %}">
-          <i class="bi bi-speedometer2 app-nav-icon"></i><span>داشبورد فروشگاه</span>
-        </a>
-        <a href="{% url 'catalog_flow_engine' %}" class="app-nav-link {% if name == 'catalog_flow_engine' %}is-active{% endif %}">
-          <i class="bi bi-palette app-nav-icon"></i><span>موتور فروشگاه</span>
-        </a>
-        <a href="{% url 'catalog_item_list' %}" class="app-nav-link {% if name == 'catalog_item_list' or name == 'catalog_item_create' or name == 'catalog_item_edit' %}is-active{% endif %}">
-          <i class="bi bi-box-seam app-nav-icon"></i><span>محصولات</span>
-        </a>
-        <a href="{% url 'catalog_order_list' %}" class="app-nav-link {% if name == 'catalog_order_list' or name == 'catalog_order_detail' %}is-active{% endif %}">
-          <i class="bi bi-receipt app-nav-icon"></i><span>سفارش‌ها</span>
-        </a>
-        <a href="{% url 'catalog_settings' %}" class="app-nav-link {% if name == 'catalog_settings' %}is-active{% endif %}">
-          <i class="bi bi-gear app-nav-icon"></i><span>تنظیمات فروشگاه</span>
-        </a>
-      </nav>
-    </div>
+    <section class="app-nav-product app-nav-product--miniapp {% if panel_product == 'miniapp' %}is-current{% endif %}" aria-label="مینی‌اپ">
+      <header class="app-nav-product-head">
+        <span class="app-nav-product-icon"><i class="bi bi-shop"></i></span>
+        <span class="app-nav-product-title">مینی‌اپ</span>
+        <span class="app-nav-product-meta">{{ active_platform_label|default:"بله" }}</span>
+      </header>
+
+      <div class="app-nav-subgroup">
+        <span class="app-nav-subgroup-label">محتوا و ویترین</span>
+        <nav class="app-nav">
+          <a href="{% url 'catalog_dashboard' %}" class="app-nav-link {% if name == 'catalog_dashboard' %}is-active{% endif %}">
+            <i class="bi bi-speedometer2 app-nav-icon"></i><span>داشبورد</span>
+          </a>
+          <a href="{% url 'catalog_flow_engine' %}" class="app-nav-link {% if name == 'catalog_flow_engine' %}is-active{% endif %}">
+            <i class="bi bi-palette app-nav-icon"></i><span>طراحی صفحهٔ اصلی</span>
+          </a>
+          <a href="{% url 'catalog_item_list' %}" class="app-nav-link {% if name == 'catalog_item_list' or name == 'catalog_item_create' or name == 'catalog_item_edit' %}is-active{% endif %}">
+            <i class="bi bi-box-seam app-nav-icon"></i><span>آیتم‌ها</span>
+          </a>
+          <a href="{% url 'catalog_order_list' %}" class="app-nav-link {% if name == 'catalog_order_list' or name == 'catalog_order_detail' %}is-active{% endif %}">
+            <i class="bi bi-receipt app-nav-icon"></i><span>سفارش‌ها</span>
+          </a>
+          <a href="{% url 'catalog_settings' %}" class="app-nav-link {% if name == 'catalog_settings' %}is-active{% endif %}">
+            <i class="bi bi-gear app-nav-icon"></i><span>تنظیمات</span>
+          </a>
+        </nav>
+      </div>
+    </section>
     {% endif %}
 
     {% if has_instagram_access %}
-    <div class="app-nav-group {% if panel_module == 'instagram' %}is-open{% endif %}">
-      <div class="app-nav-group-head"><i class="bi bi-instagram"></i><span>اینستاگرام</span></div>
-      <nav class="app-nav">
-        <a href="{% url 'instagram:dashboard' %}" class="app-nav-link {% if name == 'dashboard' %}is-active{% endif %}">
-          <i class="bi bi-grid-1x2 app-nav-icon"></i><span>داشبورد</span>
-        </a>
-        <a href="{% url 'instagram:phone_extractor' %}" class="app-nav-link {% if name == 'phone_extractor' %}is-active{% endif %}">
-          <i class="bi bi-telephone-plus app-nav-icon"></i><span>استخراج شماره</span>
-        </a>
-        <a href="{% url 'instagram:phone_list' %}" class="app-nav-link {% if name == 'phone_list' %}is-active{% endif %}">
-          <i class="bi bi-database app-nav-icon"></i><span>بانک شماره‌ها</span>
-        </a>
-        <a href="{% url 'instagram:history' %}" class="app-nav-link {% if name == 'history' or name == 'extraction_detail' %}is-active{% endif %}">
-          <i class="bi bi-clock-history app-nav-icon"></i><span>تاریخچه</span>
-        </a>
-        <a href="{% url 'instagram:backup_guide' %}" class="app-nav-link {% if name == 'backup_guide' %}is-active{% endif %}">
-          <i class="bi bi-play-circle app-nav-icon"></i><span>آموزش بکاپ</span>
-        </a>
-      </nav>
-    </div>
-    {% endif %}
+    <section class="app-nav-product app-nav-product--instagram {% if panel_product == 'instagram' %}is-current{% endif %}" aria-label="اینستاگرام">
+      <header class="app-nav-product-head">
+        <span class="app-nav-product-icon"><i class="bi bi-instagram"></i></span>
+        <span class="app-nav-product-title">اینستاگرام</span>
+        <span class="app-nav-product-meta">ابزارها</span>
+      </header>
 
-    <div class="app-nav-group {% if panel_module == 'settings' %}is-open{% endif %}">
-      <div class="app-nav-group-head"><i class="bi bi-sliders"></i><span>تنظیمات</span></div>
-      <nav class="app-nav">
-        <a href="{% url 'bot_settings' %}#sec-advanced" class="app-nav-link">
-          <i class="bi bi-palette app-nav-icon"></i><span>برندینگ</span>
-        </a>
-        {% if user.is_superuser %}
-        <a href="{% url 'panel_user_list' %}" class="app-nav-link {% if name == 'panel_user_list' or name == 'panel_user_create' or name == 'panel_user_edit' %}is-active{% endif %}">
-          <i class="bi bi-shield-lock app-nav-icon"></i><span>مدیریت کاربران</span>
-        </a>
-        {% endif %}
-      </nav>
-    </div>
+      <div class="app-nav-subgroup">
+        <span class="app-nav-subgroup-label">استخراج و بانک</span>
+        <nav class="app-nav">
+          <a href="{% url 'instagram:dashboard' %}" class="app-nav-link {% if name == 'dashboard' %}is-active{% endif %}">
+            <i class="bi bi-grid-1x2 app-nav-icon"></i><span>داشبورد</span>
+          </a>
+          <a href="{% url 'instagram:phone_extractor' %}" class="app-nav-link {% if name == 'phone_extractor' %}is-active{% endif %}">
+            <i class="bi bi-telephone-plus app-nav-icon"></i><span>استخراج شماره</span>
+          </a>
+          <a href="{% url 'instagram:phone_list' %}" class="app-nav-link {% if name == 'phone_list' %}is-active{% endif %}">
+            <i class="bi bi-database app-nav-icon"></i><span>بانک شماره‌ها</span>
+          </a>
+          <a href="{% url 'instagram:history' %}" class="app-nav-link {% if name == 'history' or name == 'extraction_detail' %}is-active{% endif %}">
+            <i class="bi bi-clock-history app-nav-icon"></i><span>تاریخچه</span>
+          </a>
+          <a href="{% url 'instagram:backup_guide' %}" class="app-nav-link {% if name == 'backup_guide' %}is-active{% endif %}">
+            <i class="bi bi-play-circle app-nav-icon"></i><span>آموزش بکاپ</span>
+          </a>
+        </nav>
+      </div>
+    </section>
+    {% endif %}
   </div>
 
   <div class="app-sidebar-foot">
-    <span>{{ panel_workspace.name|default:"Workspace" }} · v5</span>
+    <span>{{ panel_workspace.name|default:"Workspace" }}</span>
   </div>
 </aside>
 {% endwith %}

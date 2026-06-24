@@ -22,7 +22,10 @@
   </div>
 
   <div class="app-header-center">
-    <span class="app-platform-label">پلتفرم فعال</span>
+    <span class="app-platform-banner app-platform-banner--{{ active_platform|default:'bale' }}">
+      <i class="bi {% if active_platform == 'telegram' %}bi-send-fill{% else %}bi-chat-dots-fill{% endif %}"></i>
+      <span>پنل {{ active_platform_label|default:"بله" }}</span>
+    </span>
     {% if available_platforms %}
     <form method="post" action="{% url 'panel_switch_platform' %}" class="app-platform-switch" id="app-platform-form">
       {% csrf_token %}

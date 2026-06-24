@@ -1,9 +1,9 @@
 {% extends "balebot/base.html" %}
 {% load static %}
-{% block title %}موتور فروشگاه{% endblock %}
-{% block page_title %}موتور فروشگاه{% endblock %}
+{% block title %}طراحی صفحهٔ اصلی{% endblock %}
+{% block page_title %}طراحی صفحهٔ اصلی مینی‌اپ{% endblock %}
 {% block page_subtitle %}
-<p class="app-page-subtitle">ساخت گرافیکی صفحهٔ اصلی مینی‌اپ برای <strong>{{ active_platform_label }}</strong></p>
+<p class="app-page-subtitle">چیدمان ویترین مینی‌اپ برای <strong>{{ active_platform_label }}</strong> — محصول، ویدیو، خدمت و فایل</p>
 {% endblock %}
 
 {% block content %}
@@ -24,7 +24,7 @@
       <span class="small text-muted">برای بله/تلگرام از نوار بالا سوئیچ کنید</span>
       {% endif %}
       <a href="{% url 'bot_flow_engine' %}" class="btn-panel-ghost btn-sm ms-auto">
-        <i class="bi bi-robot"></i> موتور جریان ربات
+        <i class="bi bi-robot"></i> طراحی منوی ربات
       </a>
       <a href="{% url 'catalog_item_create' %}" class="btn-panel-ghost btn-sm">
         <i class="bi bi-plus-lg"></i> محصول
@@ -36,7 +36,7 @@
     <div class="flow-engine-save-bar">
       <div class="flow-engine-save-bar-inner">
         <button type="submit" class="btn-panel-primary">
-          <i class="bi bi-cloud-check"></i> ذخیره ظاهر فروشگاه
+          <i class="bi bi-cloud-check"></i> ذخیره طراحی صفحه
         </button>
         {% if mini_app_url %}
         <span class="small text-muted" dir="ltr">مینی‌اپ: {{ mini_app_url|truncatechars:48 }}</span>

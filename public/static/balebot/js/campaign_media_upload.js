@@ -51,7 +51,9 @@
         setSubmitAllowed(true);
         return;
       }
-      var hasExisting = root.dataset.hasExistingVideo === 'true';
+      var hasExisting =
+        root.dataset.hasExistingMedia === 'true' ||
+        root.dataset.hasExistingVideo === 'true';
       var ok = uploadSucceeded || hasExisting;
       setSubmitAllowed(ok);
     }

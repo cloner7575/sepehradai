@@ -137,7 +137,7 @@ def run_campaign_delivery_batch(
     batch_size: int | None = None,
 ) -> dict[str, Any]:
     """یک دسته از پیام‌های کمپین را ارسال می‌کند (برای پنل وب)."""
-    batch_size = batch_size or getattr(settings, 'CAMPAIGN_SEND_BATCH_SIZE', 15)
+    batch_size = batch_size or getattr(settings, 'CAMPAIGN_SEND_BATCH_SIZE', 5)
 
     try:
         campaign = Campaign.objects.get(pk=campaign_id)
@@ -208,47 +208,123 @@ def run_campaign_delivery_batch(
 
 def process_due_campaigns_batch(
     *,
+    campaign_id: int | None = None,
+    dry_run: bool = False,
     log_line: Callable[[str], None] | None = None,
     err_line: Callable[[str], None] | None = None,
-) -> None:
+) -> dict[str, int]:
     """تمام کمپین‌های سررسید در صف / در حال ارسال (برای cron یا دستور مدیریتی)."""
     now = timezone.now()
     delay = ignore_setting_delay()
-    batch_size = getattr(settings, 'CAMPAIGN_SEND_BATCH_SIZE', 15)
+    batch_size = getattr(settings, 'CAMPAIGN_SEND_BATCH_SIZE', 5)
 
     campaigns = Campaign.objects.filter(
         status__in=(Campaign.Status.QUEUED, Campaign.Status.SENDING),
-    )
+    ).order_by('scheduled_at', 'id')
+    if campaign_id is not None:
+        campaigns = campaigns.filter(pk=campaign_id)
+
+    stats = {
+        'scanned': 0,
+        'started': 0,
+        'completed': 0,
+        'skipped_future': 0,
+        'skipped_no_token': 0,
+        'sent': 0,
+        'failed': 0,
+    }
 
     for campaign in campaigns:
+        stats['scanned'] += 1
+
         if campaign.status == Campaign.Status.QUEUED:
+            if campaign.scheduled_at and campaign.scheduled_at > now:
+                stats['skipped_future'] += 1
+                if log_line:
+                    when = campaign.scheduled_at_jalali_display() or str(campaign.scheduled_at)
+                    log_line(
+                        f'⏳ کمپین {campaign.pk} «{campaign.title}» — موعد: {when}',
+                    )
+                continue
+
+            if dry_run:
+                if log_line:
+                    kind = campaign.get_schedule_kind_display()
+                    log_line(
+                        f'[dry-run] ارسال کمپین {campaign.pk} «{campaign.title}» ({kind})',
+                    )
+                continue
+
+            if not BotSettings.get_for_platform(
+                campaign.workspace,
+                campaign.platform,
+            ).has_bot_token():
+                stats['skipped_no_token'] += 1
+                if err_line:
+                    label = 'تلگرام' if campaign.platform == 'telegram' else 'بله'
+                    err_line(
+                        f'توکن ربات {label} برای کمپین {campaign.pk} تنظیم نشده — رد شد.',
+                    )
+                continue
+
             if not transition_queued_to_sending_if_due(campaign, now):
                 continue
+
+            stats['started'] += 1
             if log_line:
-                log_line(f'شروع کمپین {campaign.id}: {campaign.title}')
+                log_line(f'▶ شروع کمپین {campaign.pk}: {campaign.title}')
         elif campaign.status != Campaign.Status.SENDING:
+            continue
+        elif dry_run:
+            if log_line:
+                log_line(
+                    f'[dry-run] ادامهٔ ارسال کمپین {campaign.pk} «{campaign.title}»',
+                )
             continue
 
         campaign.refresh_from_db()
         if campaign.status != Campaign.Status.SENDING:
             continue
 
+        if not BotSettings.get_for_platform(
+            campaign.workspace,
+            campaign.platform,
+        ).has_bot_token():
+            stats['skipped_no_token'] += 1
+            if err_line:
+                label = 'تلگرام' if campaign.platform == 'telegram' else 'بله'
+                err_line(
+                    f'توکن ربات {label} برای کمپین {campaign.pk} تنظیم نشده — رد شد.',
+                )
+            continue
+
         while campaign.status == Campaign.Status.SENDING:
-            run_delivery_pass_for_campaign(
+            sent, failed = run_delivery_pass_for_campaign(
                 campaign,
                 delay=delay,
                 max_messages=batch_size,
                 err_line=err_line,
             )
+            stats['sent'] += sent
+            stats['failed'] += failed
             campaign.refresh_from_db()
             progress = campaign_delivery_progress(campaign)
+            if log_line and (sent or failed):
+                log_line(
+                    f'  دسته: +{sent} ارسال'
+                    + (f'، {failed} خطا' if failed else '')
+                    + f' — {progress["sent"]}/{progress["total"]} کل',
+                )
             if progress['pending'] == 0:
                 break
 
-        if log_line:
-            campaign.refresh_from_db()
-            if campaign.status == Campaign.Status.COMPLETED:
-                log_line(f'کمپین {campaign.id} تکمیل شد.')
+        campaign.refresh_from_db()
+        if campaign.status == Campaign.Status.COMPLETED:
+            stats['completed'] += 1
+            if log_line:
+                log_line(f'✓ کمپین {campaign.pk} تکمیل شد.')
+
+    return stats
 
 
 def run_single_campaign_web(campaign_id: int) -> tuple[bool, str]:
@@ -283,7 +359,7 @@ def run_single_campaign_web(campaign_id: int) -> tuple[bool, str]:
     if campaign.status != Campaign.Status.SENDING:
         return False, 'شروع ارسال ممکن نشد.'
 
-    batch_size = getattr(settings, 'CAMPAIGN_SEND_BATCH_SIZE', 15)
+    batch_size = getattr(settings, 'CAMPAIGN_SEND_BATCH_SIZE', 5)
     sent, failed = run_delivery_pass_for_campaign(campaign, delay=ignore_setting_delay(), max_messages=batch_size)
 
     campaign.refresh_from_db()

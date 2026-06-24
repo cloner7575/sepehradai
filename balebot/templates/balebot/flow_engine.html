@@ -1,7 +1,7 @@
 {% extends "balebot/base.html" %}
 {% load static %}
-{% block title %}موتور جریان{% endblock %}
-{% block page_title %}موتور جریان{% endblock %}
+{% block title %}طراحی منوی ربات{% endblock %}
+{% block page_title %}طراحی منوی ربات{% endblock %}
 {% block page_subtitle %}
 <p class="app-page-subtitle">ساخت گرافیکی جریان /start برای <strong>{{ active_platform_label }}</strong></p>
 {% endblock %}
@@ -21,7 +21,7 @@
       {% endif %}
       {% if has_miniapp_access and mini_app_url %}
       <a href="{% url 'catalog_flow_engine' %}" class="btn-panel-ghost btn-sm ms-auto">
-        <i class="bi bi-shop"></i> موتور فروشگاه مینی‌اپ
+        <i class="bi bi-palette"></i> طراحی صفحهٔ اصلی مینی‌اپ
       </a>
       {% endif %}
     </div>

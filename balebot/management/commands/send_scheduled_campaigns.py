@@ -8,8 +8,8 @@ from balebot.management.campaign_send_command import (
 
 class Command(BaseCommand):
     help = (
-        'پردازش کمپین‌های در صف / زمان‌بندی‌شده (همان send_scheduled_campaigns). '
-        'با cron هر ۱–۲ دقیقه اجرا کنید.'
+        'ارسال کمپین‌های زمان‌بندی‌شده که به موعد رسیده‌اند و ادامهٔ کمپین‌های ناتمام. '
+        'به‌جای Celery با cron هر ۱–۲ دقیقه اجرا کنید.'
     )
 
     def add_arguments(self, parser):

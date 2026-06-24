@@ -45,7 +45,7 @@ export function ChannelGate({ adapter, auth, onUnlocked }: ChannelGateProps) {
       <div className="max-w-sm space-y-2">
         <h1 className="text-base font-semibold text-[var(--color-text)]">عضویت در کانال</h1>
         <p className="text-sm leading-relaxed text-muted">
-          {auth.channel_message || 'برای استفاده از فروشگاه ابتدا در کانال ما عضو شوید.'}
+          {auth.channel_message || 'برای استفاده از مینی‌اپ ابتدا در کانال ما عضو شوید.'}
         </p>
       </div>
       <div className="flex w-full max-w-xs flex-col gap-3">

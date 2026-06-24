@@ -349,7 +349,7 @@ class Campaign(models.Model):
         PHOTO = 'photo', 'عکس'
         VIDEO = 'video', 'ویدیو'
         VOICE = 'voice', 'صدا'
-        DOCUMENT = 'document', 'سند'
+        DOCUMENT = 'document', 'فایل'
 
     class Status(models.TextChoices):
         DRAFT = 'draft', 'پیش‌نویس'
@@ -374,10 +374,25 @@ class Campaign(models.Model):
         default=Platform.BALE,
         db_index=True,
     )
-    title = models.CharField(max_length=255)
-    content_type = models.CharField(max_length=32, choices=ContentType.choices)
-    body = models.TextField(blank=True, default='', help_text='متن یا زیرنویس رسانه')
-    media = models.FileField(upload_to='campaigns/%Y/%m/', blank=True, null=True)
+    title = models.CharField(max_length=255, verbose_name='عنوان کمپین')
+    content_type = models.CharField(
+        max_length=32,
+        choices=ContentType.choices,
+        verbose_name='نوع محتوا',
+    )
+    body = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='متن پیام',
+        help_text='متن اصلی پیام یا زیرنویس رسانه',
+    )
+    media = models.FileField(
+        upload_to='campaigns/%Y/%m/',
+        blank=True,
+        null=True,
+        verbose_name='فایل',
+        help_text='برای عکس، ویدیو یا فایل — بسته به نوع محتوا',
+    )
     inline_keyboard = models.JSONField(
         default=list,
         blank=True,
@@ -882,7 +897,7 @@ class CatalogSettings(models.Model):
     )
     channel_membership_message = models.TextField(
         blank=True,
-        default='برای استفاده از فروشگاه ابتدا در کانال ما عضو شوید.',
+        default='برای استفاده از مینی‌اپ ابتدا در کانال ما عضو شوید.',
         verbose_name='پیام عضویت کانال',
     )
     channel_invite_link = models.URLField(

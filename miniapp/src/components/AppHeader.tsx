@@ -42,7 +42,7 @@ export function AppHeader({
             )}
             <div className="min-w-0">
               <h1 className="truncate text-base font-bold tracking-tight">
-                {config?.hero_title || 'فروشگاه'}
+                {config?.hero_title || 'ویترین'}
               </h1>
               {(config?.hero_subtitle || subtitle) && (
                 <p className="truncate text-[11px] text-muted">

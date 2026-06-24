@@ -8,14 +8,14 @@
   --ig-accent-border: #fbcfe8;
   --ig-accent-rgb: 225, 48, 108;
   --ig-surface: #ffffff;
-  --ig-bg: #f8fafc;
-  --ig-border: #e2e8f0;
-  --ig-border-strong: #cbd5e1;
-  --ig-text: #0f172a;
-  --ig-muted: #64748b;
+  --ig-bg: #fafafa;
+  --ig-border: #e8e8ec;
+  --ig-border-strong: #d4d4d8;
+  --ig-text: #0a0a0a;
+  --ig-muted: #6b6b6b;
   --ig-radius: 12px;
-  --ig-radius-lg: 14px;
-  --ig-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 6px 24px rgba(15, 23, 42, 0.04);
+  --ig-radius-lg: 12px;
+  --ig-shadow: none;
   --ig-gap: 1.25rem;
   max-width: 1140px;
   margin: 0 auto;
@@ -62,9 +62,9 @@
 }
 
 .ig-subnav-link.is-active {
-  color: var(--ig-accent);
-  background: var(--ig-accent-soft);
-  border-color: var(--ig-accent-border);
+  color: var(--app-primary, #6366f1);
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.2);
 }
 
 /* Trust bar */

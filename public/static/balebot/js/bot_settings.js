@@ -1,11 +1,11 @@
 (function () {
-  function $(sel, root) {
-    return (root || document).querySelector(sel);
-  }
-
-  function $all(sel, root) {
-    return Array.prototype.slice.call((root || document).querySelectorAll(sel));
-  }
+  var TAB_HASH = {
+    'sec-connection': 'connection',
+    'sec-start': 'welcome',
+    'sec-commands': 'commands',
+    'sec-support': 'support',
+    'sec-advanced': 'panel',
+  };
 
   function setBlockVisible(block, show) {
     if (!block) return;
@@ -24,49 +24,60 @@
     sync();
   }
 
-  function initNav() {
-    var links = $all('.settings-nav-link');
-    var sections = $all('.settings-section');
-    if (!links.length) return;
+  function initTabs() {
+    var tabBar = document.querySelector('.bot-setup-tabs');
+    var tabs = document.querySelectorAll('.bot-setup-tabs [data-bot-setup-tab]');
+    var panels = document.querySelectorAll('[data-bot-setup-panel]');
+    if (!tabBar || !tabs.length || !panels.length) return;
 
-    function setActive(id) {
-      links.forEach(function (a) {
-        a.classList.toggle('active', a.getAttribute('data-settings-nav') === id);
+    function activate(tabId, updateHash) {
+      tabs.forEach(function (tab) {
+        var isActive = tab.getAttribute('data-bot-setup-tab') === tabId;
+        tab.classList.toggle('is-active', isActive);
+        tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
       });
-    }
-
-    links.forEach(function (a) {
-      a.addEventListener('click', function (e) {
-        e.preventDefault();
-        var id = a.getAttribute('data-settings-nav');
-        var el = document.getElementById(id);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          setActive(id);
+      panels.forEach(function (panel) {
+        var isActive = panel.getAttribute('data-bot-setup-panel') === tabId;
+        panel.classList.toggle('is-active', isActive);
+        if (isActive) {
+          panel.removeAttribute('hidden');
+        } else {
+          panel.setAttribute('hidden', '');
         }
       });
+      if (updateHash !== false) {
+        var hashKey = Object.keys(TAB_HASH).find(function (k) {
+          return TAB_HASH[k] === tabId;
+        });
+        if (hashKey && window.location.hash !== '#' + hashKey) {
+          history.replaceState(null, '', '#' + hashKey);
+        }
+      }
+    }
+
+    tabBar.addEventListener('click', function (e) {
+      var tab = e.target.closest('[data-bot-setup-tab]');
+      if (!tab || !tabBar.contains(tab)) return;
+      e.preventDefault();
+      activate(tab.getAttribute('data-bot-setup-tab'));
     });
 
-    if ('IntersectionObserver' in window && sections.length) {
-      var obs = new IntersectionObserver(
-        function (entries) {
-          entries.forEach(function (entry) {
-            if (entry.isIntersecting && entry.intersectionRatio > 0.2) {
-              setActive(entry.target.id);
-            }
-          });
-        },
-        { rootMargin: '-20% 0px -55% 0px', threshold: [0, 0.2, 0.5] }
-      );
-      sections.forEach(function (sec) {
-        obs.observe(sec);
-      });
+    var hash = (window.location.hash || '').replace('#', '');
+    if (TAB_HASH[hash]) {
+      activate(TAB_HASH[hash], false);
+    } else {
+      activate('connection', false);
     }
+
+    window.addEventListener('hashchange', function () {
+      var h = (window.location.hash || '').replace('#', '');
+      if (TAB_HASH[h]) activate(TAB_HASH[h], false);
+    });
   }
 
   document.addEventListener('DOMContentLoaded', function () {
     bindToggle('id_collect_contact_on_start', 'contact-fields-block');
     bindToggle('id_enable_support', 'support-fields-block');
-    initNav();
+    initTabs();
   });
 })();

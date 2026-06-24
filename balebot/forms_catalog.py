@@ -4,6 +4,7 @@ from django import forms
 from django.utils.text import slugify
 
 from balebot.models import CatalogCategory, CatalogItem, CatalogSettings
+from balebot.widgets import PersianClearableFileInput
 from balebot.services.catalog_page_layout import get_home_blocks, sanitize_home_blocks
 from balebot.services.checkout_form import default_checkout_form, sanitize_checkout_form
 
@@ -86,10 +87,10 @@ class CatalogSettingsForm(forms.ModelForm):
             'admin_notify_chat_id': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
             'zarinpal_merchant_id': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr', 'autocomplete': 'off'}),
             'zarinpal_sandbox': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
-            'hero_title': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'نام فروشگاه یا کسب‌وکار'}),
+            'hero_title': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'نام ویترین یا کسب‌وکار'}),
             'hero_subtitle': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'توضیح کوتاه زیر عنوان'}),
-            'logo': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
-            'hero_background': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            'logo': PersianClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            'hero_background': PersianClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
         }
 
     def clean(self):
@@ -205,7 +206,7 @@ class CatalogSettingsForm(forms.ModelForm):
 
 
 class MiniAppFlowForm(forms.ModelForm):
-    """ظاهر و چیدمان صفحهٔ اصلی مینی‌اپ — موتور فروشگاه."""
+    """ظاهر و چیدمان صفحهٔ اصلی مینی‌اپ."""
 
     page_layout = forms.CharField(
         required=False,
@@ -238,10 +239,10 @@ class MiniAppFlowForm(forms.ModelForm):
         model = CatalogSettings
         fields = ['hero_title', 'hero_subtitle', 'logo', 'hero_background']
         widgets = {
-            'hero_title': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'نام فروشگاه'}),
+            'hero_title': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'نام ویترین'}),
             'hero_subtitle': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'توضیح کوتاه'}),
-            'logo': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
-            'hero_background': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            'logo': PersianClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            'hero_background': PersianClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -290,7 +291,7 @@ class CatalogCategoryForm(forms.ModelForm):
             'parent': forms.Select(attrs={'class': _INPUT}),
             'name': forms.TextInput(attrs={'class': _INPUT}),
             'slug': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
-            'image': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            'image': PersianClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
             'sort_order': forms.NumberInput(attrs={'class': _INPUT}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
         }
@@ -344,8 +345,8 @@ class CatalogItemForm(forms.ModelForm):
             'short_description': forms.TextInput(attrs={'class': _INPUT}),
             'description': forms.Textarea(attrs={'class': _INPUT, 'rows': 5}),
             'item_type': forms.Select(attrs={'class': _INPUT, 'id': 'id_item_type'}),
-            'cover': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
-            'download_file': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'cover': PersianClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            'download_file': PersianClearableFileInput(attrs={'class': 'form-control'}),
             'download_link': forms.URLInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'https://...'}),
             'price': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
             'sale_mode': forms.Select(attrs={'class': _INPUT}),

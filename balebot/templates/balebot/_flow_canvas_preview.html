@@ -13,7 +13,7 @@
         id="flow-tab-bot"
       >
         <i class="bi bi-robot"></i>
-        <span>جریان ربات /start</span>
+        <span>منوی ربات /start</span>
         {% if bot_flow_preview.step_count %}
         <em class="flow-canvas-tab-badge">{{ bot_flow_preview.step_count }}</em>
         {% endif %}
@@ -28,7 +28,7 @@
         id="flow-tab-miniapp"
       >
         <i class="bi bi-shop"></i>
-        <span>فروشگاه مینی‌اپ</span>
+        <span>ویترین مینی‌اپ</span>
         {% if catalog_item_count %}
         <em class="flow-canvas-tab-badge">{{ catalog_item_count }}</em>
         {% endif %}
@@ -41,7 +41,7 @@
       </a>
       {% if has_miniapp_access %}
       <a href="{% url 'catalog_dashboard' %}" class="btn-panel-ghost btn-sm flow-canvas-action flow-canvas-action--miniapp" hidden>
-        <i class="bi bi-box-arrow-up-right"></i> پنل فروشگاه
+        <i class="bi bi-box-arrow-up-right"></i> پنل مینی‌اپ
       </a>
       {% endif %}
     </div>

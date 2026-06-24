@@ -6,11 +6,12 @@
   data-clear-url="{% url 'campaign_media_clear' %}"
   data-campaign-id="{{ campaign_media_campaign_pk }}"
   data-max-mb="{{ CAMPAIGN_VIDEO_MAX_UPLOAD_MB|default:120 }}"
+  data-has-existing-media="{% if campaign_has_saved_media %}true{% else %}false{% endif %}"
   data-has-existing-video="{% if campaign_has_saved_media %}true{% else %}false{% endif %}"
   data-pending-ready="{% if campaign_pending_video_ready %}true{% else %}false{% endif %}"
   data-upload-ok="false"
 >
-  <label class="form-label" for="{{ media_field.id_for_label }}">{{ media_field.label }}</label>
+  <label class="form-label" for="{{ media_field.id_for_label }}" id="campaign-media-label">فایل</label>
 
   <div id="campaign-media-video-panel" class="d-none">
     <p class="form-text small mb-2">
@@ -60,4 +61,4 @@
   {% if media_field.help_text %}<div class="form-text">{{ media_field.help_text }}</div>{% endif %}
   {% for err in media_field.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
 </div>
-<script src="{% static 'balebot/js/campaign_media_upload.js' %}"></script>
+<script src="{% static 'balebot/js/campaign_media_upload.js' %}?v=2"></script>

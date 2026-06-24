@@ -1010,7 +1010,7 @@
 
       inspectorBody.appendChild(addFieldLabel('متن روی دکمه'));
       inspectorBody.appendChild(
-        addInput(btn.text || '', 'مثلاً مشاهده فروشگاه', 64, function (v) {
+        addInput(btn.text || '', 'مثلاً مشاهده ویترین', 64, function (v) {
           btn.text = v;
           bump();
         })

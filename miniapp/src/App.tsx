@@ -154,7 +154,7 @@ export default function App() {
         }
       })
       .catch((e: unknown) => {
-        setLoadError(e instanceof Error ? e.message : 'بارگذاری فروشگاه ناموفق بود');
+        setLoadError(e instanceof Error ? e.message : 'بارگذاری مینی‌اپ ناموفق بود');
       })
       .finally(() => setLoading(false));
   }, []);
@@ -206,7 +206,7 @@ export default function App() {
       <AppContext.Provider value={value}>
         {config && config.is_enabled === false && (
           <Banner>
-            فروشگاه در حال آماده‌سازی است — مشاهده محصولات ممکن است، خرید هنوز فعال نشده.
+            مینی‌اپ در حال آماده‌سازی است — مشاهده محتوا ممکن است، خرید هنوز فعال نشده.
           </Banner>
         )}
         {unsupported && (

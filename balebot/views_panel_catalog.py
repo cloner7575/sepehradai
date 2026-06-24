@@ -129,7 +129,7 @@ class MiniAppFlowEngineView(MiniAppPanelMixin, TemplateView):
         form = MiniAppFlowForm(request.POST, request.FILES, instance=catalog)
         if form.is_valid():
             form.save()
-            messages.success(request, 'ظاهر فروشگاه مینی‌اپ ذخیره شد.')
+            messages.success(request, 'طراحی صفحهٔ مینی‌اپ ذخیره شد.')
             return HttpResponseRedirect(reverse_lazy('catalog_flow_engine'))
         messages.error(request, 'ذخیره نشد. خطاهای فرم را برطرف کنید.')
         return self.render_to_response(self._context(catalog_form=form))
@@ -156,7 +156,7 @@ class CatalogDashboardView(MiniAppPanelMixin, TemplateView):
             {
                 'key': 'hero',
                 'done': bool((catalog.hero_title or '').strip()),
-                'label': 'عنوان فروشگاه',
+                'label': 'عنوان ویترین',
                 'hint': 'نام کسب‌وکار در هدر مینی‌اپ',
                 'url_name': 'catalog_settings',
                 'url_hash': 'sec-branding',

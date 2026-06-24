@@ -54,7 +54,7 @@ function HeroBlockView({ block }: { block: HomeBlock }) {
           )}
           <div className="min-w-0">
             <h1 className="truncate text-base font-bold tracking-tight">
-              {config?.hero_title || 'فروشگاه'}
+              {config?.hero_title || 'ویترین'}
             </h1>
             {config?.hero_subtitle && (
               <p className="truncate text-[11px] text-muted">{config.hero_subtitle}</p>
@@ -106,7 +106,7 @@ function HeroBlockView({ block }: { block: HomeBlock }) {
             </div>
           )}
           <div className="min-w-0">
-            <h1 className="truncate text-lg font-bold">{config?.hero_title || 'فروشگاه'}</h1>
+            <h1 className="truncate text-lg font-bold">{config?.hero_title || 'ویترین'}</h1>
             {config?.hero_subtitle && (
               <p className="mt-0.5 truncate text-xs text-white/85">{config.hero_subtitle}</p>
             )}

@@ -26,7 +26,7 @@ function SuccessView({
       <h1 className="text-lg font-bold tracking-tight">{title}</h1>
       {subtitle && <p className="mt-2 text-sm text-muted">{subtitle}</p>}
       <Link to="/" className="btn-primary mt-8 max-w-xs">
-        بازگشت به فروشگاه
+        بازگشت به ویترین
       </Link>
     </div>
   );
