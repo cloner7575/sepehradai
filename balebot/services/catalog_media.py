@@ -125,5 +125,38 @@ def absolutize_home_blocks(
                     s['image_url'] = absolute_media_url(request, s['image_url'], catalog=catalog)
                 slides_out.append(s)
             item['slides'] = slides_out
+        elif item.get('type') == 'story_bar':
+            items_out = []
+            for story in item.get('items') or []:
+                if not isinstance(story, dict):
+                    continue
+                s = dict(story)
+                if s.get('image'):
+                    s['image'] = absolute_media_url(request, s['image'], catalog=catalog)
+                items_out.append(s)
+            item['items'] = items_out
+        elif item.get('type') == 'banner_grid':
+            items_out = []
+            for banner in item.get('items') or []:
+                if not isinstance(banner, dict):
+                    continue
+                b = dict(banner)
+                if b.get('image'):
+                    b['image'] = absolute_media_url(request, b['image'], catalog=catalog)
+                items_out.append(b)
+            item['items'] = items_out
+        elif item.get('type') == 'video':
+            if item.get('poster'):
+                item['poster'] = absolute_media_url(request, item['poster'], catalog=catalog)
+        elif item.get('type') == 'testimonials':
+            items_out = []
+            for t in item.get('items') or []:
+                if not isinstance(t, dict):
+                    continue
+                ti = dict(t)
+                if ti.get('image'):
+                    ti['image'] = absolute_media_url(request, ti['image'], catalog=catalog)
+                items_out.append(ti)
+            item['items'] = items_out
         out.append(item)
     return out

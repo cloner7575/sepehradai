@@ -14,6 +14,7 @@ import { IconCart, IconGrid, IconSearch } from './Icons';
 import { ItemCard } from './ItemCard';
 import { ItemsSection } from './ItemsSection';
 import { SafeImage } from './SafeImage';
+import { BlockRenderer } from './HomeBlockExtras';
 import { resolveMediaUrl } from '../utils/url';
 
 interface HomeBlocksProps {
@@ -393,6 +394,20 @@ export function HomeBlocks({
             );
           case 'spacer':
             return <SpacerBlockView key={block.id} block={block} />;
+          case 'announcement_bar':
+          case 'story_bar':
+          case 'countdown':
+          case 'coupon':
+          case 'product_carousel':
+          case 'banner_grid':
+          case 'video':
+          case 'testimonials':
+          case 'trust_badges':
+          case 'faq':
+          case 'info':
+          case 'bundle':
+          case 'rich_text':
+            return <BlockRenderer key={block.id} block={block} />;
           default:
             return null;
         }

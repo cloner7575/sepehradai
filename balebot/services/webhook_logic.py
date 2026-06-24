@@ -231,7 +231,7 @@ def _send_start_with_flow(cfg: BotSettings, sub: Subscriber) -> None:
                 pass
 
     if has_flow:
-        render_root_flow(cfg, chat_id, markup_already_sent=markup_sent)
+        render_root_flow(cfg, chat_id, sub=sub, markup_already_sent=markup_sent)
     elif not markup_sent and cfg.enable_support:
         mk = merge_support_into_markup(cfg, None)
         if mk:
@@ -307,6 +307,12 @@ def handle_message(cfg: BotSettings, msg: dict[str, Any]) -> None:
         )
         return
 
+    state = sub.flow_state or {}
+    if state.get('awaiting'):
+        from balebot.services.flow_engine import resume_flow
+        if resume_flow(cfg, sub, msg, state):
+            return
+
     support_button_label = (cfg.support_button_label or '').strip()
     if (
         cfg.enable_support
@@ -339,6 +345,11 @@ def handle_message(cfg: BotSettings, msg: dict[str, Any]) -> None:
         return
 
     if msg.get('contact'):
+        state = sub.flow_state or {}
+        if state.get('awaiting') == 'request_contact':
+            from balebot.services.flow_engine import resume_flow
+            if resume_flow(cfg, sub, msg, state):
+                return
         already_registered = sub.is_registered
         store_inbound_from_message(sub, msg)
         if already_registered:
@@ -358,8 +369,15 @@ def handle_message(cfg: BotSettings, msg: dict[str, Any]) -> None:
             reply_markup=remove_keyboard(),
         )
         if _flow_has_content(cfg):
-            render_root_flow(cfg, sub.chat_id)
+            render_root_flow(cfg, sub.chat_id, sub=sub)
         return
+
+    if msg.get('location'):
+        state = sub.flow_state or {}
+        if state.get('awaiting') == 'request_location':
+            from balebot.services.flow_engine import resume_flow
+            if resume_flow(cfg, sub, msg, state):
+                return
 
     store_inbound_from_message(sub, msg)
 

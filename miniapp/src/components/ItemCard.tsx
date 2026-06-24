@@ -33,7 +33,12 @@ export function ItemCard({
             {item.is_downloadable ? (
               <span className="text-xs font-semibold text-primary">رایگان</span>
             ) : item.price && !showcase ? (
-              <span className="price-tag">{formatPrice(item.price)}</span>
+              <div className="flex items-center gap-1.5">
+                {item.compare_at_price && item.compare_at_price > (item.price || 0) ? (
+                  <span className="text-[10px] text-muted line-through">{formatPrice(item.compare_at_price)}</span>
+                ) : null}
+                <span className="price-tag">{formatPrice(item.price)}</span>
+              </div>
             ) : (
               <span className="text-xs font-medium text-muted">{showcase ? 'معرفی' : 'تماس بگیرید'}</span>
             )}
@@ -67,7 +72,12 @@ export function ItemCard({
           {item.is_downloadable ? (
             <span className="text-xs font-semibold text-primary">رایگان</span>
           ) : item.price && !showcase ? (
-            <span className="price-tag">{formatPrice(item.price)}</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {item.compare_at_price && item.compare_at_price > (item.price || 0) ? (
+                <span className="text-[10px] text-muted line-through">{formatPrice(item.compare_at_price)}</span>
+              ) : null}
+              <span className="price-tag">{formatPrice(item.price)}</span>
+            </div>
           ) : (
             <span className="text-xs font-medium text-muted">{showcase ? 'معرفی' : 'تماس بگیرید'}</span>
           )}

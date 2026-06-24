@@ -6,7 +6,7 @@
     "slug": "شناسه یکتای الگو",
     "name": "نام نمایشی",
     "industry": "صنف",
-    "data.settings": "تنظیمات فروشگاه: hero و theme و labels",
+    "data.settings": "تنظیمات فروشگاه: hero و theme و labels و home_blocks (چیدمان صفحهٔ اصلی مینی‌اپ)",
     "data.bot_settings": "پیشنهاد تنظیم ربات (collect_contact_on_start برای جمع‌آوری شماره)",
     "data.categories": "دسته‌بندی‌ها (slug,name,icon,sort_order,parent)",
     "data.items": "محصولات نمونه (price به ریال؛ price=0 یعنی استعلامی/quote؛ stock=null یعنی نامحدود)",

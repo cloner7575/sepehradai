@@ -23,7 +23,25 @@ export type HomeBlockType =
   | 'categories'
   | 'featured'
   | 'products'
-  | 'spacer';
+  | 'spacer'
+  | 'announcement_bar'
+  | 'story_bar'
+  | 'countdown'
+  | 'coupon'
+  | 'product_carousel'
+  | 'banner_grid'
+  | 'video'
+  | 'testimonials'
+  | 'trust_badges'
+  | 'faq'
+  | 'info'
+  | 'bundle'
+  | 'rich_text';
+
+export interface BlockTarget {
+  kind: 'category' | 'item' | 'tag' | 'url' | 'home';
+  value: string;
+}
 
 export interface HomeBlockBase {
   id: string;
@@ -79,6 +97,102 @@ export interface SpacerHomeBlock extends HomeBlockBase {
   size?: 'sm' | 'md' | 'lg';
 }
 
+export interface AnnouncementBarBlock extends HomeBlockBase {
+  type: 'announcement_bar';
+  text?: string;
+  link?: string;
+  bg?: string;
+  color?: string;
+  dismissible?: boolean;
+}
+
+export interface StoryBarBlock extends HomeBlockBase {
+  type: 'story_bar';
+  items?: { title?: string; image?: string; target?: BlockTarget }[];
+}
+
+export interface CountdownBlock extends HomeBlockBase {
+  type: 'countdown';
+  title?: string;
+  ends_at?: string;
+  cta_label?: string;
+  cta_target?: BlockTarget;
+  accent?: string;
+}
+
+export interface CouponBlock extends HomeBlockBase {
+  type: 'coupon';
+  title?: string;
+  code?: string;
+  subtitle?: string;
+  copy_label?: string;
+}
+
+export interface ProductCarouselBlock extends HomeBlockBase {
+  type: 'product_carousel';
+  title?: string;
+  source?: 'featured' | 'newest' | 'bestselling' | 'discounted' | 'category' | 'tag';
+  category?: string;
+  tag?: string;
+  limit?: number;
+}
+
+export interface BannerGridBlock extends HomeBlockBase {
+  type: 'banner_grid';
+  columns?: number;
+  items?: { image?: string; target?: BlockTarget }[];
+}
+
+export interface VideoBlock extends HomeBlockBase {
+  type: 'video';
+  title?: string;
+  source?: string;
+  url?: string;
+  poster?: string;
+}
+
+export interface TestimonialsBlock extends HomeBlockBase {
+  type: 'testimonials';
+  title?: string;
+  items?: { name?: string; text?: string; rating?: number; image?: string }[];
+}
+
+export interface TrustBadgesBlock extends HomeBlockBase {
+  type: 'trust_badges';
+  items?: { icon?: string; label?: string }[];
+}
+
+export interface FaqBlock extends HomeBlockBase {
+  type: 'faq';
+  title?: string;
+  items?: { q?: string; a?: string }[];
+}
+
+export interface InfoBlock extends HomeBlockBase {
+  type: 'info';
+  about?: string;
+  phones?: string[];
+  address?: string;
+  hours?: string;
+  location?: { lat: number; lng: number };
+  socials?: { instagram?: string; eitaa?: string; telegram?: string; website?: string };
+}
+
+export interface BundleBlock extends HomeBlockBase {
+  type: 'bundle';
+  title?: string;
+  item_slugs?: string[];
+  bundle_price?: number;
+  badge?: string;
+}
+
+export interface RichTextBlock extends HomeBlockBase {
+  type: 'rich_text';
+  title?: string;
+  html?: string;
+  align?: 'right' | 'center' | 'left';
+}
+
 export type HomeBlock =
   | HeroHomeBlock
   | SearchHomeBlock
@@ -86,7 +200,20 @@ export type HomeBlock =
   | CategoriesHomeBlock
   | FeaturedHomeBlock
   | ProductsHomeBlock
-  | SpacerHomeBlock;
+  | SpacerHomeBlock
+  | AnnouncementBarBlock
+  | StoryBarBlock
+  | CountdownBlock
+  | CouponBlock
+  | ProductCarouselBlock
+  | BannerGridBlock
+  | VideoBlock
+  | TestimonialsBlock
+  | TrustBadgesBlock
+  | FaqBlock
+  | InfoBlock
+  | BundleBlock
+  | RichTextBlock;
 
 export interface CatalogConfig {
   is_enabled?: boolean;
@@ -186,6 +313,8 @@ export interface CatalogItem {
   description: string;
   item_type: string;
   price: number | null;
+  compare_at_price?: number | null;
+  sales_count?: number;
   sale_mode: string;
   is_buyable: boolean;
   is_requestable: boolean;

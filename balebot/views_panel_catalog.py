@@ -259,7 +259,11 @@ class MiniAppFlowEngineView(MiniAppPanelMixin, TemplateView):
         items_json = [
             {
                 'title': i.title,
+                'slug': i.slug,
                 'price': int(i.price or 0),
+                'compare_at_price': int(i.compare_at_price) if i.compare_at_price else None,
+                'sales_count': int(i.sales_count or 0),
+                'category_slug': i.category.slug if i.category_id else '',
                 'image_url': i.preview_image.url if getattr(i, 'preview_image', None) else '',
                 'is_featured': i.is_featured,
             }

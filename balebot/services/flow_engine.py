@@ -21,6 +21,12 @@ _FLOW_BACK_CB = re.compile(r'^fb(n_[a-f0-9]{8})$')
 _MAX_CB_LEN = 64
 _MAX_LOOP_VISITS = 32
 
+_INTERACTIVE_ACTION_TYPES = frozenset({
+    'webapp', 'order_status', 'my_orders', 'invoice', 'location_card', 'contact_card',
+    'input', 'form', 'request_contact', 'request_location',
+    'condition', 'goto', 'join_gate', 'tag', 'faq', 'coupon', 'handoff',
+})
+
 
 def get_flow(cfg: BotSettings) -> dict[str, Any]:
     raw = getattr(cfg, 'start_flow', None)
@@ -237,6 +243,12 @@ def _button_api_entry(
                 text,
                 raw_url,
             )
+        if atype == 'webapp':
+            from balebot.services.flow_interactive import _build_webapp_url
+            target = action.get('target') if isinstance(action.get('target'), dict) else None
+            url = _build_webapp_url(cfg, target) if cfg else ''
+            if url:
+                return {'text': text, 'web_app': {'url': url}}
 
     nid = btn.get('id')
     if not nid:
@@ -522,6 +534,7 @@ def send_sequence_items(
     chat_id: int,
     sequence: dict[str, Any],
     *,
+    sub: Subscriber | None = None,
     merge_button_markup: bool = False,
     pending_markup: dict[str, Any] | None = None,
     attach_markup_to: str = 'first',
@@ -582,6 +595,9 @@ def send_sequence_items(
                 pass
         elif itype in ('image', 'video', 'voice', 'document'):
             send_media_node(cfg, chat_id, item)
+        elif itype in _INTERACTIVE_ACTION_TYPES and sub is not None:
+            from balebot.services.flow_interactive import _execute_node
+            _execute_node(cfg, sub, chat_id, item)
 
     return pending_markup
 
@@ -623,6 +639,7 @@ def send_sequence(
     chat_id: int,
     sequence: dict[str, Any],
     *,
+    sub: Subscriber | None = None,
     markup_already_sent: bool = False,
 ) -> dict[str, Any] | None:
     """ارسال آیتم‌های sequence؛ دکمه‌ها به اولین بلوک متن می‌چسبند."""
@@ -630,6 +647,7 @@ def send_sequence(
         cfg,
         chat_id,
         sequence,
+        sub=sub,
         merge_button_markup=not markup_already_sent,
         attach_markup_to='first',
     )
@@ -639,13 +657,14 @@ def render_root_flow(
     cfg: BotSettings,
     chat_id: int,
     *,
+    sub: Subscriber | None = None,
     markup_already_sent: bool = False,
 ) -> None:
     flow = get_flow(cfg)
     root = flow.get('root') or {}
     if str(root.get('type', '')).lower() != 'sequence':
         return
-    markup = send_sequence(cfg, chat_id, root, markup_already_sent=markup_already_sent)
+    markup = send_sequence(cfg, chat_id, root, sub=sub, markup_already_sent=markup_already_sent)
     if markup and not markup_already_sent:
         markup = merge_support_into_markup(cfg, markup) or markup
         _send_inline_keyboard_message(cfg, chat_id, markup)
@@ -665,11 +684,17 @@ def send_default_text(cfg: BotSettings, chat_id: int) -> None:
             pass
 
 
+def resume_flow(cfg: BotSettings, sub: Subscriber, msg: dict[str, Any], state: dict[str, Any]) -> bool:
+    from balebot.services.flow_interactive import resume_flow as _resume
+    return _resume(cfg, sub, msg, state)
+
+
 def execute_button_action(
     cfg: BotSettings,
     ref: _ButtonRef,
     chat_id: int,
     *,
+    sub: Subscriber | None = None,
     message_id: int | None = None,
     visited: set[str] | None = None,
 ) -> str:
@@ -708,7 +733,7 @@ def execute_button_action(
         return 'image'
 
     if atype == 'sequence':
-        send_sequence_items(cfg, chat_id, action, merge_button_markup=False)
+        send_sequence_items(cfg, chat_id, action, sub=sub, merge_button_markup=False)
         return 'sequence'
 
     if atype == 'url':
@@ -730,6 +755,12 @@ def execute_button_action(
         send_default_text(cfg, chat_id)
         return 'default'
 
+    if atype in _INTERACTIVE_ACTION_TYPES and sub is not None:
+        from balebot.services.flow_interactive import execute_interactive_action
+        return execute_interactive_action(
+            cfg, sub, ref, chat_id, message_id=message_id, visited=visited,
+        )
+
     send_default_text(cfg, chat_id)
     return 'default'
 
@@ -741,12 +772,22 @@ def handle_flow_callback(
     chat_id: int,
     message_id: int | None,
 ) -> tuple[str, str]:
-    """پردازش f* / fb*؛ برمی‌گرداند (flow_kind, flow_label)."""
+    """پردازش f* / fb* / fr*؛ برمی‌گرداند (flow_kind, flow_label)."""
+    from balebot.services.flow_interactive import (
+        handle_faq_answer_callback,
+        handle_join_gate_recheck,
+        parse_flow_recheck_callback,
+    )
+
+    recheck_id = parse_flow_recheck_callback(data)
+    if recheck_id:
+        return handle_join_gate_recheck(cfg, sub, recheck_id, chat_id)
+
     back_id = parse_flow_back_callback(data)
     if back_id:
         ref = find_button_by_id(cfg, back_id)
         if ref is None:
-            render_root_flow(cfg, chat_id)
+            render_root_flow(cfg, chat_id, sub=sub)
             return 'back_root', ''
         parent = ref.ancestors[-1] if ref.ancestors else None
         if parent:
@@ -765,12 +806,18 @@ def handle_flow_callback(
                     except messenger_api.MessengerAPIError:
                         pass
                 return 'back', str(parent.get('text') or '')[:128]
-        render_root_flow(cfg, chat_id)
+        render_root_flow(cfg, chat_id, sub=sub)
         return 'back_root', ''
 
     node_id = parse_flow_callback(data)
     if not node_id:
         return 'invalid', ''
+
+    state = sub.flow_state or {}
+    faq_map = state.get('faq_answers') or {}
+    if node_id in faq_map:
+        if handle_faq_answer_callback(cfg, sub, node_id, chat_id):
+            return 'faq_answer', ''
 
     ref = find_button_by_id(cfg, node_id)
     if ref is None:
@@ -793,7 +840,7 @@ def handle_flow_callback(
         return 'loop_default', str(ref.button.get('text') or '')[:128]
 
     kind = execute_button_action(
-        cfg, ref, chat_id, message_id=message_id, visited=set(),
+        cfg, ref, chat_id, sub=sub, message_id=message_id, visited=set(),
     )
     return kind, str(ref.button.get('text') or '')[:128]
 

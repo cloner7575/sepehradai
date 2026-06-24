@@ -209,6 +209,11 @@ class Subscriber(models.Model):
         default=False,
         help_text='اگر روشن باشد، پیام بعدی کاربر به عنوان پیام پشتیبانی ثبت می‌شود.',
     )
+    flow_state = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='حالت موقت جریان (ورودی، فرم، رهگیری سفارش و …).',
+    )
     miniapp_first_seen_at = models.DateTimeField(
         null=True,
         blank=True,
@@ -1142,6 +1147,15 @@ class CatalogItem(models.Model):
         null=True,
         blank=True,
         help_text='قیمت به ریال',
+    )
+    compare_at_price = models.PositiveBigIntegerField(
+        null=True,
+        blank=True,
+        help_text='قیمت قبل از تخفیف (برای نمایش خط‌خورده)',
+    )
+    sales_count = models.PositiveIntegerField(
+        default=0,
+        help_text='تعداد فروش موفق (برای پرفروش‌ترین‌ها)',
     )
     sale_mode = models.CharField(
         max_length=16,

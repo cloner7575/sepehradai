@@ -63,6 +63,7 @@ class SubscriberAdmin(admin.ModelAdmin):
     )
     list_filter = ('workspace', 'platform', 'is_registered', 'is_active')
     search_fields = ('phone_number', 'username', 'first_name', 'messenger_user_id', 'chat_id')
+    readonly_fields = ('flow_state', 'menu_flow_answers', 'menu_flow_log')
 
 
 @admin.register(InboundMessage)
@@ -125,7 +126,7 @@ class CatalogCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(CatalogItem)
 class CatalogItemAdmin(admin.ModelAdmin):
-    list_display = ('title', 'workspace', 'platform', 'price', 'is_active', 'is_featured')
+    list_display = ('title', 'workspace', 'platform', 'price', 'compare_at_price', 'sales_count', 'is_active', 'is_featured')
     list_filter = ('platform', 'item_type', 'is_active')
 
 

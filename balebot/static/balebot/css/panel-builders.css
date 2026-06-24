@@ -4660,6 +4660,164 @@ select.panel-input {
   height: 1.75rem;
 }
 
+.miniapp-preview-announcement {
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.miniapp-preview-story-track {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.miniapp-preview-story {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 3.25rem;
+}
+
+.miniapp-preview-story-img {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+.miniapp-preview-story-label {
+  font-size: 0.58rem;
+  color: #64748b;
+  max-width: 3.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.miniapp-preview-countdown {
+  padding: 0.75rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent, #c2402f), color-mix(in srgb, var(--accent, #c2402f) 70%, #000));
+  color: #fff;
+  text-align: center;
+}
+
+.miniapp-preview-countdown strong {
+  display: block;
+  font-size: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.miniapp-preview-countdown-timer {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+}
+
+.miniapp-preview-countdown-cta {
+  display: inline-block;
+  margin-top: 0.4rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 0.65rem;
+}
+
+.miniapp-preview-coupon {
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+}
+
+.miniapp-preview-coupon code {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.miniapp-preview-banner-grid {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.miniapp-preview-banner-grid.cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.miniapp-preview-banner-grid.cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.miniapp-preview-banner-grid.cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.miniapp-preview-banner-cell {
+  aspect-ratio: 4 / 3;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+
+.miniapp-preview-banner-cell--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 1.1rem;
+}
+
+.miniapp-preview-faq-item {
+  padding: 0.45rem 0.6rem;
+  margin-top: 0.3rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 0.7rem;
+}
+
+.miniapp-preview-info {
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.miniapp-preview-info small {
+  display: block;
+  margin-top: 0.25rem;
+  color: #64748b;
+}
+
+.miniapp-preview-video {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #fff;
+  font-size: 2rem;
+}
+
+.miniapp-preview-generic {
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+  background: #f1f5f9;
+  font-size: 0.72rem;
+  color: #475569;
+}
+
 .miniapp-slide-list {
   display: flex;
   flex-direction: column;
@@ -4867,6 +5025,456 @@ select.panel-input {
 
 .flow-messenger-thread .flow-canvas-block + .flow-canvas-block {
   margin-top: 0.15rem;
+}
+
+/* ——— طراحی مینی‌اپ: چیدمان سه‌ستونه ——— */
+.flow-canvas-editor--miniapp {
+  display: flex;
+  flex-direction: column;
+}
+
+.miniapp-editor-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--fc-border, #e2e8f0);
+  background: linear-gradient(180deg, #fafbfc 0%, #fff 100%);
+}
+
+.miniapp-editor-topbar-start {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.miniapp-editor-topbar-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--fc-text, #0f172a);
+}
+
+.miniapp-editor-topbar-meta {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--fc-muted, #64748b);
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.flow-canvas-editor-layout--miniapp {
+  grid-template-columns: minmax(200px, 240px) minmax(300px, 1fr) minmax(280px, 320px);
+  min-height: 640px;
+}
+
+.miniapp-editor-sidebar {
+  display: flex;
+  flex-direction: column;
+  border-inline-end: 1px solid var(--fc-border, #e2e8f0);
+  background: #fafbfc;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.miniapp-editor-sidebar-section {
+  padding: 0.75rem 0.7rem;
+  border-bottom: 1px solid var(--fc-border, #e2e8f0);
+}
+
+.miniapp-editor-sidebar-section--layers {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-bottom: none;
+  overflow: hidden;
+}
+
+.miniapp-editor-sidebar-head {
+  margin-bottom: 0.55rem;
+}
+
+.miniapp-editor-sidebar-title {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--fc-text, #0f172a);
+}
+
+.miniapp-editor-sidebar-hint {
+  margin: 0.15rem 0 0;
+  font-size: 0.68rem;
+  color: var(--fc-muted, #64748b);
+  line-height: 1.4;
+}
+
+.miniapp-palette-group + .miniapp-palette-group {
+  margin-top: 0.55rem;
+}
+
+.miniapp-palette-group-title {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 0.35rem;
+}
+
+.miniapp-palette-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.miniapp-palette-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-height: 3.35rem;
+  padding: 0.35rem 0.25rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, box-shadow 0.12s;
+}
+
+.miniapp-palette-btn i {
+  font-size: 0.95rem;
+  color: #64748b;
+}
+
+.miniapp-palette-btn:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08);
+}
+
+.miniapp-palette-btn:hover i {
+  color: #2563eb;
+}
+
+.miniapp-blocks-outline {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding-inline-end: 0.15rem;
+}
+
+.miniapp-blocks-outline-empty {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  text-align: center;
+  padding: 1rem 0.5rem;
+  border: 1px dashed #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.miniapp-outline-item {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: #fff;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.miniapp-outline-item:hover {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+}
+
+.miniapp-outline-item.is-selected {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.miniapp-outline-index {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #94a3b8;
+  min-width: 1rem;
+  text-align: center;
+}
+
+.miniapp-outline-item.is-selected .miniapp-outline-index {
+  color: #3b82f6;
+}
+
+.miniapp-outline-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.miniapp-outline-actions {
+  display: inline-flex;
+  gap: 0.15rem;
+  color: #94a3b8;
+  font-size: 0.72rem;
+}
+
+.miniapp-outline-actions i:hover {
+  color: #334155;
+}
+
+.flow-canvas-stage--miniapp {
+  padding: 1.25rem 1rem;
+  align-items: center;
+  justify-content: flex-start;
+  overflow: auto;
+}
+
+.flow-messenger-thread--miniapp {
+  gap: 0.55rem;
+  padding: 0.75rem 0.65rem 1rem;
+  max-height: min(72vh, 720px);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.flow-canvas-inspector--miniapp {
+  min-height: 640px;
+}
+
+.flow-canvas-block-body--miniapp {
+  padding: 0.15rem 0.05rem 0.25rem;
+  overflow: hidden;
+}
+
+.miniapp-preview-products-row {
+  display: flex;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+  scrollbar-width: thin;
+}
+
+.miniapp-preview-story-track {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+}
+
+.miniapp-preview-coupon-sub {
+  display: block;
+  font-size: 0.62rem;
+  color: #64748b;
+  margin-top: 0.15rem;
+}
+
+.miniapp-preview-faq-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 0.68rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.miniapp-preview-faq-item.is-open {
+  border-color: #bfdbfe;
+  background: #f8fbff;
+}
+
+.miniapp-preview-faq-q {
+  flex: 1;
+  min-width: 0;
+}
+
+.miniapp-preview-faq-toggle {
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.miniapp-preview-faq-a {
+  width: 100%;
+  font-size: 0.64rem;
+  font-weight: 400;
+  color: #64748b;
+  line-height: 1.5;
+  padding-top: 0.35rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.miniapp-preview-video.has-poster {
+  background-size: cover;
+  background-position: center;
+}
+
+.miniapp-preview-testimonials-track {
+  display: flex;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+}
+
+.miniapp-preview-testimonial {
+  flex: 0 0 11rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 0.64rem;
+}
+
+.miniapp-preview-testimonial-stars {
+  color: #f59e0b;
+  font-size: 0.58rem;
+  margin-bottom: 0.25rem;
+}
+
+.miniapp-preview-testimonial p {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.miniapp-preview-testimonial strong {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.62rem;
+}
+
+.miniapp-preview-trust-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: center;
+  padding: 0.15rem 0;
+}
+
+.miniapp-preview-trust-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.28rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 0.62rem;
+  font-weight: 600;
+}
+
+.miniapp-preview-bundle {
+  padding: 0.55rem 0.6rem;
+  border-radius: 12px;
+  border: 1px solid #bfdbfe;
+  background: linear-gradient(180deg, #eff6ff 0%, #fff 100%);
+}
+
+.miniapp-preview-bundle-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.72rem;
+}
+
+.miniapp-preview-bundle-badge {
+  font-size: 0.58rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #fff;
+}
+
+.miniapp-preview-bundle-price {
+  margin-top: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #1d4ed8;
+}
+
+.miniapp-preview-rich-text {
+  padding: 0.15rem 0.25rem;
+}
+
+.miniapp-preview-rich-text-body {
+  font-size: 0.68rem;
+  line-height: 1.55;
+  color: #475569;
+}
+
+.miniapp-preview-rich-text.align-center .miniapp-preview-rich-text-body {
+  text-align: center;
+}
+
+.miniapp-preview-rich-text.align-left .miniapp-preview-rich-text-body {
+  text-align: left;
+}
+
+@media (max-width: 1199.98px) {
+  .flow-canvas-editor-layout--miniapp {
+    grid-template-columns: minmax(180px, 210px) minmax(260px, 1fr) minmax(240px, 280px);
+  }
+}
+
+@media (max-width: 991.98px) {
+  .flow-canvas-editor-layout--miniapp {
+    grid-template-columns: 1fr;
+  }
+
+  .miniapp-editor-sidebar {
+    border-inline-end: none;
+    border-bottom: 1px solid var(--fc-border, #e2e8f0);
+    max-height: none;
+  }
+
+  .miniapp-editor-sidebar-section--layers {
+    max-height: 220px;
+  }
+
+  .flow-canvas-stage--miniapp {
+    order: 2;
+  }
+
+  .flow-canvas-inspector--miniapp {
+    order: 3;
+    min-height: auto;
+  }
+
+  .flow-messenger-thread--miniapp {
+    max-height: 55vh;
+  }
 }
 
 /* ناوبری و بخش‌های مینی‌اپ — هماهنگ با پنل لایت */

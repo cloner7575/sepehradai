@@ -28,7 +28,74 @@
     ['buttons', 'زیرمنو'],
     ['image', 'ارسال عکس'],
     ['url', 'باز کردن لینک'],
+    ['webapp', 'مینی‌اپ فروشگاه'],
+    ['order_status', 'رهگیری سفارش'],
+    ['my_orders', 'سفارش‌های من'],
+    ['input', 'سوال و پاسخ'],
+    ['form', 'فرم چندمرحله‌ای'],
+    ['handoff', 'پشتیبانی انسانی'],
+    ['location_card', 'موقعیت و آدرس'],
+    ['contact_card', 'کارت تماس'],
+    ['faq', 'سوالات متداول'],
+    ['coupon', 'کد تخفیف'],
+    ['join_gate', 'عضویت کانال'],
+    ['invoice', 'پرداخت بله'],
   ];
+
+  var INTERACTIVE_TYPES = [
+    'webapp', 'order_status', 'my_orders', 'invoice', 'location_card', 'contact_card',
+    'input', 'form', 'request_contact', 'request_location',
+    'condition', 'goto', 'join_gate', 'tag', 'faq', 'coupon', 'handoff',
+  ];
+
+  function isInteractiveType(t) {
+    return INTERACTIVE_TYPES.indexOf(String(t || '').toLowerCase()) >= 0;
+  }
+
+  function defaultInteractiveAction(type) {
+    var t = String(type || '').toLowerCase();
+    if (t === 'webapp') return { type: 'webapp', label: 'ورود به فروشگاه', target: { kind: 'home', value: '' } };
+    if (t === 'order_status') return { type: 'order_status', prompt: 'شماره سفارشت رو بفرست:' };
+    if (t === 'my_orders') return { type: 'my_orders', limit: 5 };
+    if (t === 'invoice') return { type: 'invoice', title: 'پرداخت', amount: 0, description: '', item_slug: '' };
+    if (t === 'location_card') return { type: 'location_card', lat: 35.7, lng: 51.4, address: '', hours: '' };
+    if (t === 'contact_card') return { type: 'contact_card', phone: '', name: 'پشتیبانی' };
+    if (t === 'input') return { type: 'input', prompt: '', save_key: 'answer', validate: 'text', next: { type: 'text', body: 'ممنون!' } };
+    if (t === 'form') {
+      return {
+        type: 'form',
+        title: 'فرم',
+        steps: [{ prompt: 'نام؟', save_key: 'name', validate: 'text' }],
+        on_complete: { notify_admin: true, thank_you: 'ثبت شد.', assign_tag: '' },
+      };
+    }
+    if (t === 'request_contact') return { type: 'request_contact', prompt: 'شماره‌ت رو بفرست', assign_tag: '' };
+    if (t === 'request_location') return { type: 'request_location', prompt: 'موقعیتت رو بفرست', save_key: 'loc' };
+    if (t === 'condition') {
+      return {
+        type: 'condition',
+        if: { kind: 'has_tag', value: '' },
+        then: { type: 'text', body: '' },
+        else: { type: 'text', body: '' },
+      };
+    }
+    if (t === 'goto') return { type: 'goto', target_id: '' };
+    if (t === 'join_gate') return { type: 'join_gate', channel: '', prompt: 'اول عضو کانال شو', then: { type: 'text', body: 'خوش اومدی!' } };
+    if (t === 'tag') return { type: 'tag', add: [], remove: [] };
+    if (t === 'faq') return { type: 'faq', title: 'سوالات متداول', items: [{ q: 'سوال؟', a: 'پاسخ' }] };
+    if (t === 'coupon') return { type: 'coupon', code: '', message: '' };
+    if (t === 'handoff') return { type: 'handoff', message: 'پیامت رو بفرست' };
+    return null;
+  }
+
+  function normalizeInteractiveAction(action) {
+    if (!action || !isInteractiveType(action.type)) return null;
+    try {
+      return JSON.parse(JSON.stringify(action));
+    } catch (e) {
+      return null;
+    }
+  }
 
   var state = null;
   var hiddenId = 'id_start_flow';
@@ -116,6 +183,13 @@
     if (t === 'buttons') return 'زیرمنو';
     if (t === 'sequence') return 'چند آیتم';
     if (isMediaType(t)) return MEDIA_LABELS[t] || t;
+    if (isInteractiveType(t)) {
+      var hint = t;
+      ACTION_OPTIONS.forEach(function (o) {
+        if (o[0] === t) hint = o[1];
+      });
+      return hint;
+    }
     return t;
   }
 
@@ -160,6 +234,7 @@
       return url ? { type: 'url', url: url } : null;
     }
     if (t === 'buttons') return normalizeButtons({ type: 'buttons', rows: action.rows }, depth);
+    if (isInteractiveType(t)) return normalizeInteractiveAction(action);
     return null;
   }
 
@@ -208,6 +283,9 @@
       } else if (t === 'buttons') {
         var b = normalizeButtons(item, depth);
         if (b) items.push(b);
+      } else if (isInteractiveType(t)) {
+        var ia = normalizeInteractiveAction(item);
+        if (ia) items.push(ia);
       }
     });
     return { type: 'sequence', items: items };
@@ -646,6 +724,32 @@
     parentEl.appendChild(wrap);
   }
 
+  function renderInteractiveBlock(item, itemIndex) {
+    var path = [{ kind: 'item', index: itemIndex }];
+    var wrap = document.createElement('div');
+    wrap.className =
+      'flow-canvas-block flow-chat-row flow-chat-row--bot' +
+      (isSelected(path, 'item') ? ' is-selected' : '');
+
+    var label = String(item.type || '');
+    ACTION_OPTIONS.forEach(function (o) {
+      if (o[0] === label) label = o[1];
+    });
+    var preview =
+      item.prompt || item.title || item.message || item.label || item.code || item.channel || '';
+    var bubble = document.createElement('div');
+    bubble.className = 'flow-chat-bubble flow-chat-bubble--text flow-canvas-editable-bubble';
+    bubble.textContent = '[' + label + ']' + (preview ? ' ' + preview : '');
+    if (!preview) bubble.classList.add('is-placeholder');
+
+    wrap.appendChild(bubble);
+    wrap.appendChild(mkBlockActions(itemIndex));
+    wrap.addEventListener('click', function () {
+      toggleSelect(path, 'item');
+    });
+    return wrap;
+  }
+
   function renderCanvas() {
     if (!threadEl) return;
     threadEl.innerHTML = '';
@@ -672,6 +776,8 @@
         var host = document.createElement('div');
         renderButtonsBlock(item, [{ kind: 'item', index: i }], host, false);
         threadEl.appendChild(host.firstChild);
+      } else if (isInteractiveType(t)) {
+        threadEl.appendChild(renderInteractiveBlock(item, i));
       }
     });
 
@@ -859,6 +965,387 @@
     return box;
   }
 
+  function renderInteractiveFields(action, container, onChange) {
+    if (!action || !isInteractiveType(action.type)) return;
+    var t = action.type;
+
+    function field(label, value, placeholder, maxLen, cb, inputType) {
+      container.appendChild(addFieldLabel(label));
+      container.appendChild(addInput(value, placeholder, maxLen, cb, inputType));
+    }
+
+    if (t === 'webapp') {
+      if (!action.target) action.target = { kind: 'home', value: '' };
+      field('متن دکمه', action.label, 'ورود به فروشگاه', 64, function (v) {
+        action.label = v;
+        onChange();
+      });
+      container.appendChild(addFieldLabel('مقصد'));
+      container.appendChild(
+        addSelect(action.target.kind || 'home', [
+          ['home', 'صفحه اصلی'],
+          ['category', 'دسته'],
+          ['item', 'محصول'],
+        ], function (v) {
+          action.target.kind = v;
+          onChange();
+        })
+      );
+      if (action.target.kind !== 'home') {
+        field('شناسه (slug)', action.target.value, '', 120, function (v) {
+          action.target.value = v;
+          onChange();
+        });
+      }
+      return;
+    }
+
+    if (t === 'order_status' || t === 'handoff' || t === 'request_contact' || t === 'request_location') {
+      field('پیام', action.prompt || action.message, '', 500, function (v) {
+        if (t === 'handoff') action.message = v;
+        else action.prompt = v;
+        onChange();
+      });
+      if (t === 'request_contact') {
+        field('برچسب پس از ثبت (slug)', action.assign_tag || '', '', 140, function (v) {
+          action.assign_tag = v;
+          onChange();
+        });
+      }
+      if (t === 'request_location') {
+        field('کلید ذخیره', action.save_key || 'loc', 'loc', 64, function (v) {
+          action.save_key = v;
+          onChange();
+        });
+      }
+      return;
+    }
+
+    if (t === 'my_orders') {
+      field('تعداد نمایش', String(action.limit || 5), '5', 2, function (v) {
+        action.limit = parseInt(v, 10) || 5;
+        onChange();
+      });
+      return;
+    }
+
+    if (t === 'invoice') {
+      field('عنوان', action.title, 'پرداخت', 32, function (v) {
+        action.title = v;
+        onChange();
+      });
+      field('مبلغ (ریال)', String(action.amount || 0), '0', 12, function (v) {
+        action.amount = parseInt(v, 10) || 0;
+        onChange();
+      }, 'number');
+      field('توضیح', action.description, '', 255, function (v) {
+        action.description = v;
+        onChange();
+      });
+      field('slug محصول (اختیاری)', action.item_slug, '', 120, function (v) {
+        action.item_slug = v;
+        onChange();
+      });
+      return;
+    }
+
+    if (t === 'location_card') {
+      field('عرض جغرافیایی', String(action.lat || ''), '', 20, function (v) {
+        action.lat = parseFloat(v) || 0;
+        onChange();
+      });
+      field('طول جغرافیایی', String(action.lng || ''), '', 20, function (v) {
+        action.lng = parseFloat(v) || 0;
+        onChange();
+      });
+      field('آدرس', action.address, '', 500, function (v) {
+        action.address = v;
+        onChange();
+      });
+      field('ساعت کاری', action.hours, '', 200, function (v) {
+        action.hours = v;
+        onChange();
+      });
+      return;
+    }
+
+    if (t === 'contact_card') {
+      field('شماره', action.phone, '021…', 20, function (v) {
+        action.phone = v;
+        onChange();
+      });
+      field('نام', action.name, 'پشتیبانی', 64, function (v) {
+        action.name = v;
+        onChange();
+      });
+      return;
+    }
+
+    if (t === 'input') {
+      field('سوال', action.prompt, '', 500, function (v) {
+        action.prompt = v;
+        onChange();
+      });
+      field('کلید ذخیره', action.save_key, 'size', 64, function (v) {
+        action.save_key = v;
+        onChange();
+      });
+      container.appendChild(addFieldLabel('اعتبارسنجی'));
+      container.appendChild(
+        addSelect(action.validate || 'text', [
+          ['text', 'متن'],
+          ['number', 'عدد'],
+          ['phone', 'شماره'],
+        ], function (v) {
+          action.validate = v;
+          onChange();
+        })
+      );
+      if (!action.next) action.next = { type: 'text', body: '' };
+      container.appendChild(addFieldLabel('پیام بعد از ثبت'));
+      container.appendChild(
+        addTextarea((action.next && action.next.body) || '', 'ممنون!', 500, function (v) {
+          action.next = { type: 'text', body: v };
+          onChange();
+        })
+      );
+      return;
+    }
+
+    if (t === 'form') {
+      if (!action.steps) action.steps = [];
+      if (!action.on_complete) action.on_complete = { notify_admin: true, thank_you: 'ثبت شد.', assign_tag: '' };
+      field('عنوان فرم', action.title, '', 120, function (v) {
+        action.title = v;
+        onChange();
+      });
+      var stepsBox = document.createElement('div');
+      stepsBox.className = 'flow-inspector-form-steps';
+      function renderSteps() {
+        stepsBox.innerHTML = '';
+        action.steps.forEach(function (step, si) {
+          var card = document.createElement('div');
+          card.className = 'border rounded p-2 mb-2';
+          card.appendChild(addFieldLabel('مرحله ' + (si + 1)));
+          card.appendChild(
+            addInput(step.prompt || '', 'سوال', 500, function (v) {
+              step.prompt = v;
+              onChange();
+            })
+          );
+          card.appendChild(
+            addInput(step.save_key || '', 'کلید (name, phone…)', 64, function (v) {
+              step.save_key = v;
+              onChange();
+            })
+          );
+          card.appendChild(
+            addSelect(step.validate || 'text', [
+              ['text', 'متن'],
+              ['number', 'عدد'],
+              ['phone', 'شماره'],
+            ], function (v) {
+              step.validate = v;
+              onChange();
+            })
+          );
+          var rm = document.createElement('button');
+          rm.type = 'button';
+          rm.className = 'btn btn-panel-ghost btn-sm text-danger';
+          rm.textContent = 'حذف مرحله';
+          rm.addEventListener('click', function () {
+            action.steps.splice(si, 1);
+            renderSteps();
+            onChange();
+          });
+          card.appendChild(rm);
+          stepsBox.appendChild(card);
+        });
+      }
+      renderSteps();
+      container.appendChild(addFieldLabel('مراحل فرم'));
+      container.appendChild(stepsBox);
+      var addStep = document.createElement('button');
+      addStep.type = 'button';
+      addStep.className = 'btn btn-panel-ghost btn-sm mb-2';
+      addStep.textContent = '+ مرحله';
+      addStep.addEventListener('click', function () {
+        action.steps.push({ prompt: '', save_key: 'field_' + (action.steps.length + 1), validate: 'text' });
+        renderSteps();
+        onChange();
+      });
+      container.appendChild(addStep);
+      var notifyWrap = document.createElement('label');
+      notifyWrap.className = 'd-flex align-items-center gap-2 mb-2';
+      var notifyChk = document.createElement('input');
+      notifyChk.type = 'checkbox';
+      notifyChk.checked = !!action.on_complete.notify_admin;
+      notifyChk.addEventListener('change', function () {
+        action.on_complete.notify_admin = notifyChk.checked;
+        onChange();
+      });
+      notifyWrap.appendChild(notifyChk);
+      notifyWrap.appendChild(document.createTextNode(' اعلان به ادمین'));
+      container.appendChild(notifyWrap);
+      field('پیام تشکر', action.on_complete.thank_you, '', 500, function (v) {
+        action.on_complete.thank_you = v;
+        onChange();
+      });
+      field('برچسب پس از ثبت', action.on_complete.assign_tag, '', 140, function (v) {
+        action.on_complete.assign_tag = v;
+        onChange();
+      });
+      return;
+    }
+
+    if (t === 'join_gate') {
+      field('کانال (@username)', action.channel, '@channel', 120, function (v) {
+        action.channel = v;
+        onChange();
+      });
+      field('پیام', action.prompt, '', 500, function (v) {
+        action.prompt = v;
+        onChange();
+      });
+      return;
+    }
+
+    if (t === 'goto') {
+      field('شناسه نود هدف', action.target_id, 'n_xxxxxxxx', 16, function (v) {
+        action.target_id = v;
+        onChange();
+      });
+      return;
+    }
+
+    if (t === 'tag') {
+      field('افزودن برچسب (با کاما)', (action.add || []).join(', '), 'vip, lead', 300, function (v) {
+        action.add = v.split(/[,،]/).map(function (s) {
+          return s.trim();
+        }).filter(Boolean);
+        onChange();
+      });
+      field('حذف برچسب', (action.remove || []).join(', '), '', 300, function (v) {
+        action.remove = v.split(/[,،]/).map(function (s) {
+          return s.trim();
+        }).filter(Boolean);
+        onChange();
+      });
+      return;
+    }
+
+    if (t === 'coupon') {
+      field('کد', action.code, 'WELCOME10', 40, function (v) {
+        action.code = v;
+        onChange();
+      });
+      field('پیام', action.message, '', 500, function (v) {
+        action.message = v;
+        onChange();
+      });
+      return;
+    }
+
+    if (t === 'faq') {
+      if (!action.items) action.items = [];
+      field('عنوان', action.title, 'سوالات متداول', 120, function (v) {
+        action.title = v;
+        onChange();
+      });
+      var faqList = document.createElement('div');
+      function renderFaq() {
+        faqList.innerHTML = '';
+        action.items.forEach(function (item, fi) {
+          var card = document.createElement('div');
+          card.className = 'border rounded p-2 mb-2';
+          card.appendChild(addFieldLabel('سوال ' + (fi + 1)));
+          card.appendChild(
+            addInput(item.q || '', 'سوال', 200, function (v) {
+              item.q = v;
+              onChange();
+            })
+          );
+          card.appendChild(
+            addTextarea(item.a || '', 'پاسخ', 2000, function (v) {
+              item.a = v;
+              onChange();
+            })
+          );
+          var rm = document.createElement('button');
+          rm.type = 'button';
+          rm.className = 'btn btn-panel-ghost btn-sm text-danger';
+          rm.textContent = 'حذف';
+          rm.addEventListener('click', function () {
+            action.items.splice(fi, 1);
+            renderFaq();
+            onChange();
+          });
+          card.appendChild(rm);
+          faqList.appendChild(card);
+        });
+      }
+      renderFaq();
+      container.appendChild(faqList);
+      var addFaq = document.createElement('button');
+      addFaq.type = 'button';
+      addFaq.className = 'btn btn-panel-ghost btn-sm';
+      addFaq.textContent = '+ سوال';
+      addFaq.addEventListener('click', function () {
+        action.items.push({ q: '', a: '' });
+        renderFaq();
+        onChange();
+      });
+      container.appendChild(addFaq);
+      return;
+    }
+
+    if (t === 'condition') {
+      if (!action.if) action.if = { kind: 'has_tag', value: '' };
+      container.appendChild(addFieldLabel('شرط'));
+      container.appendChild(
+        addSelect(action.if.kind || 'has_tag', [
+          ['has_tag', 'دارای برچسب'],
+          ['is_registered', 'ثبت‌نام‌شده'],
+          ['answer_equals', 'پاسخ برابر'],
+        ], function (v) {
+          action.if.kind = v;
+          onChange();
+        })
+      );
+      if (action.if.kind === 'has_tag') {
+        field('برچسب', action.if.value, 'vip', 140, function (v) {
+          action.if.value = v;
+          onChange();
+        });
+      } else if (action.if.kind === 'answer_equals') {
+        field('کلید', action.if.key, '', 64, function (v) {
+          action.if.key = v;
+          onChange();
+        });
+        field('مقدار', action.if.value, '', 500, function (v) {
+          action.if.value = v;
+          onChange();
+        });
+      }
+      if (!action.then) action.then = { type: 'text', body: '' };
+      if (!action.else) action.else = { type: 'text', body: '' };
+      container.appendChild(addFieldLabel('اگر درست بود'));
+      container.appendChild(
+        addTextarea((action.then.body) || '', 'متن', 500, function (v) {
+          action.then = { type: 'text', body: v };
+          onChange();
+        })
+      );
+      container.appendChild(addFieldLabel('وگرنه'));
+      container.appendChild(
+        addTextarea((action.else.body) || '', 'متن', 500, function (v) {
+          action.else = { type: 'text', body: v };
+          onChange();
+        })
+      );
+    }
+  }
+
   function renderActionInspector(btn, onChange) {
     var box = document.createElement('div');
     box.className = 'flow-inspector-action';
@@ -873,6 +1360,7 @@
         else if (t === 'image') btn.action = { type: 'image', media_id: '', caption: '' };
         else if (t === 'sequence') btn.action = { type: 'sequence', items: [] };
         else if (t === 'buttons') btn.action = { type: 'buttons', rows: [[defaultButton()]] };
+        else if (isInteractiveType(t)) btn.action = defaultInteractiveAction(t);
         onChange();
         renderInspector();
       })
@@ -931,6 +1419,8 @@
       extras.appendChild(
         addFieldLabel('زیرمنو روی canvas نمایش داده می‌شود. «+ دکمه زیرمنو» یا افزودن از نوار ابزار.')
       );
+    } else if (btn.action && isInteractiveType(btn.action.type)) {
+      renderInteractiveFields(btn.action, extras, onChange);
     }
 
     box.appendChild(extras);
@@ -1021,6 +1511,13 @@
         });
         rowTools.appendChild(addRow);
         inspectorBody.appendChild(rowTools);
+      } else if (isInteractiveType(t)) {
+        var interactiveLabel = t;
+        ACTION_OPTIONS.forEach(function (o) {
+          if (o[0] === t) interactiveLabel = o[1];
+        });
+        if (inspectorTitle) inspectorTitle.textContent = interactiveLabel;
+        renderInteractiveFields(item, inspectorBody, bump);
       }
       return;
     }

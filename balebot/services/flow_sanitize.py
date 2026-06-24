@@ -13,6 +13,11 @@ _SLUG_RE = re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$')
 _NODE_ID_RE = re.compile(r'^n_[a-f0-9]{8}$')
 _MEDIA_NODE_TYPES = frozenset({'image', 'video', 'voice', 'document'})
 _SEQUENCE_ITEM_TYPES = frozenset({'text', 'image', 'video', 'voice', 'document'})
+_INTERACTIVE_TYPES = frozenset({
+    'webapp', 'order_status', 'my_orders', 'invoice', 'location_card', 'contact_card',
+    'input', 'form', 'request_contact', 'request_location',
+    'condition', 'goto', 'join_gate', 'tag', 'faq', 'coupon', 'handoff',
+})
 
 
 def _new_node_id() -> str:
@@ -78,6 +83,8 @@ def _sanitize_sequence_items(items: Any, depth: int) -> list[dict[str, Any]]:
             sanitized = _sanitize_text_node(item)
         elif itype in _MEDIA_NODE_TYPES:
             sanitized = _sanitize_media_node(item, itype)
+        elif itype in _INTERACTIVE_TYPES:
+            sanitized = _sanitize_interactive_node(item, depth)
         if sanitized:
             items_out.append(sanitized)
     return items_out
@@ -90,6 +97,240 @@ def _sanitize_sequence_node(node: dict[str, Any], depth: int) -> dict[str, Any] 
     if not items_out:
         return None
     return {'type': 'sequence', 'items': items_out}
+
+
+def _sanitize_target(raw: Any) -> dict[str, str] | None:
+    if not isinstance(raw, dict):
+        return None
+    kind = str(raw.get('kind', '') or '').strip().lower()[:16]
+    value = str(raw.get('value', '') or '').strip()[:256]
+    if kind not in ('home', 'category', 'item', 'tag', 'url') or not value:
+        if kind == 'home':
+            return {'kind': 'home', 'value': ''}
+        return None
+    return {'kind': kind, 'value': value}
+
+
+def _sanitize_faq_items(raw: Any) -> list[dict[str, str]]:
+    out: list[dict[str, str]] = []
+    if not isinstance(raw, list):
+        return out
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        q = str(item.get('q', '') or '').strip()[:200]
+        a = str(item.get('a', '') or '').strip()[:2000]
+        if q and a:
+            out.append({'q': q, 'a': a})
+    return out
+
+
+def _sanitize_form_steps(raw: Any) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    if not isinstance(raw, list):
+        return out
+    for step in raw:
+        if not isinstance(step, dict):
+            continue
+        prompt = str(step.get('prompt', '') or '').strip()[:500]
+        save_key = str(step.get('save_key', '') or '').strip()[:64]
+        validate = str(step.get('validate', '') or 'text').strip().lower()
+        if validate not in ('text', 'number', 'phone'):
+            validate = 'text'
+        if prompt and save_key:
+            out.append({'prompt': prompt, 'save_key': save_key, 'validate': validate})
+    return out
+
+
+def _sanitize_interactive_node(node: dict[str, Any], depth: int) -> dict[str, Any] | None:
+    if depth > _MAX_DEPTH:
+        return None
+    ntype = str(node.get('type', '') or '').strip().lower()
+    if ntype not in _INTERACTIVE_TYPES:
+        return None
+
+    if ntype == 'webapp':
+        label = str(node.get('label', '') or '').strip()[:64] or 'ورود به فروشگاه'
+        out: dict[str, Any] = {'type': 'webapp', 'label': label}
+        target = _sanitize_target(node.get('target'))
+        if target:
+            out['target'] = target
+        return out
+
+    if ntype == 'order_status':
+        return {'type': 'order_status', 'prompt': str(node.get('prompt', '') or '').strip()[:500] or 'شماره سفارشت رو بفرست:'}
+
+    if ntype == 'my_orders':
+        limit = int(node.get('limit') or 5)
+        return {'type': 'my_orders', 'limit': max(1, min(limit, 20))}
+
+    if ntype == 'invoice':
+        try:
+            amount = max(0, int(node.get('amount') or 0))
+        except (TypeError, ValueError):
+            amount = 0
+        return {
+            'type': 'invoice',
+            'title': str(node.get('title', '') or '').strip()[:32] or 'پرداخت',
+            'amount': amount,
+            'description': str(node.get('description', '') or '').strip()[:255],
+            'item_slug': str(node.get('item_slug', '') or '').strip()[:120],
+        }
+
+    if ntype == 'location_card':
+        try:
+            lat = float(node.get('lat'))
+            lng = float(node.get('lng'))
+        except (TypeError, ValueError):
+            return None
+        return {
+            'type': 'location_card',
+            'lat': lat,
+            'lng': lng,
+            'address': str(node.get('address', '') or '').strip()[:500],
+            'hours': str(node.get('hours', '') or '').strip()[:200],
+        }
+
+    if ntype == 'contact_card':
+        phone = str(node.get('phone', '') or '').strip()[:20]
+        if not phone:
+            return None
+        return {
+            'type': 'contact_card',
+            'phone': phone,
+            'name': str(node.get('name', '') or '').strip()[:64] or 'پشتیبانی',
+        }
+
+    if ntype == 'input':
+        save_key = str(node.get('save_key', '') or '').strip()[:64]
+        if not save_key:
+            return None
+        validate = str(node.get('validate', '') or 'text').strip().lower()
+        if validate not in ('text', 'number', 'phone'):
+            validate = 'text'
+        out = {
+            'type': 'input',
+            'prompt': str(node.get('prompt', '') or '').strip()[:500],
+            'save_key': save_key,
+            'validate': validate,
+        }
+        nxt = _sanitize_action(node.get('next'), depth + 1)
+        if nxt:
+            out['next'] = nxt
+        return out
+
+    if ntype == 'form':
+        steps = _sanitize_form_steps(node.get('steps'))
+        if not steps:
+            return None
+        out = {'type': 'form', 'title': str(node.get('title', '') or '').strip()[:120], 'steps': steps}
+        oc = node.get('on_complete')
+        if isinstance(oc, dict):
+            out['on_complete'] = {
+                'notify_admin': bool(oc.get('notify_admin')),
+                'thank_you': str(oc.get('thank_you', '') or '').strip()[:500],
+                'assign_tag': _slugify_label(str(oc.get('assign_tag', '') or '')),
+            }
+        return out
+
+    if ntype == 'request_contact':
+        out = {
+            'type': 'request_contact',
+            'prompt': str(node.get('prompt', '') or '').strip()[:500],
+        }
+        tag = _slugify_label(str(node.get('assign_tag', '') or ''))
+        if tag:
+            out['assign_tag'] = tag
+        resume = _sanitize_action(node.get('resume'), depth + 1)
+        if resume:
+            out['resume'] = resume
+        return out
+
+    if ntype == 'request_location':
+        save_key = str(node.get('save_key', '') or '').strip()[:64] or 'loc'
+        out = {
+            'type': 'request_location',
+            'prompt': str(node.get('prompt', '') or '').strip()[:500],
+            'save_key': save_key,
+        }
+        resume = _sanitize_action(node.get('resume'), depth + 1)
+        if resume:
+            out['resume'] = resume
+        return out
+
+    if ntype == 'condition':
+        cond = node.get('if')
+        if not isinstance(cond, dict):
+            return None
+        kind = str(cond.get('kind', '') or '').strip().lower()
+        if kind not in ('has_tag', 'answer_equals', 'is_registered'):
+            return None
+        cond_out: dict[str, Any] = {'kind': kind}
+        if kind == 'has_tag':
+            cond_out['value'] = str(cond.get('value', '') or '').strip()[:140]
+        elif kind == 'answer_equals':
+            cond_out['key'] = str(cond.get('key', '') or '').strip()[:64]
+            cond_out['value'] = str(cond.get('value', '') or '').strip()[:500]
+        then = _sanitize_action(node.get('then'), depth + 1)
+        else_b = _sanitize_action(node.get('else'), depth + 1)
+        if not then and not else_b:
+            return None
+        out = {'type': 'condition', 'if': cond_out}
+        if then:
+            out['then'] = then
+        if else_b:
+            out['else'] = else_b
+        return out
+
+    if ntype == 'goto':
+        target_id = str(node.get('target_id', '') or '').strip()
+        if not _NODE_ID_RE.match(target_id):
+            return None
+        return {'type': 'goto', 'target_id': target_id}
+
+    if ntype == 'join_gate':
+        channel = str(node.get('channel', '') or '').strip()[:120]
+        if not channel:
+            return None
+        out = {
+            'type': 'join_gate',
+            'channel': channel,
+            'prompt': str(node.get('prompt', '') or '').strip()[:500],
+        }
+        then = _sanitize_action(node.get('then'), depth + 1)
+        if then:
+            out['then'] = then
+        return out
+
+    if ntype == 'tag':
+        add = [str(s).strip()[:140] for s in (node.get('add') or []) if str(s).strip()]
+        remove = [str(s).strip()[:140] for s in (node.get('remove') or []) if str(s).strip()]
+        return {'type': 'tag', 'add': add, 'remove': remove}
+
+    if ntype == 'faq':
+        items = _sanitize_faq_items(node.get('items'))
+        if not items:
+            return None
+        return {'type': 'faq', 'title': str(node.get('title', '') or '').strip()[:120], 'items': items}
+
+    if ntype == 'coupon':
+        code = str(node.get('code', '') or '').strip()[:40]
+        if not code:
+            return None
+        return {
+            'type': 'coupon',
+            'code': code,
+            'message': str(node.get('message', '') or '').strip()[:500],
+            'once_per_user': bool(node.get('once_per_user')),
+        }
+
+    if ntype == 'handoff':
+        return {
+            'type': 'handoff',
+            'message': str(node.get('message', '') or '').strip()[:500],
+        }
+
+    return None
 
 
 def _sanitize_action(action: Any, depth: int) -> dict[str, Any] | None:
@@ -115,6 +356,8 @@ def _sanitize_action(action: Any, depth: int) -> dict[str, Any] | None:
         if not url:
             return None
         return {'type': 'url', 'url': url}
+    if atype in _INTERACTIVE_TYPES:
+        return _sanitize_interactive_node(action, depth)
     return None
 
 
@@ -194,6 +437,8 @@ def _sanitize_sequence(node: Any, depth: int) -> dict[str, Any] | None:
             sanitized = _sanitize_media_node(item, itype)
         elif itype == 'buttons':
             sanitized = _sanitize_buttons_node(item, depth)
+        elif itype in _INTERACTIVE_TYPES:
+            sanitized = _sanitize_interactive_node(item, depth)
         if sanitized:
             items_out.append(sanitized)
     return {'type': 'sequence', 'items': items_out}

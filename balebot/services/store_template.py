@@ -20,6 +20,7 @@ from balebot.models import (
     Workspace,
 )
 from balebot.services.flow_sanitize import sanitize_start_flow
+from balebot.services.catalog_page_layout import sanitize_home_blocks
 
 logger = logging.getLogger(__name__)
 
@@ -181,7 +182,21 @@ def apply_template(
     settings_data = data.get('settings') or {}
     catalog.hero_title = (settings_data.get('hero_title') or catalog.hero_title or '')[:200]
     catalog.hero_subtitle = (settings_data.get('hero_subtitle') or catalog.hero_subtitle or '')[:300]
-    catalog.theme_config = {**(catalog.theme_config or {}), **_map_theme(settings_data.get('theme') or {})}
+    theme_patch = _map_theme(settings_data.get('theme') or {})
+    home_blocks_raw = settings_data.get('home_blocks')
+    if isinstance(home_blocks_raw, list) and home_blocks_raw:
+        theme_patch['home_blocks'] = sanitize_home_blocks(home_blocks_raw)
+    elif not (catalog.theme_config or {}).get('home_blocks'):
+        from balebot.data.home_blocks_presets import build_home_blocks_for_template
+
+        theme_patch['home_blocks'] = build_home_blocks_for_template(
+            slug=template.slug,
+            industry=template.industry,
+            categories=data.get('categories') if isinstance(data.get('categories'), list) else [],
+            marketing=data.get('marketing') if isinstance(data.get('marketing'), dict) else {},
+            settings=settings_data,
+        )
+    catalog.theme_config = {**(catalog.theme_config or {}), **theme_patch}
     catalog.labels = {**(catalog.labels or {}), **_map_labels(settings_data.get('labels') or {})}
     catalog.save(update_fields=['hero_title', 'hero_subtitle', 'theme_config', 'labels', 'updated_at'])
 
@@ -256,6 +271,8 @@ def apply_template(
             item_type=item_type,
             sale_mode=sale_mode,
             price=price,
+            compare_at_price=int(row['compare_at_price']) if row.get('compare_at_price') not in (None, '') else None,
+            sales_count=max(0, int(row.get('sales_count') or 0)),
             stock=stock_val,
             is_featured=bool(row.get('is_featured')),
             is_active=True,

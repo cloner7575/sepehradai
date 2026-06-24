@@ -9,7 +9,50 @@
     featured: 'محصولات ویژه',
     products: 'لیست محصولات',
     spacer: 'فاصله',
+    announcement_bar: 'نوار اعلان',
+    story_bar: 'استوری',
+    countdown: 'شمارش معکوس',
+    coupon: 'کد تخفیف',
+    product_carousel: 'کاروسل محصول',
+    banner_grid: 'گرید بنر',
+    video: 'ویدیو',
+    testimonials: 'نظرات',
+    trust_badges: 'نشان اعتماد',
+    faq: 'سوالات متداول',
+    info: 'درباره ما',
+    bundle: 'باندل',
+    rich_text: 'متن آزاد',
   };
+
+  var BLOCK_ICONS = {
+    hero: 'image',
+    slider: 'images',
+    search: 'search',
+    categories: 'folder',
+    featured: 'star',
+    products: 'grid',
+    spacer: 'distribute-vertical',
+    announcement_bar: 'megaphone',
+    story_bar: 'record-circle',
+    countdown: 'alarm',
+    coupon: 'ticket-perforated',
+    product_carousel: 'collection',
+    banner_grid: 'grid-3x2-gap',
+    video: 'play-circle',
+    testimonials: 'chat-quote',
+    trust_badges: 'shield-check',
+    faq: 'question-circle',
+    info: 'info-circle',
+    bundle: 'box-seam',
+    rich_text: 'file-text',
+  };
+
+  var BLOCK_PALETTE = [
+    { group: 'ساختار', blocks: ['hero', 'slider', 'search', 'rich_text', 'spacer'] },
+    { group: 'فروشگاه', blocks: ['categories', 'featured', 'products', 'product_carousel', 'banner_grid', 'bundle'] },
+    { group: 'مارکتینگ', blocks: ['announcement_bar', 'story_bar', 'countdown', 'coupon', 'video'] },
+    { group: 'اعتماد', blocks: ['testimonials', 'trust_badges', 'faq', 'info'] },
+  ];
 
   var root = null;
   var form = null;
@@ -19,6 +62,9 @@
   var inspectorTitle = null;
   var inspectorHint = null;
   var storeTitleEl = null;
+  var paletteEl = null;
+  var outlineEl = null;
+  var blockCountEl = null;
   var categories = [];
   var items = [];
   var state = { blocks: [] };
@@ -37,6 +83,12 @@
 
   function newBlockId() {
     return 'b_' + Math.random().toString(16).slice(2, 10);
+  }
+
+  function defaultEndsAtIso() {
+    var d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().slice(0, 19);
   }
 
   function defaultBlock(type) {
@@ -61,6 +113,45 @@
       return { id: id, type: 'products', title: 'همه محصولات', layout: 'grid', limit: 0 };
     }
     if (type === 'spacer') return { id: id, type: 'spacer', size: 'md' };
+    if (type === 'announcement_bar') {
+      return { id: id, type: 'announcement_bar', text: 'ارسال رایگان بالای ۵۰۰ هزار تومان', bg: '#111111', color: '#ffffff', dismissible: true };
+    }
+    if (type === 'story_bar') {
+      return { id: id, type: 'story_bar', items: [{ title: 'جدید', image: '', target: { kind: 'category', value: '' } }] };
+    }
+    if (type === 'countdown') {
+      return { id: id, type: 'countdown', title: 'فروش ویژه', ends_at: defaultEndsAtIso(), cta_label: 'الان بخر', accent: '#c2402f' };
+    }
+    if (type === 'coupon') {
+      return { id: id, type: 'coupon', title: 'کد تخفیف', code: 'WELCOME10', subtitle: '', copy_label: 'کپی کد' };
+    }
+    if (type === 'product_carousel') {
+      return { id: id, type: 'product_carousel', title: 'پرفروش‌ترین‌ها', source: 'bestselling', limit: 10 };
+    }
+    if (type === 'banner_grid') {
+      return { id: id, type: 'banner_grid', columns: 2, items: [{ image: '', target: { kind: 'category', value: '' } }] };
+    }
+    if (type === 'video') {
+      return { id: id, type: 'video', title: 'معرفی', url: '', poster: '' };
+    }
+    if (type === 'testimonials') {
+      return { id: id, type: 'testimonials', title: 'نظر مشتری‌ها', items: [{ name: 'مریم', text: 'عالی بود', rating: 5 }] };
+    }
+    if (type === 'trust_badges') {
+      return { id: id, type: 'trust_badges', items: [{ icon: '✅', label: 'اصالت کالا' }, { icon: '🚚', label: 'ارسال سریع' }] };
+    }
+    if (type === 'faq') {
+      return { id: id, type: 'faq', title: 'سوالات متداول', items: [{ q: 'هزینه ارسال؟', a: 'بسته به شهر متفاوت است' }] };
+    }
+    if (type === 'info') {
+      return { id: id, type: 'info', about: 'درباره فروشگاه', phones: [], address: '', hours: '۹ تا ۲۱' };
+    }
+    if (type === 'bundle') {
+      return { id: id, type: 'bundle', title: 'ست ویژه', item_slugs: [], bundle_price: 0, badge: '' };
+    }
+    if (type === 'rich_text') {
+      return { id: id, type: 'rich_text', title: '', html: '<p>متن دلخواه</p>', align: 'right' };
+    }
     return null;
   }
 
@@ -103,6 +194,134 @@
   function featuredItems() {
     return items.filter(function (i) {
       return i.is_featured;
+    });
+  }
+
+  function itemsForCarouselSource(block) {
+    var limit = block.limit || 8;
+    var source = block.source || 'featured';
+    var list = items.slice();
+    if (source === 'featured') {
+      list = featuredItems();
+      if (!list.length) list = items.slice();
+    } else if (source === 'newest') {
+      list = items.slice().reverse();
+    } else if (source === 'bestselling') {
+      list = items.slice().sort(function (a, b) {
+        return (b.sales_count || 0) - (a.sales_count || 0);
+      });
+    } else if (source === 'discounted') {
+      list = items.filter(function (i) {
+        return i.compare_at_price && i.price && i.compare_at_price > i.price;
+      });
+      if (!list.length) list = items.slice();
+    } else if (source === 'category' && block.category) {
+      list = items.filter(function (i) {
+        return i.category_slug === block.category;
+      });
+    } else if (source === 'tag' && block.tag) {
+      list = items.filter(function (i) {
+        return (i.tags || []).indexOf(block.tag) >= 0;
+      });
+    }
+    return list.slice(0, limit);
+  }
+
+  function bundlePreviewItems(block) {
+    var slugs = block.item_slugs || [];
+    if (!slugs.length) return items.slice(0, 3);
+    return items.filter(function (i) {
+      return slugs.indexOf(i.slug) >= 0;
+    }).slice(0, 4);
+  }
+
+  function updateBlockCountLabel() {
+    if (blockCountEl) {
+      blockCountEl.textContent = state.blocks.length + ' المان';
+    }
+  }
+
+  function scrollBlockIntoView(index) {
+    if (!threadEl) return;
+    var node = threadEl.querySelector('[data-block-index="' + index + '"]');
+    if (node && node.scrollIntoView) {
+      node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  function renderBlockPalette() {
+    if (!paletteEl) return;
+    paletteEl.innerHTML = '';
+    BLOCK_PALETTE.forEach(function (group) {
+      var section = document.createElement('div');
+      section.className = 'miniapp-palette-group';
+
+      var title = document.createElement('div');
+      title.className = 'miniapp-palette-group-title';
+      title.textContent = group.group;
+      section.appendChild(title);
+
+      var grid = document.createElement('div');
+      grid.className = 'miniapp-palette-grid';
+      group.blocks.forEach(function (type) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'miniapp-palette-btn';
+        btn.setAttribute('data-add-block', type);
+        btn.title = BLOCK_LABELS[type] || type;
+        btn.innerHTML =
+          '<i class="bi bi-' +
+          (BLOCK_ICONS[type] || 'plus') +
+          '"></i><span>' +
+          escapeHtml(BLOCK_LABELS[type] || type) +
+          '</span>';
+        btn.addEventListener('click', function () {
+          addBlock(type);
+        });
+        grid.appendChild(btn);
+      });
+      section.appendChild(grid);
+      paletteEl.appendChild(section);
+    });
+  }
+
+  function renderBlocksOutline() {
+    if (!outlineEl) return;
+    outlineEl.innerHTML = '';
+    if (!state.blocks.length) {
+      outlineEl.innerHTML = '<div class="miniapp-blocks-outline-empty">هنوز المانی اضافه نشده</div>';
+      return;
+    }
+    state.blocks.forEach(function (block, index) {
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className =
+        'miniapp-outline-item' + (selection === index ? ' is-selected' : '');
+      row.setAttribute('data-outline-index', String(index));
+      row.innerHTML =
+        '<span class="miniapp-outline-index">' +
+        (index + 1) +
+        '</span>' +
+        '<i class="bi bi-' +
+        (BLOCK_ICONS[block.type] || 'square') +
+        '"></i>' +
+        '<span class="miniapp-outline-label">' +
+        escapeHtml(BLOCK_LABELS[block.type] || block.type) +
+        '</span>' +
+        '<span class="miniapp-outline-actions">' +
+        (index > 0 ? '<i class="bi bi-chevron-up" data-move="up"></i>' : '') +
+        (index < state.blocks.length - 1 ? '<i class="bi bi-chevron-down" data-move="down"></i>' : '') +
+        '</span>';
+      row.addEventListener('click', function (e) {
+        var move = e.target.closest('[data-move]');
+        if (move) {
+          e.stopPropagation();
+          moveBlock(move.getAttribute('data-move') === 'up' ? -1 : 1, index);
+          return;
+        }
+        selectBlock(index);
+      });
+      outlineEl.appendChild(row);
     });
   }
 
@@ -269,6 +488,7 @@
     globalPanel = null;
     renderCanvas();
     renderInspector();
+    scrollBlockIntoView(index);
   }
 
   function toggleBlock(index) {
@@ -323,6 +543,7 @@
       'flow-canvas-block flow-canvas-block--miniapp flow-canvas-block--' +
       block.type +
       (selection === index ? ' is-selected' : '');
+    wrap.setAttribute('data-block-index', String(index));
 
     var badge = document.createElement('div');
     badge.className = 'flow-canvas-block-badge';
@@ -418,18 +639,21 @@
       body.appendChild(grid);
     } else if (block.type === 'featured') {
       body.innerHTML = '<div class="miniapp-preview-section-title">' + escapeHtml(block.title || '') + '</div>';
-      var row = document.createElement('div');
-      row.className = 'miniapp-preview-products-row';
+      var rowF = document.createElement('div');
+      rowF.className =
+        block.layout === 'grid'
+          ? 'miniapp-preview-products miniapp-preview-products--grid'
+          : 'miniapp-preview-products-row';
       var list = featuredItems().slice(0, block.limit || 6);
       if (!list.length) list = items.slice(0, Math.min(block.limit || 4, 4));
       if (!list.length) {
-        row.appendChild(mkPreviewCard('★ محصول ویژه', '', 'miniapp-preview-product-card'));
+        rowF.appendChild(mkPreviewCard('★ محصول ویژه', '', 'miniapp-preview-product-card'));
       } else {
         list.forEach(function (it) {
-          row.appendChild(mkPreviewCard(it.title, it.image_url || '', 'miniapp-preview-product-card'));
+          rowF.appendChild(mkPreviewCard(it.title, it.image_url || '', 'miniapp-preview-product-card'));
         });
       }
-      body.appendChild(row);
+      body.appendChild(rowF);
     } else if (block.type === 'products') {
       body.innerHTML = '<div class="miniapp-preview-section-title">' + escapeHtml(block.title || '') + '</div>';
       var gridP = document.createElement('div');
@@ -458,6 +682,208 @@
       body.appendChild(gridP);
     } else if (block.type === 'spacer') {
       body.innerHTML = '<div class="miniapp-preview-spacer size-' + (block.size || 'md') + '"></div>';
+    } else if (block.type === 'announcement_bar') {
+      body.innerHTML =
+        '<div class="miniapp-preview-announcement" style="background:' +
+        escapeHtml(block.bg || '#111') +
+        ';color:' +
+        escapeHtml(block.color || '#fff') +
+        '">' +
+        escapeHtml(block.text || 'اعلان') +
+        '</div>';
+    } else if (block.type === 'story_bar') {
+      var storyTrack = document.createElement('div');
+      storyTrack.className = 'miniapp-preview-story-track';
+      (block.items || []).forEach(function (story) {
+        var chip = document.createElement('div');
+        chip.className = 'miniapp-preview-story';
+        if (story.image) {
+          chip.appendChild(mkImageThumb(story.image, 'miniapp-preview-story-img'));
+        } else {
+          var ph = document.createElement('div');
+          ph.className = 'miniapp-preview-story-img miniapp-preview-thumb--empty';
+          ph.innerHTML = '<i class="bi bi-circle"></i>';
+          chip.appendChild(ph);
+        }
+        var lbl = document.createElement('span');
+        lbl.className = 'miniapp-preview-story-label';
+        lbl.textContent = story.title || 'استوری';
+        chip.appendChild(lbl);
+        storyTrack.appendChild(chip);
+      });
+      body.appendChild(storyTrack);
+    } else if (block.type === 'countdown') {
+      body.innerHTML =
+        '<div class="miniapp-preview-countdown" style="--accent:' +
+        escapeHtml(block.accent || '#c2402f') +
+        '"><strong>' +
+        escapeHtml(block.title || 'فروش ویژه') +
+        '</strong><div class="miniapp-preview-countdown-timer">۰۷ : ۱۲ : ۳۴ : ۵۶</div>' +
+        (block.cta_label ? '<span class="miniapp-preview-countdown-cta">' + escapeHtml(block.cta_label) + '</span>' : '') +
+        '</div>';
+    } else if (block.type === 'coupon') {
+      body.innerHTML =
+        '<div class="miniapp-preview-coupon"><strong>' +
+        escapeHtml(block.title || 'کد تخفیف') +
+        '</strong>' +
+        (block.subtitle ? '<span class="miniapp-preview-coupon-sub">' + escapeHtml(block.subtitle) + '</span>' : '') +
+        '<code>' +
+        escapeHtml(block.code || 'SALE') +
+        '</code></div>';
+    } else if (block.type === 'product_carousel') {
+      body.innerHTML = '<div class="miniapp-preview-section-title">' + escapeHtml(block.title || 'محصولات') + '</div>';
+      var carousel = document.createElement('div');
+      carousel.className = 'miniapp-preview-products-row';
+      var carouselItems = itemsForCarouselSource(block);
+      if (!carouselItems.length) {
+        carousel.appendChild(mkPreviewCard('محصول نمونه', '', 'miniapp-preview-product-card'));
+        carousel.appendChild(mkPreviewCard('محصول', '', 'miniapp-preview-product-card'));
+      } else {
+        carouselItems.forEach(function (it) {
+          carousel.appendChild(mkPreviewCard(it.title, it.image_url || '', 'miniapp-preview-product-card'));
+        });
+      }
+      body.appendChild(carousel);
+    } else if (block.type === 'banner_grid') {
+      var bgrid = document.createElement('div');
+      bgrid.className = 'miniapp-preview-banner-grid cols-' + (block.columns || 2);
+      (block.items || []).forEach(function (banner) {
+        var cell = document.createElement('div');
+        cell.className = 'miniapp-preview-banner-cell';
+        if (banner.image) {
+          cell.appendChild(mkImageThumb(banner.image, 'miniapp-preview-thumb'));
+        } else {
+          cell.className += ' miniapp-preview-banner-cell--empty';
+          cell.innerHTML = '<i class="bi bi-image"></i>';
+        }
+        bgrid.appendChild(cell);
+      });
+      if (!bgrid.children.length) {
+        bgrid.innerHTML = '<div class="miniapp-preview-banner-cell miniapp-preview-banner-cell--empty"><i class="bi bi-image"></i></div>';
+      }
+      body.appendChild(bgrid);
+    } else if (block.type === 'faq') {
+      body.innerHTML = '<div class="miniapp-preview-section-title">' + escapeHtml(block.title || 'سوالات متداول') + '</div>';
+      (block.items || []).slice(0, 4).forEach(function (item, fi) {
+        var row = document.createElement('div');
+        row.className = 'miniapp-preview-faq-item' + (fi === 0 ? ' is-open' : '');
+        row.innerHTML =
+          '<span class="miniapp-preview-faq-q">' +
+          escapeHtml(item.q || 'سوال') +
+          '</span><span class="miniapp-preview-faq-toggle">' +
+          (fi === 0 ? '−' : '+') +
+          '</span>' +
+          (fi === 0 && item.a ? '<div class="miniapp-preview-faq-a">' + escapeHtml(item.a) + '</div>' : '');
+        body.appendChild(row);
+      });
+    } else if (block.type === 'info') {
+      body.innerHTML =
+        '<div class="miniapp-preview-info">' +
+        '<p>' +
+        escapeHtml(block.about || 'درباره ما') +
+        '</p>' +
+        (block.hours ? '<small>ساعت: ' + escapeHtml(block.hours) + '</small>' : '') +
+        (block.address ? '<small>' + escapeHtml(block.address) + '</small>' : '') +
+        '</div>';
+    } else if (block.type === 'video') {
+      var videoWrap = document.createElement('div');
+      videoWrap.className = 'miniapp-preview-video-wrap';
+      if (block.title) {
+        videoWrap.innerHTML = '<div class="miniapp-preview-section-title">' + escapeHtml(block.title) + '</div>';
+      }
+      var videoBox = document.createElement('div');
+      videoBox.className = 'miniapp-preview-video';
+      if (block.poster) {
+        videoBox.style.backgroundImage = 'url(' + block.poster + ')';
+        videoBox.classList.add('has-poster');
+      }
+      videoBox.innerHTML = '<i class="bi bi-play-circle"></i>';
+      videoWrap.appendChild(videoBox);
+      body.appendChild(videoWrap);
+    } else if (block.type === 'testimonials') {
+      body.innerHTML = '<div class="miniapp-preview-section-title">' + escapeHtml(block.title || 'نظر مشتری‌ها') + '</div>';
+      var tTrack = document.createElement('div');
+      tTrack.className = 'miniapp-preview-testimonials-track';
+      (block.items || []).forEach(function (t) {
+        var card = document.createElement('div');
+        card.className = 'miniapp-preview-testimonial';
+        var stars = '★'.repeat(Math.min(5, t.rating || 5));
+        card.innerHTML =
+          '<div class="miniapp-preview-testimonial-stars">' +
+          stars +
+          '</div><p>' +
+          escapeHtml(t.text || '') +
+          '</p><strong>' +
+          escapeHtml(t.name || '') +
+          '</strong>';
+        tTrack.appendChild(card);
+      });
+      if (!tTrack.children.length) {
+        tTrack.innerHTML = '<div class="miniapp-preview-testimonial"><p>نظر مشتری نمونه</p></div>';
+      }
+      body.appendChild(tTrack);
+    } else if (block.type === 'trust_badges') {
+      var badges = document.createElement('div');
+      badges.className = 'miniapp-preview-trust-badges';
+      (block.items || []).forEach(function (badge) {
+        var chip = document.createElement('span');
+        chip.className = 'miniapp-preview-trust-badge';
+        chip.innerHTML =
+          '<span class="miniapp-preview-trust-icon">' +
+          escapeHtml(badge.icon || '✓') +
+          '</span>' +
+          escapeHtml(badge.label || '');
+        badges.appendChild(chip);
+      });
+      if (!badges.children.length) {
+        badges.innerHTML = '<span class="miniapp-preview-trust-badge">اعتماد</span>';
+      }
+      body.appendChild(badges);
+    } else if (block.type === 'bundle') {
+      var bundleWrap = document.createElement('div');
+      bundleWrap.className = 'miniapp-preview-bundle';
+      var bundleHead = document.createElement('div');
+      bundleHead.className = 'miniapp-preview-bundle-head';
+      bundleHead.innerHTML = '<strong>' + escapeHtml(block.title || 'ست ویژه') + '</strong>';
+      if (block.badge) {
+        var badgeEl = document.createElement('span');
+        badgeEl.className = 'miniapp-preview-bundle-badge';
+        badgeEl.textContent = block.badge;
+        bundleHead.appendChild(badgeEl);
+      }
+      bundleWrap.appendChild(bundleHead);
+      var bundleRow = document.createElement('div');
+      bundleRow.className = 'miniapp-preview-products-row';
+      bundlePreviewItems(block).forEach(function (it) {
+        bundleRow.appendChild(mkPreviewCard(it.title, it.image_url || '', 'miniapp-preview-product-card'));
+      });
+      if (!bundleRow.children.length) {
+        bundleRow.appendChild(mkPreviewCard('محصول', '', 'miniapp-preview-product-card'));
+      }
+      bundleWrap.appendChild(bundleRow);
+      if (block.bundle_price) {
+        var price = document.createElement('div');
+        price.className = 'miniapp-preview-bundle-price';
+        price.textContent = Number(block.bundle_price).toLocaleString('fa-IR') + ' ریال';
+        bundleWrap.appendChild(price);
+      }
+      body.appendChild(bundleWrap);
+    } else if (block.type === 'rich_text') {
+      var rt = document.createElement('div');
+      rt.className = 'miniapp-preview-rich-text align-' + (block.align || 'right');
+      if (block.title) {
+        rt.innerHTML = '<div class="miniapp-preview-section-title">' + escapeHtml(block.title) + '</div>';
+      }
+      var htmlBox = document.createElement('div');
+      htmlBox.className = 'miniapp-preview-rich-text-body';
+      htmlBox.innerHTML = block.html || '<p>متن آزاد</p>';
+      rt.appendChild(htmlBox);
+      body.appendChild(rt);
+    } else {
+      body.innerHTML =
+        '<div class="miniapp-preview-generic text-muted small">' +
+        escapeHtml(BLOCK_LABELS[block.type] || block.type || 'بلوک') +
+        '</div>';
     }
 
     wrap.appendChild(body);
@@ -474,12 +900,14 @@
     if (!threadEl) return;
     threadEl.innerHTML = '';
     syncStoreTitle();
+    updateBlockCountLabel();
+    renderBlocksOutline();
 
     if (!state.blocks.length) {
       threadEl.innerHTML =
         '<div class="flow-chat-empty flow-canvas-empty">' +
         '<i class="bi bi-layout-text-window-reverse"></i>' +
-        '<p>صفحه خالی است. از نوار بالا هیرو، اسلایدر، دسته‌ها یا محصولات اضافه کنید.</p></div>';
+        '<p>صفحه خالی است. از پنل چپ یک المان اضافه کنید.</p></div>';
     } else {
       state.blocks.forEach(function (block, i) {
         threadEl.appendChild(renderBlockPreview(block, i));
@@ -542,6 +970,19 @@
       onInput(inp.value);
     });
     return inp;
+  }
+
+  function textAreaInput(value, placeholder, maxLen, onInput) {
+    var ta = document.createElement('textarea');
+    ta.className = 'form-control panel-input mb-2';
+    ta.rows = 3;
+    ta.value = value || '';
+    ta.placeholder = placeholder || '';
+    if (maxLen) ta.maxLength = maxLen;
+    ta.addEventListener('input', function () {
+      onInput(ta.value);
+    });
+    return ta;
   }
 
   function selectInput(value, options, onChange) {
@@ -789,6 +1230,335 @@
           }
         )
       );
+      return;
+    }
+    if (block.type === 'announcement_bar') {
+      host.appendChild(fieldLabel('متن'));
+      host.appendChild(textInput(block.text, '', 200, function (v) { block.text = v; bump(); }));
+      host.appendChild(fieldLabel('لینک (اختیاری)'));
+      host.appendChild(textInput(block.link, '', 512, function (v) { block.link = v; bump(); }));
+      host.appendChild(fieldLabel('رنگ پس‌زمینه'));
+      host.appendChild(textInput(block.bg, '#111111', 16, function (v) { block.bg = v; bump(); }));
+      host.appendChild(fieldLabel('رنگ متن'));
+      host.appendChild(textInput(block.color, '#ffffff', 16, function (v) { block.color = v; bump(); }));
+      return;
+    }
+    if (block.type === 'countdown') {
+      host.appendChild(fieldLabel('عنوان'));
+      host.appendChild(textInput(block.title, '', 120, function (v) { block.title = v; bump(); }));
+      host.appendChild(fieldLabel('پایان (ISO)'));
+      host.appendChild(textInput(block.ends_at, '2026-07-01T23:59:00', 32, function (v) { block.ends_at = v; bump(); }));
+      host.appendChild(fieldLabel('دکمه CTA'));
+      host.appendChild(textInput(block.cta_label, 'الان بخر', 40, function (v) { block.cta_label = v; bump(); }));
+      host.appendChild(fieldLabel('رنگ'));
+      host.appendChild(textInput(block.accent, '#c2402f', 16, function (v) { block.accent = v; bump(); }));
+      return;
+    }
+    if (block.type === 'coupon') {
+      host.appendChild(fieldLabel('عنوان'));
+      host.appendChild(textInput(block.title, '', 120, function (v) { block.title = v; bump(); }));
+      host.appendChild(fieldLabel('کد'));
+      host.appendChild(textInput(block.code, 'WELCOME10', 40, function (v) { block.code = v; bump(); }));
+      host.appendChild(fieldLabel('زیرعنوان'));
+      host.appendChild(textInput(block.subtitle, '', 120, function (v) { block.subtitle = v; bump(); }));
+      return;
+    }
+    if (block.type === 'product_carousel') {
+      host.appendChild(fieldLabel('عنوان'));
+      host.appendChild(textInput(block.title, 'پرفروش‌ترین‌ها', 80, function (v) { block.title = v; bump(); }));
+      host.appendChild(fieldLabel('منبع'));
+      host.appendChild(
+        selectInput(block.source || 'featured', [
+          ['featured', 'ویژه'],
+          ['newest', 'جدیدترین'],
+          ['bestselling', 'پرفروش'],
+          ['discounted', 'تخفیف‌دار'],
+          ['category', 'دسته'],
+          ['tag', 'برچسب'],
+        ], function (v) { block.source = v; bump(); })
+      );
+      if (block.source === 'category') {
+        host.appendChild(fieldLabel('slug دسته'));
+        host.appendChild(textInput(block.category, '', 120, function (v) { block.category = v; bump(); }));
+      }
+      if (block.source === 'tag') {
+        host.appendChild(fieldLabel('برچسب'));
+        host.appendChild(textInput(block.tag, '', 120, function (v) { block.tag = v; bump(); }));
+      }
+      host.appendChild(fieldLabel('تعداد'));
+      host.appendChild(textInput(String(block.limit || 10), '10', 2, function (v) { block.limit = parseInt(v, 10) || 10; bump(); }));
+      return;
+    }
+    if (block.type === 'video') {
+      host.appendChild(fieldLabel('عنوان'));
+      host.appendChild(textInput(block.title, '', 120, function (v) { block.title = v; bump(); }));
+      host.appendChild(fieldLabel('آدرس ویدیو'));
+      host.appendChild(textInput(block.url, '', 512, function (v) { block.url = v; bump(); }));
+      host.appendChild(fieldLabel('پوستر'));
+      host.appendChild(imageUploadField(block.poster || '', function (url) { block.poster = url; bump(); }));
+      return;
+    }
+    if (block.type === 'info') {
+      host.appendChild(fieldLabel('درباره'));
+      host.appendChild(textAreaInput(block.about, '', 2000, function (v) { block.about = v; bump(); }));
+      host.appendChild(fieldLabel('آدرس'));
+      host.appendChild(textInput(block.address, '', 300, function (v) { block.address = v; bump(); }));
+      host.appendChild(fieldLabel('ساعت کاری'));
+      host.appendChild(textInput(block.hours, '', 120, function (v) { block.hours = v; bump(); }));
+      host.appendChild(fieldLabel('تلفن (با کاما)'));
+      host.appendChild(textInput((block.phones || []).join(', '), '', 200, function (v) {
+        block.phones = v.split(/[,،]/).map(function (s) { return s.trim(); }).filter(Boolean);
+        bump();
+      }));
+      return;
+    }
+    if (block.type === 'rich_text') {
+      host.appendChild(fieldLabel('عنوان'));
+      host.appendChild(textInput(block.title, '', 120, function (v) { block.title = v; bump(); }));
+      host.appendChild(fieldLabel('HTML'));
+      host.appendChild(textAreaInput(block.html, '<p>متن</p>', 8000, function (v) { block.html = v; bump(); }));
+      return;
+    }
+    if (block.type === 'story_bar') {
+      if (!block.items) block.items = [];
+      host.appendChild(fieldLabel('استوری‌ها'));
+      var storyList = document.createElement('div');
+      function renderStories() {
+        storyList.innerHTML = '';
+        block.items.forEach(function (story, si) {
+          var card = document.createElement('div');
+          card.className = 'miniapp-slide-item mb-2';
+          card.appendChild(fieldLabel('استوری ' + (si + 1)));
+          card.appendChild(textInput(story.title, 'عنوان', 64, function (v) { story.title = v; bump(); }));
+          card.appendChild(fieldLabel('تصویر'));
+          card.appendChild(imageUploadField(story.image || '', function (url) { story.image = url; bump(); }));
+          card.appendChild(textInput(story.image, 'URL تصویر', 512, function (v) { story.image = v; bump(); }));
+          if (!story.target) story.target = { kind: 'category', value: '' };
+          card.appendChild(fieldLabel('مقصد'));
+          card.appendChild(
+            selectInput(story.target.kind || 'category', [
+              ['category', 'دسته'],
+              ['item', 'محصول'],
+              ['url', 'لینک'],
+            ], function (v) { story.target.kind = v; bump(); })
+          );
+          card.appendChild(textInput(story.target.value, 'slug یا URL', 256, function (v) { story.target.value = v; bump(); }));
+          var rm = document.createElement('button');
+          rm.type = 'button';
+          rm.className = 'btn btn-panel-ghost btn-sm text-danger';
+          rm.textContent = 'حذف';
+          rm.addEventListener('click', function () {
+            block.items.splice(si, 1);
+            renderStories();
+            bump();
+          });
+          card.appendChild(rm);
+          storyList.appendChild(card);
+        });
+      }
+      renderStories();
+      host.appendChild(storyList);
+      var addStory = document.createElement('button');
+      addStory.type = 'button';
+      addStory.className = 'btn btn-panel-ghost btn-sm';
+      addStory.textContent = '+ استوری';
+      addStory.addEventListener('click', function () {
+        block.items.push({ title: 'جدید', image: '', target: { kind: 'category', value: '' } });
+        renderStories();
+        bump();
+      });
+      host.appendChild(addStory);
+      return;
+    }
+    if (block.type === 'banner_grid') {
+      if (!block.items) block.items = [];
+      host.appendChild(fieldLabel('ستون‌ها'));
+      host.appendChild(
+        selectInput(String(block.columns || 2), [['2', '۲'], ['3', '۳'], ['4', '۴']], function (v) {
+          block.columns = parseInt(v, 10) || 2;
+          bump();
+        })
+      );
+      var bannerList = document.createElement('div');
+      function renderBanners() {
+        bannerList.innerHTML = '';
+        block.items.forEach(function (banner, bi) {
+          var card = document.createElement('div');
+          card.className = 'miniapp-slide-item mb-2';
+          card.appendChild(fieldLabel('بنر ' + (bi + 1)));
+          card.appendChild(imageUploadField(banner.image || '', function (url) { banner.image = url; bump(); }));
+          if (!banner.target) banner.target = { kind: 'category', value: '' };
+          card.appendChild(
+            selectInput(banner.target.kind || 'category', [
+              ['category', 'دسته'],
+              ['item', 'محصول'],
+            ], function (v) { banner.target.kind = v; bump(); })
+          );
+          card.appendChild(textInput(banner.target.value, 'slug', 120, function (v) { banner.target.value = v; bump(); }));
+          var rm = document.createElement('button');
+          rm.type = 'button';
+          rm.className = 'btn btn-panel-ghost btn-sm text-danger';
+          rm.textContent = 'حذف';
+          rm.addEventListener('click', function () {
+            block.items.splice(bi, 1);
+            renderBanners();
+            bump();
+          });
+          card.appendChild(rm);
+          bannerList.appendChild(card);
+        });
+      }
+      renderBanners();
+      host.appendChild(bannerList);
+      var addBanner = document.createElement('button');
+      addBanner.type = 'button';
+      addBanner.className = 'btn btn-panel-ghost btn-sm';
+      addBanner.textContent = '+ بنر';
+      addBanner.addEventListener('click', function () {
+        block.items.push({ image: '', target: { kind: 'category', value: '' } });
+        renderBanners();
+        bump();
+      });
+      host.appendChild(addBanner);
+      return;
+    }
+    if (block.type === 'faq') {
+      if (!block.items) block.items = [];
+      host.appendChild(fieldLabel('عنوان'));
+      host.appendChild(textInput(block.title, 'سوالات متداول', 80, function (v) { block.title = v; bump(); }));
+      var faqList = document.createElement('div');
+      function renderFaqItems() {
+        faqList.innerHTML = '';
+        block.items.forEach(function (item, fi) {
+          var card = document.createElement('div');
+          card.className = 'miniapp-slide-item mb-2';
+          card.appendChild(textInput(item.q, 'سوال', 200, function (v) { item.q = v; bump(); }));
+          card.appendChild(textAreaInput(item.a, 'پاسخ', 1000, function (v) { item.a = v; bump(); }));
+          var rm = document.createElement('button');
+          rm.type = 'button';
+          rm.className = 'btn btn-panel-ghost btn-sm text-danger';
+          rm.textContent = 'حذف';
+          rm.addEventListener('click', function () {
+            block.items.splice(fi, 1);
+            renderFaqItems();
+            bump();
+          });
+          card.appendChild(rm);
+          faqList.appendChild(card);
+        });
+      }
+      renderFaqItems();
+      host.appendChild(faqList);
+      var addFaq = document.createElement('button');
+      addFaq.type = 'button';
+      addFaq.className = 'btn btn-panel-ghost btn-sm';
+      addFaq.textContent = '+ سوال';
+      addFaq.addEventListener('click', function () {
+        block.items.push({ q: '', a: '' });
+        renderFaqItems();
+        bump();
+      });
+      host.appendChild(addFaq);
+      return;
+    }
+    if (block.type === 'testimonials') {
+      if (!block.items) block.items = [];
+      host.appendChild(fieldLabel('عنوان'));
+      host.appendChild(textInput(block.title, 'نظر مشتری‌ها', 80, function (v) { block.title = v; bump(); }));
+      var testimonialList = document.createElement('div');
+      function renderTestimonials() {
+        testimonialList.innerHTML = '';
+        block.items.forEach(function (item, ti) {
+          var card = document.createElement('div');
+          card.className = 'miniapp-slide-item mb-2';
+          card.appendChild(fieldLabel('نظر ' + (ti + 1)));
+          card.appendChild(textInput(item.name, 'نام', 64, function (v) { item.name = v; bump(); }));
+          card.appendChild(textAreaInput(item.text, 'متن نظر', 500, function (v) { item.text = v; bump(); }));
+          card.appendChild(fieldLabel('امتیاز (۱–۵)'));
+          card.appendChild(
+            selectInput(String(item.rating || 5), [['5', '۵'], ['4', '۴'], ['3', '۳'], ['2', '۲'], ['1', '۱']], function (v) {
+              item.rating = parseInt(v, 10) || 5;
+              bump();
+            })
+          );
+          var rm = document.createElement('button');
+          rm.type = 'button';
+          rm.className = 'btn btn-panel-ghost btn-sm text-danger';
+          rm.textContent = 'حذف';
+          rm.addEventListener('click', function () {
+            block.items.splice(ti, 1);
+            renderTestimonials();
+            bump();
+          });
+          card.appendChild(rm);
+          testimonialList.appendChild(card);
+        });
+      }
+      renderTestimonials();
+      host.appendChild(testimonialList);
+      var addTestimonial = document.createElement('button');
+      addTestimonial.type = 'button';
+      addTestimonial.className = 'btn btn-panel-ghost btn-sm';
+      addTestimonial.textContent = '+ نظر';
+      addTestimonial.addEventListener('click', function () {
+        block.items.push({ name: '', text: '', rating: 5 });
+        renderTestimonials();
+        bump();
+      });
+      host.appendChild(addTestimonial);
+      return;
+    }
+    if (block.type === 'trust_badges') {
+      if (!block.items) block.items = [];
+      var trustList = document.createElement('div');
+      function renderTrust() {
+        trustList.innerHTML = '';
+        block.items.forEach(function (item, bi) {
+          var card = document.createElement('div');
+          card.className = 'miniapp-slide-item mb-2';
+          card.appendChild(fieldLabel('نشان ' + (bi + 1)));
+          card.appendChild(textInput(item.icon, 'ایموجی', 8, function (v) { item.icon = v; bump(); }));
+          card.appendChild(textInput(item.label, 'برچسب', 64, function (v) { item.label = v; bump(); }));
+          var rm = document.createElement('button');
+          rm.type = 'button';
+          rm.className = 'btn btn-panel-ghost btn-sm text-danger';
+          rm.textContent = 'حذف';
+          rm.addEventListener('click', function () {
+            block.items.splice(bi, 1);
+            renderTrust();
+            bump();
+          });
+          card.appendChild(rm);
+          trustList.appendChild(card);
+        });
+      }
+      renderTrust();
+      host.appendChild(trustList);
+      var addTrust = document.createElement('button');
+      addTrust.type = 'button';
+      addTrust.className = 'btn btn-panel-ghost btn-sm';
+      addTrust.textContent = '+ نشان';
+      addTrust.addEventListener('click', function () {
+        block.items.push({ icon: '✅', label: '' });
+        renderTrust();
+        bump();
+      });
+      host.appendChild(addTrust);
+      return;
+    }
+    if (block.type === 'bundle') {
+      host.appendChild(fieldLabel('عنوان'));
+      host.appendChild(textInput(block.title, '', 120, function (v) { block.title = v; bump(); }));
+      host.appendChild(fieldLabel('برچسب (اختیاری)'));
+      host.appendChild(textInput(block.badge, '', 40, function (v) { block.badge = v; bump(); }));
+      host.appendChild(fieldLabel('قیمت باندل (ریال)'));
+      host.appendChild(textInput(String(block.bundle_price || 0), '0', 12, function (v) { block.bundle_price = parseInt(v, 10) || 0; bump(); }));
+      host.appendChild(fieldLabel('slug محصولات (با کاما)'));
+      host.appendChild(textInput((block.item_slugs || []).join(', '), '', 500, function (v) {
+        block.item_slugs = v.split(/[,،]/).map(function (s) { return s.trim(); }).filter(Boolean);
+        bump();
+      }));
+      return;
     }
   }
 
@@ -841,12 +1611,13 @@
     selectBlock(insertAt);
   }
 
-  function moveBlock(delta) {
-    if (selection === null) return;
-    var next = selection + delta;
+  function moveBlock(delta, fromIndex) {
+    var idx = fromIndex != null ? fromIndex : selection;
+    if (idx === null || idx === undefined) return;
+    var next = idx + delta;
     if (next < 0 || next >= state.blocks.length) return;
-    var tmp = state.blocks[selection];
-    state.blocks[selection] = state.blocks[next];
+    var tmp = state.blocks[idx];
+    state.blocks[idx] = state.blocks[next];
     state.blocks[next] = tmp;
     selectBlock(next);
   }
@@ -867,6 +1638,9 @@
     inspectorTitle = $('miniapp-inspector-title');
     inspectorHint = $('miniapp-inspector-hint');
     storeTitleEl = $('miniapp-canvas-store-title');
+    paletteEl = $('miniapp-block-palette');
+    outlineEl = $('miniapp-blocks-outline');
+    blockCountEl = $('miniapp-editor-block-count');
     if (!root || !form || !threadEl) return;
 
     uploadUrl = root.getAttribute('data-upload-url') || '';
@@ -887,22 +1661,16 @@
     state.blocks = parseInitialBlocks();
     syncHidden();
 
-    var toolbar = $('miniapp-canvas-toolbar');
-    if (toolbar) {
-      toolbar.querySelectorAll('[data-add-block]').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          addBlock(btn.getAttribute('data-add-block'));
-        });
+    renderBlockPalette();
+
+    var themeBtn = root.querySelector('[data-inspector-global="theme"]');
+    if (themeBtn) {
+      themeBtn.addEventListener('click', function () {
+        globalPanel = 'theme';
+        selection = null;
+        renderCanvas();
+        renderInspector();
       });
-      var themeBtn = toolbar.querySelector('[data-inspector-global="theme"]');
-      if (themeBtn) {
-        themeBtn.addEventListener('click', function () {
-          globalPanel = 'theme';
-          selection = null;
-          renderCanvas();
-          renderInspector();
-        });
-      }
     }
 
     if (threadEl) {

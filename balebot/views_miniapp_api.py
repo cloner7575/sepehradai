@@ -88,6 +88,8 @@ def _item_dict(item: CatalogItem, request=None, catalog=None) -> dict:
         'description': item.description,
         'item_type': item.normalized_item_type(),
         'price': item.price,
+        'compare_at_price': item.compare_at_price,
+        'sales_count': item.sales_count or 0,
         'sale_mode': item.sale_mode,
         'is_buyable': item.is_buyable(),
         'is_requestable': item.is_requestable(),
@@ -265,13 +267,32 @@ def catalog_items(request, public_id):
     featured = (request.GET.get('featured') or '').strip().lower()
     if featured in ('1', 'true', 'yes'):
         qs = qs.filter(is_featured=True)
+    source = (request.GET.get('source') or '').strip().lower()
+    tag_slug = (request.GET.get('tag') or '').strip()
+    if source == 'newest':
+        qs = qs.order_by('-created_at')
+    elif source == 'bestselling':
+        qs = qs.order_by('-sales_count', 'sort_order')
+    elif source == 'discounted':
+        qs = qs.filter(compare_at_price__isnull=False).filter(compare_at_price__gt=0)
+        qs = qs.order_by('sort_order', '-created_at')
+    elif source == 'category' and cat:
+        qs = qs.filter(category__slug=cat)
+    elif source == 'tag' and tag_slug:
+        qs = qs.filter(metadata__tags__contains=[tag_slug])
+    elif source == 'featured':
+        qs = qs.filter(is_featured=True)
     sort = (request.GET.get('sort') or '').strip()
     if sort == 'price_asc':
         qs = qs.order_by('price', 'sort_order')
     elif sort == 'price_desc':
         qs = qs.order_by('-price', 'sort_order')
-    else:
+    elif not source:
         qs = qs.order_by('sort_order', '-created_at')
+    limit_raw = (request.GET.get('limit') or '').strip()
+    if limit_raw.isdigit():
+        limit = max(1, min(int(limit_raw), 48))
+        qs = qs[:limit]
     return JsonResponse({
         'ok': True,
         'items': [_item_dict(i, request, catalog) for i in qs],

@@ -256,10 +256,14 @@ def mark_order_paid(order: CatalogOrder) -> CatalogOrder:
 
         for line in order.lines.select_related('item').all():
             item = line.item
-            if item is None or item.stock is None:
+            if item is None:
                 continue
-            CatalogItem.objects.filter(pk=item.pk, stock__gte=line.quantity).update(
-                stock=F('stock') - line.quantity,
+            if item.stock is not None:
+                CatalogItem.objects.filter(pk=item.pk, stock__gte=line.quantity).update(
+                    stock=F('stock') - line.quantity,
+                )
+            CatalogItem.objects.filter(pk=item.pk).update(
+                sales_count=F('sales_count') + line.quantity,
             )
 
     try:

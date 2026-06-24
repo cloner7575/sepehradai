@@ -441,6 +441,41 @@ def answer_pre_checkout_query(
     return call_method(platform, 'answerPreCheckoutQuery', settings=settings, json_body=payload)
 
 
+def send_location(
+    platform: str,
+    chat_id: int | str,
+    latitude: float,
+    longitude: float,
+    *,
+    settings: BotSettings | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        'chat_id': chat_id,
+        'latitude': latitude,
+        'longitude': longitude,
+    }
+    return call_method(platform, 'sendLocation', settings=settings, json_body=payload)
+
+
+def send_contact(
+    platform: str,
+    chat_id: int | str,
+    phone_number: str,
+    first_name: str,
+    *,
+    settings: BotSettings | None = None,
+    last_name: str = '',
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        'chat_id': chat_id,
+        'phone_number': phone_number,
+        'first_name': first_name[:64] or 'تماس',
+    }
+    if last_name:
+        payload['last_name'] = last_name[:64]
+    return call_method(platform, 'sendContact', settings=settings, json_body=payload)
+
+
 def sleep_after_rate_limit(payload: dict[str, Any]) -> None:
     """اگر پاسخ خطا شامل retry_after بود، همان‌قدر صبر کن."""
     params = payload.get('parameters') or {}

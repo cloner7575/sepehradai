@@ -8,30 +8,48 @@
   data-logo-url="{% if catalog.logo %}{{ catalog.logo.url }}{% endif %}"
   data-hero-background-url="{% if catalog.hero_background %}{{ catalog.hero_background.url }}{% endif %}"
 >
-  <div class="flow-canvas-editor-toolbar" id="miniapp-canvas-toolbar" role="toolbar" aria-label="افزودن المان">
-    <span class="flow-canvas-editor-toolbar-label"><i class="bi bi-plus-circle"></i> افزودن</span>
-    <button type="button" class="flow-canvas-tool-btn" data-add-block="hero"><i class="bi bi-image"></i> هیرو</button>
-    <button type="button" class="flow-canvas-tool-btn" data-add-block="slider"><i class="bi bi-images"></i> اسلایدر</button>
-    <button type="button" class="flow-canvas-tool-btn" data-add-block="search"><i class="bi bi-search"></i> جستجو</button>
-    <button type="button" class="flow-canvas-tool-btn" data-add-block="categories"><i class="bi bi-folder"></i> دسته‌ها</button>
-    <button type="button" class="flow-canvas-tool-btn" data-add-block="featured"><i class="bi bi-star"></i> ویژه</button>
-    <button type="button" class="flow-canvas-tool-btn" data-add-block="products"><i class="bi bi-grid"></i> محصولات</button>
-    <button type="button" class="flow-canvas-tool-btn" data-add-block="spacer"><i class="bi bi-distribute-vertical"></i> فاصله</button>
-    <button type="button" class="flow-canvas-tool-btn flow-canvas-tool-btn--ghost ms-auto" data-inspector-global="theme">
-      <i class="bi bi-palette"></i> تم کلی
-    </button>
+  <div class="miniapp-editor-topbar" role="toolbar" aria-label="ابزار طراحی">
+    <div class="miniapp-editor-topbar-start">
+      <span class="miniapp-editor-topbar-title"><i class="bi bi-phone"></i> پیش‌نمایش مینی‌اپ</span>
+      <span class="miniapp-editor-topbar-meta" id="miniapp-editor-block-count">۰ المان</span>
+    </div>
+    <div class="miniapp-editor-topbar-actions">
+      <button type="button" class="flow-canvas-tool-btn flow-canvas-tool-btn--ghost" data-inspector-global="theme" title="تم کلی">
+        <i class="bi bi-palette"></i> تم
+      </button>
+    </div>
   </div>
 
-  <div class="flow-canvas-editor-layout">
+  <div class="flow-canvas-editor-layout flow-canvas-editor-layout--miniapp">
+    <aside class="miniapp-editor-sidebar" aria-label="کتابخانه و لایه‌ها">
+      <section class="miniapp-editor-sidebar-section">
+        <header class="miniapp-editor-sidebar-head">
+          <h4 class="miniapp-editor-sidebar-title">افزودن المان</h4>
+          <p class="miniapp-editor-sidebar-hint">روی نوع المان کلیک کنید</p>
+        </header>
+        <div class="miniapp-block-palette" id="miniapp-block-palette"></div>
+      </section>
+
+      <section class="miniapp-editor-sidebar-section miniapp-editor-sidebar-section--layers">
+        <header class="miniapp-editor-sidebar-head">
+          <h4 class="miniapp-editor-sidebar-title">لایه‌ها</h4>
+          <p class="miniapp-editor-sidebar-hint">ترتیب نمایش در صفحه</p>
+        </header>
+        <div class="miniapp-blocks-outline" id="miniapp-blocks-outline">
+          <div class="miniapp-blocks-outline-empty">هنوز المانی اضافه نشده</div>
+        </div>
+      </section>
+    </aside>
+
     <div class="flow-canvas-stage flow-canvas-stage--miniapp flow-canvas-stage--editable">
       <div class="flow-messenger flow-messenger--shop">
         <div class="flow-messenger-header">
           <div class="flow-messenger-avatar flow-messenger-avatar--shop"><i class="bi bi-shop"></i></div>
           <div class="flow-messenger-meta">
             <strong id="miniapp-canvas-store-title">{% if catalog %}{{ catalog.hero_title|default:"ویترین" }}{% else %}ویترین{% endif %}</strong>
-            <span>پیش‌نمایش مینی‌اپ · {{ active_platform_label|default:"بله" }}</span>
+            <span>پیش‌نمایش · {{ active_platform_label|default:"بله" }}</span>
           </div>
-          <span class="flow-messenger-chip">Canvas</span>
+          <span class="flow-messenger-chip">Live</span>
         </div>
 
         <div
@@ -47,10 +65,10 @@
       </div>
     </div>
 
-    <aside class="flow-canvas-inspector" id="miniapp-canvas-inspector" aria-label="ویژگی‌های انتخاب‌شده">
+    <aside class="flow-canvas-inspector flow-canvas-inspector--miniapp" id="miniapp-canvas-inspector" aria-label="ویژگی‌های انتخاب‌شده">
       <div class="flow-canvas-inspector-head">
         <h3 class="flow-canvas-inspector-title" id="miniapp-inspector-title">ویژگی‌ها</h3>
-        <span class="flow-canvas-inspector-hint" id="miniapp-inspector-hint">روی canvas کلیک کنید</span>
+        <span class="flow-canvas-inspector-hint" id="miniapp-inspector-hint">یک المان را انتخاب کنید</span>
       </div>
       <div class="flow-canvas-inspector-body" id="miniapp-inspector-body"></div>
     </aside>
