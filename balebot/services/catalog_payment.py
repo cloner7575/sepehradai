@@ -177,7 +177,7 @@ def start_zarinpal_checkout(
         callback_url=callback_url,
         description=description,
         sandbox=catalog.zarinpal_sandbox,
-        metadata={'order_id': order.pk},
+        metadata={'order_id': str(order.pk)},
     )
     order.zarinpal_authority = authority
     order.payment_method = CatalogSettings.PaymentMethod.ZARINPAL

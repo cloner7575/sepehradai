@@ -52,7 +52,7 @@ def request_payment(
         'description': (description or 'پرداخت سفارش')[:255],
     }
     if metadata:
-        payload['metadata'] = metadata
+        payload['metadata'] = {k: str(v) for k, v in metadata.items()}
 
     url = f'{_api_base(sandbox)}/request.json'
     try:
