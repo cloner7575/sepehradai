@@ -122,36 +122,6 @@
 </div>
 {% endif %}
 
-{% with kb=object.inline_keyboard %}
-{% if kb %}
-<div class="panel-card mb-4">
-  <div class="panel-card-header"><h2 class="panel-card-title">ساختار دکمه‌های اینلاین</h2></div>
-  <div class="panel-card-body small">
-    {% if kb.sections %}
-      {% for sec in kb.sections %}
-        <div class="kb-preview-section">
-          <div class="kb-preview-section-head">
-            <span class="kb-preview-level">بلوک {{ forloop.counter }}</span>
-            {% if sec.title %}<span class="kb-preview-section-name">{{ sec.title }}</span>{% endif %}
-          </div>
-          <div class="kb-preview-section-rows">
-            {% for row in sec.rows %}
-              <div class="kb-preview-row-meta">└ ردیف {{ forloop.counter }}</div>
-              <div class="kb-preview-row kb-preview-row-nested">{% for btn in row %}<span class="kb-preview-btn">{% if btn.text %}{{ btn.text }}{% else %}{{ btn }}{% endif %}</span>{% endfor %}</div>
-            {% endfor %}
-          </div>
-        </div>
-      {% endfor %}
-    {% else %}
-      {% for row in kb %}
-        <div class="kb-preview-row mb-2">{% for btn in row %}<span class="kb-preview-btn">{% if btn.text %}{{ btn.text }}{% else %}{{ btn }}{% endif %}</span>{% endfor %}</div>
-      {% endfor %}
-    {% endif %}
-  </div>
-</div>
-{% endif %}
-{% endwith %}
-
 <div class="row g-4 mb-4">
   <div class="col-md-6">
     <div class="panel-card h-100">

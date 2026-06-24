@@ -15,7 +15,7 @@ from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 
-from balebot.forms import BotSettingsForm, CampaignForm, FlowEngineForm
+from balebot.forms import BotSettingsForm, CampaignForm, FlowEngineForm, TagForm
 from balebot.platform import (
     allowed_platforms_for_workspace,
     get_active_platform,
@@ -50,6 +50,7 @@ from balebot.models import (
     InboundMessage,
     Platform,
     Subscriber,
+    SubscriberTag,
     SupportTicketMessage,
     Tag,
 )
@@ -410,6 +411,7 @@ class SubscriberListView(WorkspaceScopedMixin, PanelAccessMixin, ListView):
                 ),
             ),
         ).order_by('-updated_at')
+        qs = qs.prefetch_related('tags')
         q = self.request.GET.get('q', '').strip()
         if q:
             cond = (
@@ -435,12 +437,56 @@ class SubscriberListView(WorkspaceScopedMixin, PanelAccessMixin, ListView):
         return ctx
 
 
+class TagListView(WorkspaceScopedMixin, PanelAccessMixin, ListView):
+    model = Tag
+    template_name = 'balebot/tag_list.html'
+    context_object_name = 'tags'
+
+    def get_queryset(self):
+        return (
+            Tag.objects.filter(**self.scope_filter())
+            .annotate(subscriber_count=Count('subscribers', distinct=True))
+            .order_by('name')
+        )
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['tag_form'] = kwargs.get('tag_form') or TagForm(
+            workspace=self.get_workspace(),
+            platform=self.get_active_platform(),
+        )
+        return ctx
+
+    def post(self, request, *args, **kwargs):
+        form = TagForm(
+            request.POST,
+            workspace=self.get_workspace(),
+            platform=self.get_active_platform(),
+        )
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'دسته‌بندی «{form.instance.name}» ایجاد شد.')
+            return HttpResponseRedirect(reverse('tag_list'))
+        self.object_list = self.get_queryset()
+        ctx = self.get_context_data(tag_form=form)
+        return self.render_to_response(ctx)
+
+
+class TagDeleteView(WorkspaceScopedMixin, PanelAccessMixin, View):
+    def post(self, request, *args, **kwargs):
+        tag = get_object_or_404(Tag, pk=kwargs['pk'], **self.scope_filter())
+        name = tag.name
+        tag.delete()
+        messages.success(request, f'دسته‌بندی «{name}» حذف شد.')
+        return HttpResponseRedirect(reverse('tag_list'))
+
+
 class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
     model = Subscriber
     template_name = 'balebot/subscriber_detail.html'
 
     def get_queryset(self):
-        return Subscriber.objects.filter(**self.scope_filter())
+        return Subscriber.objects.filter(**self.scope_filter()).prefetch_related('tags')
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -516,11 +562,85 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
         ctx['normal_messages_count'] = base_qs.filter(is_support_request=False).count()
         ctx['all_messages_count'] = base_qs.count()
         ctx['message_kind'] = selected_filter
+        ctx['subscriber_tags'] = list(self.object.tags.filter(is_active=True).order_by('name'))
+        ctx['available_tags'] = Tag.objects.filter(
+            **self.scope_filter(), is_active=True,
+        ).exclude(pk__in=[t.pk for t in ctx['subscriber_tags']]).order_by('name')
         return ctx
+
+    def _redirect_subscriber(self, request):
+        ticket = (request.GET.get('ticket') or request.POST.get('ticket_id') or '').strip()
+        if ticket.isdigit():
+            return HttpResponseRedirect(f'{request.path}?ticket={ticket}')
+        return HttpResponseRedirect(request.path)
+
+    def _assign_tag(self, request, tag: Tag) -> None:
+        link, created = SubscriberTag.objects.get_or_create(
+            subscriber=self.object,
+            tag=tag,
+        )
+        if created or link.assigned_by_id is None:
+            link.assigned_by = request.user
+            link.save(update_fields=['assigned_by'])
+        messages.success(request, f'دسته‌بندی «{tag.name}» به کاربر اضافه شد.')
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         action = (request.POST.get('action') or '').strip()
+
+        if action == 'assign_tag':
+            tag_raw = (request.POST.get('tag_id') or '').strip()
+            if not tag_raw.isdigit():
+                messages.error(request, 'دسته‌بندی انتخاب‌شده نامعتبر است.')
+                return self._redirect_subscriber(request)
+            tag = Tag.objects.filter(
+                pk=int(tag_raw), **self.scope_filter(), is_active=True,
+            ).first()
+            if tag is None:
+                messages.error(request, 'دسته‌بندی پیدا نشد.')
+                return self._redirect_subscriber(request)
+            self._assign_tag(request, tag)
+            return self._redirect_subscriber(request)
+
+        if action == 'create_assign_tag':
+            from django.utils.text import slugify
+
+            name = (request.POST.get('tag_name') or '').strip()[:120]
+            if not name:
+                messages.error(request, 'نام دسته‌بندی را وارد کنید.')
+                return self._redirect_subscriber(request)
+            scope = self.scope_filter()
+            slug = slugify(name, allow_unicode=False)[:140]
+            if not slug:
+                slug = f'tag-{uuid.uuid4().hex[:8]}'
+            tag, _ = Tag.objects.get_or_create(
+                workspace=scope['workspace'],
+                platform=scope['platform'],
+                slug=slug,
+                defaults={
+                    'name': name,
+                    'tag_type': Tag.TagType.GENERIC,
+                    'is_active': True,
+                },
+            )
+            self._assign_tag(request, tag)
+            return self._redirect_subscriber(request)
+
+        if action == 'remove_tag':
+            tag_raw = (request.POST.get('tag_id') or '').strip()
+            if tag_raw.isdigit():
+                deleted, _ = SubscriberTag.objects.filter(
+                    subscriber=self.object,
+                    tag_id=int(tag_raw),
+                    tag__workspace=self.object.workspace,
+                    tag__platform=self.object.platform,
+                ).delete()
+                if deleted:
+                    messages.success(request, 'دسته‌بندی از کاربر حذف شد.')
+                else:
+                    messages.warning(request, 'این دسته‌بندی روی کاربر نبود.')
+            return self._redirect_subscriber(request)
+
         msg = (request.POST.get('personal_message') or '').strip()
         media = request.FILES.get('personal_media')
         if not msg and not media:

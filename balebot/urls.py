@@ -52,6 +52,8 @@ urlpatterns = [
     path('bot/flow/', views_panel.FlowEngineView.as_view(), name='bot_flow_engine'),
     path('subscribers/', views_panel.SubscriberListView.as_view(), name='subscriber_list'),
     path('subscribers/<int:pk>/', views_panel.SubscriberDetailView.as_view(), name='subscriber_detail'),
+    path('tags/', views_panel.TagListView.as_view(), name='tag_list'),
+    path('tags/<int:pk>/delete/', views_panel.TagDeleteView.as_view(), name='tag_delete'),
     path(
         'bot/flow-media-upload/',
         views_panel.FlowMediaUploadView.as_view(),

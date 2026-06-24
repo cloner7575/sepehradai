@@ -36,6 +36,7 @@
             <th>چت</th>
             <th>شماره</th>
             <th>نام</th>
+            <th>دسته‌بندی</th>
             <th>ثبت</th>
             <th>فعال</th>
             <th>به‌روزرسانی</th>
@@ -49,6 +50,13 @@
             <td>{{ s.chat_id }}</td>
             <td>{{ s.phone_number|default:"—" }}</td>
             <td>{{ s.first_name }}</td>
+            <td class="small">
+              {% for tag in s.tags.all %}
+              <a href="{% url 'subscriber_list' %}?tag={{ tag.id }}" class="badge text-bg-primary text-decoration-none me-1">{{ tag.name }}</a>
+              {% empty %}
+              <span class="text-muted">—</span>
+              {% endfor %}
+            </td>
             <td>{% if s.is_registered %}<span class="badge text-bg-success">بله</span>{% else %}<span class="badge text-bg-secondary">خیر</span>{% endif %}</td>
             <td>{% if s.is_active %}<span class="badge text-bg-primary">بله</span>{% else %}<span class="badge text-bg-danger">خیر</span>{% endif %}</td>
             <td class="small text-muted">{{ s.updated_at }}</td>
@@ -60,7 +68,7 @@
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="8" class="text-center text-muted py-5">موردی نیست.</td></tr>
+          <tr><td colspan="9" class="text-center text-muted py-5">موردی نیست.</td></tr>
           {% endfor %}
         </tbody>
       </table>

@@ -47,6 +47,62 @@
   </div>
 </div>
 
+<div class="panel-card mb-4">
+  <div class="panel-card-header d-flex align-items-center justify-content-between gap-2">
+    <h3 class="panel-card-title mb-0">دسته‌بندی‌های کاربر</h3>
+    <a href="{% url 'tag_list' %}" class="btn btn-panel-ghost btn-sm">مدیریت دسته‌بندی‌ها</a>
+  </div>
+  <div class="panel-card-body">
+    <div class="subscriber-tag-list mb-3">
+      {% for tag in subscriber_tags %}
+      <form method="post" class="m-0">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="remove_tag">
+        <input type="hidden" name="tag_id" value="{{ tag.id }}">
+        <span class="subscriber-tag-chip">
+          {{ tag.name }}
+          <button type="submit" title="حذف دسته‌بندی" aria-label="حذف {{ tag.name }}">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </span>
+      </form>
+      {% empty %}
+      <span class="text-muted small">هنوز دسته‌بندی ندارد — از منو یا فرم زیر اضافه کنید.</span>
+      {% endfor %}
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <form method="post" class="d-flex flex-wrap gap-2 align-items-end">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="assign_tag">
+          <div class="flex-grow-1 min-w-0">
+            <label class="form-label small mb-1">افزودن از دسته‌های موجود</label>
+            <select name="tag_id" class="form-select panel-input" required>
+              <option value="">انتخاب دسته‌بندی…</option>
+              {% for tag in available_tags %}
+              <option value="{{ tag.id }}">{{ tag.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-panel-primary btn-sm" {% if not available_tags %}disabled{% endif %}>افزودن</button>
+        </form>
+      </div>
+      <div class="col-md-6">
+        <form method="post" class="d-flex flex-wrap gap-2 align-items-end">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="create_assign_tag">
+          <div class="flex-grow-1 min-w-0">
+            <label class="form-label small mb-1">ایجاد دسته جدید و افزودن</label>
+            <input type="text" name="tag_name" class="form-control panel-input" placeholder="مثلاً مشتری وفادار" maxlength="120" required>
+          </div>
+          <button type="submit" class="btn btn-panel-ghost btn-sm">ایجاد و افزودن</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="support-workspace mb-4">
   <aside class="support-sidebar panel-card">
     <div class="panel-card-header">

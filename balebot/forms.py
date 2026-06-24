@@ -489,3 +489,72 @@ class CampaignForm(forms.ModelForm):
                 pass
 
 
+class TagForm(forms.ModelForm):
+    class Meta:
+        model = Tag
+        fields = ['name', 'slug', 'is_active']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control panel-input', 'placeholder': 'مثلاً مشتری VIP'}),
+            'slug': forms.TextInput(
+                attrs={
+                    'class': 'form-control panel-input',
+                    'placeholder': 'خودکار از نام ساخته می‌شود',
+                    'dir': 'ltr',
+                },
+            ),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+        labels = {
+            'name': 'نام دسته‌بندی',
+            'slug': 'شناسه (slug)',
+            'is_active': 'فعال',
+        }
+
+    def __init__(self, *args, workspace=None, platform=None, **kwargs):
+        self.workspace = workspace
+        self.platform = platform
+        super().__init__(*args, **kwargs)
+        self.fields['slug'].required = False
+
+    def clean_slug(self):
+        from django.utils.text import slugify
+
+        slug = (self.cleaned_data.get('slug') or '').strip()
+        name = (self.cleaned_data.get('name') or '').strip()
+        if not slug and name:
+            slug = slugify(name, allow_unicode=False)
+        if not slug:
+            raise forms.ValidationError('شناسه دسته‌بندی معتبر نیست.')
+        return slug[:140]
+
+    def clean(self):
+        cleaned = super().clean()
+        if not self.workspace or not self.platform:
+            return cleaned
+        slug = cleaned.get('slug')
+        name = cleaned.get('name')
+        if slug and Tag.objects.filter(
+            workspace=self.workspace,
+            platform=self.platform,
+            slug=slug,
+        ).exists():
+            self.add_error('slug', 'این شناسه قبلاً ثبت شده است.')
+        if name and Tag.objects.filter(
+            workspace=self.workspace,
+            platform=self.platform,
+            name=name,
+        ).exists():
+            self.add_error('name', 'این نام قبلاً ثبت شده است.')
+        return cleaned
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        if self.workspace:
+            obj.workspace = self.workspace
+        if self.platform:
+            obj.platform = self.platform
+        if commit:
+            obj.save()
+        return obj
+
+

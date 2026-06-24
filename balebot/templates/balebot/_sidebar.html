@@ -28,6 +28,9 @@
           <a href="{% url 'subscriber_list' %}" class="app-nav-link {% if name == 'subscriber_list' or name == 'subscriber_detail' %}is-active{% endif %}">
             <i class="bi bi-people app-nav-icon"></i><span>مخاطبین</span>
           </a>
+          <a href="{% url 'tag_list' %}" class="app-nav-link {% if name == 'tag_list' %}is-active{% endif %}">
+            <i class="bi bi-tags app-nav-icon"></i><span>دسته‌بندی‌ها</span>
+          </a>
           <a href="{% url 'bot_flow_engine' %}" class="app-nav-link {% if name == 'bot_flow_engine' %}is-active{% endif %}">
             <i class="bi bi-diagram-3 app-nav-icon"></i><span>طراحی منوی ربات</span>
           </a>

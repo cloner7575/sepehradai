@@ -52,6 +52,46 @@
     return { id: newNodeId(), text: '', label_slug: '', action: null };
   }
 
+  function slugifyLabel(raw, fallbackId) {
+    var s = String(raw || '').trim();
+    var ascii = s
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    if (ascii && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(ascii)) {
+      return ascii.slice(0, 140);
+    }
+    if (fallbackId) {
+      var fid = String(fallbackId).replace(/^n_/, 'btn-').toLowerCase().replace(/[^a-z0-9-]+/g, '');
+      if (fid) return fid.slice(0, 140);
+    }
+    return '';
+  }
+
+  function buttonHasCategory(btn) {
+    return Boolean(String(btn.label_slug || '').trim());
+  }
+
+  function ensureButtonCategorySlug(btn) {
+    if (!btn.id) btn.id = newNodeId();
+    var slug = slugifyLabel(btn.text, btn.id);
+    if (slug) btn.label_slug = slug;
+  }
+
+  function appendButtonChipMeta(chip, btn) {
+    if (buttonHasCategory(btn)) {
+      var cat = document.createElement('small');
+      cat.className = 'flow-canvas-category-badge';
+      cat.textContent = 'دسته‌بندی';
+      chip.appendChild(cat);
+      chip.classList.add('has-category');
+    } else if (btn.action) {
+      var hint = document.createElement('small');
+      hint.textContent = actionHint(btn.action);
+      chip.appendChild(hint);
+    }
+  }
+
   function defaultSequence() {
     return { type: 'sequence', items: [] };
   }
@@ -527,16 +567,7 @@
     var label = document.createElement('span');
     label.textContent = (btn.text || '').trim() || 'دکمه جدید';
     chip.appendChild(label);
-
-    if (btn.label_slug) {
-      var slug = document.createElement('small');
-      slug.textContent = btn.label_slug;
-      chip.appendChild(slug);
-    } else if (btn.action) {
-      var hint = document.createElement('small');
-      hint.textContent = actionHint(btn.action);
-      chip.appendChild(hint);
-    }
+    appendButtonChipMeta(chip, btn);
 
     chip.addEventListener('click', function (e) {
       stopProp(e);
@@ -590,16 +621,7 @@
         var label = document.createElement('span');
         label.textContent = (btn.text || '').trim() || 'دکمه جدید';
         chip.appendChild(label);
-
-        if (btn.label_slug) {
-          var slug = document.createElement('small');
-          slug.textContent = btn.label_slug;
-          chip.appendChild(slug);
-        } else if (btn.action) {
-          var hint = document.createElement('small');
-          hint.textContent = actionHint(btn.action);
-          chip.appendChild(hint);
-        }
+        appendButtonChipMeta(chip, btn);
 
         chip.addEventListener('click', function (e) {
           stopProp(e);
@@ -1012,17 +1034,60 @@
       inspectorBody.appendChild(
         addInput(btn.text || '', 'مثلاً مشاهده ویترین', 64, function (v) {
           btn.text = v;
+          if (buttonHasCategory(btn)) {
+            ensureButtonCategorySlug(btn);
+          }
           bump();
         })
       );
 
-      inspectorBody.appendChild(addFieldLabel('برچسب مخاطب (slug) — اختیاری'));
-      inspectorBody.appendChild(
-        addInput(btn.label_slug || '', 'مثلاً vip-user', 140, function (v) {
-          btn.label_slug = v;
+      var categoryWrap = document.createElement('div');
+      categoryWrap.className = 'flow-inspector-category mt-3';
+
+      var categoryToggle = document.createElement('label');
+      categoryToggle.className = 'flow-inspector-category-toggle';
+
+      var categoryCheck = document.createElement('input');
+      categoryCheck.type = 'checkbox';
+      categoryCheck.className = 'form-check-input';
+      categoryCheck.checked = buttonHasCategory(btn);
+
+      var categoryText = document.createElement('span');
+      categoryText.innerHTML =
+        '<strong>استفاده به‌عنوان دسته‌بندی</strong><small class="d-block text-muted mt-1">با کلیک کاربر روی این دکمه، در این دسته‌بندی قرار می‌گیرد.</small>';
+
+      categoryToggle.appendChild(categoryCheck);
+      categoryToggle.appendChild(categoryText);
+      categoryWrap.appendChild(categoryToggle);
+
+      var slugFieldWrap = document.createElement('div');
+      slugFieldWrap.className = 'mt-2';
+      slugFieldWrap.style.display = categoryCheck.checked ? '' : 'none';
+
+      slugFieldWrap.appendChild(addFieldLabel('شناسه دسته‌بندی (اختیاری)'));
+      slugFieldWrap.appendChild(
+        addInput(btn.label_slug || '', 'خودکار از متن دکمه', 140, function (v) {
+          btn.label_slug = String(v || '').trim();
           bump();
         })
       );
+
+      categoryCheck.addEventListener('change', function () {
+        if (categoryCheck.checked) {
+          ensureButtonCategorySlug(btn);
+        } else {
+          btn.label_slug = '';
+        }
+        slugFieldWrap.style.display = categoryCheck.checked ? '' : 'none';
+        if (categoryCheck.checked) {
+          var slugInput = slugFieldWrap.querySelector('input');
+          if (slugInput) slugInput.value = btn.label_slug || '';
+        }
+        bump();
+      });
+
+      categoryWrap.appendChild(slugFieldWrap);
+      inspectorBody.appendChild(categoryWrap);
 
       inspectorBody.appendChild(renderActionInspector(btn, bump));
 

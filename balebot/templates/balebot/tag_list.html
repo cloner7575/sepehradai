@@ -1,0 +1,92 @@
+{% extends "balebot/base.html" %}
+{% block title %}دسته‌بندی‌ها{% endblock %}
+{% block page_title %}دسته‌بندی مخاطبین{% endblock %}
+{% block page_subtitle %}
+<p class="topbar-meta mb-0 mt-1">مدیریت دسته‌بندی‌ها برای کمپین‌ها و فیلتر مخاطبین</p>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+  <div class="col-lg-5">
+    <div class="panel-card h-100">
+      <div class="panel-card-header">
+        <h2 class="panel-card-title mb-0">دسته‌بندی جدید</h2>
+      </div>
+      <div class="panel-card-body">
+        <p class="small text-muted mb-3">
+          می‌توانید دسته‌بندی را اینجا بسازید یا از <a href="{% url 'bot_flow_engine' %}">طراحی منو</a> با تیک «استفاده به‌عنوان دسته‌بندی» روی دکمه‌ها به‌صورت خودکار بسازید.
+        </p>
+        <form method="post" class="d-flex flex-column gap-3">
+          {% csrf_token %}
+          {% for field in tag_form %}
+          <div>
+            <label class="form-label small mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors }}</div>{% endif %}
+          </div>
+          {% endfor %}
+          <button type="submit" class="btn btn-panel-primary">
+            <i class="bi bi-plus-lg me-1"></i>ایجاد دسته‌بندی
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="panel-card h-100">
+      <div class="panel-card-header">
+        <h2 class="panel-card-title mb-0">فهرست دسته‌بندی‌ها</h2>
+        <span class="text-muted small">{{ tags|length }} مورد</span>
+      </div>
+      <div class="panel-table-wrap rounded-0 border-top-0">
+        <div class="table-responsive">
+          <table class="table panel-table table-striped table-hover mb-0">
+            <thead>
+              <tr>
+                <th>نام</th>
+                <th>شناسه</th>
+                <th>کاربران</th>
+                <th>وضعیت</th>
+                <th>اقدام</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for tag in tags %}
+              <tr>
+                <td class="fw-semibold">{{ tag.name }}</td>
+                <td><code class="text-secondary">{{ tag.slug }}</code></td>
+                <td>
+                  <a href="{% url 'subscriber_list' %}?tag={{ tag.id }}" class="text-decoration-none">
+                    {{ tag.subscriber_count }} نفر
+                  </a>
+                </td>
+                <td>
+                  {% if tag.is_active %}
+                  <span class="badge text-bg-success">فعال</span>
+                  {% else %}
+                  <span class="badge text-bg-secondary">غیرفعال</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <form method="post" action="{% url 'tag_delete' tag.pk %}" class="d-inline" onsubmit="return confirm('دسته‌بندی «{{ tag.name|escapejs }}» حذف شود؟');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-panel-ghost btn-sm text-danger">حذف</button>
+                  </form>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" class="text-center text-muted py-5">
+                  هنوز دسته‌بندی نساخته‌اید. از فرم کنار یا طراحی منو شروع کنید.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
