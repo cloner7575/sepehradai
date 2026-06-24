@@ -1,13 +1,15 @@
 {% extends "balebot/base.html" %}
 {% load static %}
 {% block title %}تنظیمات مینی‌اپ{% endblock %}
-{% block page_title %}شخصی‌سازی مینی‌اپ{% endblock %}
-{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">برند، ظاهر، متن دکمه‌ها و پرداخت — {{ active_platform_label }}</p>{% endblock %}
+{% block page_title %}تنظیمات مینی‌اپ{% endblock %}
+{% block page_subtitle %}
+<p class="topbar-meta mb-0 mt-1">برند، ظاهر، پرداخت و انتشار ویترین در {{ active_platform_label }} — تغییرات با «ذخیره» اعمال می‌شوند.</p>
+{% endblock %}
 
 {% block content %}
 <div class="catalog-panel">
 {% include "balebot/_catalog_subnav.html" %}
-<form method="post" enctype="multipart/form-data" class="settings-page-form" id="catalog-settings-form" novalidate>
+<form method="post" enctype="multipart/form-data" class="bot-setup-form" id="catalog-settings-form" novalidate>
   {% csrf_token %}
   {% if form.non_field_errors %}
   <div class="alert alert-danger mb-4">
@@ -15,41 +17,70 @@
   </div>
   {% endif %}
 
-  <div class="settings-page-layout">
-    <nav class="settings-nav panel-card" aria-label="بخش‌های تنظیمات مینی‌اپ">
-      <div class="settings-nav-title">برو به</div>
-      <a href="#sec-status" class="settings-nav-link active" data-settings-nav="sec-status">
-        <i class="bi bi-power"></i><span>وضعیت</span>
-      </a>
-      <a href="#sec-access" class="settings-nav-link" data-settings-nav="sec-access">
-        <i class="bi bi-shield-lock"></i><span>دسترسی</span>
-      </a>
-      <a href="#sec-branding" class="settings-nav-link" data-settings-nav="sec-branding">
-        <i class="bi bi-shop"></i><span>برند</span>
-      </a>
-      <a href="#sec-appearance" class="settings-nav-link" data-settings-nav="sec-appearance">
-        <i class="bi bi-palette"></i><span>ظاهر</span>
-      </a>
-      <a href="#sec-labels" class="settings-nav-link" data-settings-nav="sec-labels">
-        <i class="bi bi-type"></i><span>متن‌ها</span>
-      </a>
-      <a href="#sec-payment" class="settings-nav-link" data-settings-nav="sec-payment">
-        <i class="bi bi-credit-card"></i><span>پرداخت</span>
-      </a>
-      <a href="#sec-checkout-form" class="settings-nav-link" data-settings-nav="sec-checkout-form">
-        <i class="bi bi-ui-checks"></i><span>فرم سفارش</span>
-      </a>
-      <a href="#sec-link" class="settings-nav-link" data-settings-nav="sec-link">
-        <i class="bi bi-link-45deg"></i><span>لینک</span>
-      </a>
-    </nav>
+  <div class="bot-setup-status" aria-label="وضعیت مینی‌اپ">
+    <div class="bot-setup-status-item {% if setup_status.is_enabled %}is-ok{% else %}is-off{% endif %}">
+      <span class="bot-setup-status-icon"><i class="bi bi-power"></i></span>
+      <span class="bot-setup-status-label">وضعیت ویترین</span>
+      <span class="bot-setup-status-value">{% if setup_status.is_enabled %}فعال{% else %}غیرفعال{% endif %}</span>
+    </div>
+    <div class="bot-setup-status-item {% if setup_status.payment_ready %}is-ok{% else %}is-warn{% endif %}" id="status-payment-item">
+      <span class="bot-setup-status-icon"><i class="bi bi-credit-card"></i></span>
+      <span class="bot-setup-status-label">پرداخت</span>
+      <span class="bot-setup-status-value" id="status-payment-value">{{ setup_status.payment_summary }}</span>
+    </div>
+    <div class="bot-setup-status-item {% if setup_status.can_purchase %}is-ok{% elif setup_status.is_enabled %}is-warn{% endif %}" id="status-purchase-item">
+      <span class="bot-setup-status-icon"><i class="bi bi-bag-check"></i></span>
+      <span class="bot-setup-status-label">خرید کاربران</span>
+      <span class="bot-setup-status-value" id="status-purchase-value">
+        {% if setup_status.can_purchase %}فعال{% elif setup_status.is_enabled %}نیاز به پرداخت{% else %}غیرفعال{% endif %}
+      </span>
+    </div>
+    <div class="bot-setup-status-item {% if setup_status.has_public_url %}is-ok{% else %}is-warn{% endif %}">
+      <span class="bot-setup-status-icon"><i class="bi bi-link-45deg"></i></span>
+      <span class="bot-setup-status-label">لینک انتشار</span>
+      <span class="bot-setup-status-value">{% if setup_status.has_public_url %}آماده{% else %}نیاز به آدرس سرور{% endif %}</span>
+    </div>
+  </div>
 
-    <div class="settings-main">
-      <section id="sec-status" class="settings-section panel-card mb-4">
-        <header class="panel-card-header settings-section-header">
+  <div class="bot-setup-tabs app-tabs" role="tablist" aria-label="بخش‌های تنظیمات مینی‌اپ">
+    <button type="button" class="app-tab is-active" role="tab" aria-selected="true" data-bot-setup-tab="status" id="tab-status">
+      <i class="bi bi-power"></i><span>وضعیت</span>
+    </button>
+    <button type="button" class="app-tab" role="tab" aria-selected="false" data-bot-setup-tab="access" id="tab-access">
+      <i class="bi bi-shield-lock"></i><span>دسترسی</span>
+    </button>
+    <button type="button" class="app-tab" role="tab" aria-selected="false" data-bot-setup-tab="branding" id="tab-branding">
+      <i class="bi bi-palette"></i><span>ظاهر</span>
+    </button>
+    <button type="button" class="app-tab" role="tab" aria-selected="false" data-bot-setup-tab="payment" id="tab-payment">
+      <i class="bi bi-credit-card"></i><span>پرداخت</span>
+    </button>
+    <button type="button" class="app-tab" role="tab" aria-selected="false" data-bot-setup-tab="checkout" id="tab-checkout">
+      <i class="bi bi-ui-checks"></i><span>فرم سفارش</span>
+    </button>
+  </div>
+
+  <div class="bot-setup-panels">
+    <section class="bot-setup-panel is-active" data-bot-setup-panel="status" id="sec-status" role="tabpanel" aria-labelledby="tab-status">
+      <div class="bot-setup-flow-hint panel-card mb-4">
+        <div class="panel-card-body py-3">
+          <div class="bot-setup-flow-hint-inner">
+            <div>
+              <strong>صفحه اصلی مینی‌اپ</strong>
+              <p class="mb-0 small text-muted">بنر، اسلایدر، دسته‌ها و چیدمان محصولات را در طراح بصری تنظیم کنید.</p>
+            </div>
+            <a href="{% url 'catalog_flow_engine' %}" class="btn-panel-ghost btn-sm">
+              <i class="bi bi-layout-text-window-reverse"></i>طراحی صفحه مینی‌اپ
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-card mb-4">
+        <header class="panel-card-header">
           <div>
-            <h2 class="panel-card-title mb-1"><i class="bi bi-power me-2"></i>وضعیت مینی‌اپ</h2>
-            <p class="panel-card-lead mb-0">فعال‌سازی ویترین مینی‌اپ برای کاربران {{ active_platform_label }}.</p>
+            <h2 class="panel-card-title mb-1">فعال‌سازی ویترین</h2>
+            <p class="panel-card-lead mb-0">وقتی فعال باشد و پرداخت کامل شده باشد، کاربران می‌توانند خرید کنند.</p>
           </div>
         </header>
         <div class="panel-card-body">
@@ -57,22 +88,68 @@
           {% if not form.instance.is_enabled %}
           <div class="alert alert-info small mb-0">
             <i class="bi bi-info-circle me-1"></i>
-            حتی وقتی غیرفعال است، می‌توانید محتوا را آماده کنید. کاربران محصولات را می‌بینند ولی خرید غیرفعال است.
+            حتی وقتی غیرفعال است می‌توانید محتوا را آماده کنید. کاربران محصولات را می‌بینند ولی خرید غیرفعال است.
           </div>
           {% endif %}
         </div>
-      </section>
+      </div>
 
-      <section id="sec-access" class="settings-section panel-card mb-4">
-        <header class="panel-card-header settings-section-header">
+      <div class="panel-card">
+        <header class="panel-card-header">
           <div>
-            <h2 class="panel-card-title mb-1"><i class="bi bi-shield-lock me-2"></i>دسترسی و عضویت کانال</h2>
+            <h2 class="panel-card-title mb-1">لینک انتشار</h2>
+            <p class="panel-card-lead mb-0">آدرس مینی‌اپ برای ثبت در BotFather یا بله.</p>
+          </div>
+        </header>
+        <div class="panel-card-body">
+          {% if mini_app_url %}
+          <div class="bot-setup-webhook-box">
+            <span class="bot-setup-webhook-label">آدرس مینی‌اپ</span>
+            <code id="settings-miniapp-url" class="bot-setup-webhook-url user-select-all" dir="ltr">{{ mini_app_url }}</code>
+          </div>
+          <div class="bot-setup-actions">
+            <button type="button" class="btn-panel-ghost btn-sm" data-copy-target="settings-miniapp-url">
+              <i class="bi bi-clipboard"></i>کپی لینک
+            </button>
+            <a href="{{ mini_app_url }}" target="_blank" rel="noopener" class="btn-panel-primary btn-sm">
+              <i class="bi bi-box-arrow-up-right"></i>باز کردن مینی‌اپ
+            </a>
+          </div>
+          {% if bot_username %}
+          <p class="small mt-3 mb-0 text-muted">میانبر بله: <code dir="ltr" class="user-select-all">https://ble.ir/{{ bot_username }}?startapp</code></p>
+          {% endif %}
+          {% else %}
+          <div class="alert alert-warning small mb-3">
+            <i class="bi bi-exclamation-triangle me-1"></i>لینک کامل هنوز ساخته نشده است.
+          </div>
+          <div class="bot-setup-webhook-box mb-3">
+            <span class="bot-setup-webhook-label">شناسه مینی‌اپ</span>
+            <code class="bot-setup-webhook-url user-select-all" dir="ltr">{{ catalog_public_id }}</code>
+          </div>
+          {% if webhook_public_url %}
+          <p class="small text-muted mb-1">لینک پس از ذخیره:</p>
+          <code class="d-block text-break small user-select-all" dir="ltr">{{ webhook_public_url }}/shop/{{ catalog_public_id }}/</code>
+          {% else %}
+          <p class="small text-danger mb-0">
+            ابتدا در <a href="{% url 'bot_settings' %}">تنظیمات ربات</a> فیلد <strong>آدرس عمومی سرور</strong> را پر کنید.
+          </p>
+          {% endif %}
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <section class="bot-setup-panel" data-bot-setup-panel="access" id="sec-access" role="tabpanel" aria-labelledby="tab-access" hidden>
+      <div class="panel-card">
+        <header class="panel-card-header">
+          <div>
+            <h2 class="panel-card-title mb-1">عضویت در کانال</h2>
             <p class="panel-card-lead mb-0">محدود کردن دسترسی مینی‌اپ به اعضای کانال.</p>
           </div>
         </header>
         <div class="panel-card-body">
           {% include "balebot/_settings_switch.html" with field=form.require_channel_membership title=form.require_channel_membership.label desc=form.require_channel_membership.help_text %}
-          <div id="channel-access-block" class="settings-sub-block">
+          <div id="channel-access-block" class="settings-step-fields mt-2">
             {% include "balebot/_settings_field.html" with field=form.required_channel_id hint=form.required_channel_id.help_text %}
             {% include "balebot/_settings_field.html" with field=form.channel_membership_message hint=form.channel_membership_message.help_text %}
             {% include "balebot/_settings_field.html" with field=form.channel_invite_link hint=form.channel_invite_link.help_text %}
@@ -82,13 +159,15 @@
             ربات باید در کانال مقصد <strong>ادمین</strong> باشد تا عضویت کاربران قابل بررسی باشد.
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <section id="sec-branding" class="settings-section panel-card mb-4">
-        <header class="panel-card-header settings-section-header">
+    <section class="bot-setup-panel" data-bot-setup-panel="branding" id="sec-branding" role="tabpanel" aria-labelledby="tab-branding" hidden>
+      <div class="panel-card mb-4">
+        <header class="panel-card-header">
           <div>
-            <h2 class="panel-card-title mb-1"><i class="bi bi-shop me-2"></i>برند و هویت</h2>
-            <p class="panel-card-lead mb-0">عنوان، توضیح و لوگوی ویترین در هدر مینی‌اپ.</p>
+            <h2 class="panel-card-title mb-1">برند و هویت</h2>
+            <p class="panel-card-lead mb-0">عنوان، توضیح و تصاویر ویترین در هدر مینی‌اپ.</p>
           </div>
         </header>
         <div class="panel-card-body">
@@ -98,25 +177,22 @@
           {% if form.instance.logo %}
           <div class="mb-3">
             <label class="form-label">لوگوی فعلی</label>
-            <img src="{{ form.instance.logo.url }}" alt="" class="rounded catalog-settings-logo-preview">
+            <img src="{{ form.instance.logo.url }}" alt="" class="catalog-settings-logo-preview">
           </div>
           {% endif %}
           {% include "balebot/_settings_field.html" with field=form.hero_background hint=form.hero_background.help_text %}
           {% if form.instance.hero_background %}
-          <div class="mb-3">
+          <div class="mb-0">
             <label class="form-label">پس‌زمینهٔ هیرو</label>
-            <img src="{{ form.instance.hero_background.url }}" alt="" class="rounded catalog-settings-logo-preview">
+            <img src="{{ form.instance.hero_background.url }}" alt="" class="catalog-settings-logo-preview">
           </div>
           {% endif %}
         </div>
-      </section>
+      </div>
 
-      <section id="sec-appearance" class="settings-section panel-card mb-4">
-        <header class="panel-card-header settings-section-header">
-          <div>
-            <h2 class="panel-card-title mb-1"><i class="bi bi-palette me-2"></i>ظاهر و رنگ‌ها</h2>
-            <p class="panel-card-lead mb-0">رنگ‌های برند و چیدمان لیست آیتم‌ها.</p>
-          </div>
+      <div class="panel-card mb-4">
+        <header class="panel-card-header">
+          <h2 class="panel-card-title mb-0">رنگ‌ها و چیدمان</h2>
         </header>
         <div class="panel-card-body">
           <div class="row g-3">
@@ -130,18 +206,18 @@
               {% include "balebot/_settings_field.html" with field=form.theme_layout hint=form.theme_layout.help_text %}
             </div>
           </div>
-          <div class="catalog-color-preview mt-2">
+          <div class="catalog-color-preview mt-3">
             <span class="catalog-color-swatch catalog-color-swatch-lg" id="preview-primary" style="background: {{ form.theme_primary.value|default:'#334155' }}"></span>
             <span class="catalog-color-swatch catalog-color-swatch-lg" id="preview-accent" style="background: {{ form.theme_accent.value|default:'#3f3f46' }}"></span>
             <span class="small text-muted">پیش‌نمایش رنگ‌ها</span>
           </div>
         </div>
-      </section>
+      </div>
 
-      <section id="sec-labels" class="settings-section panel-card mb-4">
-        <header class="panel-card-header settings-section-header">
+      <div class="panel-card">
+        <header class="panel-card-header">
           <div>
-            <h2 class="panel-card-title mb-1"><i class="bi bi-type me-2"></i>متن دکمه‌ها</h2>
+            <h2 class="panel-card-title mb-1">متن دکمه‌ها</h2>
             <p class="panel-card-lead mb-0">برچسب دکمه‌های خرید، سبد و تسویه را مطابق کسب‌وکارتان تغییر دهید.</p>
           </div>
         </header>
@@ -155,45 +231,63 @@
             <div class="col-sm-6">{% include "balebot/_settings_field.html" with field=form.label_download %}</div>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <section id="sec-payment" class="settings-section panel-card mb-4">
-        <header class="panel-card-header settings-section-header">
+    <section class="bot-setup-panel" data-bot-setup-panel="payment" id="sec-payment" role="tabpanel" aria-labelledby="tab-payment" hidden>
+      <div class="panel-card">
+        <header class="panel-card-header">
           <div>
-            <h2 class="panel-card-title mb-1"><i class="bi bi-credit-card me-2"></i>روش‌های پرداخت</h2>
-            <p class="panel-card-lead mb-0">حداقل یک روش را کامل تنظیم کنید تا مینی‌اپ فعال شود.</p>
+            <h2 class="panel-card-title mb-1">روش‌های پرداخت</h2>
+            <p class="panel-card-lead mb-0">حداقل یک روش را کامل تنظیم کنید؛ با فعال بودن هر کدام، خرید برای کاربران باز می‌شود.</p>
           </div>
         </header>
         <div class="panel-card-body">
-          {% include "balebot/_settings_switch.html" with field=form.payment_admin_enabled title="ارسال سبد به ادمین" desc="سفارش به‌صورت پیام برای ادمین ارسال می‌شود." %}
-          <div id="admin-payment-block" class="settings-sub-block mb-4">
-            {% include "balebot/_settings_field.html" with field=form.admin_notify_chat_id hint=form.admin_notify_chat_id.help_text %}
+          <div id="payment-readiness" class="alert small mb-4" role="status" aria-live="polite"></div>
+
+          <div class="bot-setup-option-card" data-payment-method="admin">
+            {% include "balebot/_settings_switch.html" with field=form.payment_admin_enabled title="ارسال سبد به ادمین" desc="سفارش به‌صورت پیام برای ادمین ارسال می‌شود." %}
+            <div id="admin-payment-block" class="settings-step-fields mt-2">
+              {% include "balebot/_settings_field.html" with field=form.admin_notify_chat_id hint=form.admin_notify_chat_id.help_text %}
+            </div>
+            <p id="payment-admin-status" class="payment-method-status small mb-0 mt-2" aria-live="polite"></p>
           </div>
 
-          {% include "balebot/_settings_switch.html" with field=form.payment_zarinpal_enabled title="درگاه زرین‌پال" desc="پرداخت آنلاین از طریق زرین‌پال." %}
-          <div id="zarinpal-payment-block" class="settings-sub-block mb-4">
-            {% include "balebot/_settings_field.html" with field=form.zarinpal_merchant_id hint=form.zarinpal_merchant_id.help_text %}
-            {% include "balebot/_settings_switch.html" with field=form.zarinpal_sandbox title="حالت تست (سندباکس)" desc="برای تست پرداخت بدون تراکنش واقعی." %}
+          <div class="bot-setup-option-card" data-payment-method="zarinpal">
+            {% include "balebot/_settings_switch.html" with field=form.payment_zarinpal_enabled title="درگاه زرین‌پال" desc="پرداخت آنلاین از طریق زرین‌پال." %}
+            <div id="zarinpal-payment-block" class="settings-step-fields mt-2">
+              {% include "balebot/_settings_field.html" with field=form.zarinpal_merchant_id hint=form.zarinpal_merchant_id.help_text %}
+              {% include "balebot/_settings_switch.html" with field=form.zarinpal_sandbox title="حالت تست (سندباکس)" desc="برای تست پرداخت بدون تراکنش واقعی." %}
+            </div>
+            <p id="payment-zarinpal-status" class="payment-method-status small mb-0 mt-2" aria-live="polite"></p>
           </div>
 
           {% include "balebot/_settings_field.html" with field=form.payment_default_method %}
         </div>
-      </section>
+      </div>
+    </section>
 
-      <section id="sec-checkout-form" class="settings-section panel-card mb-4">
-        <header class="panel-card-header settings-section-header">
+    <section class="bot-setup-panel" data-bot-setup-panel="checkout" id="sec-checkout" role="tabpanel" aria-labelledby="tab-checkout" hidden>
+      <div class="panel-card">
+        <header class="panel-card-header">
           <div>
-            <h2 class="panel-card-title mb-1"><i class="bi bi-ui-checks me-2"></i>فرم ثبت سفارش</h2>
+            <h2 class="panel-card-title mb-1">فرم ثبت سفارش</h2>
             <p class="panel-card-lead mb-0">تعیین کنید هنگام تسویه چه اطلاعاتی از کاربر گرفته شود.</p>
           </div>
         </header>
         <div class="panel-card-body">
           {{ form.checkout_form_json }}
-          <div class="form-check form-switch mb-3">
-            <input type="checkbox" class="form-check-input" role="switch" id="checkout-form-enabled">
-            <label class="form-check-label" for="checkout-form-enabled">نمایش فرم اطلاعات هنگام ثبت سفارش</label>
+          <div class="settings-switch-row mb-3">
+            <div class="settings-switch-copy">
+              <div class="settings-switch-title">نمایش فرم اطلاعات هنگام ثبت سفارش</div>
+              <p class="settings-switch-desc mb-0">نام، آدرس، توضیحات و فیلدهای سفارشی.</p>
+            </div>
+            <div class="form-check form-switch settings-switch-control flex-shrink-0">
+              <input type="checkbox" class="form-check-input" role="switch" id="checkout-form-enabled">
+              <label class="visually-hidden" for="checkout-form-enabled">نمایش فرم اطلاعات</label>
+            </div>
           </div>
-          <div id="checkout-form-block">
+          <div id="checkout-form-block" class="settings-step-fields">
             <div class="mb-3">
               <label class="form-label" for="checkout-form-title">عنوان فرم</label>
               <input type="text" class="form-control panel-input" id="checkout-form-title" placeholder="اطلاعات تحویل">
@@ -212,59 +306,29 @@
                 <tbody id="checkout-form-fields"></tbody>
               </table>
             </div>
-            <button type="button" class="btn btn-panel-ghost btn-sm" id="checkout-form-add-field">
-              <i class="bi bi-plus-lg me-1"></i>افزودن فیلد سفارشی
+            <button type="button" class="btn-panel-ghost btn-sm" id="checkout-form-add-field">
+              <i class="bi bi-plus-lg"></i>افزودن فیلد سفارشی
             </button>
           </div>
           <p class="small text-muted mb-0 mt-3">
             فیلدهای فعال در صفحه سبد خرید و هنگام خرید مستقیم نمایش داده می‌شوند و همراه سفارش برای ادمین ارسال می‌گردند.
           </p>
         </div>
-      </section>
-
-      <section id="sec-link" class="settings-section panel-card mb-4">
-        <header class="panel-card-header settings-section-header">
-          <div>
-            <h2 class="panel-card-title mb-1"><i class="bi bi-link-45deg me-2"></i>لینک انتشار</h2>
-            <p class="panel-card-lead mb-0">آدرس مینی‌اپ برای ثبت در BotFather یا بله.</p>
-          </div>
-        </header>
-        <div class="panel-card-body">
-          {% if mini_app_url %}
-          <div class="catalog-link-box mb-3">
-            <code id="settings-miniapp-url" class="catalog-link-code" dir="ltr">{{ mini_app_url }}</code>
-          </div>
-          <button type="button" class="btn btn-panel-ghost btn-sm" data-copy-target="settings-miniapp-url">
-            <i class="bi bi-clipboard me-1"></i>کپی لینک
-          </button>
-          <a href="{{ mini_app_url }}" target="_blank" rel="noopener" class="btn btn-panel-primary btn-sm ms-2">
-            <i class="bi bi-box-arrow-up-right me-1"></i>باز کردن مینی‌اپ
-          </a>
-          {% if bot_username %}
-          <p class="small mt-3 mb-0">میانبر بله: <code dir="ltr">https://ble.ir/{{ bot_username }}?startapp</code></p>
-          {% endif %}
-          {% else %}
-          <div class="alert alert-warning small mb-2">لینک کامل هنوز ساخته نشده است.</div>
-          <p class="small text-muted mb-2">شناسه مینی‌اپ:</p>
-          <code class="d-block text-break small user-select-all" dir="ltr">{{ catalog_public_id }}</code>
-          {% if webhook_public_url %}
-          <p class="small mt-2 mb-0">لینک پس از ذخیره:</p>
-          <code class="d-block text-break small" dir="ltr">{{ webhook_public_url }}/shop/{{ catalog_public_id }}/</code>
-          {% else %}
-          <p class="small text-danger mt-2 mb-0">
-            ابتدا در <a href="{% url 'bot_settings' %}">تنظیمات ربات</a> فیلد <strong>آدرس عمومی سرور</strong> را پر کنید.
-          </p>
-          {% endif %}
-          {% endif %}
-        </div>
-      </section>
-
-      <div class="settings-form-actions panel-card p-3 d-flex flex-wrap gap-2 align-items-center">
-        <button type="submit" class="btn btn-panel-primary">
-          <i class="bi bi-check-lg me-1"></i>ذخیره تنظیمات
-        </button>
-        <a href="{% url 'catalog_dashboard' %}" class="btn btn-panel-ghost">بازگشت به داشبورد</a>
       </div>
+    </section>
+  </div>
+
+  <div class="bot-setup-save-bar">
+    <div class="bot-setup-save-bar-inner">
+      <div class="d-flex flex-wrap gap-2 align-items-center">
+        <button type="submit" class="btn-panel-primary">
+          <i class="bi bi-cloud-check"></i>ذخیره تنظیمات
+        </button>
+        <a href="{% url 'catalog_dashboard' %}" class="btn-panel-ghost">بازگشت به داشبورد</a>
+      </div>
+      {% if form.instance.updated_at %}
+      <span class="bot-setup-save-meta"><i class="bi bi-clock-history"></i>آخرین ذخیره: {{ form.instance.updated_at|date:"Y/m/d H:i" }}</span>
+      {% endif %}
     </div>
   </div>
 </form>
@@ -272,7 +336,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'balebot/js/catalog_settings.js' %}"></script>
+<script src="{% static 'balebot/js/catalog_settings.js' %}?v=2"></script>
 <script src="{% static 'balebot/js/checkout_form_builder.js' %}"></script>
 <script src="{% static 'balebot/js/catalog_dashboard.js' %}"></script>
 {% endblock %}

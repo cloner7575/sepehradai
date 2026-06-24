@@ -2,118 +2,292 @@
 {% load static %}
 {% block title %}{% if object %}ویرایش آیتم{% else %}آیتم جدید{% endif %}{% endblock %}
 {% block page_title %}{% if object %}ویرایش آیتم{% else %}آیتم جدید{% endif %}{% endblock %}
+{% block page_subtitle %}
+{% if item_wizard_mode %}
+<p class="topbar-meta mb-0 mt-1">چهار مرحله ساده — در پایان آیتم در ویترین ذخیره می‌شود.</p>
+{% else %}
+<p class="topbar-meta mb-0 mt-1">اطلاعات، قیمت، تصاویر و تنظیمات نمایش — تغییرات با «ذخیره» اعمال می‌شوند.</p>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <div class="catalog-panel">
   {% include "balebot/_catalog_subnav.html" %}
 
-  <div class="row g-4">
-    <div class="col-lg-8">
-      <div class="panel-card">
-        <div class="panel-card-header">
-          <h2 class="panel-card-title mb-0">اطلاعات آیتم</h2>
-        </div>
-        <div class="panel-card-body">
-          <form method="post" enctype="multipart/form-data" id="catalog-item-form">{% csrf_token %}
-            {% for field in form %}
-              {% if field.name == 'cover' or field.name == 'download_file' or field.name == 'download_link' %}
-                {# در بلوک دانلود رندر می‌شود #}
-              {% elif field.name == 'price' or field.name == 'sale_mode' or field.name == 'stock' %}
-                <div class="mb-3 catalog-commerce-field" data-commerce-field>
-                  <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                  {{ field }}
-                  {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-                  {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-                </div>
-              {% else %}
-                <div class="mb-3">
-                  <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                  {{ field }}
-                  {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-                  {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-                </div>
-              {% endif %}
-            {% endfor %}
+  <form method="post" enctype="multipart/form-data"
+        class="{% if item_wizard_mode %}campaign-wizard-form item-wizard-form{% else %}bot-setup-form{% endif %}"
+        id="catalog-item-form"
+        data-item-wizard="{% if item_wizard_mode %}1{% else %}0{% endif %}"
+        novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger mb-4">
+      {% for err in form.non_field_errors %}{{ err }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+    </div>
+    {% endif %}
 
-            <div id="download-fields-block" class="catalog-download-block mb-4">
-              <h3 class="catalog-form-section-title"><i class="bi bi-download me-1"></i>فایل دانلود</h3>
-              <div class="mb-3">
-                <label class="form-label" for="id_cover">{{ form.cover.label }}</label>
-                {{ form.cover }}
-                {% if form.cover.help_text %}<div class="form-text">{{ form.cover.help_text }}</div>{% endif %}
-                {% for e in form.cover.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-                {% if object and object.cover %}
-                <img src="{{ object.cover.url }}" alt="" class="rounded mt-2 catalog-settings-logo-preview">
-                {% endif %}
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label" for="id_download_file">آپلود فایل</label>
-                {{ form.download_file }}
-                {% if form.download_file.help_text %}<div class="form-text">{{ form.download_file.help_text }}</div>{% endif %}
-                {% for e in form.download_file.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-                {% if object and object.download_file %}
-                <div class="small text-muted mt-2">فایل فعلی: <code dir="ltr">{{ object.download_file.name }}</code></div>
-                {% endif %}
-              </div>
-
-              <div class="catalog-form-divider">یا</div>
-
-              <div class="mb-0">
-                <label class="form-label" for="id_download_link">{{ form.download_link.label }}</label>
-                {{ form.download_link }}
-                {% if form.download_link.help_text %}<div class="form-text">{{ form.download_link.help_text }}</div>{% endif %}
-                {% for e in form.download_link.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-                {% if object and object.download_link %}
-                <div class="small text-muted mt-2">لینک فعلی: <a href="{{ object.download_link }}" target="_blank" rel="noopener" dir="ltr">{{ object.download_link }}</a></div>
-                {% endif %}
-              </div>
-            </div>
-
-            <div id="media-upload-block" class="mb-4">
-              <label class="form-label">رسانه اضافی</label>
-              <input type="file" name="media" class="form-control panel-input" multiple accept="image/*,video/*,.pdf,.doc,.docx,.zip,.rar,.txt,.xls,.xlsx,.ppt,.pptx">
-              <div class="form-text">تصویر، ویدیو یا فایل — برای انواع غیر از «فایل دانلود».</div>
-            </div>
-
-            <div class="d-flex flex-wrap gap-2">
-              <button type="submit" class="btn btn-panel-primary">ذخیره</button>
-              <a href="{% url 'catalog_item_list' %}" class="btn btn-panel-ghost">بازگشت</a>
-            </div>
-          </form>
-        </div>
+    <div class="bot-setup-status" aria-label="خلاصه آیتم">
+      <div class="bot-setup-status-item is-ok" id="status-type-item">
+        <span class="bot-setup-status-icon"><i class="bi bi-tag"></i></span>
+        <span class="bot-setup-status-label">نوع آیتم</span>
+        <span class="bot-setup-status-value" id="status-type-value">{{ item_status.type_label }}</span>
+      </div>
+      <div class="bot-setup-status-item {% if item_status.is_active %}is-ok{% else %}is-off{% endif %}" id="status-active-item">
+        <span class="bot-setup-status-icon"><i class="bi bi-eye"></i></span>
+        <span class="bot-setup-status-label">نمایش</span>
+        <span class="bot-setup-status-value" id="status-active-value">{% if item_status.is_active %}فعال{% else %}غیرفعال{% endif %}</span>
+      </div>
+      <div class="bot-setup-status-item is-ok" id="status-sale-item">
+        <span class="bot-setup-status-icon"><i class="bi bi-cart3"></i></span>
+        <span class="bot-setup-status-label">نحوه فروش</span>
+        <span class="bot-setup-status-value" id="status-sale-value">{{ item_status.sale_mode_label }}</span>
+      </div>
+      <div class="bot-setup-status-item {% if item_status.price_label != '—' and item_status.price_label != 'رایگان' %}is-ok{% endif %}" id="status-price-item">
+        <span class="bot-setup-status-icon"><i class="bi bi-currency-exchange"></i></span>
+        <span class="bot-setup-status-label">قیمت</span>
+        <span class="bot-setup-status-value" id="status-price-value">{{ item_status.price_label }}</span>
       </div>
     </div>
 
-    {% if item_media %}
-    <div class="col-lg-4">
-      <div class="panel-card">
-        <div class="panel-card-header">
-          <h2 class="panel-card-title mb-0">رسانه‌های فعلی</h2>
-        </div>
-        <div class="panel-card-body">
-          {% for m in item_media %}
-          <div class="catalog-media-row">
-            {% if m.media_type == 'image' %}
-            <img src="{{ m.file.url }}" alt="" class="catalog-media-thumb">
-            {% elif m.media_type == 'video' %}
-            <div class="catalog-media-thumb catalog-media-thumb--video"><i class="bi bi-play-fill"></i></div>
-            {% else %}
-            <div class="catalog-media-thumb catalog-media-thumb--file"><i class="bi bi-file-earmark"></i></div>
-            {% endif %}
-            <div class="flex-grow-1 small text-muted">{{ m.get_media_type_display }}</div>
-            <form method="post" action="{% url 'catalog_item_media_delete' object.pk m.pk %}">{% csrf_token %}
-              <button type="submit" class="btn btn-sm btn-outline-danger">حذف</button>
-            </form>
+    {% if item_wizard_mode %}
+    <nav class="campaign-wizard-steps" aria-label="مراحل ساخت آیتم" id="item-wizard-nav">
+      <button type="button" class="campaign-wizard-step is-active" data-item-wizard-step="basics" data-step-index="0">
+        <span class="campaign-wizard-step-num">۱</span>
+        <span class="campaign-wizard-step-label">اطلاعات</span>
+      </button>
+      <button type="button" class="campaign-wizard-step" data-item-wizard-step="commerce" data-step-index="1" id="wizard-step-commerce">
+        <span class="campaign-wizard-step-num">۲</span>
+        <span class="campaign-wizard-step-label">قیمت</span>
+      </button>
+      <button type="button" class="campaign-wizard-step" data-item-wizard-step="media" data-step-index="2">
+        <span class="campaign-wizard-step-num">۳</span>
+        <span class="campaign-wizard-step-label">رسانه</span>
+      </button>
+      <button type="button" class="campaign-wizard-step" data-item-wizard-step="publish" data-step-index="3">
+        <span class="campaign-wizard-step-num">۴</span>
+        <span class="campaign-wizard-step-label">انتشار</span>
+      </button>
+    </nav>
+    {% else %}
+    <div class="bot-setup-tabs app-tabs" role="tablist" aria-label="بخش‌های فرم آیتم">
+      <button type="button" class="app-tab is-active" role="tab" aria-selected="true" data-bot-setup-tab="basics" id="tab-basics">
+        <i class="bi bi-card-text"></i><span>اطلاعات</span>
+      </button>
+      <button type="button" class="app-tab" role="tab" aria-selected="false" data-bot-setup-tab="commerce" id="tab-commerce">
+        <i class="bi bi-cash-stack"></i><span>قیمت و فروش</span>
+      </button>
+      <button type="button" class="app-tab" role="tab" aria-selected="false" data-bot-setup-tab="media" id="tab-media">
+        <i class="bi bi-images"></i><span>تصاویر و فایل</span>
+      </button>
+      <button type="button" class="app-tab" role="tab" aria-selected="false" data-bot-setup-tab="publish" id="tab-publish">
+        <i class="bi bi-sliders"></i><span>انتشار</span>
+      </button>
+    </div>
+    {% endif %}
+
+    <div class="{% if item_wizard_mode %}campaign-wizard-panels{% else %}bot-setup-panels{% endif %}">
+      <section class="{% if item_wizard_mode %}campaign-wizard-panel{% else %}bot-setup-panel{% endif %} is-active"
+               data-bot-setup-panel="basics" data-item-wizard-panel="basics" id="sec-basics"
+               role="tabpanel" aria-labelledby="tab-basics">
+        <div class="panel-card">
+          <header class="panel-card-header">
+            <div>
+              {% if item_wizard_mode %}<p class="campaign-wizard-step-kicker mb-1">مرحله ۱ از ۴</p>{% endif %}
+              <h2 class="panel-card-title mb-1">اطلاعات اصلی</h2>
+              <p class="panel-card-lead mb-0">نوع آیتم، عنوان و توضیحات را مشخص کنید.</p>
+            </div>
+          </header>
+          <div class="panel-card-body">
+            {% include "balebot/_settings_field.html" with field=form.item_type hint=form.item_type.help_text %}
+            <div id="item-type-guide" class="alert alert-info small mb-4" role="status" aria-live="polite"></div>
+            {% include "balebot/_settings_field.html" with field=form.category %}
+            {% include "balebot/_settings_field.html" with field=form.title hint=form.title.help_text %}
+            {% include "balebot/_settings_field.html" with field=form.slug hint=form.slug.help_text %}
+            {% include "balebot/_settings_field.html" with field=form.short_description %}
+            {% include "balebot/_settings_field.html" with field=form.description %}
           </div>
-          {% endfor %}
         </div>
+      </section>
+
+      <section class="{% if item_wizard_mode %}campaign-wizard-panel{% else %}bot-setup-panel{% endif %}"
+               data-bot-setup-panel="commerce" data-item-wizard-panel="commerce" id="sec-commerce"
+               role="tabpanel" aria-labelledby="tab-commerce" {% if not item_wizard_mode %}hidden{% endif %}>
+        <div class="panel-card" id="commerce-panel">
+          <header class="panel-card-header">
+            <div>
+              {% if item_wizard_mode %}<p class="campaign-wizard-step-kicker mb-1">مرحله ۲ از ۴</p>{% endif %}
+              <h2 class="panel-card-title mb-1">قیمت و فروش</h2>
+              <p class="panel-card-lead mb-0">نحوه خرید یا درخواست کاربر از این آیتم.</p>
+            </div>
+          </header>
+          <div class="panel-card-body">
+            <div id="commerce-fields-block">
+              {% include "balebot/_settings_field.html" with field=form.sale_mode hint=form.sale_mode.help_text %}
+              {% include "balebot/_settings_field.html" with field=form.price hint=form.price.help_text %}
+              {% include "balebot/_settings_field.html" with field=form.stock hint=form.stock.help_text %}
+            </div>
+            <div id="commerce-download-hint" class="alert alert-info small mb-3 settings-block-hidden" aria-hidden="true">
+              <i class="bi bi-info-circle me-1"></i>برای «فایل دانلود» قیمت‌گذاری اعمال نمی‌شود.
+            </div>
+            <div id="commerce-showcase-hint" class="alert alert-info small mb-3 settings-block-hidden" aria-hidden="true">
+              <i class="bi bi-info-circle me-1"></i>«معرفی و نمونه‌کار» فقط درخواست تماس دارد — این مرحله برای این نوع لازم نیست.
+            </div>
+            <div id="commerce-video-hint" class="alert alert-info small mb-0 settings-block-hidden" aria-hidden="true">
+              <i class="bi bi-info-circle me-1"></i>دوره رایگان: «فقط درخواست». فروش دوره: قیمت + «قابل خرید» یا «خرید و درخواست».
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="{% if item_wizard_mode %}campaign-wizard-panel{% else %}bot-setup-panel{% endif %}"
+               data-bot-setup-panel="media" data-item-wizard-panel="media" id="sec-media"
+               role="tabpanel" aria-labelledby="tab-media" hidden>
+        <div class="panel-card mb-4" id="cover-panel">
+          <header class="panel-card-header">
+            <div>
+              {% if item_wizard_mode %}<p class="campaign-wizard-step-kicker mb-1">مرحله ۳ از ۴</p>{% endif %}
+              <h2 class="panel-card-title mb-0">تصویر کاور</h2>
+            </div>
+          </header>
+          <div class="panel-card-body">
+            {% include "balebot/_settings_field.html" with field=form.cover hint=form.cover.help_text %}
+            {% if object and object.cover %}
+            <img src="{{ object.cover.url }}" alt="" class="catalog-settings-logo-preview">
+            {% endif %}
+          </div>
+        </div>
+
+        <div id="download-fields-block" class="panel-card mb-4 settings-block-hidden" aria-hidden="true">
+          <header class="panel-card-header">
+            <div>
+              <h2 class="panel-card-title mb-1">فایل قابل دانلود</h2>
+              <p class="panel-card-lead mb-0">آپلود روی سرور یا لینک مستقیم — یکی کافی است.</p>
+            </div>
+          </header>
+          <div class="panel-card-body">
+            {% include "balebot/_settings_field.html" with field=form.download_file hint=form.download_file.help_text %}
+            {% if object and object.download_file %}
+            <div class="small text-muted mb-3">فایل فعلی: <code dir="ltr">{{ object.download_file.name }}</code></div>
+            {% endif %}
+            <div class="catalog-form-divider">یا</div>
+            {% include "balebot/_settings_field.html" with field=form.download_link hint=form.download_link.help_text %}
+            {% if object and object.download_link %}
+            <div class="small text-muted">لینک فعلی: <a href="{{ object.download_link }}" target="_blank" rel="noopener" dir="ltr">{{ object.download_link }}</a></div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div id="media-upload-block" class="panel-card mb-4">
+          <header class="panel-card-header">
+            <h2 class="panel-card-title mb-0">گالری رسانه</h2>
+          </header>
+          <div class="panel-card-body">
+            <label class="form-label settings-field-label" for="id_media_files">افزودن رسانه</label>
+            <input type="file" name="media" id="id_media_files" class="form-control panel-input" multiple accept="image/*,video/*,.pdf,.doc,.docx,.zip,.rar,.txt,.xls,.xlsx,.ppt,.pptx">
+            <p id="media-upload-hint" class="settings-field-hint mb-0 mt-2">می‌توانید چند فایل را هم‌زمان انتخاب کنید.</p>
+          </div>
+        </div>
+
+        {% if item_media %}
+        <div class="panel-card">
+          <header class="panel-card-header">
+            <h2 class="panel-card-title mb-0">رسانه‌های فعلی</h2>
+          </header>
+          <div class="panel-card-body">
+            {% for m in item_media %}
+            <div class="catalog-media-row">
+              {% if m.media_type == 'image' %}
+              <img src="{{ m.file.url }}" alt="" class="catalog-media-thumb">
+              {% elif m.media_type == 'video' %}
+              <div class="catalog-media-thumb catalog-media-thumb--video"><i class="bi bi-play-fill"></i></div>
+              {% else %}
+              <div class="catalog-media-thumb catalog-media-thumb--file"><i class="bi bi-file-earmark"></i></div>
+              {% endif %}
+              <div class="flex-grow-1 small">{{ m.get_media_type_display }}</div>
+              <form method="post" action="{% url 'catalog_item_media_delete' object.pk m.pk %}">{% csrf_token %}
+                <button type="submit" class="btn-panel-ghost btn-sm text-danger"><i class="bi bi-trash"></i>حذف</button>
+              </form>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </section>
+
+      <section class="{% if item_wizard_mode %}campaign-wizard-panel{% else %}bot-setup-panel{% endif %}"
+               data-bot-setup-panel="publish" data-item-wizard-panel="publish" id="sec-publish"
+               role="tabpanel" aria-labelledby="tab-publish" hidden>
+        <div class="panel-card mb-4">
+          <header class="panel-card-header">
+            <div>
+              {% if item_wizard_mode %}<p class="campaign-wizard-step-kicker mb-1">مرحله ۴ از ۴</p>{% endif %}
+              <h2 class="panel-card-title mb-0">وضعیت نمایش</h2>
+            </div>
+          </header>
+          <div class="panel-card-body">
+            {% include "balebot/_settings_switch.html" with field=form.is_active title=form.is_active.label desc=form.is_active.help_text %}
+            {% include "balebot/_settings_switch.html" with field=form.is_featured title=form.is_featured.label desc=form.is_featured.help_text %}
+            {% include "balebot/_settings_field.html" with field=form.sort_order hint=form.sort_order.help_text %}
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <header class="panel-card-header">
+            <div>
+              <h2 class="panel-card-title mb-1">ویژگی‌های سفارشی</h2>
+              <p class="panel-card-lead mb-0">مشخصات اضافی برای جدول صفحه آیتم (اختیاری).</p>
+            </div>
+          </header>
+          <div class="panel-card-body">
+            {% include "balebot/_catalog_item_metadata.html" %}
+          </div>
+        </div>
+      </section>
+    </div>
+
+    {% if item_wizard_mode %}
+    <div class="campaign-wizard-bar" id="item-wizard-bar">
+      <div class="campaign-wizard-bar-inner">
+        <div class="campaign-wizard-bar-start">
+          <button type="button" class="btn-panel-ghost" id="item-wizard-prev" disabled>
+            <i class="bi bi-arrow-right"></i>قبلی
+          </button>
+        </div>
+        <div class="campaign-wizard-bar-center">
+          <span class="campaign-wizard-progress-text" id="item-wizard-progress">مرحله ۱ از ۴</span>
+        </div>
+        <div class="campaign-wizard-bar-end">
+          <a href="{% url 'catalog_item_list' %}" class="btn-panel-ghost">انصراف</a>
+          <button type="button" class="btn-panel-primary" id="item-wizard-next">
+            بعدی<i class="bi bi-arrow-left ms-1"></i>
+          </button>
+          <button type="submit" class="btn-panel-primary settings-block-hidden" id="item-wizard-submit">
+            <i class="bi bi-cloud-check"></i>ایجاد آیتم
+          </button>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="bot-setup-save-bar">
+      <div class="bot-setup-save-bar-inner">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <button type="submit" class="btn-panel-primary">
+            <i class="bi bi-cloud-check"></i>ذخیره تغییرات
+          </button>
+          <a href="{% url 'catalog_item_list' %}" class="btn-panel-ghost">بازگشت به لیست</a>
+        </div>
+        {% if object and object.updated_at %}
+        <span class="bot-setup-save-meta"><i class="bi bi-clock-history"></i>آخرین ذخیره: {{ object.updated_at|date:"Y/m/d H:i" }}</span>
+        {% endif %}
       </div>
     </div>
     {% endif %}
-  </div>
+  </form>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'balebot/js/catalog_item_form.js' %}"></script>
+<script id="item-type-guides-data" type="application/json">{{ item_type_guides_json }}</script>
+<script src="{% static 'balebot/js/catalog_item_metadata.js' %}?v=1"></script>
+<script src="{% static 'balebot/js/catalog_item_form.js' %}?v=4"></script>
 {% endblock %}

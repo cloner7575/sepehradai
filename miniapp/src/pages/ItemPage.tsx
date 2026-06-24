@@ -8,7 +8,7 @@ import { MediaGallery } from '../components/MediaGallery';
 import { IconDownload, IconPackage } from '../components/Icons';
 import { useCheckout } from '../hooks/useCheckout';
 import { fileNameFromUrl } from '../utils/media';
-import { itemTypeLabel } from '../utils/itemType';
+import { itemTypeLabel, isShowcaseType } from '../utils/itemType';
 
 export function ItemPage() {
   const { slug } = useParams();
@@ -25,6 +25,7 @@ export function ItemPage() {
     error,
     runCheckout,
     methods,
+    canPurchase,
   } = useCheckout();
   const checkoutForm = useCheckoutForm(config?.checkout_form);
 
@@ -82,9 +83,10 @@ export function ItemPage() {
   };
 
   const isBusy = busy || checkoutBusy;
-  const shopEnabled = config?.is_enabled !== false;
-  const showBuy = item?.is_buyable && shopEnabled;
+  const showcase = item ? isShowcaseType(item.item_type) : false;
+  const showBuy = item?.is_buyable && canPurchase;
   const showDownload = item?.is_downloadable && item.download_url;
+  const showRequest = item?.is_requestable && config?.is_enabled !== false;
 
   if (loading) {
     return (
@@ -117,8 +119,10 @@ export function ItemPage() {
           <p className="mt-2 truncate text-sm text-muted" dir="ltr">
             {fileNameFromUrl(item.download_url)}
           </p>
-        ) : !item.is_downloadable ? (
+        ) : !item.is_downloadable && !showcase ? (
           <p className="price-tag mt-2 text-lg">{formatPrice(item.price)}</p>
+        ) : showcase ? (
+          <p className="mt-2 text-sm text-muted">برای سفارش یا همکاری درخواست ثبت کنید.</p>
         ) : null}
         {item.short_description && (
           <p className="mt-3 text-sm leading-relaxed text-muted">{item.short_description}</p>
@@ -188,9 +192,14 @@ export function ItemPage() {
             </button>
           </>
         )}
-        {item.is_requestable && shopEnabled && (
-          <button type="button" className="btn-secondary" disabled={isBusy} onClick={requestItem}>
-            {labels.request_quote || 'درخواست / تماس'}
+        {showRequest && (
+          <button
+            type="button"
+            className={showBuy || showDownload ? 'btn-secondary' : 'btn-primary'}
+            disabled={isBusy}
+            onClick={requestItem}
+          >
+            {labels.request_quote || (showcase ? 'درخواست همکاری' : 'درخواست / تماس')}
           </button>
         )}
       </div>

@@ -941,13 +941,25 @@ class CatalogSettings(models.Model):
             return ''
         return f'{base}/shop/{self.public_id}/'
 
+    def payment_admin_ready(self) -> bool:
+        return bool(self.payment_admin_enabled and self.admin_notify_chat_id)
+
+    def payment_zarinpal_ready(self) -> bool:
+        return bool(self.payment_zarinpal_enabled and (self.zarinpal_merchant_id or '').strip())
+
     def enabled_payment_methods(self) -> list[tuple[str, str]]:
         methods: list[tuple[str, str]] = []
-        if self.payment_admin_enabled:
+        if self.payment_admin_ready():
             methods.append((self.PaymentMethod.ADMIN_CART, self.PaymentMethod.ADMIN_CART.label))
-        if self.payment_zarinpal_enabled and (self.zarinpal_merchant_id or '').strip():
+        if self.payment_zarinpal_ready():
             methods.append((self.PaymentMethod.ZARINPAL, self.PaymentMethod.ZARINPAL.label))
         return methods
+
+    def is_payment_ready(self) -> bool:
+        return bool(self.enabled_payment_methods())
+
+    def can_accept_orders(self) -> bool:
+        return self.is_enabled and self.is_payment_ready()
 
     def resolve_payment_method(self, requested: str | None) -> str | None:
         enabled = {m[0] for m in self.enabled_payment_methods()}
@@ -1008,9 +1020,9 @@ class CatalogCategory(models.Model):
 class CatalogItem(models.Model):
     class ItemType(models.TextChoices):
         PRODUCT = 'product', 'محصول'
-        PORTFOLIO = 'portfolio', 'نمونه‌کار'
-        SERVICE = 'service', 'خدمت'
         DOWNLOAD = 'download', 'فایل دانلود'
+        VIDEO = 'video', 'ویدیو و آموزش'
+        SHOWCASE = 'showcase', 'معرفی و نمونه‌کار'
 
     class SaleMode(models.TextChoices):
         BUYABLE = 'buyable', 'قابل خرید'
@@ -1095,8 +1107,15 @@ class CatalogItem(models.Model):
     def __str__(self):
         return self.title
 
+    def normalized_item_type(self) -> str:
+        if self.item_type == 'portfolio':
+            return self.ItemType.SHOWCASE
+        if self.item_type == 'service':
+            return self.ItemType.SHOWCASE
+        return self.item_type
+
     def is_downloadable(self) -> bool:
-        if self.item_type != self.ItemType.DOWNLOAD:
+        if self.normalized_item_type() != self.ItemType.DOWNLOAD:
             return False
         return bool(self.download_file) or bool((self.download_link or '').strip())
 
@@ -1108,15 +1127,19 @@ class CatalogItem(models.Model):
         return (self.download_link or '').strip()
 
     def is_buyable(self) -> bool:
-        if self.is_downloadable():
+        item_type = self.normalized_item_type()
+        if item_type in (self.ItemType.DOWNLOAD, self.ItemType.SHOWCASE):
             return False
         if self.sale_mode == self.SaleMode.REQUEST_ONLY:
             return False
         return self.price is not None and self.price > 0
 
     def is_requestable(self) -> bool:
-        if self.item_type == self.ItemType.DOWNLOAD:
+        item_type = self.normalized_item_type()
+        if item_type == self.ItemType.DOWNLOAD:
             return False
+        if item_type == self.ItemType.SHOWCASE:
+            return True
         return self.sale_mode in (self.SaleMode.REQUEST_ONLY, self.SaleMode.BOTH)
 
     def first_image(self):

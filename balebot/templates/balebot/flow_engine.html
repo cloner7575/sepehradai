@@ -21,7 +21,7 @@
       {% endif %}
       {% if has_miniapp_access and mini_app_url %}
       <a href="{% url 'catalog_flow_engine' %}" class="btn-panel-ghost btn-sm ms-auto">
-        <i class="bi bi-palette"></i> طراحی صفحهٔ اصلی مینی‌اپ
+        <i class="bi bi-palette"></i> طراحی صفحه مینی‌اپ
       </a>
       {% endif %}
     </div>
@@ -57,7 +57,7 @@
     <div class="flow-engine-save-bar">
       <div class="flow-engine-save-bar-inner">
         <button type="submit" class="btn-panel-primary">
-          <i class="bi bi-cloud-check"></i> ذخیره جریان {{ active_platform_label }}
+          <i class="bi bi-cloud-check"></i>ذخیره منوی ربات
         </button>
         {% if mini_app_url %}
         <span class="small text-muted" dir="ltr">مینی‌اپ: {{ mini_app_url|truncatechars:48 }}</span>
@@ -69,5 +69,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'balebot/js/flow_canvas_editor.js' %}?v=5"></script>
+<script src="{% static 'balebot/js/flow_canvas_editor.js' %}?v=6"></script>
 {% endblock %}

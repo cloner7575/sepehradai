@@ -6,7 +6,7 @@ import json
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
@@ -16,6 +16,7 @@ from django.views.generic import CreateView, DetailView, ListView, TemplateView,
 from balebot.forms_catalog import (
     CatalogCategoryForm,
     CatalogItemForm,
+    CatalogOrderUpdateForm,
     CatalogSettingsForm,
     MiniAppFlowForm,
 )
@@ -28,8 +29,10 @@ from balebot.models import (
     CatalogSettings,
 )
 from balebot.platform import get_bot_settings_for_request, require_miniapp_access_for_request
+from balebot.services.catalog_item_types import ITEM_TYPE_GUIDES, get_item_type_guide
 from balebot.services.catalog_media import detect_media_type
 from balebot.services.catalog_page_layout import get_home_blocks, sanitize_home_blocks
+from balebot.services.checkout_form import get_checkout_form
 from balebot.services.public_url import resolve_public_base_url
 from balebot.views_panel import PanelAccessMixin, WorkspaceScopedMixin
 
@@ -40,6 +43,81 @@ def _attach_item_preview_image(item: CatalogItem) -> None:
         None,
     )
     item.preview_image = img.file if img else None
+
+
+def _catalog_item_status(item: CatalogItem | None, form=None) -> dict:
+    inst = item
+    if form is not None:
+        inst = form.instance
+    if inst is None:
+        inst = CatalogItem()
+    item_type = inst.normalized_item_type() if hasattr(inst, 'normalized_item_type') else (
+        CatalogItem.ItemType.SHOWCASE if inst.item_type == 'portfolio' else (inst.item_type or CatalogItem.ItemType.PRODUCT)
+    )
+    price = inst.price
+    sale_mode = inst.sale_mode or CatalogItem.SaleMode.BOTH
+    guide = get_item_type_guide(item_type)
+    sale_labels = dict(CatalogItem.SaleMode.choices)
+    if item_type == CatalogItem.ItemType.DOWNLOAD:
+        sale_label = 'دانلود رایگان'
+    elif item_type == CatalogItem.ItemType.SHOWCASE:
+        sale_label = 'فقط درخواست تماس'
+    else:
+        sale_label = sale_labels.get(sale_mode, 'خرید و درخواست')
+    return {
+        'type_label': str(guide.get('label', 'محصول')),
+        'is_active': bool(inst.is_active),
+        'sale_mode_label': sale_label,
+        'price_label': (
+            'رایگان' if item_type == CatalogItem.ItemType.DOWNLOAD
+            else (f'{price:,} ریال' if price else '—')
+        ),
+        'is_download': item_type == CatalogItem.ItemType.DOWNLOAD,
+    }
+
+
+def _order_status_counts(scope: dict) -> dict[str, int]:
+    qs = CatalogOrder.objects.filter(**scope)
+    by_status = {
+        row['status']: row['c']
+        for row in qs.values('status').annotate(c=Count('id'))
+    }
+    return {
+        'all': qs.count(),
+        'paid': by_status.get(CatalogOrder.Status.PAID, 0),
+        'pending': by_status.get(CatalogOrder.Status.PENDING, 0),
+        'request': by_status.get(CatalogOrder.Status.REQUEST, 0),
+        'failed': by_status.get(CatalogOrder.Status.FAILED, 0),
+        'cancelled': by_status.get(CatalogOrder.Status.CANCELLED, 0),
+    }
+
+
+def _order_payment_label(method: str) -> str:
+    labels = dict(CatalogSettings.PaymentMethod.choices)
+    return labels.get(method, method or '—')
+
+
+def _order_customer_rows(catalog: CatalogSettings, order: CatalogOrder) -> list[dict[str, str]]:
+    data = order.customer_data or {}
+    if not data:
+        return []
+    form = get_checkout_form(catalog.checkout_form)
+    labels = {f['key']: f['label'] for f in (form.get('fields') or [])}
+    rows: list[dict[str, str]] = []
+    for key, value in data.items():
+        text = str(value or '').strip()
+        if text:
+            rows.append({'label': labels.get(key, key), 'value': text})
+    return rows
+
+
+def _order_list_querystring(request, *, exclude_page: bool = True, exclude_keys: list[str] | None = None) -> str:
+    params = request.GET.copy()
+    if exclude_page and 'page' in params:
+        params.pop('page')
+    for key in exclude_keys or []:
+        params.pop(key, None)
+    return params.urlencode()
 
 
 class MiniAppPanelMixin(WorkspaceScopedMixin, PanelAccessMixin):
@@ -187,7 +265,7 @@ class CatalogDashboardView(MiniAppPanelMixin, TemplateView):
             },
             {
                 'key': 'payment',
-                'done': bool(payment_methods),
+                'done': catalog.is_payment_ready(),
                 'label': 'روش پرداخت',
                 'hint': 'زرین‌پال یا ارسال به ادمین',
                 'url_name': 'catalog_settings',
@@ -210,7 +288,7 @@ class CatalogDashboardView(MiniAppPanelMixin, TemplateView):
             'order_count': order_count,
             'order_pending': order_pending,
             'payment_methods': payment_methods,
-            'has_payment': bool(payment_methods),
+            'has_payment': catalog.is_payment_ready(),
             'setup_steps': setup_steps,
             'setup_done': setup_done,
             'setup_total': setup_total,
@@ -242,7 +320,9 @@ class CatalogSettingsView(MiniAppPanelMixin, UpdateView):
         ctx = super().get_context_data(**kwargs)
         bot = get_bot_settings_for_request(self.request)
         catalog = self.object
-        ctx['mini_app_url'] = catalog.build_mini_app_url(bot)
+        mini_app_url = catalog.build_mini_app_url(bot)
+        payment_methods = catalog.enabled_payment_methods()
+        ctx['mini_app_url'] = mini_app_url
         ctx['catalog_public_id'] = catalog.public_id
         ctx['webhook_public_url'] = resolve_public_base_url(bot).rstrip('/')
         ctx['bot_username'] = ''
@@ -253,6 +333,14 @@ class CatalogSettingsView(MiniAppPanelMixin, UpdateView):
                 ctx['bot_username'] = (me.get('result') or {}).get('username') or ''
             except Exception:
                 pass
+        ctx['setup_status'] = {
+            'is_enabled': catalog.is_enabled,
+            'payment_ready': catalog.is_payment_ready(),
+            'payment_summary': '، '.join(label for _, label in payment_methods) or 'تنظیم نشده',
+            'can_purchase': catalog.can_accept_orders(),
+            'has_public_url': bool(mini_app_url),
+            'has_hero': bool((catalog.hero_title or '').strip()),
+        }
         return ctx
 
     def form_valid(self, form):
@@ -347,6 +435,14 @@ class CatalogItemCreateView(MiniAppPanelMixin, CreateView):
         kw['platform'] = self.get_active_platform()
         return kw
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['item_media'] = []
+        ctx['item_status'] = _catalog_item_status(None, ctx.get('form'))
+        ctx['item_type_guides_json'] = json.dumps(ITEM_TYPE_GUIDES, ensure_ascii=False)
+        ctx['item_wizard_mode'] = True
+        return ctx
+
     def form_valid(self, form):
         form.instance.workspace = self.get_workspace()
         form.instance.platform = self.get_active_platform()
@@ -386,6 +482,9 @@ class CatalogItemUpdateView(MiniAppPanelMixin, UpdateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['item_media'] = self.object.media.all()
+        ctx['item_status'] = _catalog_item_status(self.object, ctx.get('form'))
+        ctx['item_type_guides_json'] = json.dumps(ITEM_TYPE_GUIDES, ensure_ascii=False)
+        ctx['item_wizard_mode'] = False
         return ctx
 
     def form_valid(self, form):
@@ -419,14 +518,52 @@ class CatalogOrderListView(MiniAppPanelMixin, ListView):
     model = CatalogOrder
     template_name = 'balebot/catalog_order_list.html'
     context_object_name = 'orders'
-    paginate_by = 30
+    paginate_by = 25
 
     def get_queryset(self):
-        qs = CatalogOrder.objects.filter(**self.scope_filter()).select_related('subscriber')
+        scope = self.scope_filter()
+        qs = (
+            CatalogOrder.objects.filter(**scope)
+            .select_related('subscriber')
+            .annotate(line_count=Count('lines'))
+        )
         status = (self.request.GET.get('status') or '').strip()
         if status:
             qs = qs.filter(status=status)
+
+        payment = (self.request.GET.get('payment') or '').strip()
+        if payment:
+            qs = qs.filter(payment_method=payment)
+
+        q = (self.request.GET.get('q') or '').strip()
+        if q:
+            filters = (
+                Q(subscriber__first_name__icontains=q)
+                | Q(subscriber__last_name__icontains=q)
+                | Q(subscriber__username__icontains=q)
+                | Q(subscriber__phone_number__icontains=q)
+                | Q(note__icontains=q)
+            )
+            if q.isdigit():
+                filters |= Q(pk=int(q)) | Q(subscriber__messenger_user_id=int(q))
+            qs = qs.filter(filters)
+
         return qs.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        scope = self.scope_filter()
+        counts = _order_status_counts(scope)
+        ctx['order_counts'] = counts
+        ctx['order_revenue'] = (
+            CatalogOrder.objects.filter(**scope, status=CatalogOrder.Status.PAID)
+            .aggregate(total=Sum('total_amount'))['total'] or 0
+        )
+        ctx['current_status'] = (self.request.GET.get('status') or '').strip()
+        ctx['current_payment'] = (self.request.GET.get('payment') or '').strip()
+        ctx['list_qs'] = _order_list_querystring(self.request)
+        ctx['filter_base_qs'] = _order_list_querystring(self.request, exclude_keys=['payment'])
+        return ctx
 
 
 class CatalogOrderDetailView(MiniAppPanelMixin, DetailView):
@@ -435,4 +572,43 @@ class CatalogOrderDetailView(MiniAppPanelMixin, DetailView):
     context_object_name = 'order'
 
     def get_queryset(self):
-        return CatalogOrder.objects.filter(**self.scope_filter()).prefetch_related('lines')
+        return (
+            CatalogOrder.objects.filter(**self.scope_filter())
+            .select_related('subscriber')
+            .prefetch_related('lines__item')
+        )
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        catalog = self.get_catalog_settings()
+        order = self.object
+        ctx['customer_rows'] = _order_customer_rows(catalog, order)
+        ctx['payment_method_label'] = _order_payment_label(order.payment_method)
+        ctx['update_form'] = CatalogOrderUpdateForm(
+            initial={'status': order.status, 'note': order.note},
+        )
+        ctx['line_count'] = order.lines.count()
+        return ctx
+
+
+class CatalogOrderUpdateView(MiniAppPanelMixin, View):
+    def post(self, request, pk):
+        order = get_object_or_404(CatalogOrder, pk=pk, **self.scope_filter())
+        form = CatalogOrderUpdateForm(request.POST)
+        if not form.is_valid():
+            messages.error(request, 'ذخیره نشد. وضعیت را بررسی کنید.')
+            return redirect('catalog_order_detail', pk=pk)
+
+        old_status = order.status
+        order.status = form.cleaned_data['status']
+        order.note = form.cleaned_data['note']
+        order.save(update_fields=['status', 'note', 'updated_at'])
+
+        if old_status != order.status:
+            messages.success(
+                request,
+                f'وضعیت سفارش #{order.pk} به «{order.get_status_display()}» تغییر کرد.',
+            )
+        else:
+            messages.success(request, 'یادداشت سفارش ذخیره شد.')
+        return redirect('catalog_order_detail', pk=pk)

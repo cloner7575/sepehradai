@@ -1,9 +1,16 @@
-<div class="settings-field mb-3">
+<div class="settings-field mb-3{% if field.field.widget.input_type == 'select' and not field.field.widget.allow_multiple_selected %} settings-field--select{% endif %}">
   {% if field.field.widget.input_type != 'checkbox' %}
   <label class="form-label settings-field-label" for="{{ field.id_for_label }}">{{ label|default:field.label }}</label>
   {% if hint %}<p class="settings-field-hint mb-2">{{ hint }}</p>{% endif %}
   {% endif %}
+  {% if field.field.widget.input_type == 'select' and not field.field.widget.allow_multiple_selected %}
+  <div class="settings-select-wrap">
+    <i class="bi bi-chevron-down settings-select-icon" aria-hidden="true"></i>
+    {{ field }}
+  </div>
+  {% else %}
   {{ field }}
+  {% endif %}
   {% if field.help_text and not hint %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
   {% for err in field.errors %}<div class="text-danger small mt-1">{{ err }}</div>{% endfor %}
 </div>

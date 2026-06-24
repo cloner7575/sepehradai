@@ -96,6 +96,14 @@
             <td class="text-end text-nowrap">
               <a href="{{ c.get_absolute_url }}" class="btn btn-panel-ghost btn-sm" title="جزئیات"><i class="bi bi-eye"></i></a>
               <a href="{% url 'campaign_edit' c.pk %}" class="btn btn-panel-primary btn-sm">ویرایش</a>
+              {% if c.status == 'sending' %}
+              <button type="button" class="btn btn-outline-danger btn-sm border-opacity-25" disabled title="در حال ارسال — ابتدا لغو کنید"><i class="bi bi-trash"></i></button>
+              {% else %}
+              <form method="post" action="{% url 'campaign_delete' c.pk %}" class="d-inline" onsubmit="return confirm('کمپین «{{ c.title|escapejs }}» حذف شود؟ این کار قابل بازگشت نیست.');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger btn-sm border-opacity-50" title="حذف"><i class="bi bi-trash"></i></button>
+              </form>
+              {% endif %}
             </td>
           </tr>
           {% empty %}

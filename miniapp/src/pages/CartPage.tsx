@@ -45,6 +45,7 @@ export function CartPage() {
     setError,
     runCheckout,
     methods,
+    canPurchase,
   } = useCheckout();
   const checkoutForm = useCheckoutForm(config?.checkout_form);
 
@@ -128,6 +129,11 @@ export function CartPage() {
               disabled={busy}
             />
             <PaymentMethodPicker methods={methods} value={paymentMethod} onChange={setPaymentMethod} />
+            {!canPurchase && (
+              <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
+                پرداخت هنوز در این فروشگاه فعال نشده است. لطفاً بعداً دوباره تلاش کنید.
+              </p>
+            )}
             <div className="space-y-3">
               {cartItems.map((line) => (
                 <div key={line.item_id} className="card flex gap-3 p-3">
@@ -192,7 +198,7 @@ export function CartPage() {
             <span className="text-sm text-muted">جمع کل</span>
             <span className="text-lg font-bold text-primary">{formatPrice(cartTotal)}</span>
           </div>
-          <button type="button" className="btn-primary" disabled={busy} onClick={checkoutCart}>
+          <button type="button" className="btn-primary" disabled={busy || !canPurchase} onClick={checkoutCart}>
             {labels.checkout || 'تسویه حساب'}
           </button>
         </div>

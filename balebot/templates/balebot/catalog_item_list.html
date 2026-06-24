@@ -31,7 +31,7 @@
             {% elif item.media.all %}
             <i class="bi bi-{% if item.media.all.0.media_type == 'video' %}play-btn{% else %}file-earmark{% endif %}"></i>
             {% else %}
-            <i class="bi bi-{% if item.item_type == 'download' %}download{% else %}image{% endif %}"></i>
+            <i class="bi bi-{% if item.item_type == 'download' %}download{% elif item.item_type == 'video' %}play-btn{% elif item.item_type == 'showcase' or item.item_type == 'portfolio' %}images{% else %}box-seam{% endif %}"></i>
             {% endif %}
           </div>
           <div class="catalog-item-card-body">
@@ -46,6 +46,8 @@
             <div class="catalog-item-card-badges">
               {% if item.is_active %}<span class="catalog-pill catalog-pill--ok">فعال</span>{% else %}<span class="catalog-pill">غیرفعال</span>{% endif %}
               {% if item.item_type == 'download' %}<span class="catalog-pill catalog-pill--info">دانلود</span>{% endif %}
+              {% if item.item_type == 'video' %}<span class="catalog-pill catalog-pill--info">ویدیو</span>{% endif %}
+              {% if item.item_type == 'showcase' or item.item_type == 'portfolio' %}<span class="catalog-pill">معرفی</span>{% endif %}
               {% if item.is_featured %}<span class="catalog-pill catalog-pill--warn">ویژه</span>{% endif %}
             </div>
             {% if item.price %}

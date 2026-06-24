@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import type { CatalogItem } from '../types';
 import { formatPrice } from '../api';
 import { ItemThumbnail } from './MediaGallery';
-import { itemTypeLabel } from '../utils/itemType';
+import { itemTypeLabel, isShowcaseType, isVideoType } from '../utils/itemType';
 
 export function ItemCard({
   item,
@@ -14,6 +14,8 @@ export function ItemCard({
   layout?: 'grid' | 'list';
 }) {
   const typeLabel = itemTypeLabel(item.item_type);
+  const showcase = isShowcaseType(item.item_type);
+  const hasVideo = item.media?.some((m) => m.type === 'video');
 
   if (layout === 'list') {
     return (
@@ -30,10 +32,10 @@ export function ItemCard({
           <div className="mt-1">
             {item.is_downloadable ? (
               <span className="text-xs font-semibold text-primary">رایگان</span>
-            ) : item.price ? (
+            ) : item.price && !showcase ? (
               <span className="price-tag">{formatPrice(item.price)}</span>
             ) : (
-              <span className="text-xs font-medium text-muted">تماس بگیرید</span>
+              <span className="text-xs font-medium text-muted">{showcase ? 'معرفی' : 'تماس بگیرید'}</span>
             )}
           </div>
         </div>
@@ -48,6 +50,8 @@ export function ItemCard({
         <div className="product-card-badges">
           {item.is_downloadable ? (
             <span className="badge bg-primary text-white">دانلود</span>
+          ) : isVideoType(item.item_type) || hasVideo ? (
+            <span className="badge bg-violet-600 text-white">ویدیو</span>
           ) : item.is_featured ? (
             <span className="badge bg-amber-500 text-white">ویژه</span>
           ) : null}
@@ -62,10 +66,10 @@ export function ItemCard({
         <div className="product-card-footer">
           {item.is_downloadable ? (
             <span className="text-xs font-semibold text-primary">رایگان</span>
-          ) : item.price ? (
+          ) : item.price && !showcase ? (
             <span className="price-tag">{formatPrice(item.price)}</span>
           ) : (
-            <span className="text-xs font-medium text-muted">تماس بگیرید</span>
+            <span className="text-xs font-medium text-muted">{showcase ? 'معرفی' : 'تماس بگیرید'}</span>
           )}
           {!compact && <span className="product-card-cta">مشاهده</span>}
         </div>

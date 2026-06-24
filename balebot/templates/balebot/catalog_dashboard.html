@@ -231,7 +231,7 @@
               {% for o in recent_orders %}
               <tr>
                 <td><a href="{% url 'catalog_order_detail' o.pk %}">#{{ o.pk }}</a></td>
-                <td><span class="catalog-pill">{{ o.get_status_display }}</span></td>
+                <td>{% include "balebot/_catalog_order_status.html" with order=o %}</td>
                 <td class="small">{{ o.total_amount|floatformat:0 }}</td>
                 <td class="small">{% if o.subscriber %}{{ o.subscriber.first_name|default:"—" }}{% else %}—{% endif %}</td>
               </tr>

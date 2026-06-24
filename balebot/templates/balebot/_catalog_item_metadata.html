@@ -1,0 +1,13 @@
+<div class="metadata-builder" id="metadata-builder">
+  {{ form.metadata_json }}
+  <div id="metadata-builder-rows" class="metadata-builder-rows" aria-live="polite"></div>
+  <button type="button" class="btn-panel-ghost btn-sm" id="metadata-add-row">
+    <i class="bi bi-plus-lg"></i>افزودن ویژگی
+  </button>
+  <p class="settings-field-hint mb-0 mt-3">
+    مثال: نام «رنگ» — مقدار «مشکی» — در صفحه آیتم مینی‌اپ نمایش داده می‌شود.
+  </p>
+  {% for err in form.metadata_json.errors %}
+  <div class="text-danger small mt-2">{{ err }}</div>
+  {% endfor %}
+</div>

@@ -1,46 +1,197 @@
 {% extends "balebot/base.html" %}
 {% block title %}سفارش‌ها{% endblock %}
 {% block page_title %}سفارش‌های مینی‌اپ{% endblock %}
+{% block page_subtitle %}
+<p class="topbar-meta mb-0 mt-1">پیگیری خریدها، درخواست‌ها و پرداخت‌های آنلاین</p>
+{% endblock %}
+
 {% block content %}
-<div class="catalog-panel">
+<div class="catalog-panel catalog-orders-page">
   {% include "balebot/_catalog_subnav.html" %}
 
-  <div class="catalog-filter-tabs mb-3">
-    <a href="{% url 'catalog_order_list' %}" class="catalog-filter-tab{% if not request.GET.status %} is-active{% endif %}">همه</a>
-    <a href="?status=paid" class="catalog-filter-tab{% if request.GET.status == 'paid' %} is-active{% endif %}">پرداخت‌شده</a>
-    <a href="?status=pending" class="catalog-filter-tab{% if request.GET.status == 'pending' %} is-active{% endif %}">در انتظار</a>
-    <a href="?status=request" class="catalog-filter-tab{% if request.GET.status == 'request' %} is-active{% endif %}">درخواست</a>
+  <div class="app-metrics mb-4">
+    <div class="row g-3">
+      <div class="col-6 col-xl-3">
+        <div class="app-metric d-flex align-items-start gap-3">
+          <span class="app-metric-icon app-metric-icon--info mb-0"><i class="bi bi-receipt"></i></span>
+          <div>
+            <span class="app-metric-label">همه سفارش‌ها</span>
+            <span class="app-metric-value">{{ order_counts.all }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-xl-3">
+        <div class="app-metric d-flex align-items-start gap-3">
+          <span class="app-metric-icon app-metric-icon--success mb-0"><i class="bi bi-check2-circle"></i></span>
+          <div>
+            <span class="app-metric-label">پرداخت‌شده</span>
+            <span class="app-metric-value">{{ order_counts.paid }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-xl-3">
+        <div class="app-metric d-flex align-items-start gap-3">
+          <span class="app-metric-icon app-metric-icon--warn mb-0"><i class="bi bi-hourglass-split"></i></span>
+          <div>
+            <span class="app-metric-label">در انتظار / درخواست</span>
+            <span class="app-metric-value">{{ order_counts.pending|add:order_counts.request }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-xl-3">
+        <div class="app-metric d-flex align-items-start gap-3">
+          <span class="app-metric-icon app-metric-icon--neutral mb-0"><i class="bi bi-cash-stack"></i></span>
+          <div>
+            <span class="app-metric-label">درآمد پرداخت‌شده</span>
+            <span class="app-metric-value catalog-order-revenue">{{ order_revenue|floatformat:0 }}<small class="catalog-order-revenue-unit">ریال</small></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="catalog-toolbar catalog-orders-toolbar">
+    <form method="get" class="catalog-toolbar-search">
+      <i class="bi bi-search catalog-toolbar-search-icon"></i>
+      <input name="q" value="{{ request.GET.q }}" class="form-control panel-input" placeholder="شماره سفارش، نام، موبایل یا شناسه کاربر…">
+      {% if current_status %}<input type="hidden" name="status" value="{{ current_status }}">{% endif %}
+      {% if current_payment %}<input type="hidden" name="payment" value="{{ current_payment }}">{% endif %}
+      <button type="submit" class="btn btn-panel-ghost btn-sm">جستجو</button>
+    </form>
+    {% if request.GET.q %}
+    <a href="{% url 'catalog_order_list' %}{% if current_status %}?status={{ current_status }}{% endif %}" class="btn btn-panel-ghost btn-sm">پاک کردن جستجو</a>
+    {% endif %}
+  </div>
+
+  <div class="catalog-filter-tabs catalog-orders-filter-tabs mb-3">
+    <a href="{% url 'catalog_order_list' %}{% if request.GET.q %}?q={{ request.GET.q|urlencode }}{% endif %}" class="catalog-filter-tab{% if not current_status %} is-active{% endif %}">
+      همه <span class="catalog-filter-count">{{ order_counts.all }}</span>
+    </a>
+    <a href="?status=paid{% if request.GET.q %}&amp;q={{ request.GET.q|urlencode }}{% endif %}" class="catalog-filter-tab{% if current_status == 'paid' %} is-active{% endif %}">
+      پرداخت‌شده <span class="catalog-filter-count">{{ order_counts.paid }}</span>
+    </a>
+    <a href="?status=pending{% if request.GET.q %}&amp;q={{ request.GET.q|urlencode }}{% endif %}" class="catalog-filter-tab{% if current_status == 'pending' %} is-active{% endif %}">
+      در انتظار <span class="catalog-filter-count">{{ order_counts.pending }}</span>
+    </a>
+    <a href="?status=request{% if request.GET.q %}&amp;q={{ request.GET.q|urlencode }}{% endif %}" class="catalog-filter-tab{% if current_status == 'request' %} is-active{% endif %}">
+      درخواست <span class="catalog-filter-count">{{ order_counts.request }}</span>
+    </a>
+    <a href="?status=failed{% if request.GET.q %}&amp;q={{ request.GET.q|urlencode }}{% endif %}" class="catalog-filter-tab{% if current_status == 'failed' %} is-active{% endif %}">
+      ناموفق <span class="catalog-filter-count">{{ order_counts.failed }}</span>
+    </a>
+    <a href="?status=cancelled{% if request.GET.q %}&amp;q={{ request.GET.q|urlencode }}{% endif %}" class="catalog-filter-tab{% if current_status == 'cancelled' %} is-active{% endif %}">
+      لغوشده <span class="catalog-filter-count">{{ order_counts.cancelled }}</span>
+    </a>
   </div>
 
   <div class="panel-card">
+    <div class="panel-card-header catalog-orders-card-head">
+      <div>
+        <h2 class="panel-card-title mb-1">فهرست سفارش‌ها</h2>
+        <p class="panel-card-lead mb-0 small">{% if is_paginated %}نمایش {{ page_obj.start_index }}–{{ page_obj.end_index }} از {{ paginator.count }}{% else %}{{ orders|length }} سفارش{% endif %}</p>
+      </div>
+      <div class="catalog-orders-payment-filters">
+        <a href="?{% if filter_base_qs %}{{ filter_base_qs }}&{% endif %}payment=zarinpal" class="catalog-mini-filter{% if current_payment == 'zarinpal' %} is-active{% endif %}">زرین‌پال</a>
+        <a href="?{% if filter_base_qs %}{{ filter_base_qs }}&{% endif %}payment=admin_cart" class="catalog-mini-filter{% if current_payment == 'admin_cart' %} is-active{% endif %}">ارسال به ادمین</a>
+        {% if current_payment %}
+        <a href="?{{ filter_base_qs }}" class="catalog-mini-filter catalog-mini-filter--clear">همه روش‌ها</a>
+        {% endif %}
+      </div>
+    </div>
     <div class="panel-table-wrap">
-      <table class="table panel-table mb-0 catalog-table">
+      <table class="table panel-table mb-0 catalog-table catalog-orders-table">
         <thead>
-          <tr><th>#</th><th>وضعیت</th><th>مبلغ</th><th>کاربر</th><th>تاریخ</th><th></th></tr>
+          <tr>
+            <th>سفارش</th>
+            <th>وضعیت</th>
+            <th class="d-none d-md-table-cell">نوع</th>
+            <th class="d-none d-lg-table-cell">اقلام</th>
+            <th>مبلغ</th>
+            <th class="d-none d-md-table-cell">مشتری</th>
+            <th class="d-none d-xl-table-cell">پرداخت</th>
+            <th class="d-none d-lg-table-cell">تاریخ</th>
+            <th></th>
+          </tr>
         </thead>
         <tbody>
           {% for o in orders %}
-          <tr>
-            <td><a href="{% url 'catalog_order_detail' o.pk %}">#{{ o.pk }}</a></td>
-            <td><span class="catalog-pill">{{ o.get_status_display }}</span></td>
-            <td>{{ o.total_amount|floatformat:0 }} ریال</td>
-            <td>{% if o.subscriber %}{{ o.subscriber.first_name }}{% else %}—{% endif %}</td>
-            <td class="small text-muted">{{ o.created_at|date:"Y/m/d H:i" }}</td>
-            <td class="text-end">
-              <a href="{% url 'catalog_order_detail' o.pk %}" class="btn btn-sm btn-panel-ghost">جزئیات</a>
+          <tr class="catalog-order-row">
+            <td>
+              <a href="{% url 'catalog_order_detail' o.pk %}" class="catalog-order-id">#{{ o.pk }}</a>
+            </td>
+            <td>{% include "balebot/_catalog_order_status.html" with order=o %}</td>
+            <td class="d-none d-md-table-cell">
+              {% if o.status == 'request' %}
+              <span class="catalog-order-type catalog-order-type--request"><i class="bi bi-chat-dots"></i>درخواست</span>
+              {% elif o.total_amount > 0 %}
+              <span class="catalog-order-type catalog-order-type--buy"><i class="bi bi-cart3"></i>خرید</span>
+              {% else %}
+              <span class="catalog-order-type">—</span>
+              {% endif %}
+            </td>
+            <td class="d-none d-lg-table-cell small text-muted">{{ o.line_count }}</td>
+            <td>
+              <span class="catalog-order-amount">{% if o.total_amount %}{{ o.total_amount|floatformat:0 }}{% else %}—{% endif %}</span>
+              {% if o.total_amount %}<span class="catalog-order-amount-unit">ریال</span>{% endif %}
+            </td>
+            <td class="d-none d-md-table-cell">
+              {% if o.subscriber %}
+              <div class="catalog-order-customer">
+                <span class="catalog-order-customer-name">{{ o.subscriber.first_name|default:"کاربر" }}{% if o.subscriber.last_name %} {{ o.subscriber.last_name }}{% endif %}</span>
+                {% if o.subscriber.phone_number %}
+                <span class="catalog-order-customer-phone" dir="ltr">{{ o.subscriber.phone_number }}</span>
+                {% endif %}
+              </div>
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="d-none d-xl-table-cell small">
+              {% if o.payment_method == 'zarinpal' %}زرین‌پال
+              {% elif o.payment_method == 'admin_cart' %}ارسال به ادمین
+              {% else %}—{% endif %}
+            </td>
+            <td class="d-none d-lg-table-cell small text-muted">{{ o.created_at|date:"Y/m/d H:i" }}</td>
+            <td class="text-end text-nowrap">
+              <a href="{% url 'catalog_order_detail' o.pk %}" class="btn btn-panel-ghost btn-sm" title="جزئیات"><i class="bi bi-eye"></i></a>
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="6">
-            <div class="catalog-empty-state catalog-empty-state--table">
-              <i class="bi bi-receipt"></i>
-              <p>سفارشی نیست</p>
-            </div>
-          </td></tr>
+          <tr>
+            <td colspan="9">
+              <div class="catalog-empty-state catalog-empty-state--table">
+                <i class="bi bi-receipt"></i>
+                <p>{% if request.GET.q %}نتیجه‌ای برای «{{ request.GET.q }}» نیست{% else %}سفارشی ثبت نشده{% endif %}</p>
+                {% if request.GET.q or current_status or current_payment %}
+                <a href="{% url 'catalog_order_list' %}" class="btn btn-panel-ghost btn-sm">نمایش همه</a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
+
+  {% if is_paginated %}
+  <nav class="mt-4" aria-label="صفحه‌بندی سفارش‌ها">
+    <ul class="pagination justify-content-center flex-wrap gap-1 mb-0">
+      {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link rounded-pill" href="?{% if list_qs %}{{ list_qs }}&{% endif %}page={{ page_obj.previous_page_number }}">قبلی</a>
+      </li>
+      {% endif %}
+      <li class="page-item disabled">
+        <span class="page-link rounded-pill border-0 bg-transparent text-muted">صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}</span>
+      </li>
+      {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link rounded-pill" href="?{% if list_qs %}{{ list_qs }}&{% endif %}page={{ page_obj.next_page_number }}">بعدی</a>
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
 </div>
 {% endblock %}

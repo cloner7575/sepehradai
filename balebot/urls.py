@@ -75,6 +75,11 @@ urlpatterns = [
         name='campaign_edit',
     ),
     path(
+        'campaigns/<int:pk>/delete/',
+        views_panel.CampaignDeleteView.as_view(),
+        name='campaign_delete',
+    ),
+    path(
         'campaigns/media-upload/',
         views_panel.CampaignMediaUploadView.as_view(),
         name='campaign_media_upload',
@@ -105,6 +110,11 @@ urlpatterns = [
     ),
     path('catalog/orders/', views_panel_catalog.CatalogOrderListView.as_view(), name='catalog_order_list'),
     path('catalog/orders/<int:pk>/', views_panel_catalog.CatalogOrderDetailView.as_view(), name='catalog_order_detail'),
+    path(
+        'catalog/orders/<int:pk>/update/',
+        views_panel_catalog.CatalogOrderUpdateView.as_view(),
+        name='catalog_order_update',
+    ),
     path('api/shop/<uuid:public_id>/config/', views_miniapp_api.catalog_config, name='api_catalog_config'),
     path(
         'api/shop/<uuid:public_id>/media/<path:file_path>',

@@ -90,6 +90,7 @@ export type HomeBlock =
 
 export interface CatalogConfig {
   is_enabled?: boolean;
+  can_purchase?: boolean;
   platform: string;
   hero_title: string;
   hero_subtitle: string;

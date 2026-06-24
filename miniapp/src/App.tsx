@@ -209,6 +209,11 @@ export default function App() {
             مینی‌اپ در حال آماده‌سازی است — مشاهده محتوا ممکن است، خرید هنوز فعال نشده.
           </Banner>
         )}
+        {config && config.is_enabled !== false && config.can_purchase === false && (
+          <Banner>
+            روش پرداخت هنوز کامل تنظیم نشده — مشاهده محصولات ممکن است، خرید موقتاً غیرفعال است.
+          </Banner>
+        )}
         {unsupported && (
           <Banner>
             لطفاً اپلیکیشن بله/تلگرام را به‌روزرسانی کنید.

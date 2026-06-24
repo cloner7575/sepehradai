@@ -2,23 +2,37 @@ import { useEffect, useState } from 'react';
 import { checkout } from '../api';
 import { useApp } from '../App';
 
+function resolveDefaultMethod(
+  methods: { id: string }[],
+  preferred?: string,
+): string {
+  if (!methods.length) return '';
+  if (preferred && methods.some((m) => m.id === preferred)) return preferred;
+  return methods[0].id;
+}
+
 export function useCheckout() {
   const { adapter, refreshCart, config } = useApp();
-  const [paymentMethod, setPaymentMethod] = useState('admin_cart');
+  const methods = config?.payment_methods || [];
+  const [paymentMethod, setPaymentMethod] = useState(() =>
+    resolveDefaultMethod(methods, config?.payment_default),
+  );
 
   useEffect(() => {
-    if (config?.payment_default) {
-      setPaymentMethod(config.payment_default);
-    } else if (config?.payment_methods?.[0]?.id) {
-      setPaymentMethod(config.payment_methods[0].id);
-    }
-  }, [config?.payment_default, config?.payment_methods]);
+    const list = config?.payment_methods || [];
+    setPaymentMethod(resolveDefaultMethod(list, config?.payment_default));
+  }, [config?.payment_methods, config?.payment_default]);
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
   const runCheckout = async (body: Record<string, unknown>) => {
     if (!adapter.initData) {
       setError('احراز هویت لازم است');
+      return null;
+    }
+    if (!methods.length || !paymentMethod) {
+      setError('روش پرداخت فعالی برای این فروشگاه تنظیم نشده است');
       return null;
     }
     setBusy(true);
@@ -49,6 +63,7 @@ export function useCheckout() {
     error,
     setError,
     runCheckout,
-    methods: config?.payment_methods || [],
+    methods,
+    canPurchase: config?.can_purchase ?? (methods.length > 0 && config?.is_enabled !== false),
   };
 }

@@ -755,6 +755,27 @@ class CampaignUpdateView(WorkspaceScopedMixin, PanelAccessMixin, UpdateView):
         return reverse_lazy('campaign_detail', kwargs={'pk': self.object.pk})
 
 
+class CampaignDeleteView(WorkspaceScopedMixin, PanelAccessMixin, View):
+    http_method_names = ['post']
+
+    def post(self, request, pk, *args, **kwargs):
+        campaign = get_object_or_404(
+            Campaign.objects.filter(**self.scope_filter()),
+            pk=pk,
+        )
+        if campaign.status == Campaign.Status.SENDING:
+            messages.error(
+                request,
+                'کمپین در حال ارسال است و قابل حذف نیست. ابتدا از صفحهٔ جزئیات آن را لغو کنید.',
+            )
+            return HttpResponseRedirect(reverse('campaign_list'))
+
+        title = campaign.title
+        campaign.delete()
+        messages.success(request, f'کمپین «{title}» حذف شد.')
+        return HttpResponseRedirect(reverse('campaign_list'))
+
+
 class CampaignMediaUploadView(PanelAccessMixin, View):
     """آپلود جداگانهٔ ویدیو برای کمپین؛ فایل موقت در MEDIA و کلید در سشن."""
 

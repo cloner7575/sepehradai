@@ -365,10 +365,10 @@
       var ref = resolveAtPath(selection.path);
       var name = ref && ref.button ? (ref.button.text || '').trim() || 'دکمه' : 'دکمه';
       label.innerHTML =
-        '<i class="bi bi-cursor"></i> افزودن به اکشن «' + escapeHtml(name) + '»';
+        '<i class="bi bi-cursor"></i> افزودن به «' + escapeHtml(name) + '»';
       toolbar.classList.add('is-button-target');
     } else {
-      label.innerHTML = '<i class="bi bi-plus-circle"></i> افزودن به جریان';
+      label.innerHTML = '<i class="bi bi-plus-circle"></i> افزودن به منو';
       toolbar.classList.remove('is-button-target');
     }
   }

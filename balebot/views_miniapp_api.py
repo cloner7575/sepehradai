@@ -85,7 +85,7 @@ def _item_dict(item: CatalogItem, request=None, catalog=None) -> dict:
         'title': item.title,
         'short_description': item.short_description,
         'description': item.description,
-        'item_type': item.item_type,
+        'item_type': item.normalized_item_type(),
         'price': item.price,
         'sale_mode': item.sale_mode,
         'is_buyable': item.is_buyable(),
@@ -170,11 +170,13 @@ def catalog_config(request, public_id):
     methods = []
     for value, label in catalog.enabled_payment_methods():
         methods.append({'id': value, 'label': label})
+    can_purchase = catalog.can_accept_orders()
     theme = catalog.theme_config or {}
     home_blocks = absolutize_home_blocks(get_home_blocks(theme), request, catalog=catalog)
     return JsonResponse({
         'ok': True,
         'is_enabled': catalog.is_enabled,
+        'can_purchase': can_purchase,
         'platform': catalog.platform,
         'hero_title': catalog.hero_title,
         'hero_subtitle': catalog.hero_subtitle,
@@ -185,8 +187,8 @@ def catalog_config(request, public_id):
         'hero_background_url': hero_background_url,
         'public_base_url': public_base_url,
         'mini_app_url': catalog.build_mini_app_url(cfg),
-        'payment_methods': methods if catalog.is_enabled else [],
-        'payment_default': catalog.resolve_payment_method(None) if catalog.is_enabled else None,
+        'payment_methods': methods if can_purchase else [],
+        'payment_default': catalog.resolve_payment_method(None) if can_purchase else None,
         'checkout_form': public_checkout_form(catalog.checkout_form),
     })
 

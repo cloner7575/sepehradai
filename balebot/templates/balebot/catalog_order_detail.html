@@ -1,54 +1,199 @@
 {% extends "balebot/base.html" %}
 {% block title %}سفارش #{{ order.pk }}{% endblock %}
 {% block page_title %}سفارش #{{ order.pk }}{% endblock %}
+{% block page_subtitle %}
+<p class="topbar-meta mb-0 mt-1">{{ order.created_at|date:"Y/m/d H:i" }} · {{ line_count }} قلم</p>
+{% endblock %}
+
 {% block content %}
-<div class="catalog-panel">
+<div class="catalog-panel catalog-order-detail-page">
   {% include "balebot/_catalog_subnav.html" %}
+
+  <div class="catalog-order-detail-header mb-4">
+    <div class="catalog-order-detail-header-main">
+      <a href="{% url 'catalog_order_list' %}" class="catalog-order-back"><i class="bi bi-arrow-right"></i>بازگشت</a>
+      <div class="catalog-order-detail-title-row">
+        <h1 class="catalog-order-detail-title">سفارش #{{ order.pk }}</h1>
+        {% include "balebot/_catalog_order_status.html" with order=order %}
+      </div>
+    </div>
+    <div class="catalog-order-detail-amount">
+      <span class="catalog-order-detail-amount-label">مبلغ کل</span>
+      <span class="catalog-order-detail-amount-value">{% if order.total_amount %}{{ order.total_amount|floatformat:0 }} <small>ریال</small>{% else %}رایگان / درخواست{% endif %}</span>
+    </div>
+  </div>
 
   <div class="row g-4">
     <div class="col-lg-8">
-      <div class="panel-card">
+      <div class="panel-card mb-4">
         <div class="panel-card-header">
-          <h2 class="panel-card-title mb-0">جزئیات سفارش</h2>
-          <span class="catalog-pill">{{ order.get_status_display }}</span>
+          <h2 class="panel-card-title mb-0">اقلام سفارش</h2>
+        </div>
+        <div class="panel-table-wrap">
+          <table class="table panel-table mb-0 catalog-table catalog-order-lines-table">
+            <thead>
+              <tr>
+                <th>عنوان</th>
+                <th class="text-center">تعداد</th>
+                <th class="d-none d-sm-table-cell">قیمت واحد</th>
+                <th class="text-end">جمع</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for line in order.lines.all %}
+              <tr>
+                <td>
+                  {% if line.item_id %}
+                  <a href="{% url 'catalog_item_edit' line.item_id %}" class="catalog-order-line-link">{{ line.title_snapshot }}</a>
+                  {% else %}
+                  {{ line.title_snapshot }}
+                  {% endif %}
+                </td>
+                <td class="text-center">{{ line.quantity }}</td>
+                <td class="d-none d-sm-table-cell">{{ line.price_snapshot|floatformat:0 }} ریال</td>
+                <td class="text-end fw-semibold">{{ line.line_total|floatformat:0 }} ریال</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr class="catalog-order-total-row">
+                <td colspan="3" class="text-end d-none d-sm-table-cell">جمع کل</td>
+                <td colspan="1" class="text-end d-sm-none">جمع</td>
+                <td class="text-end fw-bold">{{ order.total_amount|floatformat:0 }} ریال</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      {% if customer_rows %}
+      <div class="panel-card mb-4">
+        <div class="panel-card-header">
+          <div>
+            <h2 class="panel-card-title mb-1">اطلاعات مشتری</h2>
+            <p class="panel-card-lead mb-0 small">داده‌های فرم تسویه‌حساب مینی‌اپ</p>
+          </div>
         </div>
         <div class="panel-card-body">
-          <dl class="row catalog-detail-dl mb-4">
-            {% if order.payment_method %}
-            <dt class="col-sm-4">روش پرداخت</dt><dd class="col-sm-8">{{ order.payment_method }}</dd>
+          <dl class="catalog-order-customer-dl">
+            {% for row in customer_rows %}
+            <div class="catalog-order-customer-row">
+              <dt>{{ row.label }}</dt>
+              <dd dir="auto">{{ row.value }}</dd>
+            </div>
+            {% endfor %}
+          </dl>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if order.note %}
+      <div class="panel-card">
+        <div class="panel-card-header">
+          <h2 class="panel-card-title mb-0">یادداشت داخلی</h2>
+        </div>
+        <div class="panel-card-body">
+          <p class="mb-0 catalog-order-note-text">{{ order.note|linebreaksbr }}</p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+      <div class="panel-card mb-4 catalog-order-action-card">
+        <div class="panel-card-header">
+          <h2 class="panel-card-title mb-0">مدیریت وضعیت</h2>
+        </div>
+        <div class="panel-card-body">
+          <form method="post" action="{% url 'catalog_order_update' order.pk %}">
+            {% csrf_token %}
+            {% include "balebot/_settings_field.html" with field=update_form.status %}
+            {% include "balebot/_settings_field.html" with field=update_form.note %}
+            <button type="submit" class="btn btn-panel-primary w-100">
+              <i class="bi bi-cloud-check me-1"></i>ذخیره تغییرات
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div class="panel-card mb-4">
+        <div class="panel-card-header">
+          <h2 class="panel-card-title mb-0">مشتری</h2>
+        </div>
+        <div class="panel-card-body">
+          {% if order.subscriber %}
+          <div class="catalog-order-subscriber-card">
+            <div class="catalog-order-subscriber-avatar"><i class="bi bi-person"></i></div>
+            <div>
+              <div class="catalog-order-subscriber-name">
+                {{ order.subscriber.first_name|default:"" }} {{ order.subscriber.last_name|default:"" }}
+                {% if not order.subscriber.first_name and not order.subscriber.last_name %}کاربر{% endif %}
+              </div>
+              {% if order.subscriber.username %}
+              <div class="catalog-order-subscriber-meta" dir="ltr">@{{ order.subscriber.username }}</div>
+              {% endif %}
+              {% if order.subscriber.phone_number %}
+              <div class="catalog-order-subscriber-meta" dir="ltr">{{ order.subscriber.phone_number }}</div>
+              {% endif %}
+              <div class="catalog-order-subscriber-meta text-muted small">شناسه: {{ order.subscriber.messenger_user_id }}</div>
+            </div>
+          </div>
+          <a href="{% url 'subscriber_detail' order.subscriber.pk %}" class="btn btn-panel-ghost btn-sm w-100 mt-3">
+            <i class="bi bi-chat-dots me-1"></i>مشاهده مشترک
+          </a>
+          {% else %}
+          <p class="text-muted small mb-0">اطلاعات مشترک در دسترس نیست.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="panel-card mb-4">
+        <div class="panel-card-header">
+          <h2 class="panel-card-title mb-0">پرداخت</h2>
+        </div>
+        <div class="panel-card-body">
+          <dl class="catalog-order-meta-dl">
+            <div class="catalog-order-meta-row">
+              <dt>روش</dt>
+              <dd>{{ payment_method_label }}</dd>
+            </div>
+            {% if order.payment_charge_id %}
+            <div class="catalog-order-meta-row">
+              <dt>کد پیگیری</dt>
+              <dd dir="ltr"><code class="catalog-order-code">{{ order.payment_charge_id }}</code></dd>
+            </div>
             {% endif %}
             {% if order.zarinpal_authority %}
-            <dt class="col-sm-4">Authority</dt><dd class="col-sm-8" dir="ltr">{{ order.zarinpal_authority }}</dd>
+            <div class="catalog-order-meta-row">
+              <dt>Authority</dt>
+              <dd dir="ltr"><code class="catalog-order-code">{{ order.zarinpal_authority }}</code></dd>
+            </div>
             {% endif %}
-            <dt class="col-sm-4">مبلغ کل</dt><dd class="col-sm-8">{{ order.total_amount|floatformat:0 }} ریال</dd>
-            <dt class="col-sm-4">کاربر</dt>
-            <dd class="col-sm-8">{% if order.subscriber %}{{ order.subscriber.first_name }} ({{ order.subscriber.messenger_user_id }}){% else %}—{% endif %}</dd>
-            <dt class="col-sm-4">تاریخ</dt><dd class="col-sm-8">{{ order.created_at|date:"Y/m/d H:i" }}</dd>
-            {% if order.note %}
-            <dt class="col-sm-4">یادداشت</dt><dd class="col-sm-8">{{ order.note }}</dd>
-            {% endif %}
+            <div class="catalog-order-meta-row">
+              <dt>پلتفرم</dt>
+              <dd>{{ order.get_platform_display|default:order.platform }}</dd>
+            </div>
           </dl>
+        </div>
+      </div>
 
-          <h3 class="catalog-form-section-title">اقلام</h3>
-          <div class="panel-table-wrap">
-            <table class="table panel-table mb-0 catalog-table">
-              <thead><tr><th>عنوان</th><th>تعداد</th><th>قیمت</th><th>جمع</th></tr></thead>
-              <tbody>
-                {% for line in order.lines.all %}
-                <tr>
-                  <td>{{ line.title_snapshot }}</td>
-                  <td>{{ line.quantity }}</td>
-                  <td>{{ line.price_snapshot|floatformat:0 }}</td>
-                  <td>{{ line.line_total|floatformat:0 }}</td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-
-          <div class="mt-4">
-            <a href="{% url 'catalog_order_list' %}" class="btn btn-panel-ghost">بازگشت به سفارش‌ها</a>
-          </div>
+      <div class="panel-card">
+        <div class="panel-card-header">
+          <h2 class="panel-card-title mb-0">زمان‌بندی</h2>
+        </div>
+        <div class="panel-card-body">
+          <ul class="catalog-order-timeline">
+            <li>
+              <span class="catalog-order-timeline-label">ثبت سفارش</span>
+              <span class="catalog-order-timeline-value">{{ order.created_at|date:"Y/m/d H:i" }}</span>
+            </li>
+            {% if order.updated_at and order.updated_at != order.created_at %}
+            <li>
+              <span class="catalog-order-timeline-label">آخرین به‌روزرسانی</span>
+              <span class="catalog-order-timeline-value">{{ order.updated_at|date:"Y/m/d H:i" }}</span>
+            </li>
+            {% endif %}
+          </ul>
         </div>
       </div>
     </div>

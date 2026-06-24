@@ -3,12 +3,14 @@ import json
 from django import forms
 from django.utils.text import slugify
 
-from balebot.models import CatalogCategory, CatalogItem, CatalogSettings
+from balebot.models import CatalogCategory, CatalogItem, CatalogOrder, CatalogSettings
 from balebot.widgets import PersianClearableFileInput
+from balebot.services.catalog_item_types import ITEM_TYPE_GUIDES, get_item_type_guide
 from balebot.services.catalog_page_layout import get_home_blocks, sanitize_home_blocks
 from balebot.services.checkout_form import default_checkout_form, sanitize_checkout_form
 
 _INPUT = 'form-control panel-input'
+_SELECT = 'form-select panel-input'
 
 
 class CatalogSettingsForm(forms.ModelForm):
@@ -26,7 +28,7 @@ class CatalogSettingsForm(forms.ModelForm):
         choices=[('grid', 'شبکه‌ای'), ('list', 'لیستی')],
         required=False,
         label='چیدمان آیتم‌ها',
-        widget=forms.Select(attrs={'class': _INPUT}),
+        widget=forms.Select(attrs={'class': _SELECT}),
     )
     label_buy_now = forms.CharField(required=False, label='دکمه خرید', widget=forms.TextInput(attrs={'class': _INPUT}))
     label_add_to_cart = forms.CharField(
@@ -83,7 +85,7 @@ class CatalogSettingsForm(forms.ModelForm):
             'channel_invite_link': forms.URLInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'https://...'}),
             'payment_admin_enabled': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
             'payment_zarinpal_enabled': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
-            'payment_default_method': forms.Select(attrs={'class': _INPUT}),
+            'payment_default_method': forms.Select(attrs={'class': _SELECT}),
             'admin_notify_chat_id': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
             'zarinpal_merchant_id': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr', 'autocomplete': 'off'}),
             'zarinpal_sandbox': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
@@ -176,6 +178,23 @@ class CatalogSettingsForm(forms.ModelForm):
         self.fields['channel_invite_link'].help_text = (
             'لینک دعوت کانال برای دکمه «عضویت در کانال» در مینی‌اپ.'
         )
+        self._filter_payment_default_choices()
+
+    def _filter_payment_default_choices(self):
+        field = self.fields.get('payment_default_method')
+        if not field:
+            return
+        enabled: set[str] = set()
+        if self.instance and self.instance.pk:
+            for value, _ in self.instance.enabled_payment_methods():
+                enabled.add(value)
+        if enabled:
+            field.choices = [
+                choice for choice in CatalogSettings.PaymentMethod.choices if choice[0] in enabled
+            ]
+        else:
+            field.choices = list(CatalogSettings.PaymentMethod.choices)
+            field.help_text = 'پس از تکمیل حداقل یک روش پرداخت، گزینه‌های این فهرست به‌روز می‌شود.'
 
     def clean_checkout_form_json(self):
         raw = self.cleaned_data.get('checkout_form_json')
@@ -227,7 +246,7 @@ class MiniAppFlowForm(forms.ModelForm):
         choices=[('grid', 'شبکه‌ای'), ('list', 'لیستی')],
         required=False,
         label='چیدمان محصولات',
-        widget=forms.Select(attrs={'class': _INPUT}),
+        widget=forms.Select(attrs={'class': _SELECT}),
     )
     label_buy_now = forms.CharField(
         required=False,
@@ -288,7 +307,7 @@ class CatalogCategoryForm(forms.ModelForm):
         model = CatalogCategory
         fields = ['parent', 'name', 'slug', 'image', 'sort_order', 'is_active']
         widgets = {
-            'parent': forms.Select(attrs={'class': _INPUT}),
+            'parent': forms.Select(attrs={'class': _SELECT}),
             'name': forms.TextInput(attrs={'class': _INPUT}),
             'slug': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
             'image': PersianClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
@@ -315,8 +334,7 @@ class CatalogCategoryForm(forms.ModelForm):
 class CatalogItemForm(forms.ModelForm):
     metadata_json = forms.CharField(
         required=False,
-        label='فیلدهای سفارشی (JSON)',
-        widget=forms.Textarea(attrs={'class': _INPUT, 'rows': 4, 'dir': 'ltr'}),
+        widget=forms.HiddenInput(attrs={'id': 'id_metadata_json'}),
     )
 
     class Meta:
@@ -337,23 +355,24 @@ class CatalogItemForm(forms.ModelForm):
             'is_active',
             'is_featured',
             'sort_order',
+            'metadata_json',
         ]
         widgets = {
-            'category': forms.Select(attrs={'class': _INPUT}),
-            'title': forms.TextInput(attrs={'class': _INPUT}),
-            'slug': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
-            'short_description': forms.TextInput(attrs={'class': _INPUT}),
-            'description': forms.Textarea(attrs={'class': _INPUT, 'rows': 5}),
-            'item_type': forms.Select(attrs={'class': _INPUT, 'id': 'id_item_type'}),
+            'category': forms.Select(attrs={'class': _SELECT}),
+            'title': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'مثلاً دوره آموزشی طراحی'}),
+            'slug': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'course-design'}),
+            'short_description': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'توضیح کوتاه برای لیست محصولات'}),
+            'description': forms.Textarea(attrs={'class': _INPUT, 'rows': 5, 'placeholder': 'توضیحات کامل آیتم…'}),
+            'item_type': forms.Select(attrs={'class': _SELECT, 'id': 'id_item_type'}),
             'cover': PersianClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
             'download_file': PersianClearableFileInput(attrs={'class': 'form-control'}),
             'download_link': forms.URLInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'https://...'}),
-            'price': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
-            'sale_mode': forms.Select(attrs={'class': _INPUT}),
-            'stock': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
+            'price': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'به ریال'}),
+            'sale_mode': forms.Select(attrs={'class': _SELECT, 'id': 'id_sale_mode'}),
+            'stock': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'خالی = نامحدود'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
             'is_featured': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
-            'sort_order': forms.NumberInput(attrs={'class': _INPUT}),
+            'sort_order': forms.NumberInput(attrs={'class': _INPUT, 'placeholder': '۰'}),
         }
 
     def __init__(self, *args, workspace=None, platform=None, **kwargs):
@@ -364,10 +383,47 @@ class CatalogItemForm(forms.ModelForm):
             is_active=True,
         ).order_by('sort_order', 'name')
         self.fields['category'].required = False
-        self.fields['cover'].help_text = 'تصویر نمایشی کاور — در لیست و صفحه آیتم نشان داده می‌شود.'
-        self.fields['download_file'].help_text = 'آپلود فایل روی سرور شما — یا از لینک مستقیم زیر استفاده کنید.'
-        self.fields['download_link'].help_text = 'لینک مستقیم فایل (گوگل‌درایو، دراپ‌باکس، CDN و...). یکی از دو روش کافی است.'
-        self.fields['item_type'].help_text = 'برای فایل دانلود رایگان، نوع «فایل دانلود» را انتخاب کنید.'
+        self.fields['category'].empty_label = '— بدون دسته‌بندی —'
+
+        self.fields['item_type'].choices = [
+            (key, str(guide['label'])) for key, guide in ITEM_TYPE_GUIDES.items()
+        ]
+        if self.instance.pk and self.instance.item_type == 'portfolio':
+            self.initial['item_type'] = CatalogItem.ItemType.SHOWCASE
+
+        labels = {
+            'category': 'دسته‌بندی',
+            'title': 'عنوان',
+            'slug': 'نامک آدرس',
+            'short_description': 'توضیح کوتاه',
+            'description': 'توضیح کامل',
+            'item_type': 'نوع آیتم',
+            'cover': 'تصویر کاور',
+            'download_file': 'فایل دانلود',
+            'download_link': 'لینک مستقیم دانلود',
+            'price': 'قیمت (ریال)',
+            'sale_mode': 'نحوه فروش',
+            'stock': 'موجودی',
+            'is_active': 'نمایش در ویترین',
+            'is_featured': 'آیتم ویژه',
+            'sort_order': 'ترتیب نمایش',
+        }
+        for name, label in labels.items():
+            if name in self.fields:
+                self.fields[name].label = label
+
+        self.fields['slug'].help_text = 'برای آدرس صفحه آیتم — اگر خالی بماند از عنوان ساخته می‌شود.'
+        self.fields['cover'].help_text = 'در لیست و صفحه آیتم نمایش داده می‌شود.'
+        self.fields['download_file'].help_text = 'فایل روی سرور شما ذخیره می‌شود.'
+        self.fields['download_link'].help_text = 'یا لینک مستقیم فایل (گوگل‌درایو، دراپ‌باکس، CDN و…).'
+        self.fields['item_type'].help_text = 'نوع آیتم مشخص می‌کند کاربر بتواند بخرد، دانلود کند یا درخواست بدهد.'
+        self.fields['sale_mode'].help_text = 'مشخص کنید کاربر بتواند بخرد، درخواست بدهد یا هر دو.'
+        self.fields['price'].help_text = 'برای فروش الزامی است. مقدار به ریال وارد شود.'
+        self.fields['stock'].help_text = 'اختیاری — خالی بگذارید اگر محدودیت موجودی ندارید.'
+        self.fields['sort_order'].help_text = 'عدد کوچک‌تر زودتر نمایش داده می‌شود.'
+        self.fields['is_active'].help_text = 'غیرفعال = در مینی‌اپ دیده نمی‌شود.'
+        self.fields['is_featured'].help_text = 'در بخش «ویژه» صفحه اصلی نمایش داده می‌شود.'
+
         if self.instance.pk:
             self.fields['metadata_json'].initial = json.dumps(
                 self.instance.metadata or {},
@@ -382,9 +438,14 @@ class CatalogItemForm(forms.ModelForm):
     def clean(self):
         cleaned = super().clean()
         item_type = cleaned.get('item_type')
+        if item_type == 'portfolio':
+            item_type = CatalogItem.ItemType.SHOWCASE
+            cleaned['item_type'] = item_type
+
         download_file = cleaned.get('download_file')
         download_link = (cleaned.get('download_link') or '').strip()
         has_existing_file = bool(self.instance.pk and self.instance.download_file)
+
         if item_type == CatalogItem.ItemType.DOWNLOAD:
             has_source = bool(download_file or has_existing_file or download_link)
             if not has_source:
@@ -393,6 +454,16 @@ class CatalogItemForm(forms.ModelForm):
                 )
             cleaned['sale_mode'] = CatalogItem.SaleMode.REQUEST_ONLY
             cleaned['price'] = None
+        elif item_type == CatalogItem.ItemType.SHOWCASE:
+            cleaned['sale_mode'] = CatalogItem.SaleMode.REQUEST_ONLY
+            cleaned['price'] = None
+        elif item_type == CatalogItem.ItemType.VIDEO:
+            if cleaned.get('sale_mode') == CatalogItem.SaleMode.BUYABLE and not cleaned.get('price'):
+                self.add_error('price', 'برای فروش دوره، قیمت را وارد کنید.')
+        elif item_type == CatalogItem.ItemType.PRODUCT:
+            if cleaned.get('sale_mode') != CatalogItem.SaleMode.REQUEST_ONLY and not cleaned.get('price'):
+                self.add_error('price', 'برای فروش محصول، قیمت را وارد کنید.')
+
         return cleaned
 
     def clean_slug(self):
@@ -408,10 +479,16 @@ class CatalogItemForm(forms.ModelForm):
         try:
             data = json.loads(raw)
         except json.JSONDecodeError as e:
-            raise forms.ValidationError(f'JSON نامعتبر: {e}') from e
+            raise forms.ValidationError('ویژگی‌های سفارشی نامعتبر است.') from e
         if not isinstance(data, dict):
-            raise forms.ValidationError('metadata باید یک شیء JSON باشد.')
-        return data
+            raise forms.ValidationError('ویژگی‌های سفارشی نامعتبر است.')
+        cleaned = {}
+        for key, value in data.items():
+            label = str(key).strip()
+            val = str(value).strip() if value is not None else ''
+            if label and val:
+                cleaned[label[:120]] = val[:500]
+        return cleaned
 
     def save(self, commit=True):
         obj = super().save(commit=False)
@@ -419,3 +496,20 @@ class CatalogItemForm(forms.ModelForm):
         if commit:
             obj.save()
         return obj
+
+
+class CatalogOrderUpdateForm(forms.Form):
+    status = forms.ChoiceField(
+        label='وضعیت سفارش',
+        choices=CatalogOrder.Status.choices,
+        widget=forms.Select(attrs={'class': _SELECT}),
+    )
+    note = forms.CharField(
+        required=False,
+        label='یادداشت داخلی',
+        widget=forms.Textarea(attrs={
+            'class': _INPUT,
+            'rows': 4,
+            'placeholder': 'یادداشت برای خودتان — در مینی‌اپ نمایش داده نمی‌شود.',
+        }),
+    )

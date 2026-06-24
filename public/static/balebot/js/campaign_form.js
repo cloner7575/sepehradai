@@ -6,6 +6,46 @@
     return (root || document).querySelector(sel);
   }
 
+  function setFormSaving(form, saving) {
+    var overlay = document.getElementById('campaign-save-overlay');
+    var btnSubmit = document.getElementById('campaign-main-submit');
+    var bar = document.getElementById('campaign-wizard-bar');
+
+    if (form) form.classList.toggle('is-saving', saving);
+    if (overlay) {
+      if (saving) {
+        overlay.removeAttribute('hidden');
+        overlay.setAttribute('aria-busy', 'true');
+      } else {
+        overlay.setAttribute('hidden', '');
+        overlay.setAttribute('aria-busy', 'false');
+      }
+    }
+    if (btnSubmit) {
+      btnSubmit.disabled = saving;
+      if (saving) {
+        btnSubmit.innerHTML =
+          '<span class="campaign-save-btn-spinner" aria-hidden="true"></span>در حال ذخیره…';
+      }
+    }
+    if (bar) {
+      bar.querySelectorAll('button, a').forEach(function (el) {
+        if (saving) {
+          el.setAttribute('data-was-disabled', el.disabled ? '1' : '0');
+          if (el.tagName === 'BUTTON') el.disabled = true;
+          else el.setAttribute('aria-disabled', 'true');
+          el.style.pointerEvents = 'none';
+        } else {
+          if (el.tagName === 'BUTTON') {
+            el.disabled = el.getAttribute('data-was-disabled') === '1';
+          }
+          el.removeAttribute('aria-disabled');
+          el.style.pointerEvents = '';
+        }
+      });
+    }
+  }
+
   function initWizard() {
     var form = document.getElementById('campaign-form-main');
     var nav = document.getElementById('campaign-wizard-nav');
@@ -200,6 +240,23 @@
         e.preventDefault();
         goTo(current + 1);
       }
+    });
+
+    form.addEventListener('submit', function (e) {
+      if (form.classList.contains('is-saving')) {
+        e.preventDefault();
+        return;
+      }
+      if (current !== STEPS.length - 1) {
+        e.preventDefault();
+        goTo(STEPS.length - 1);
+        return;
+      }
+      if (!validateStep(current)) {
+        e.preventDefault();
+        return;
+      }
+      setFormSaving(form, true);
     });
 
     function jumpToFirstError() {

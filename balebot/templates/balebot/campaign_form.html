@@ -9,6 +9,13 @@
 {% block content %}
 <form method="post" enctype="multipart/form-data" id="campaign-form-main" class="campaign-wizard-form" novalidate>
   {% csrf_token %}
+  <div id="campaign-save-overlay" class="campaign-save-overlay" hidden aria-live="polite" aria-busy="false">
+    <div class="campaign-save-overlay-card" role="status">
+      <span class="campaign-save-spinner" aria-hidden="true"></span>
+      <strong class="campaign-save-overlay-title">در حال ذخیره کمپین…</strong>
+      <p class="campaign-save-overlay-text mb-0">لطفاً صبر کنید تا اطلاعات ذخیره شود.</p>
+    </div>
+  </div>
   {% if form.non_field_errors %}
     <div class="alert alert-danger mb-4">{{ form.non_field_errors }}</div>
   {% endif %}
@@ -171,5 +178,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'balebot/js/campaign_form.js' %}?v=5"></script>
+<script src="{% static 'balebot/js/campaign_form.js' %}?v=6"></script>
 {% endblock %}
