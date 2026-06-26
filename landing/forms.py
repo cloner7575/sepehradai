@@ -65,8 +65,13 @@ class LeadForm(forms.ModelForm):
         self.fields['phone'].required = True
         self.fields['messenger'].required = False
         self.fields['messenger'].choices = [('', 'انتخاب کنید')] + list(MESSENGER_CHOICES)
-        self.fields['business_type'].required = False
-        self.fields['business_type'].choices = form_choices()
+        business_choices = form_choices()
+        self.fields['business_type'] = forms.ChoiceField(
+            choices=business_choices,
+            required=False,
+            label=self.fields['business_type'].label,
+            widget=forms.Select(attrs={'class': 'landing-input'}),
+        )
         self.fields['business_type_other'].widget.attrs['data-other-field'] = '1'
 
     def clean(self):

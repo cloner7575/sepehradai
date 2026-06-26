@@ -152,6 +152,11 @@ a:hover { color: var(--primary-2); }
 
 .nav-desktop .btn { margin-inline-start: 0.5rem; }
 
+.nav-desktop .btn-outline {
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+}
+
 .nav-toggle {
   display: flex;
   flex-direction: column;
