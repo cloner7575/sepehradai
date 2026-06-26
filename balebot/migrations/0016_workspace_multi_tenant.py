@@ -3,6 +3,7 @@
 import secrets
 
 from django.conf import settings as django_settings
+from django.contrib.auth.hashers import make_password
 from django.db import migrations, models
 import django.db.models.deletion
 
@@ -22,8 +23,13 @@ def _ensure_workspace_owner(User):
 
     # Fresh DB: migrations 0014/0015 already create BotSettings rows, but no
     # panel user exists yet — workspace still needs an owner.
-    owner = User(username='admin', is_staff=True, is_superuser=True, is_active=True)
-    owner.set_unusable_password()
+    owner = User(
+        username='admin',
+        password=make_password(None),
+        is_staff=True,
+        is_superuser=True,
+        is_active=True,
+    )
     owner.save()
     return owner
 
