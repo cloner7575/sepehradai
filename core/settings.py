@@ -67,6 +67,7 @@ INSTALLED_APPS = [
 ]
 
 SERVE_STATIC_VIA_DJANGO = env_bool('SERVE_STATIC_VIA_DJANGO', False)
+SERVE_STATIC = config('SERVE_STATIC', default=True, cast=bool)
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
