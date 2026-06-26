@@ -20,5 +20,5 @@ RUN chmod +x docker/entrypoint.sh docker/start.sh
 
 EXPOSE 8000
 
-ENTRYPOINT ["docker/entrypoint.sh"]
-CMD ["docker/start.sh"]
+ENTRYPOINT ["/bin/sh", "docker/entrypoint.sh"]
+CMD ["/bin/sh", "docker/start.sh"]

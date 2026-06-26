@@ -1,6 +1,22 @@
 #!/bin/sh
 set -e
 
+run_migrate() {
+  echo "Running database migrations..."
+  python manage.py migrate --noinput
+  echo "Migrations complete."
+}
+
+run_collectstatic() {
+  if [ "${RUN_COLLECTSTATIC:-true}" = "true" ]; then
+    echo "Collecting static files into ${STATIC_ROOT:-public/static}..."
+    python manage.py collectstatic --noinput
+    echo "collectstatic complete."
+  else
+    echo "Skipping collectstatic (RUN_COLLECTSTATIC=false)."
+  fi
+}
+
 shutdown() {
   echo "Shutting down services..."
   [ -n "${CELERY_WORKER_PID:-}" ] && kill "${CELERY_WORKER_PID}" 2>/dev/null || true
@@ -10,6 +26,9 @@ shutdown() {
 }
 
 trap shutdown TERM INT
+
+run_migrate
+run_collectstatic
 
 CELERY_CONCURRENCY="${CELERY_CONCURRENCY:-8}"
 

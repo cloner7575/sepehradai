@@ -56,12 +56,4 @@ PY
   fi
 fi
 
-echo "Running migrations..."
-python manage.py migrate --noinput
-
-if [ "${RUN_COLLECTSTATIC:-true}" = "true" ]; then
-  echo "Collecting static files..."
-  python manage.py collectstatic --noinput
-fi
-
 exec "$@"
