@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { formatPrice, updateCart } from '../api';
 import type { CartLine } from '../types';
@@ -42,6 +42,15 @@ export function CartPage() {
     canPurchase,
   } = useCheckout();
   const checkoutForm = useCheckoutForm(config?.checkout_form);
+
+  const submitted = params.get('submitted');
+  const baleInvoice = params.get('bale_invoice');
+
+  useEffect(() => {
+    if (paid || submitted || baleInvoice) {
+      refreshCart();
+    }
+  }, [paid, submitted, baleInvoice, refreshCart]);
 
   const applyDiscount = async () => {
     const code = discountCode.trim();

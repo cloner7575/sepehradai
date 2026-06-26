@@ -130,6 +130,12 @@ export function CardToCardPaymentPage() {
     }
   };
 
+  useEffect(() => {
+    if (paid) {
+      refreshCart();
+    }
+  }, [paid, refreshCart]);
+
   if (loading) {
     return (
       <div className="card-to-card-page">

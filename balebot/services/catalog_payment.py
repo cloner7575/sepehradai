@@ -309,11 +309,11 @@ def mark_order_paid(order: CatalogOrder) -> CatalogOrder:
         logger.exception('Failed to notify after order payment')
 
     if order.subscriber_id:
-        CatalogCart.objects.filter(
+        clear_subscriber_cart(
             workspace=order.workspace,
             platform=order.platform,
             subscriber_id=order.subscriber_id,
-        ).delete()
+        )
 
     return order
 
@@ -356,11 +356,11 @@ def submit_admin_cart_order(
     )
     messenger_api.send_message(cfg.platform, subscriber.chat_id, ack, settings=cfg)
 
-    CatalogCart.objects.filter(
+    clear_subscriber_cart(
         workspace=catalog.workspace,
         platform=catalog.platform,
         subscriber=subscriber,
-    ).delete()
+    )
 
 
 def start_card_to_card_checkout(
@@ -495,3 +495,38 @@ def get_or_create_cart(workspace, platform: str, subscriber: Subscriber) -> Cata
         subscriber=subscriber,
     )
     return cart
+
+
+def clear_subscriber_cart(
+    *,
+    workspace,
+    platform: str,
+    subscriber: Subscriber | None = None,
+    subscriber_id: int | None = None,
+) -> None:
+    """خالی کردن سبد پس از ثبت سفارش موفق."""
+    sid = subscriber.pk if subscriber is not None else subscriber_id
+    if not sid:
+        return
+    CatalogCart.objects.filter(
+        workspace=workspace,
+        platform=platform,
+        subscriber_id=sid,
+    ).delete()
+
+
+def remove_item_from_subscriber_cart(
+    *,
+    workspace,
+    platform: str,
+    subscriber: Subscriber,
+    item_id: int,
+) -> None:
+    from balebot.models import CatalogCartItem
+
+    CatalogCartItem.objects.filter(
+        cart__workspace=workspace,
+        cart__platform=platform,
+        cart__subscriber=subscriber,
+        catalog_item_id=item_id,
+    ).delete()

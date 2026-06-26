@@ -506,11 +506,14 @@ def catalog_checkout(request, public_id):
     item_id = body.get('item_id')
     use_cart = body.get('use_cart', True)
     order = None
+    checkout_from_cart = False
+    checkout_item_id = None
     try:
         if item_id:
+            checkout_item_id = int(item_id)
             item = get_object_or_404(
                 CatalogItem,
-                pk=item_id,
+                pk=checkout_item_id,
                 workspace=catalog.workspace,
                 platform=catalog.platform,
                 is_active=True,
@@ -527,6 +530,7 @@ def catalog_checkout(request, public_id):
                 recipient_extra=recipient_extra,
             )
         elif use_cart:
+            checkout_from_cart = True
             cart = catalog_payment.get_or_create_cart(catalog.workspace, catalog.platform, sub)
             order = catalog_payment.create_checkout_order(
                 catalog=catalog,
@@ -547,6 +551,21 @@ def catalog_checkout(request, public_id):
     if not order or order.total_amount <= 0:
         return _json_error('سبد خرید خالی است یا قیمت نامعتبر')
 
+    def _clear_cart_after_checkout() -> None:
+        if checkout_from_cart:
+            catalog_payment.clear_subscriber_cart(
+                workspace=catalog.workspace,
+                platform=catalog.platform,
+                subscriber=sub,
+            )
+        elif checkout_item_id:
+            catalog_payment.remove_item_from_subscriber_cart(
+                workspace=catalog.workspace,
+                platform=catalog.platform,
+                subscriber=sub,
+                item_id=checkout_item_id,
+            )
+
     if payment_method == CatalogSettings.PaymentMethod.ADMIN_CART:
         try:
             catalog_payment.submit_admin_cart_order(order, catalog, cfg, sub)
@@ -565,6 +584,7 @@ def catalog_checkout(request, public_id):
 
     if payment_method == CatalogSettings.PaymentMethod.CARD_TO_CARD:
         card_payload = catalog_payment.start_card_to_card_checkout(order, catalog)
+        _clear_cart_after_checkout()
         return JsonResponse({
             'ok': True,
             'order_id': order.pk,
@@ -593,6 +613,7 @@ def catalog_checkout(request, public_id):
             order.status = CatalogOrder.Status.FAILED
             order.save(update_fields=['status', 'updated_at'])
             return _json_error(str(e) or 'ارسال صورت‌حساب بله ناموفق بود', 500)
+        _clear_cart_after_checkout()
         return JsonResponse({
             'ok': True,
             'order_id': order.pk,
