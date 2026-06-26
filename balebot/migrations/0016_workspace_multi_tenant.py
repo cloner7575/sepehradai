@@ -11,6 +11,23 @@ def _generate_secret() -> str:
     return secrets.token_urlsafe(32)[:64]
 
 
+def _ensure_workspace_owner(User):
+    owner = (
+        User.objects.filter(is_superuser=True).order_by('id').first()
+        or User.objects.filter(is_staff=True).order_by('id').first()
+        or User.objects.order_by('id').first()
+    )
+    if owner is not None:
+        return owner
+
+    # Fresh DB: migrations 0014/0015 already create BotSettings rows, but no
+    # panel user exists yet — workspace still needs an owner.
+    owner = User(username='admin', is_staff=True, is_superuser=True, is_active=True)
+    owner.set_unusable_password()
+    owner.save()
+    return owner
+
+
 def backfill_workspaces(apps, schema_editor):
     User = apps.get_model('auth', 'User')
     Workspace = apps.get_model('balebot', 'Workspace')
@@ -20,13 +37,7 @@ def backfill_workspaces(apps, schema_editor):
     Campaign = apps.get_model('balebot', 'Campaign')
     FlowMedia = apps.get_model('balebot', 'FlowMedia')
 
-    owner = (
-        User.objects.filter(is_superuser=True).order_by('id').first()
-        or User.objects.filter(is_staff=True).order_by('id').first()
-        or User.objects.order_by('id').first()
-    )
-    if owner is None:
-        return
+    owner = _ensure_workspace_owner(User)
 
     ws = Workspace.objects.filter(owner_id=owner.id).first()
     if ws is None:
