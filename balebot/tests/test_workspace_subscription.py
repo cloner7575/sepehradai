@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -11,6 +11,13 @@ from balebot.services.workspace_subscription import workspace_block_reason, work
 from balebot.workspace import create_panel_user
 
 User = get_user_model()
+
+CELERY_EAGER_SETTINGS = {
+    'WEBHOOK_USE_CELERY': True,
+    'CELERY_TASK_ALWAYS_EAGER': True,
+    'CELERY_BROKER_URL': 'memory://',
+    'CELERY_RESULT_BACKEND': 'cache+memory://',
+}
 
 
 class WorkspaceSubscriptionModelTests(TestCase):
@@ -46,6 +53,7 @@ class WorkspaceSubscriptionModelTests(TestCase):
         self.assertFalse(workspace_can_operate(self.workspace))
 
 
+@override_settings(**CELERY_EAGER_SETTINGS)
 class WorkspaceSubscriptionWebhookTests(TestCase):
     def setUp(self):
         self.user, self.workspace = create_panel_user(
@@ -67,7 +75,7 @@ class WorkspaceSubscriptionWebhookTests(TestCase):
         client = Client()
         response = client.post(
             self.url,
-            data='{"message":{"chat":{"id":1},"text":"/start"}}',
+            data='{"message":{"from":{"id":1},"chat":{"id":1},"text":"/start"}}',
             content_type='application/json',
         )
         self.assertEqual(response.status_code, 200)
@@ -78,7 +86,7 @@ class WorkspaceSubscriptionWebhookTests(TestCase):
         client = Client()
         response = client.post(
             self.url,
-            data='{"message":{"chat":{"id":1},"text":"/start"}}',
+            data='{"message":{"from":{"id":1},"chat":{"id":1},"text":"/start"}}',
             content_type='application/json',
         )
         self.assertEqual(response.status_code, 200)

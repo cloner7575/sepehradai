@@ -66,6 +66,8 @@ INSTALLED_APPS = [
     'landing',
 ]
 
+SERVE_STATIC_VIA_DJANGO = env_bool('SERVE_STATIC_VIA_DJANGO', False)
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -76,6 +78,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'balebot.middleware.MiniAppFrameMiddleware',
 ]
+
+if SERVE_STATIC_VIA_DJANGO:
+    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
@@ -122,7 +127,7 @@ DATABASES = {
         'PASSWORD': POSTGRES_PASSWORD,
         'HOST': POSTGRES_HOST,
         'PORT': POSTGRES_PORT,
-        'CONN_MAX_AGE': int(os.environ.get('POSTGRES_CONN_MAX_AGE', '0')),
+        'CONN_MAX_AGE': int(os.environ.get('POSTGRES_CONN_MAX_AGE', '300')),
     }
 }
 
@@ -161,16 +166,18 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = config('STATIC_URL', default='/static/')
-STATIC_ROOT = config('STATIC_ROOT', default=os.path.join(BASE_DIR, "public", "static"))
+STATIC_URL = config('STATIC_URL', default='/public/static/')
+STATIC_ROOT = config('STATIC_ROOT', default=os.path.join(BASE_DIR, 'public', 'static'))
 
 # Static files storage with versioning (for cache busting)
 # Use ManifestStaticFilesStorage in production for automatic versioning
 if not DEBUG:
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+elif SERVE_STATIC_VIA_DJANGO:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-MEDIA_URL = config('MEDIA_URL', default='/media/')
-MEDIA_ROOT = config('MEDIA_ROOT', default=os.path.join(BASE_DIR, "public", "media"))
+MEDIA_URL = config('MEDIA_URL', default='/public/media/')
+MEDIA_ROOT = config('MEDIA_ROOT', default=os.path.join(BASE_DIR, 'public', 'media'))
 # سرو فایل‌های media از خود Django (برای مینی‌اپ و پنل). در پروداکشن ترجیحاً nginx همین مسیر را سرو کند.
 SERVE_MEDIA = config('SERVE_MEDIA', default=True, cast=bool)
 STATICFILES_DIRS = [
@@ -179,7 +186,7 @@ STATICFILES_DIRS = [
 
 # Campaign sending
 CAMPAIGN_SEND_DELAY_MS = int(os.environ.get('CAMPAIGN_SEND_DELAY_MS', '80'))
-CAMPAIGN_SEND_BATCH_SIZE = int(os.environ.get('CAMPAIGN_SEND_BATCH_SIZE', '5'))
+CAMPAIGN_SEND_BATCH_SIZE = int(os.environ.get('CAMPAIGN_SEND_BATCH_SIZE', '20'))
 # Legacy env vars (migrated to BotSettings in DB on first migrate)
 _LEGACY_BALE_BOT_TOKEN = os.environ.get('BALE_BOT_TOKEN', '')
 _LEGACY_BALE_WEBHOOK_SECRET = os.environ.get('BALE_WEBHOOK_SECRET', '')
@@ -206,3 +213,56 @@ LANDING_DEMO_BOT_URL = config(
 ).strip()
 
 CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS')
+
+# Redis / Celery
+REDIS_URL = (os.environ.get('REDIS_URL') or '').strip()
+CELERY_BROKER_URL = (os.environ.get('CELERY_BROKER_URL') or REDIS_URL or '').strip()
+CELERY_RESULT_BACKEND = (
+    os.environ.get('CELERY_RESULT_BACKEND') or REDIS_URL or ''
+).strip()
+
+_broker_configured = bool(CELERY_BROKER_URL)
+_webhook_celery_env = os.environ.get('WEBHOOK_USE_CELERY')
+if _webhook_celery_env is None:
+    WEBHOOK_USE_CELERY = _broker_configured
+else:
+    WEBHOOK_USE_CELERY = env_bool('WEBHOOK_USE_CELERY', False)
+
+CELERY_TASK_ALWAYS_EAGER = env_bool('CELERY_TASK_ALWAYS_EAGER', False)
+CELERY_TASK_EAGER_PROPAGATES = True
+
+CELERY_TASK_ROUTES = {
+    'balebot.tasks.process_webhook_update': {'queue': 'webhooks'},
+    'balebot.tasks.run_due_campaigns': {'queue': 'campaigns'},
+}
+
+CELERY_BEAT_SCHEDULE = {
+    'process-campaigns': {
+        'task': 'balebot.tasks.run_due_campaigns',
+        'schedule': 120.0,
+    },
+}
+
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+        },
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        },
+    }
+
+# Gunicorn (read by gunicorn.conf.py)
+GUNICORN_WORKERS = int(os.environ.get('GUNICORN_WORKERS', '4'))
+GUNICORN_THREADS = int(os.environ.get('GUNICORN_THREADS', '2'))
+GUNICORN_TIMEOUT = int(os.environ.get('GUNICORN_TIMEOUT', '30'))

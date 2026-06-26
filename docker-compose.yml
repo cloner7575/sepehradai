@@ -1,0 +1,67 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - '${WEB_PORT:-8000}:8000'
+    volumes:
+      - static_data:/app/public/static
+      - media_data:/app/public/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-balebot}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: >
+      sh -c 'if [ -n "$$REDIS_PASSWORD" ]; then
+        exec redis-server --requirepass "$$REDIS_PASSWORD";
+      else
+        exec redis-server;
+      fi'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: >
+        sh -c 'if [ -n "$$REDIS_PASSWORD" ]; then
+          redis-cli -a "$$REDIS_PASSWORD" ping;
+        else
+          redis-cli ping;
+        fi'
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_data:
+  media_data:
