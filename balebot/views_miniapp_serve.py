@@ -13,6 +13,7 @@ from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.http import require_http_methods
 
 from balebot.models import CatalogSettings, Platform
+from balebot.services.workspace_subscription import workspace_block_reason
 
 logger = logging.getLogger(__name__)
 
@@ -81,9 +82,47 @@ def _inject_platform_sdk(html: str, platform: str) -> str:
     return html
 
 
+def _subscription_blocked_html() -> str:
+    return (
+        '<html lang="fa" dir="rtl"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        '<title>فروشگاه غیرفعال</title>'
+        '<style>body{font-family:Tahoma,sans-serif;display:flex;align-items:center;'
+        'justify-content:center;min-height:100vh;margin:0;background:#f4f5f8;color:#16181d}'
+        '.box{max-width:360px;padding:2rem;text-align:center;background:#fff;border-radius:16px;'
+        'border:1px solid #e2e5ec;box-shadow:0 8px 32px rgba(22,24,29,.08)}'
+        'h1{font-size:1.25rem;margin:0 0 .75rem}p{margin:0;color:#5c6370;line-height:1.7}</style>'
+        '</head><body><div class="box">'
+        '<h1>فروشگاه موقتاً غیرفعال است</h1>'
+        '<p>اشتراک این فروشگاه منقضی شده. لطفاً با فروشنده تماس بگیرید.</p>'
+        '</div></body></html>'
+    )
+
+
+def _check_catalog_subscription(public_id) -> str | None:
+    if not public_id:
+        return None
+    try:
+        UUID(str(public_id))
+    except (TypeError, ValueError):
+        return None
+    try:
+        catalog = CatalogSettings.objects.select_related('workspace').get(public_id=public_id)
+    except CatalogSettings.DoesNotExist:
+        return None
+    return workspace_block_reason(catalog.workspace)
+
+
 @xframe_options_exempt
 @require_http_methods(['GET'])
 def serve_miniapp(request, public_id=None, path=''):
+    block_reason = _check_catalog_subscription(public_id)
+    if block_reason:
+        return _apply_miniapp_headers(HttpResponse(
+            _subscription_blocked_html(),
+            content_type='text/html; charset=utf-8',
+            status=403,
+        ))
     index = _find_index()
     if not index:
         return _apply_miniapp_headers(HttpResponse(

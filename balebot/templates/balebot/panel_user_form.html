@@ -1,49 +1,217 @@
 {% extends "balebot/base.html" %}
+{% load static %}
 {% block title %}{{ form_title }}{% endblock %}
 {% block page_title %}{{ form_title }}{% endblock %}
+{% block page_subtitle %}
+<p class="app-page-subtitle mb-0 mt-1">
+  {% if is_create %}
+  اطلاعات حساب، پنل، دسترسی پلتفرم‌ها و اشتراک را تنظیم کنید.
+  {% else %}
+  ویرایش حساب <strong>{{ panel_user.username }}</strong>{% if workspace %} — پنل «{{ workspace.name }}»{% endif %}
+  {% endif %}
+</p>
+{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'panel_user_list' %}" class="btn btn-panel-ghost flex-shrink-0">
+  <i class="bi bi-arrow-right me-2"></i>بازگشت به فهرست
+</a>
+{% endblock %}
 
 {% block content %}
 <div class="row g-4">
-  <div class="col-lg-7">
-    <div class="panel-card p-4">
-      <form method="post" novalidate>
-        {% csrf_token %}
-        {% if form.non_field_errors %}
-        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-        {% endif %}
-        {% for field in form %}
-        <div class="mb-3">
-          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {{ field }}
-          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-          {% for err in field.errors %}<div class="invalid-feedback d-block">{{ err }}</div>{% endfor %}
+  <div class="col-lg-{% if not is_create and bot_settings_list %}7{% else %}8{% endif %}">
+    <form method="post" novalidate class="panel-user-form">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger mb-4">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      {% if is_create %}
+      <div class="panel-card mb-4">
+        <header class="panel-card-header">
+          <div>
+            <h2 class="panel-card-title mb-1">حساب کاربری</h2>
+            <p class="panel-card-lead mb-0">نام کاربری و رمز برای ورود به پنل.</p>
+          </div>
+        </header>
+        <div class="panel-card-body">
+          {% include "balebot/_settings_field.html" with field=form.username %}
+          {% include "balebot/_settings_field.html" with field=form.password %}
+          {% include "balebot/_settings_field.html" with field=form.email %}
         </div>
-        {% endfor %}
-        <div class="d-flex gap-2 flex-wrap">
-          <button type="submit" class="btn btn-panel-primary">ذخیره</button>
-          <a href="{% url 'panel_user_list' %}" class="btn btn-panel-ghost">بازگشت</a>
+      </div>
+      {% else %}
+      <div class="panel-card mb-4">
+        <header class="panel-card-header">
+          <div>
+            <h2 class="panel-card-title mb-1">حساب کاربری</h2>
+            <p class="panel-card-lead mb-0">ایمیل، رمز جدید و وضعیت ورود.</p>
+          </div>
+        </header>
+        <div class="panel-card-body">
+          <div class="settings-field mb-3">
+            <label class="form-label settings-field-label">نام کاربری</label>
+            <input type="text" class="form-control panel-input" value="{{ panel_user.username }}" disabled readonly>
+          </div>
+          {% include "balebot/_settings_field.html" with field=form.email %}
+          {% include "balebot/_settings_field.html" with field=form.password hint=form.password.help_text %}
+          <div class="settings-switch-group">
+            {% include "balebot/_settings_switch.html" with field=form.is_active title=form.is_active.label desc="غیرفعال = کاربر نمی‌تواند وارد پنل شود." %}
+          </div>
         </div>
-      </form>
-    </div>
+      </div>
+      {% endif %}
+
+      <div class="panel-card mb-4">
+        <header class="panel-card-header">
+          <div>
+            <h2 class="panel-card-title mb-1">پنل اختصاصی</h2>
+            <p class="panel-card-lead mb-0">هر کاربر یک workspace جدا با نام و وضعیت مستقل دارد.</p>
+          </div>
+        </header>
+        <div class="panel-card-body">
+          {% include "balebot/_settings_field.html" with field=form.workspace_name %}
+          {% if not is_create %}
+          <div class="settings-switch-group">
+            {% include "balebot/_settings_switch.html" with field=form.workspace_active title=form.workspace_active.label desc="غیرفعال = ربات و فروشگاه این پنل متوقف می‌شود." %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="panel-card mb-4">
+        <header class="panel-card-header">
+          <div>
+            <h2 class="panel-card-title mb-1">دسترسی پلتفرم‌ها</h2>
+            <p class="panel-card-lead mb-0">حداقل یکی از بله، تلگرام یا اینستاگرام باید فعال باشد.</p>
+          </div>
+        </header>
+        <div class="panel-card-body">
+          <div class="settings-switch-group">
+            {% include "balebot/_settings_switch.html" with field=form.allow_bale title=form.allow_bale.label desc=form.allow_bale.help_text %}
+            {% include "balebot/_settings_switch.html" with field=form.allow_telegram title=form.allow_telegram.label desc=form.allow_telegram.help_text %}
+            {% include "balebot/_settings_switch.html" with field=form.allow_bale_miniapp title=form.allow_bale_miniapp.label desc=form.allow_bale_miniapp.help_text %}
+            {% include "balebot/_settings_switch.html" with field=form.allow_telegram_miniapp title=form.allow_telegram_miniapp.label desc=form.allow_telegram_miniapp.help_text %}
+            {% include "balebot/_settings_switch.html" with field=form.allow_instagram title=form.allow_instagram.label desc=form.allow_instagram.help_text %}
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-card mb-4">
+        <header class="panel-card-header">
+          <div>
+            <h2 class="panel-card-title mb-1">اشتراک</h2>
+            <p class="panel-card-lead mb-0">تاریخ انقضا برای محدود کردن دسترسی به پنل و ربات.</p>
+          </div>
+        </header>
+        <div class="panel-card-body">
+          <div class="panel-user-datetime-row">
+            <div class="panel-user-datetime-field">
+              <label class="form-label settings-field-label" for="{{ form.jalali_subscription_expires_date.id_for_label }}">{{ form.jalali_subscription_expires_date.label }}</label>
+              {{ form.jalali_subscription_expires_date }}
+              {% for err in form.jalali_subscription_expires_date.errors %}<div class="text-danger small mt-1">{{ err }}</div>{% endfor %}
+            </div>
+            <div class="panel-user-datetime-field panel-user-datetime-field--time">
+              <label class="form-label settings-field-label" for="{{ form.jalali_subscription_expires_time.id_for_label }}">{{ form.jalali_subscription_expires_time.label }}</label>
+              {{ form.jalali_subscription_expires_time }}
+              {% for err in form.jalali_subscription_expires_time.errors %}<div class="text-danger small mt-1">{{ err }}</div>{% endfor %}
+            </div>
+          </div>
+          {% if form.jalali_subscription_expires_time.help_text %}
+          <p class="settings-field-hint mb-0 mt-2">{{ form.jalali_subscription_expires_time.help_text }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 flex-wrap">
+        <button type="submit" class="btn btn-panel-primary">
+          <i class="bi bi-check2-circle me-2"></i>ذخیره تغییرات
+        </button>
+        <a href="{% url 'panel_user_list' %}" class="btn btn-panel-ghost">انصراف</a>
+      </div>
+    </form>
   </div>
 
-  {% if not is_create and bot_settings_list %}
-  <div class="col-lg-5">
-    <div class="panel-card p-4">
-      <h2 class="h6 mb-3">رمز وب‌هوک (برای تنظیم در سرور)</h2>
-      {% for cfg in bot_settings_list %}
-      <div class="mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
-        <div class="fw-semibold mb-1">{{ cfg.get_platform_display }}</div>
-        <div class="small text-muted mb-1">رمز:</div>
-        <code class="d-block text-break user-select-all">{{ cfg.webhook_secret }}</code>
-        {% if cfg.build_webhook_url %}
-        <div class="small text-muted mt-2 mb-1">URL وب‌هوک:</div>
-        <code class="d-block text-break small user-select-all">{{ cfg.build_webhook_url }}</code>
-        {% endif %}
+  {% if not is_create %}
+  <div class="col-lg-{% if bot_settings_list %}5{% else %}4{% endif %}">
+    {% if workspace %}
+    <div class="panel-card mb-4">
+      <header class="panel-card-header">
+        <h2 class="panel-card-title mb-0">خلاصه وضعیت</h2>
+      </header>
+      <div class="panel-card-body">
+        <ul class="list-unstyled mb-0 panel-user-summary">
+          <li class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <span class="text-muted small">وضعیت حساب</span>
+            {% if panel_user.is_active %}
+            <span class="badge rounded-pill text-bg-success">فعال</span>
+            {% else %}
+            <span class="badge rounded-pill text-bg-secondary">غیرفعال</span>
+            {% endif %}
+          </li>
+          <li class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <span class="text-muted small">وضعیت پنل</span>
+            {% if workspace.is_active %}
+            <span class="badge rounded-pill text-bg-success">فعال</span>
+            {% else %}
+            <span class="badge rounded-pill text-bg-secondary">غیرفعال</span>
+            {% endif %}
+          </li>
+          <li class="d-flex justify-content-between align-items-center py-2">
+            <span class="text-muted small">اشتراک</span>
+            {% with sub=workspace.subscription_status %}
+            {% if sub == 'unlimited' %}
+            <span class="badge rounded-pill text-bg-secondary">نامحدود</span>
+            {% elif sub == 'expired' %}
+            <span class="badge rounded-pill text-bg-danger">منقضی</span>
+            {% elif sub == 'expiring_soon' %}
+            <span class="badge rounded-pill text-bg-warning text-dark">{{ workspace.subscription_days_remaining }} روز</span>
+            {% else %}
+            <span class="badge rounded-pill text-bg-success">فعال</span>
+            {% endif %}
+            {% endwith %}
+          </li>
+        </ul>
       </div>
-      {% endfor %}
     </div>
+    {% endif %}
+
+    {% if bot_settings_list %}
+    <div class="panel-card">
+      <header class="panel-card-header">
+        <div>
+          <h2 class="panel-card-title mb-1">وب‌هوک</h2>
+          <p class="panel-card-lead mb-0">رمز و آدرس برای تنظیم در سرور.</p>
+        </div>
+      </header>
+      <div class="panel-card-body">
+        {% for cfg in bot_settings_list %}
+        <div class="panel-user-webhook-block{% if not forloop.last %} mb-3 pb-3 border-bottom{% endif %}">
+          <div class="fw-semibold mb-2">{{ cfg.get_platform_display }}</div>
+          <div class="small text-muted mb-1">رمز وب‌هوک</div>
+          <code class="d-block text-break user-select-all panel-user-code">{{ cfg.webhook_secret }}</code>
+          {% if cfg.build_webhook_url %}
+          <div class="small text-muted mt-3 mb-1">آدرس وب‌هوک</div>
+          <code class="d-block text-break small user-select-all panel-user-code" dir="ltr">{{ cfg.build_webhook_url }}</code>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
   </div>
   {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'balebot/js/jalali_date_picker.js' %}?v=1"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (window.SepJalaliPicker) {
+    window.SepJalaliPicker.initAll(document.querySelector('.panel-user-form'));
+  }
+});
+</script>
 {% endblock %}

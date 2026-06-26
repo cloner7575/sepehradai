@@ -37,7 +37,7 @@ urlpatterns = [
         auth_views.LogoutView.as_view(),
         name='panel_logout',
     ),
-    path('', views_panel.DashboardView.as_view(), name='panel_dashboard'),
+    path('dashboard/', views_panel.DashboardView.as_view(), name='panel_dashboard'),
     path(
         'switch-platform/',
         views_panel.SwitchPlatformView.as_view(),

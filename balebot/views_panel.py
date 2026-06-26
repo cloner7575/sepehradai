@@ -38,6 +38,7 @@ from balebot.services.campaign_runner import (
     transition_queued_to_sending_if_due,
 )
 from balebot.services.audience import snapshot_campaign_audience
+from balebot.services.workspace_subscription import workspace_block_reason
 from balebot.models import (
     BotSettings,
     CallbackLog,
@@ -1097,6 +1098,10 @@ class CampaignDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
         self.object = self.get_object()
         action = request.POST.get('action')
         if action == 'queue':
+            block_reason = workspace_block_reason(self.object.workspace)
+            if block_reason:
+                messages.error(request, block_reason)
+                return HttpResponseRedirect(self.object.get_absolute_url())
             if self.object.status not in (
                 Campaign.Status.DRAFT,
                 Campaign.Status.CANCELLED,

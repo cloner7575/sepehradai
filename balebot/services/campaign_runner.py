@@ -14,6 +14,7 @@ from balebot.models import BotSettings, Campaign, CampaignDelivery, Subscriber
 from balebot.services import messenger_api
 from balebot.services.audience import resolve_campaign_subscribers_qs
 from balebot.services.campaign_send import ignore_setting_delay, send_campaign_to_chat
+from balebot.services.workspace_subscription import pause_campaign_if_subscription_lapsed, workspace_block_reason
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,9 @@ def run_delivery_pass_for_campaign(
     یک پاس ارسال برای کمپین در وضعیت SENDING.
     خروجی: (تعداد ارسال موفق در این پاس، تعداد خطا در این پاس)
     """
+    if pause_campaign_if_subscription_lapsed(campaign):
+        return 0, 0
+
     sent_here = 0
     fail_here = 0
     attempted = 0
@@ -143,6 +147,11 @@ def run_campaign_delivery_batch(
         campaign = Campaign.objects.get(pk=campaign_id)
     except Campaign.DoesNotExist:
         return {'ok': False, 'error': 'کمپین یافت نشد.'}
+
+    block_reason = workspace_block_reason(campaign.workspace)
+    if block_reason:
+        pause_campaign_if_subscription_lapsed(campaign)
+        return {'ok': False, 'error': block_reason}
 
     if not BotSettings.get_for_platform(campaign.workspace, campaign.platform).has_bot_token():
         label = 'تلگرام' if campaign.platform == 'telegram' else 'بله'

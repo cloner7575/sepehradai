@@ -3,6 +3,7 @@ import uuid
 
 from django.conf import settings as django_settings
 from django.db import models
+from django.utils import timezone
 
 
 class Platform(models.TextChoices):
@@ -37,6 +38,12 @@ class Workspace(models.Model):
     allow_instagram = models.BooleanField(
         default=False,
         verbose_name='دسترسی اینستاگرام',
+    )
+    subscription_expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='تاریخ انقضای اشتراک',
+        help_text='خالی = بدون محدودیت زمانی.',
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -79,6 +86,32 @@ class Workspace(models.Model):
             or (self.allow_bale and self.allow_bale_miniapp)
             or (self.allow_telegram and self.allow_telegram_miniapp)
         )
+
+    def is_subscription_active(self) -> bool:
+        if not self.is_active:
+            return False
+        if self.subscription_expires_at is None:
+            return True
+        return timezone.now() < self.subscription_expires_at
+
+    def subscription_days_remaining(self) -> int | None:
+        if self.subscription_expires_at is None:
+            return None
+        delta = self.subscription_expires_at - timezone.now()
+        return max(0, delta.days)
+
+    def subscription_status(self) -> str:
+        """unlimited | active | expiring_soon | expired"""
+        if not self.is_active:
+            return 'expired'
+        if self.subscription_expires_at is None:
+            return 'unlimited'
+        if not self.is_subscription_active():
+            return 'expired'
+        days = self.subscription_days_remaining()
+        if days is not None and days <= 7:
+            return 'expiring_soon'
+        return 'active'
 
 
 class FlowMedia(models.Model):

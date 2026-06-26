@@ -35,6 +35,7 @@ from balebot.services.catalog_page_layout import get_home_blocks
 from balebot.services.public_url import resolve_public_base_url
 from balebot.services.channel_membership import is_channel_member
 from balebot.services.webhook_logic import get_or_create_subscriber
+from balebot.services.workspace_subscription import workspace_block_reason
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,9 @@ def _resolve_catalog(
         return None, _json_error('مینی‌اپ یافت نشد', 404)
     if not catalog.workspace.is_active:
         return None, _json_error('حساب مینی‌اپ غیرفعال است', 403)
+    block_reason = workspace_block_reason(catalog.workspace)
+    if block_reason:
+        return None, _json_error(block_reason, 403)
     if require_enabled and not catalog.is_enabled:
         return None, _json_error('مینی‌اپ هنوز فعال نشده است. از پنل مدیریت فعال کنید.', 403)
     return catalog, None

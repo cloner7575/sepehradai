@@ -2673,3 +2673,126 @@ code, kbd, pre, .panel-code {
 .flow-canvas-editor--miniapp .flow-canvas-inspector {
   direction: rtl;
 }
+
+/* Panel user management */
+.panel-user-table .panel-user-link {
+  color: var(--app-text);
+}
+.panel-user-table .panel-user-link:hover {
+  color: var(--app-primary);
+}
+.panel-user-platforms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.panel-user-platform {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-2);
+  color: var(--app-muted);
+}
+.panel-user-platform i { font-size: 0.8rem; }
+.panel-user-platform--bale { color: var(--app-primary); background: rgba(var(--app-primary-rgb), 0.08); border-color: rgba(var(--app-primary-rgb), 0.2); }
+.panel-user-platform--telegram { color: var(--app-info); background: var(--app-info-bg); border-color: rgba(var(--app-info-rgb, 13, 110, 253), 0.2); }
+.panel-user-platform--miniapp { color: var(--app-success); background: var(--app-success-bg); border-color: rgba(var(--app-success-rgb, 25, 135, 84), 0.2); }
+.panel-user-platform--instagram { color: #c13584; background: rgba(193, 53, 132, 0.08); border-color: rgba(193, 53, 132, 0.2); }
+.panel-user-platform-label { white-space: nowrap; }
+.panel-user-form .settings-switch-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.panel-user-form .settings-switch-row {
+  padding-block: 12px;
+  border-bottom: 1px solid var(--app-border);
+}
+.panel-user-form .settings-switch-row:last-child {
+  border-bottom: 0;
+}
+.panel-user-code {
+  display: block;
+  padding: 10px 12px;
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  font-size: 0.8125rem;
+}
+.panel-user-summary li:last-child { border-bottom: 0 !important; }
+.panel-user-datetime-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+.panel-user-datetime-field {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.panel-user-datetime-field--time {
+  flex: 0 0 140px;
+  max-width: 160px;
+}
+@media (max-width: 575.98px) {
+  .panel-user-datetime-row {
+    flex-wrap: wrap;
+  }
+  .panel-user-datetime-field--time {
+    flex: 1 1 120px;
+    max-width: none;
+  }
+}
+.panel-user-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 48px 24px 56px;
+}
+.panel-user-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 16px;
+  border-radius: 50%;
+  background: var(--app-surface-2);
+  color: var(--app-muted);
+  font-size: 1.5rem;
+}
+.panel-user-empty-title {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--app-text);
+}
+.panel-user-empty-desc {
+  margin: 0 0 20px;
+  max-width: 28rem;
+  font-size: 0.875rem;
+  color: var(--app-muted);
+  line-height: 1.6;
+}
+.app-content .panel-table a.btn-panel-primary,
+.app-content .table.panel-table a.btn-panel-primary {
+  color: var(--app-surface) !important;
+}
+.app-content .panel-table a.btn-panel-primary:hover,
+.app-content .table.panel-table a.btn-panel-primary:hover {
+  color: var(--app-surface) !important;
+}
+.app-content .panel-table a.btn-panel-ghost,
+.app-content .table.panel-table a.btn-panel-ghost {
+  color: var(--app-text) !important;
+}
+.app-content .panel-table a.btn-panel-ghost:hover,
+.app-content .table.panel-table a.btn-panel-ghost:hover {
+  color: var(--app-primary) !important;
+}

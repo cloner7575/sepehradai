@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'balebot',
     'instagram',
+    'landing',
 ]
 
 MIDDLEWARE = [
@@ -93,6 +94,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'balebot.context_processors.panel_branding',
+                'landing.context_processors.landing_settings',
             ],
         },
     },
@@ -193,7 +195,13 @@ INSTAGRAM_BACKUP_TUTORIAL_VIDEO_URL = config(
 ).strip()
 
 LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/login/'
+
+LANDING_ADMIN_CHAT_ID = config('LANDING_ADMIN_CHAT_ID', default='').strip()
+LANDING_DEMO_BOT_URL = config(
+    'LANDING_DEMO_BOT_URL',
+    default='https://ble.ir/your_demo_bot',
+).strip()
 
 CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS')

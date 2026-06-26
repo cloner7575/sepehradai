@@ -9,6 +9,7 @@ from django.views.decorators.http import require_http_methods
 
 from balebot.models import BotSettings, Platform
 from balebot.services import webhook_logic
+from balebot.services.workspace_subscription import workspace_can_operate
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,13 @@ def _lookup_bot_settings(platform: str, secret: str) -> BotSettings | None:
 def _process_webhook(cfg: BotSettings, body: bytes) -> JsonResponse:
     if not cfg.is_enabled:
         return JsonResponse({'ok': False}, status=403)
+
+    if not workspace_can_operate(cfg.workspace):
+        logger.warning(
+            'Webhook ignored: workspace %s subscription inactive',
+            cfg.workspace_id,
+        )
+        return JsonResponse({'ok': True})
 
     try:
         payload = json.loads(body.decode('utf-8'))

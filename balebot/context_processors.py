@@ -87,6 +87,10 @@ def panel_branding(request):
             'panel_module': _panel_module(request),
             'panel_product': _panel_product(request),
             'inbound_open_count': _inbound_open_count(request, ws, active),
+            'subscription_status': ws.subscription_status() if ws else '',
+            'subscription_days_left': ws.subscription_days_remaining() if ws else None,
+            'subscription_expires_at': ws.subscription_expires_at if ws else None,
+            'subscription_is_active': ws.is_subscription_active() if ws else True,
         }
     except OperationalError:
         return {
@@ -102,4 +106,8 @@ def panel_branding(request):
             'panel_module': 'home',
             'panel_product': 'home',
             'inbound_open_count': 0,
+            'subscription_status': '',
+            'subscription_days_left': None,
+            'subscription_expires_at': None,
+            'subscription_is_active': True,
         }

@@ -24,7 +24,9 @@ from .models import (
 
 @admin.register(Workspace)
 class WorkspaceAdmin(admin.ModelAdmin):
-    list_display = ('name', 'owner', 'is_active', 'created_at')
+    list_display = (
+        'name', 'owner', 'is_active', 'subscription_expires_at', 'created_at',
+    )
     list_filter = ('is_active',)
     search_fields = ('name', 'owner__username')
 

@@ -1,0 +1,655 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ساخت فروشگاه و ربات در بله و تلگرام | Sepehrad AI Bot</title>
+  <meta name="description" content="فروشگاه اینستاگرامت رو به فروشگاه واقعی در بله و تلگرام تبدیل کن. ساخت ربات فروشگاهی بله، پرداخت مستقیم بدون درگاه، مینی‌اپ فروشگاهی و اتوماسیون بازاریابی.">
+  <meta name="keywords" content="ساخت ربات فروشگاهی بله, فروشگاه در بله, درگاه پرداخت ربات بله, ربات تلگرام فروشگاهی">
+  <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="fa_IR">
+  <meta property="og:title" content="ساخت فروشگاه و ربات در بله و تلگرام | Sepehrad AI Bot">
+  <meta property="og:description" content="فروشگاه کامل با سبد خرید و پرداخت مستقیم داخل بله و تلگرام — بدون سایت و درگاه.">
+  <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}/">
+  <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'landing/og-image.svg' %}">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ساخت فروشگاه و ربات در بله و تلگرام | Sepehrad AI Bot">
+  <meta name="twitter:description" content="فروشگاه کامل با سبد خرید و پرداخت مستقیم داخل بله و تلگرام.">
+
+  <link href="{% static 'balebot/css/fonts.css' %}" rel="stylesheet">
+  <link href="{% static 'landing/landing.css' %}?v=2" rel="stylesheet">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "name": "Sepehrad AI Bot",
+        "url": "{{ request.scheme }}://{{ request.get_host }}/",
+        "description": "پلتفرم ساخت ربات و فروشگاه در بله و تلگرام"
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "Sepehrad AI Bot",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "IRR",
+          "description": "دمو رایگان"
+        },
+        "description": "ساخت ربات فروشگاهی بله و تلگرام با مینی‌اپ، پرداخت مستقیم و اتوماسیون بازاریابی"
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+  <div class="announce-bar">
+    <span class="announce-dot" aria-hidden="true"></span>
+    راه‌اندازی فروشگاهت کمتر از ۱۰ دقیقه طول می‌کشه
+  </div>
+
+  <header class="site-header" id="site-header">
+    <div class="container">
+      <div class="header-inner">
+        <a href="/" class="logo">
+          <span class="logo-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="10" rx="2"/>
+              <circle cx="12" cy="5" r="2"/>
+              <path d="M12 7v4"/>
+              <line x1="8" y1="16" x2="8" y2="16"/>
+              <line x1="16" y1="16" x2="16" y2="16"/>
+            </svg>
+          </span>
+          <span>Sepehrad AI Bot</span>
+        </a>
+        <nav class="nav-desktop" aria-label="ناوبری اصلی">
+          <a href="#features">امکانات</a>
+          <a href="#how">نحوه کار</a>
+          <a href="#templates">الگوها</a>
+          <a href="#pricing">قیمت</a>
+          <a href="#faq">سوالات</a>
+          <a href="#cta" class="btn btn-primary">درخواست دمو رایگان</a>
+        </nav>
+        <button class="nav-toggle" type="button" aria-label="باز کردن منو" aria-expanded="false" aria-controls="mobile-nav">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+      <nav id="mobile-nav" class="nav-mobile" aria-label="منوی موبایل">
+        <a href="#features">امکانات</a>
+        <a href="#how">نحوه کار</a>
+        <a href="#templates">الگوها</a>
+        <a href="#pricing">قیمت</a>
+        <a href="#faq">سوالات</a>
+        <a href="#cta" class="btn btn-primary btn-block">درخواست دمو رایگان</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Hero -->
+    <section class="hero" id="top">
+      <div class="hero-bg" aria-hidden="true">
+        <div class="hero-blob hero-blob-1"></div>
+        <div class="hero-blob hero-blob-2"></div>
+      </div>
+      <div class="container hero-grid">
+        <div class="hero-content reveal">
+          <span class="eyebrow">مخصوص فروشگاه‌های اینستاگرام، تلگرام و بله</span>
+          <h1>فروشگاهت رو از دایرکت دربیار، <span class="highlight">تو رباتی که فیلتر نمی‌شه.</span></h1>
+          <p class="hero-sub">یه فروشگاه کامل با سبد خرید و پرداخت مستقیم، داخل بله و تلگرام. بدون نیاز به سایت، دامنه یا درگاه. سفارش‌هات دیگه تو دایرکت گم نمی‌شن.</p>
+          <div class="hero-actions">
+            <a href="#cta" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              درخواست دمو رایگان
+            </a>
+            <a href="{{ LANDING_DEMO_BOT_URL }}" class="btn btn-outline" target="_blank" rel="noopener">ربات نمونه رو ببین</a>
+          </div>
+          <div class="trust-badges">
+            <span class="trust-badge"><span class="trust-badge-icon">✓</span> بدون نیاز به سایت</span>
+            <span class="trust-badge"><span class="trust-badge-icon">✓</span> پرداخت مستقیم</span>
+            <span class="trust-badge"><span class="trust-badge-icon">✓</span> راه‌اندازی سریع</span>
+          </div>
+          <div class="platform-tags">
+            <span class="platform-tag">بله</span>
+            <span class="platform-tag">تلگرام</span>
+            <span class="platform-tag">اینستاگرام</span>
+          </div>
+        </div>
+
+        <div class="phone-wrap reveal" aria-hidden="true">
+          <div class="phone-glow"></div>
+          <div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="phone-screen">
+              <div class="mini-app">
+                <div class="mini-header">
+                  <span class="mini-header-title">فروشگاه نمونه</span>
+                  <span class="mini-cart">🛒</span>
+                </div>
+                <div class="mini-search">جستجوی محصول…</div>
+                <div class="mini-cats">
+                  <span class="mini-cat active">همه</span>
+                  <span class="mini-cat">پوشاک</span>
+                  <span class="mini-cat">جدید</span>
+                </div>
+                <div class="mini-products">
+                  <div class="mini-product">
+                    <div class="mini-product-img"></div>
+                    <div class="mini-product-info">
+                      <div class="mini-product-name">مانتو مجلسی</div>
+                      <div class="mini-product-price">۸۹۰٬۰۰۰ ت</div>
+                    </div>
+                  </div>
+                  <div class="mini-product">
+                    <div class="mini-product-img" style="background:linear-gradient(135deg,#fce7f3,#ede9fe)"></div>
+                    <div class="mini-product-info">
+                      <div class="mini-product-name">کیف چرمی</div>
+                      <div class="mini-product-price">۴۵۰٬۰۰۰ ت</div>
+                    </div>
+                  </div>
+                  <div class="mini-product">
+                    <div class="mini-product-img" style="background:linear-gradient(135deg,#d1fae5,#ecfdf5)"></div>
+                    <div class="mini-product-info">
+                      <div class="mini-product-name">کفش اسپرت</div>
+                      <div class="mini-product-price">۱٬۲۰۰٬۰۰۰ ت</div>
+                    </div>
+                  </div>
+                  <div class="mini-product">
+                    <div class="mini-product-img" style="background:linear-gradient(135deg,#fef3c7,#fde68a)"></div>
+                    <div class="mini-product-info">
+                      <div class="mini-product-name">شال ابریشم</div>
+                      <div class="mini-product-price">۳۲۰٬۰۰۰ ت</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="mini-nav">
+                  <span class="active">خانه</span>
+                  <span>دسته‌ها</span>
+                  <span>سبد</span>
+                  <span>پروفایل</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Social proof -->
+    <section class="stats-bar">
+      <div class="container reveal">
+        <div class="stats-card">
+          <p class="stats-label">مورد اعتماد فروشگاه‌های پوشاک، آرایشی، خوراکی و …</p>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <strong>+۵۰</strong>
+              <span>فروشگاه فعال</span>
+            </div>
+            <div class="stat-item">
+              <strong>+۱۰۰۰</strong>
+              <span>سفارش ثبت‌شده</span>
+            </div>
+            <div class="stat-item">
+              <strong>۱۰</strong>
+              <span>دقیقه تا راه‌اندازی</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pain -->
+    <section class="surface" id="pain">
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-label">چالش‌ها</span>
+          <h2>این‌ها برات آشناست؟</h2>
+        </div>
+        <div class="cards-grid cols-4 reveal-stagger">
+          <div class="card card-pain">
+            <div class="card-icon-wrap amber">📉</div>
+            <h3>ریچ اینستاگرامت افتاده</h3>
+            <p>پست‌هات کمتر دیده می‌شن و فروش از دایرکت سخت‌تر شده.</p>
+          </div>
+          <div class="card card-pain">
+            <div class="card-icon-wrap blue">💬</div>
+            <h3>سفارش‌ها تو دایرکت گم می‌شن</h3>
+            <p>باید دستی جواب بدی و پیگیری سفارش‌ها وقت‌گیره.</p>
+          </div>
+          <div class="card card-pain">
+            <div class="card-icon-wrap purple">⏰</div>
+            <h3>وقتی آفلاینی، فروش می‌ایسته</h3>
+            <p>مشتری نمی‌تونه هر ساعت سفارش بده؛ باید آنلاین باشی تا بتونی بفروشی.</p>
+          </div>
+          <div class="card card-pain">
+            <div class="card-icon-wrap green">🌐</div>
+            <h3>نه سایت داری نه درگاه</h3>
+            <p>راه‌اندازی سایت و درگاه گرون و وقت‌گیره و هنوز انجامش ندادی.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section id="how">
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-label">راه‌اندازی</span>
+          <h2>چطور کار می‌کنه؟</h2>
+          <p>چهار گام ساده تا فروش حرفه‌ای داخل پیام‌رسان</p>
+        </div>
+        <div class="steps-wrap reveal">
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">۱</div>
+              <h3>ربات بله/تلگرامت رو وصل کن</h3>
+              <p>فقط با توکن، چند دقیقه‌ای.</p>
+            </div>
+            <div class="step">
+              <div class="step-num">۲</div>
+              <h3>الگوی صنف خودت رو انتخاب کن</h3>
+              <p>پوشاک، آرایشی، خوراکی و ده‌ها صنف دیگه، آماده.</p>
+            </div>
+            <div class="step">
+              <div class="step-num">۳</div>
+              <h3>محصولاتت رو اضافه کن</h3>
+              <p>تکی یا با ورود گروهی از فایل.</p>
+            </div>
+            <div class="step">
+              <div class="step-num">۴</div>
+              <h3>لینکت رو بذار تو بایو و بفروش</h3>
+              <p>مشتری داخل پیام‌رسان خرید و پرداخت می‌کنه.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="surface" id="features">
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-label">امکانات</span>
+          <h2>همه‌چیز برای فروش آنلاین</h2>
+          <p>فروشگاه واقعی داخل پیام‌رسان، نه فقط یه ربات دکمه‌ای</p>
+        </div>
+        <div class="cards-grid cols-3 reveal-stagger">
+          <div class="card">
+            <div class="card-icon-wrap purple">🛍</div>
+            <h3>ویترین فروشگاهی (مینی‌اپ)</h3>
+            <p>سبد خرید، دسته‌بندی، گالری — یه فروشگاه واقعی، نه ربات دکمه‌ای.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon-wrap green">💳</div>
+            <h3>پرداخت مستقیم در بله</h3>
+            <p>بدون دامنه، بدون درگاه، بدون نماد اعتماد. فقط شماره کارت.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon-wrap blue">🤖</div>
+            <h3>رباتساز بصری</h3>
+            <p>منو، فرم، رهگیری سفارش، پشتیبانی — بدون کدنویسی.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon-wrap amber">📣</div>
+            <h3>اتوماسیون بازاریابی</h3>
+            <p>ارسال انبوه، سگمنت‌بندی مشتری، بازیابی خودکار سبد رهاشده.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon-wrap purple">📦</div>
+            <h3>مدیریت سفارش</h3>
+            <p>وضعیت سفارش، کد رهگیری، اعلان خودکار به مشتری.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon-wrap green">🎨</div>
+            <h3>الگوهای آماده</h3>
+            <p>برای ده‌ها صنف، فقط با یک کلیک کپی و شخصی‌سازی کن.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Templates -->
+    <section class="templates-section" id="templates">
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-label">الگوها</span>
+          <h2>برای صنف تو آماده‌ست</h2>
+          <p>هر الگو با دسته‌بندی، محصول نمونه، منوی ربات و کمپین آماده میاد.</p>
+        </div>
+        <div class="chips-grid reveal">
+          <span class="chip">پوشاک زنانه</span>
+          <span class="chip">پوشاک مردانه</span>
+          <span class="chip">سیسمونی</span>
+          <span class="chip">آرایشی</span>
+          <span class="chip">عطر</span>
+          <span class="chip">خوراکی خانگی</span>
+          <span class="chip">قنادی</span>
+          <span class="chip">کافه</span>
+          <span class="chip">آجیل</span>
+          <span class="chip">گل و گیاه</span>
+          <span class="chip">دکوراسیون</span>
+          <span class="chip">زیورآلات</span>
+          <span class="chip">کیف و کفش</span>
+          <span class="chip">لوازم موبایل</span>
+          <span class="chip">کتاب</span>
+          <span class="chip">ورزشی</span>
+          <span class="chip">اسباب‌بازی</span>
+          <span class="chip">صنایع دستی</span>
+          <span class="chip">عسل و ارگانیک</span>
+          <span class="chip">پت‌شاپ</span>
+          <span class="chip">سالن زیبایی</span>
+          <span class="chip">آموزشگاه</span>
+          <span class="chip">رستوران</span>
+          <span class="chip">محصولات دیجیتال</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Payment spotlight -->
+    <section class="payment-spotlight" id="payment">
+      <div class="container">
+        <div class="payment-inner reveal">
+          <span class="section-label">پرداخت بله</span>
+          <h2>پرداخت، بدون دردسرِ درگاه.</h2>
+          <p>تو بله، مشتری مستقیم داخل اپ پرداخت می‌کنه و پول به کارت تو می‌ره. نه به سایت نیاز داری، نه به دامنه‌ی تأییدشده، نه به نماد اعتماد. فقط شماره کارتت رو وارد کن.</p>
+          <div class="payment-points">
+            <div class="payment-point">
+              <div class="payment-point-icon">⚡</div>
+              <strong>بدون callback و ریدایرکت</strong>
+              <span>پرداخت داخل خود بله انجام می‌شه</span>
+            </div>
+            <div class="payment-point">
+              <div class="payment-point-icon">💰</div>
+              <strong>تسویه‌ی مستقیم</strong>
+              <span>پول مستقیم به کارت فروشنده واریز می‌شه</span>
+            </div>
+            <div class="payment-point">
+              <div class="payment-point-icon">🔒</div>
+              <strong>امن، داخل خود بله</strong>
+              <span>بدون نیاز به دامنه یا درگاه بانکی</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="surface" id="pricing">
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-label">قیمت‌گذاری</span>
+          <h2>پلن مناسب کسب‌وکارت</h2>
+        </div>
+        <div class="pricing-grid reveal">
+          <div class="pricing-card">
+            <h3>پایه</h3>
+            <div class="pricing-price">۴۹۰٬۰۰۰ <small>تومان / ماه</small></div>
+            <p class="pricing-desc">ربات + کمپین. مناسب شروع.</p>
+            <ul class="pricing-features">
+              <li>ربات بله یا تلگرام</li>
+              <li>رباتساز بصری</li>
+              <li>کمپین انبوه</li>
+              <li>سگمنت‌بندی مخاطب</li>
+            </ul>
+            <a href="#cta" class="btn btn-outline btn-block">درخواست دمو</a>
+          </div>
+          <div class="pricing-card featured">
+            <span class="pricing-badge">پیشنهاد ویژه</span>
+            <h3>حرفه‌ای</h3>
+            <div class="pricing-price">۹۹۰٬۰۰۰ <small>تومان / ماه</small></div>
+            <p class="pricing-desc">مینی‌اپ فروشگاه + پرداخت بله + مدیریت سفارش.</p>
+            <ul class="pricing-features">
+              <li>همه امکانات پایه</li>
+              <li>مینی‌اپ فروشگاهی</li>
+              <li>پرداخت مستقیم بله</li>
+              <li>مدیریت سفارش و رهگیری</li>
+              <li>الگوهای آماده صنف</li>
+            </ul>
+            <a href="#cta" class="btn btn-primary btn-block">شروع کن</a>
+          </div>
+          <div class="pricing-card">
+            <h3>فروشگاهی</h3>
+            <div class="pricing-price">۱٬۴۹۰٬۰۰۰ <small>تومان / ماه</small></div>
+            <p class="pricing-desc">برای فروشگاه‌های پرحجم و حرفه‌ای.</p>
+            <ul class="pricing-features">
+              <li>همه امکانات حرفه‌ای</li>
+              <li>ورود گروهی محصولات</li>
+              <li>بازیابی سبد رهاشده</li>
+              <li>پشتیبانی اولویت‌دار</li>
+            </ul>
+            <a href="#cta" class="btn btn-outline btn-block">درخواست دمو</a>
+          </div>
+        </div>
+        <p class="pricing-note reveal">مطمئن نیستی کدوم مناسبته؟ یه دمو رایگان بگیر، با هم انتخاب می‌کنیم.</p>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section id="testimonials">
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-label">نظرات</span>
+          <h2>نظر فروشگاه‌دارها</h2>
+        </div>
+        <div class="cards-grid cols-3 reveal-stagger">
+          <div class="card testimonial-card">
+            <span class="testimonial-quote" aria-hidden="true">"</span>
+            <div class="testimonial-stars" aria-label="۵ از ۵">★★★★★</div>
+            <p class="testimonial-text">دیگه سفارش‌ها تو دایرکت گم نمی‌شن. مشتری‌ها خودشون از مینی‌اپ خرید می‌کنن.</p>
+            <div class="testimonial-author">
+              <div class="testimonial-avatar" aria-hidden="true">👩</div>
+              <div>
+                <p class="testimonial-name">سارا محمدی</p>
+                <p class="testimonial-role">فروشگاه پوشاک — اینستاگرام</p>
+              </div>
+            </div>
+          </div>
+          <div class="card testimonial-card">
+            <span class="testimonial-quote" aria-hidden="true">"</span>
+            <div class="testimonial-stars" aria-label="۵ از ۵">★★★★★</div>
+            <p class="testimonial-text">پرداخت مستقیم بله عالیه. نه درگاه خواستم نه دامنه. تو یه روز راه افتاد.</p>
+            <div class="testimonial-author">
+              <div class="testimonial-avatar" aria-hidden="true">👨</div>
+              <div>
+                <p class="testimonial-name">علی رضایی</p>
+                <p class="testimonial-role">فروشگاه لوازم آرایشی — بله</p>
+              </div>
+            </div>
+          </div>
+          <div class="card testimonial-card">
+            <span class="testimonial-quote" aria-hidden="true">"</span>
+            <div class="testimonial-stars" aria-label="۵ از ۵">★★★★★</div>
+            <p class="testimonial-text">کمپین انبوه و بازیابی سبد واقعاً فروشم رو بالا برد. پشتیبانی هم عالی بود.</p>
+            <div class="testimonial-author">
+              <div class="testimonial-avatar" aria-hidden="true">👩</div>
+              <div>
+                <p class="testimonial-name">مریم کریمی</p>
+                <p class="testimonial-role">قنادی خانگی — تلگرام</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="surface" id="faq">
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-label">سوالات</span>
+          <h2>سوالات متداول</h2>
+        </div>
+        <div class="faq-list reveal">
+          <div class="faq-item">
+            <button type="button" class="faq-question" aria-expanded="false">
+              بله فیلتر می‌شه؟
+              <span class="faq-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="faq-answer"><div class="faq-answer-inner">نه، بله داخل ایران بدون فیلترشکن کار می‌کنه و درگاه پرداخت بومی داره.</div></div>
+          </div>
+          <div class="faq-item">
+            <button type="button" class="faq-question" aria-expanded="false">
+              به سایت یا دامنه نیاز دارم؟
+              <span class="faq-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="faq-answer"><div class="faq-answer-inner">نه. همه‌چیز داخل پیام‌رسان انجام می‌شه.</div></div>
+          </div>
+          <div class="faq-item">
+            <button type="button" class="faq-question" aria-expanded="false">
+              پول فروش مستقیم به من می‌رسه؟
+              <span class="faq-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="faq-answer"><div class="faq-answer-inner">بله، در بله مستقیم به کارت تو واریز می‌شه.</div></div>
+          </div>
+          <div class="faq-item">
+            <button type="button" class="faq-question" aria-expanded="false">
+              بلد نیستم ربات بسازم.
+              <span class="faq-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="faq-answer"><div class="faq-answer-inner">با الگوهای آماده، فقط انتخاب و شخصی‌سازی می‌کنی.</div></div>
+          </div>
+          <div class="faq-item">
+            <button type="button" class="faq-question" aria-expanded="false">
+              مشتری‌های فعلی اینستاگرامم رو چطور بیارم؟
+              <span class="faq-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="faq-answer"><div class="faq-answer-inner">لینک فروشگاهت رو تو بایو و استوری بذار؛ راهنمایی می‌کنیم.</div></div>
+          </div>
+          <div class="faq-item">
+            <button type="button" class="faq-question" aria-expanded="false">
+              پشتیبانی دارید؟
+              <span class="faq-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="faq-answer"><div class="faq-answer-inner">بله، در راه‌اندازی کنارت هستیم.</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA + Form -->
+    <section class="cta-section" id="cta">
+      <div class="container">
+        <div class="cta-grid">
+          <div class="cta-text reveal">
+            <div class="section-header cta-header">
+              <span class="section-label">شروع کن</span>
+              <h2>آماده‌ای فروشت رو جدی کنی؟</h2>
+              <p>فرم رو پر کن، یه دمو رایگان برات می‌فرستیم و راه‌اندازی اولیه رو با هم انجام می‌دیم.</p>
+            </div>
+            <ul class="cta-perks">
+              <li>دمو رایگان و بدون تعهد</li>
+              <li>راه‌اندازی اولیه همراه با تیم</li>
+              <li>پاسخ در کمتر از ۲۴ ساعت</li>
+            </ul>
+          </div>
+
+          <div class="form-card reveal">
+            {% if messages %}
+              {% for message in messages %}
+                <div class="alert alert-success" role="alert">✓ {{ message }}</div>
+              {% endfor %}
+            {% endif %}
+            {% if form_errors %}
+              <div class="alert alert-error" role="alert">لطفاً خطاهای فرم را برطرف کنید.</div>
+            {% endif %}
+
+            <p class="form-title">درخواست دمو رایگان</p>
+
+            <form method="post" action="{% url 'landing_lead' %}" novalidate>
+              {% csrf_token %}
+              <div class="honeypot" aria-hidden="true">
+                <label for="id_website">وب‌سایت</label>
+                {{ form.website }}
+              </div>
+
+              <div class="form-grid cols-2">
+                <div class="form-row">
+                  <label for="id_name">نام *</label>
+                  {{ form.name }}
+                  {% if form.name.errors %}<div class="form-error">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="form-row">
+                  <label for="id_phone">موبایل *</label>
+                  {{ form.phone }}
+                  {% if form.phone.errors %}<div class="form-error">{{ form.phone.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="form-row span-2">
+                  <label for="id_business_name">نام کسب‌وکار</label>
+                  {{ form.business_name }}
+                </div>
+                <div class="form-row">
+                  <label for="id_messenger">پیام‌رسان اصلی</label>
+                  {{ form.messenger }}
+                </div>
+                <div class="form-row">
+                  <label for="id_business_type">صنف</label>
+                  {{ form.business_type }}
+                </div>
+                <div class="form-row span-2">
+                  <label for="id_note">توضیحات</label>
+                  {{ form.note }}
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-block" style="margin-top:0.5rem">درخواست دمو رایگان</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="logo">
+            <span class="logo-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="10" rx="2"/>
+                <circle cx="12" cy="5" r="2"/>
+                <path d="M12 7v4"/>
+              </svg>
+            </span>
+            <span>Sepehrad AI Bot</span>
+          </div>
+          <p>پلتفرم ساخت ربات و فروشگاه در بله و تلگرام — فروش حرفه‌ای بدون سایت و درگاه.</p>
+        </div>
+        <div class="footer-links">
+          <h4>لینک‌ها</h4>
+          <ul>
+            <li><a href="#features">امکانات</a></li>
+            <li><a href="#pricing">قیمت</a></li>
+            <li><a href="#cta">تماس و دمو</a></li>
+            <li><a href="{% url 'panel_login' %}">ورود به پنل</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h4>ارتباط</h4>
+          <ul>
+            <li><a href="{{ LANDING_DEMO_BOT_URL }}" target="_blank" rel="noopener">ربات بله</a></li>
+            <li><a href="#faq">سوالات متداول</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        © {% now "Y" %} Sepehrad AI Bot — تمامی حقوق محفوظ است.
+      </div>
+    </div>
+  </footer>
+
+  <script src="{% static 'landing/landing.js' %}?v=2" defer></script>
+</body>
+</html>

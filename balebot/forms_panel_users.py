@@ -1,12 +1,60 @@
 from django import forms
 from django.contrib.auth import get_user_model
 
+from balebot.services.jalali_datetime import parse_jalali_date_time
+
 User = get_user_model()
 
 _INPUT = 'form-control panel-input'
+_CHECKBOX = {'class': 'form-check-input'}
+_JALALI_DATE_ATTRS = {
+    'class': _INPUT,
+    'placeholder': '۱۴۰۳/۰۸/۱۵',
+    'dir': 'ltr',
+    'autocomplete': 'off',
+    'data-jalali-date': '1',
+    'readonly': 'readonly',
+}
+_JALALI_TIME_ATTRS = {
+    'class': _INPUT,
+    'placeholder': '۱۴:۳۰',
+    'dir': 'ltr',
+    'autocomplete': 'off',
+    'data-jalali-time': '1',
+}
 
 
-class PanelUserCreateForm(forms.Form):
+class JalaliSubscriptionFormMixin(forms.Form):
+    jalali_subscription_expires_date = forms.CharField(
+        required=False,
+        label='تاریخ انقضا (شمسی)',
+        widget=forms.TextInput(attrs=_JALALI_DATE_ATTRS),
+    )
+    jalali_subscription_expires_time = forms.CharField(
+        required=False,
+        label='ساعت انقضا',
+        help_text='خالی = بدون محدودیت. به وقت ایران (منطقهٔ زمانی سرور).',
+        widget=forms.TextInput(attrs=_JALALI_TIME_ATTRS),
+    )
+
+    def _resolve_subscription_expires_at(self, cleaned):
+        j_date = (cleaned.get('jalali_subscription_expires_date') or '').strip()
+        j_time = (cleaned.get('jalali_subscription_expires_time') or '').strip()
+        if not j_date and not j_time:
+            cleaned['subscription_expires_at'] = None
+            return cleaned
+        if not j_date:
+            raise forms.ValidationError('تاریخ انقضای شمسی را وارد کنید یا هر دو فیلد را خالی بگذارید.')
+        if not j_time:
+            j_time = '23:59'
+        try:
+            cleaned['subscription_expires_at'] = parse_jalali_date_time(j_date, j_time)
+        except ValueError as exc:
+            raise forms.ValidationError(str(exc)) from exc
+        return cleaned
+
+
+class PanelUserCreateForm(JalaliSubscriptionFormMixin):
     username = forms.CharField(
         max_length=150,
         label='نام کاربری',
@@ -30,30 +78,35 @@ class PanelUserCreateForm(forms.Form):
         required=False,
         initial=True,
         label='دسترسی بله',
+        widget=forms.CheckboxInput(attrs=_CHECKBOX),
         help_text='کاربر می‌تواند ربات بله را در پنل مدیریت کند.',
     )
     allow_telegram = forms.BooleanField(
         required=False,
         initial=True,
         label='دسترسی تلگرام',
+        widget=forms.CheckboxInput(attrs=_CHECKBOX),
         help_text='کاربر می‌تواند ربات تلگرام را در پنل مدیریت کند.',
     )
     allow_bale_miniapp = forms.BooleanField(
         required=False,
         initial=False,
         label='دسترسی مینی‌اپ بله',
+        widget=forms.CheckboxInput(attrs=_CHECKBOX),
         help_text='مدیریت ویترین و محتوای مینی‌اپ بله در پنل.',
     )
     allow_telegram_miniapp = forms.BooleanField(
         required=False,
         initial=False,
         label='دسترسی مینی‌اپ تلگرام',
+        widget=forms.CheckboxInput(attrs=_CHECKBOX),
         help_text='مدیریت ویترین و محتوای مینی‌اپ تلگرام در پنل.',
     )
     allow_instagram = forms.BooleanField(
         required=False,
         initial=False,
         label='دسترسی اینستاگرام',
+        widget=forms.CheckboxInput(attrs=_CHECKBOX),
         help_text='استخراج و مدیریت شماره از بکاپ دایرکت اینستاگرام.',
     )
 
@@ -70,7 +123,7 @@ class PanelUserCreateForm(forms.Form):
             raise forms.ValidationError('مینی‌اپ تلگرام نیاز به دسترسی تلگرام دارد.')
         if not allow_bale and not allow_telegram and not allow_instagram:
             raise forms.ValidationError('حداقل یک دسترسی (بله، تلگرام یا اینستاگرام) باید انتخاب شود.')
-        return cleaned
+        return self._resolve_subscription_expires_at(cleaned)
 
     def clean_username(self):
         username = (self.cleaned_data.get('username') or '').strip()
@@ -81,7 +134,7 @@ class PanelUserCreateForm(forms.Form):
         return username
 
 
-class PanelUserUpdateForm(forms.Form):
+class PanelUserUpdateForm(JalaliSubscriptionFormMixin):
     workspace_name = forms.CharField(
         max_length=120,
         label='نام پنل',
@@ -102,40 +155,47 @@ class PanelUserUpdateForm(forms.Form):
         required=False,
         initial=True,
         label='حساب فعال',
+        widget=forms.CheckboxInput(attrs=_CHECKBOX),
     )
     workspace_active = forms.BooleanField(
         required=False,
         initial=True,
         label='پنل فعال',
+        widget=forms.CheckboxInput(attrs=_CHECKBOX),
     )
     allow_bale = forms.BooleanField(
         required=False,
         initial=True,
         label='دسترسی بله',
+        widget=forms.CheckboxInput(attrs=_CHECKBOX),
         help_text='کاربر می‌تواند ربات بله را در پنل مدیریت کند.',
     )
     allow_telegram = forms.BooleanField(
         required=False,
         initial=True,
         label='دسترسی تلگرام',
+        widget=forms.CheckboxInput(attrs=_CHECKBOX),
         help_text='کاربر می‌تواند ربات تلگرام را در پنل مدیریت کند.',
     )
     allow_bale_miniapp = forms.BooleanField(
         required=False,
         initial=False,
         label='دسترسی مینی‌اپ بله',
+        widget=forms.CheckboxInput(attrs=_CHECKBOX),
         help_text='مدیریت ویترین و محتوای مینی‌اپ بله در پنل.',
     )
     allow_telegram_miniapp = forms.BooleanField(
         required=False,
         initial=False,
         label='دسترسی مینی‌اپ تلگرام',
+        widget=forms.CheckboxInput(attrs=_CHECKBOX),
         help_text='مدیریت ویترین و محتوای مینی‌اپ تلگرام در پنل.',
     )
     allow_instagram = forms.BooleanField(
         required=False,
         initial=False,
         label='دسترسی اینستاگرام',
+        widget=forms.CheckboxInput(attrs=_CHECKBOX),
         help_text='استخراج و مدیریت شماره از بکاپ دایرکت اینستاگرام.',
     )
 
@@ -152,4 +212,4 @@ class PanelUserUpdateForm(forms.Form):
             raise forms.ValidationError('مینی‌اپ تلگرام نیاز به دسترسی تلگرام دارد.')
         if not allow_bale and not allow_telegram and not allow_instagram:
             raise forms.ValidationError('حداقل یک دسترسی (بله، تلگرام یا اینستاگرام) باید انتخاب شود.')
-        return cleaned
+        return self._resolve_subscription_expires_at(cleaned)

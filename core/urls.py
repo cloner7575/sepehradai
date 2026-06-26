@@ -12,14 +12,14 @@ from django.urls import include, path
 
 
 def redirect_panel_root(_request):
-    return HttpResponseRedirect('/')
+    return HttpResponseRedirect('/dashboard/')
 
 
 def redirect_panel_nested(_request, subpath):
     subpath = (subpath or '').strip('/')
     if subpath:
         return HttpResponseRedirect(f'/{subpath}/')
-    return HttpResponseRedirect('/')
+    return HttpResponseRedirect('/dashboard/')
 
 
 urlpatterns = [
@@ -27,6 +27,7 @@ urlpatterns = [
     # مسیرهای قدیمی /panel/… برای نشانک‌ها
     path('panel/', redirect_panel_root),
     path('panel/<path:subpath>/', redirect_panel_nested),
+    path('', include('landing.urls')),
     path('', include('balebot.urls')),
 ]
 
