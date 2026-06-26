@@ -40,7 +40,18 @@
   }
 
   function getGuide(type) {
-    return TYPE_GUIDES[type] || TYPE_GUIDES.product || {};
+    var guide = TYPE_GUIDES[type] || TYPE_GUIDES.product;
+    if (guide && Object.keys(guide).length) return guide;
+    if (type === 'download') {
+      return { label: 'فایل دانلود', show_commerce: false, show_download_block: true, default_sale_mode: 'request_only' };
+    }
+    if (type === 'showcase') {
+      return { label: 'معرفی و نمونه\u200cکار', show_commerce: false, show_download_block: false, default_sale_mode: 'request_only' };
+    }
+    if (type === 'video') {
+      return { label: 'ویدیو و آموزش', show_commerce: true, show_download_block: false, default_sale_mode: 'request_only' };
+    }
+    return { label: 'محصول', show_commerce: true, show_download_block: false, default_sale_mode: 'both' };
   }
 
   function getWizardSteps() {

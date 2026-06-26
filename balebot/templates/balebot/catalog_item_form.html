@@ -307,8 +307,8 @@
 {% endblock %}
 
 {% block extra_js %}
-<script id="item-type-guides-data" type="application/json">{{ item_type_guides_json }}</script>
+<script id="item-type-guides-data" type="application/json">{{ item_type_guides_json|safe }}</script>
 <script src="{% static 'balebot/js/jalali_date_picker.js' %}?v=1"></script>
 <script src="{% static 'balebot/js/catalog_item_metadata.js' %}?v=1"></script>
-<script src="{% static 'balebot/js/catalog_item_form.js' %}?v=5"></script>
+<script src="{% static 'balebot/js/catalog_item_form.js' %}?v=6"></script>
 {% endblock %}
