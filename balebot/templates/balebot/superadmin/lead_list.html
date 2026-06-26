@@ -1,0 +1,138 @@
+{% extends "balebot/base.html" %}
+{% load jalali_extras %}
+{% block title %}سرنخ‌های لندینگ{% endblock %}
+{% block page_title %}سرنخ‌های لندینگ{% endblock %}
+{% block page_subtitle %}
+<p class="app-page-subtitle mb-0 mt-1">درخواست‌های دمو و تماس از صفحه فروش.</p>
+{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'superadmin_dashboard' %}" class="btn btn-panel-ghost flex-shrink-0">
+  <i class="bi bi-arrow-right me-2"></i>داشبورد پلتفرم
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="app-metrics mb-4">
+  <div class="row g-3">
+    <div class="col-6 col-md-4">
+      <div class="app-metric d-flex align-items-start gap-3">
+        <span class="app-metric-icon app-metric-icon--info mb-0"><i class="bi bi-inbox-fill"></i></span>
+        <div>
+          <span class="app-metric-label">همه</span>
+          <span class="app-metric-value">{{ lead_stat_total }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4">
+      <div class="app-metric d-flex align-items-start gap-3">
+        <span class="app-metric-icon app-metric-icon--warn mb-0"><i class="bi bi-hourglass-split"></i></span>
+        <div>
+          <span class="app-metric-label">در انتظار تماس</span>
+          <span class="app-metric-value">{{ lead_stat_pending }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4">
+      <div class="app-metric d-flex align-items-start gap-3">
+        <span class="app-metric-icon app-metric-icon--success mb-0"><i class="bi bi-check-circle-fill"></i></span>
+        <div>
+          <span class="app-metric-label">تماس گرفته شده</span>
+          <span class="app-metric-value">{{ lead_stat_contacted }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="panel-card mb-4">
+  <div class="panel-card-body py-3">
+    <form method="get" class="search-bar d-flex flex-wrap gap-2 align-items-center">
+      <div class="input-group flex-grow-1 min-w-0" style="max-width: 420px;">
+        <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search text-muted"></i></span>
+        <input type="search" name="q" value="{{ search_q }}" class="form-control panel-input border-start-0 ps-0" placeholder="جستجو نام، موبایل، کسب‌وکار…" autocomplete="off">
+      </div>
+      <select name="status" class="form-select panel-input" style="max-width: 220px;">
+        <option value="">همه وضعیت‌ها</option>
+        <option value="pending" {% if filter_status == 'pending' %}selected{% endif %}>در انتظار تماس</option>
+        <option value="contacted" {% if filter_status == 'contacted' %}selected{% endif %}>تماس گرفته شده</option>
+      </select>
+      <button type="submit" class="btn btn-panel-primary btn-sm">اعمال فیلتر</button>
+      {% if search_q or filter_status %}
+      <a href="{% url 'superadmin_lead_list' %}" class="btn btn-panel-ghost btn-sm">پاک کردن</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<div class="panel-card">
+  <div class="panel-card-header">
+    <div>
+      <h2 class="panel-card-title mb-1">فهرست سرنخ‌ها</h2>
+    </div>
+    {% if leads %}<span class="text-muted small">{{ page_obj.paginator.count }} مورد</span>{% endif %}
+  </div>
+  {% if leads %}
+  <div class="panel-table-wrap rounded-0 border-top-0">
+    <div class="table-responsive">
+      <table class="table panel-table table-striped table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>نام</th>
+            <th class="d-none d-md-table-cell">موبایل</th>
+            <th class="d-none d-lg-table-cell">صنف</th>
+            <th>وضعیت</th>
+            <th class="d-none d-xl-table-cell">تاریخ</th>
+            <th class="text-end">عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lead in leads %}
+          <tr>
+            <td>
+              <a href="{% url 'superadmin_lead_detail' lead.pk %}" class="fw-semibold text-decoration-none">{{ lead.name }}</a>
+              {% if lead.business_name %}<div class="small text-muted">{{ lead.business_name }}</div>{% endif %}
+            </td>
+            <td class="d-none d-md-table-cell" dir="ltr">{{ lead.phone }}</td>
+            <td class="d-none d-lg-table-cell small">{{ lead.business_type|default:"—" }}</td>
+            <td>
+              {% if lead.is_contacted %}
+              <span class="badge bg-success-subtle text-success-emphasis">تماس گرفته شد</span>
+              {% else %}
+              <span class="badge bg-warning-subtle text-warning-emphasis">در انتظار</span>
+              {% endif %}
+            </td>
+            <td class="d-none d-xl-table-cell small text-muted">{{ lead.created_at|jalali_datetime }}</td>
+            <td class="text-end">
+              <a href="{% url 'superadmin_lead_detail' lead.pk %}" class="btn btn-panel-ghost btn-sm">جزئیات</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% if page_obj.has_other_pages %}
+  <nav class="mt-4 px-3 pb-3" aria-label="صفحه‌بندی">
+    <ul class="pagination justify-content-center flex-wrap gap-1 mb-0">
+      {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link rounded-pill" href="?page={{ page_obj.previous_page_number }}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if filter_status %}&status={{ filter_status|urlencode }}{% endif %}">قبلی</a>
+      </li>
+      {% endif %}
+      <li class="page-item disabled">
+        <span class="page-link rounded-pill border-0 bg-transparent text-muted">صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}</span>
+      </li>
+      {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link rounded-pill" href="?page={{ page_obj.next_page_number }}{% if search_q %}&q={{ search_q|urlencode }}{% endif %}{% if filter_status %}&status={{ filter_status|urlencode }}{% endif %}">بعدی</a>
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+  {% else %}
+  <div class="panel-card-body text-muted">سرنخی یافت نشد.</div>
+  {% endif %}
+</div>
+{% endblock %}

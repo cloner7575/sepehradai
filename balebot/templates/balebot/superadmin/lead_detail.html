@@ -1,0 +1,84 @@
+{% extends "balebot/base.html" %}
+{% load jalali_extras %}
+{% block title %}جزئیات سرنخ{% endblock %}
+{% block page_title %}{{ lead.name }}{% endblock %}
+{% block page_subtitle %}
+<p class="app-page-subtitle mb-0 mt-1">ثبت‌شده در {{ lead.created_at|jalali_datetime }}</p>
+{% endblock %}
+
+{% block page_actions %}
+<form method="post" action="{% url 'superadmin_lead_toggle_contacted' lead.pk %}" class="d-inline">
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{% url 'superadmin_lead_detail' lead.pk %}">
+  {% if lead.is_contacted %}
+  <button type="submit" class="btn btn-panel-ghost flex-shrink-0">
+    <i class="bi bi-arrow-counterclockwise me-2"></i>برگشت به «در انتظار»
+  </button>
+  {% else %}
+  <button type="submit" class="btn btn-panel-primary flex-shrink-0">
+    <i class="bi bi-check2-circle me-2"></i>علامت‌گذاری تماس گرفته شد
+  </button>
+  {% endif %}
+</form>
+<a href="{% url 'superadmin_lead_list' %}" class="btn btn-panel-ghost flex-shrink-0">
+  <i class="bi bi-arrow-right me-2"></i>بازگشت
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="panel-card mb-4">
+      <div class="panel-card-header">
+        <h2 class="panel-card-title mb-0">اطلاعات تماس</h2>
+        {% if lead.is_contacted %}
+        <span class="badge bg-success-subtle text-success-emphasis">تماس گرفته شد</span>
+        {% else %}
+        <span class="badge bg-warning-subtle text-warning-emphasis">در انتظار تماس</span>
+        {% endif %}
+      </div>
+      <div class="panel-card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4 text-muted">نام</dt>
+          <dd class="col-sm-8">{{ lead.name }}</dd>
+          <dt class="col-sm-4 text-muted">موبایل</dt>
+          <dd class="col-sm-8" dir="ltr"><a href="tel:{{ lead.phone }}">{{ lead.phone }}</a></dd>
+          <dt class="col-sm-4 text-muted">نام کسب‌وکار</dt>
+          <dd class="col-sm-8">{{ lead.business_name|default:"—" }}</dd>
+          <dt class="col-sm-4 text-muted">صنف</dt>
+          <dd class="col-sm-8">{{ lead.business_type|default:"—" }}</dd>
+          <dt class="col-sm-4 text-muted">پیام‌رسان</dt>
+          <dd class="col-sm-8">{{ lead.get_messenger_display_fa }}</dd>
+          <dt class="col-sm-4 text-muted">منبع</dt>
+          <dd class="col-sm-8">{{ lead.source }}</dd>
+        </dl>
+      </div>
+    </div>
+    {% if lead.note %}
+    <div class="panel-card">
+      <div class="panel-card-header">
+        <h2 class="panel-card-title mb-0">توضیحات</h2>
+      </div>
+      <div class="panel-card-body">
+        <p class="mb-0" style="white-space: pre-wrap;">{{ lead.note }}</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  <div class="col-lg-4">
+    <div class="panel-card">
+      <div class="panel-card-header">
+        <h2 class="panel-card-title mb-0">اقدامات</h2>
+      </div>
+      <div class="panel-card-body d-grid gap-2">
+        <a href="tel:{{ lead.phone }}" class="btn btn-panel-primary">
+          <i class="bi bi-telephone me-2"></i>تماس تلفنی
+        </a>
+        <a href="{% url 'superadmin_lead_list' %}?q={{ lead.phone|urlencode }}" class="btn btn-panel-ghost">
+          <i class="bi bi-search me-2"></i>جستجوی مشابه
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

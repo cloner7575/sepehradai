@@ -30,6 +30,8 @@ def _panel_module(request) -> str:
         return 'catalog'
     if name.startswith('panel_user_'):
         return 'settings'
+    if name.startswith('superadmin_'):
+        return 'platform'
     return 'home'
 
 
@@ -40,6 +42,8 @@ def _panel_product(request) -> str:
         return 'instagram'
     if module == 'catalog':
         return 'miniapp'
+    if module == 'platform':
+        return 'platform'
     if module in ('bot', 'marketing', 'audience', 'settings'):
         return 'bot'
     return 'home'

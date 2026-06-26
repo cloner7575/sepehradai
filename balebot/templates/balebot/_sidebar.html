@@ -15,6 +15,33 @@
       </a>
     </nav>
 
+    {% if user.is_superuser %}
+    <section class="app-nav-product app-nav-product--platform {% if panel_product == 'platform' %}is-current{% endif %}" aria-label="مدیریت پلتفرم">
+      <header class="app-nav-product-head">
+        <span class="app-nav-product-icon"><i class="bi bi-building-gear"></i></span>
+        <span class="app-nav-product-title">پلتفرم</span>
+        <span class="app-nav-product-meta">سوپر ادمین</span>
+      </header>
+      <nav class="app-nav app-nav--admin">
+        <a href="{% url 'superadmin_dashboard' %}" class="app-nav-link app-nav-link--admin {% if name == 'superadmin_dashboard' %}is-active{% endif %}">
+          <i class="bi bi-speedometer2 app-nav-icon"></i><span>داشبورد پلتفرم</span>
+        </a>
+        <a href="{% url 'superadmin_lead_list' %}" class="app-nav-link app-nav-link--admin {% if name == 'superadmin_lead_list' or name == 'superadmin_lead_detail' %}is-active{% endif %}">
+          <i class="bi bi-inbox app-nav-icon"></i><span>سرنخ‌های لندینگ</span>
+        </a>
+        <a href="{% url 'superadmin_plan_list' %}" class="app-nav-link app-nav-link--admin {% if name == 'superadmin_plan_create' or name == 'superadmin_plan_edit' or name == 'superadmin_plan_list' %}is-active{% endif %}">
+          <i class="bi bi-tags app-nav-icon"></i><span>پلن‌های اشتراک</span>
+        </a>
+        <a href="{% url 'superadmin_landing_settings' %}" class="app-nav-link app-nav-link--admin {% if name == 'superadmin_landing_settings' %}is-active{% endif %}">
+          <i class="bi bi-window-sidebar app-nav-icon"></i><span>تنظیمات لندینگ</span>
+        </a>
+        <a href="{% url 'panel_user_list' %}" class="app-nav-link app-nav-link--admin {% if name == 'panel_user_list' or name == 'panel_user_create' or name == 'panel_user_edit' %}is-active{% endif %}">
+          <i class="bi bi-shield-lock app-nav-icon"></i><span>مدیریت کاربران</span>
+        </a>
+      </nav>
+    </section>
+    {% endif %}
+
     <section class="app-nav-product app-nav-product--bot {% if panel_product == 'bot' %}is-current{% endif %}" aria-label="ربات پیام‌رسان">
       <header class="app-nav-product-head">
         <span class="app-nav-product-icon"><i class="bi bi-robot"></i></span>
@@ -65,13 +92,6 @@
         </nav>
       </div>
 
-      {% if user.is_superuser %}
-      <nav class="app-nav app-nav--admin" aria-label="مدیریت پنل">
-        <a href="{% url 'panel_user_list' %}" class="app-nav-link app-nav-link--admin {% if name == 'panel_user_list' or name == 'panel_user_create' or name == 'panel_user_edit' %}is-active{% endif %}">
-          <i class="bi bi-shield-lock app-nav-icon"></i><span>مدیریت کاربران</span>
-        </a>
-      </nav>
-      {% endif %}
     </section>
 
     {% if has_miniapp_access %}

@@ -2,7 +2,6 @@ from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
@@ -10,16 +9,12 @@ from django.utils import timezone
 from django.views.generic import FormView, ListView
 
 from balebot.forms_panel_users import PanelUserCreateForm, PanelUserUpdateForm
+from balebot.mixins import SuperuserRequiredMixin
 from balebot.models import BotSettings, Workspace
 from balebot.services.jalali_datetime import aware_to_jalali_parts
 from balebot.workspace import create_panel_user, ensure_bot_settings_for_workspace
 
 User = get_user_model()
-
-
-class SuperuserRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
-    def test_func(self):
-        return self.request.user.is_superuser
 
 
 def _panel_user_base_queryset():

@@ -6,15 +6,16 @@ from django.views.decorators.http import require_http_methods
 
 from landing.forms import LeadForm
 from landing.services.notify import notify_lead_via_bale
+from landing.services.public_content import get_public_landing_context
 
 
 @require_http_methods(['GET'])
 def landing_index(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
         return redirect('panel_dashboard')
-    return render(request, 'landing/index.html', {
-        'form': LeadForm(),
-    })
+    ctx = get_public_landing_context()
+    ctx['form'] = LeadForm()
+    return render(request, 'landing/index.html', ctx)
 
 
 @require_http_methods(['POST'])
@@ -24,10 +25,10 @@ def submit_lead(request: HttpRequest) -> HttpResponse:
 
     form = LeadForm(request.POST)
     if not form.is_valid():
-        return render(request, 'landing/index.html', {
-            'form': form,
-            'form_errors': True,
-        }, status=400)
+        ctx = get_public_landing_context()
+        ctx['form'] = form
+        ctx['form_errors'] = True
+        return render(request, 'landing/index.html', ctx, status=400)
 
     lead = form.save(commit=False)
     lead.source = 'landing'

@@ -54,7 +54,7 @@
 
   <div class="announce-bar">
     <span class="announce-dot" aria-hidden="true"></span>
-    راه‌اندازی فروشگاهت کمتر از ۱۰ دقیقه طول می‌کشه
+    {% if landing_settings %}{{ landing_settings.announce_text }}{% else %}راه‌اندازی فروشگاهت کمتر از ۱۰ دقیقه طول می‌کشه{% endif %}
   </div>
 
   <header class="site-header" id="site-header">
@@ -190,18 +190,18 @@
     <section class="stats-bar">
       <div class="container reveal">
         <div class="stats-card">
-          <p class="stats-label">مورد اعتماد فروشگاه‌های پوشاک، آرایشی، خوراکی و …</p>
+          <p class="stats-label">{% if landing_settings %}{{ landing_settings.stats_label }}{% else %}مورد اعتماد فروشگاه‌های پوشاک، آرایشی، خوراکی و …{% endif %}</p>
           <div class="stats-grid">
             <div class="stat-item">
-              <strong>+۵۰</strong>
+              <strong>{% if landing_settings %}{{ landing_settings.stat_stores }}{% else %}+۵۰{% endif %}</strong>
               <span>فروشگاه فعال</span>
             </div>
             <div class="stat-item">
-              <strong>+۱۰۰۰</strong>
+              <strong>{% if landing_settings %}{{ landing_settings.stat_orders }}{% else %}+۱۰۰۰{% endif %}</strong>
               <span>سفارش ثبت‌شده</span>
             </div>
             <div class="stat-item">
-              <strong>۱۰</strong>
+              <strong>{% if landing_settings %}{{ landing_settings.stat_setup_minutes }}{% else %}۱۰{% endif %}</strong>
               <span>دقیقه تا راه‌اندازی</span>
             </div>
           </div>
@@ -392,6 +392,22 @@
           <h2>پلن مناسب کسب‌وکارت</h2>
         </div>
         <div class="pricing-grid reveal">
+          {% if subscription_plans %}
+          {% for plan in subscription_plans %}
+          <div class="pricing-card{% if plan.is_featured %} featured{% endif %}">
+            {% if plan.is_featured %}<span class="pricing-badge">پیشنهاد ویژه</span>{% endif %}
+            <h3>{{ plan.name }}</h3>
+            <div class="pricing-price">{{ plan.price_label }} <small>{{ plan.price_period }}</small></div>
+            {% if plan.description %}<p class="pricing-desc">{{ plan.description }}</p>{% endif %}
+            <ul class="pricing-features">
+              {% for feature in plan.feature_list %}
+              <li>{{ feature }}</li>
+              {% endfor %}
+            </ul>
+            <a href="#cta" class="btn {% if plan.button_style == 'primary' %}btn-primary{% else %}btn-outline{% endif %} btn-block">{{ plan.cta_label }}</a>
+          </div>
+          {% endfor %}
+          {% else %}
           <div class="pricing-card">
             <h3>پایه</h3>
             <div class="pricing-price">۴۹۰٬۰۰۰ <small>تومان / ماه</small></div>
@@ -430,8 +446,9 @@
             </ul>
             <a href="#cta" class="btn btn-outline btn-block">درخواست دمو</a>
           </div>
+          {% endif %}
         </div>
-        <p class="pricing-note reveal">مطمئن نیستی کدوم مناسبته؟ یه دمو رایگان بگیر، با هم انتخاب می‌کنیم.</p>
+        <p class="pricing-note reveal">{% if landing_settings %}{{ landing_settings.pricing_note }}{% else %}مطمئن نیستی کدوم مناسبته؟ یه دمو رایگان بگیر، با هم انتخاب می‌کنیم.{% endif %}</p>
       </div>
     </section>
 

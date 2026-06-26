@@ -1,0 +1,63 @@
+{% extends "balebot/base.html" %}
+{% block title %}تنظیمات لندینگ{% endblock %}
+{% block page_title %}تنظیمات لندینگ{% endblock %}
+{% block page_subtitle %}
+<p class="app-page-subtitle mb-0 mt-1">نوار اعلان، آمار اجتماعی، لینک دمو و یادداشت بخش قیمت.</p>
+{% endblock %}
+
+{% block page_actions %}
+<a href="/" class="btn btn-panel-ghost flex-shrink-0" target="_blank" rel="noopener">
+  <i class="bi bi-box-arrow-up-left me-2"></i>پیش‌نمایش لندینگ
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger mb-4">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="panel-card mb-4">
+        <div class="panel-card-header">
+          <h2 class="panel-card-title mb-0">محتوای صفحه فروش</h2>
+        </div>
+        <div class="panel-card-body">
+          {% include "balebot/_settings_field.html" with field=form.demo_bot_url hint="اگر خالی باشد از متغیر محیطی LANDING_DEMO_BOT_URL استفاده می‌شود." %}
+          {% include "balebot/_settings_field.html" with field=form.announce_text %}
+          {% include "balebot/_settings_field.html" with field=form.pricing_note %}
+        </div>
+      </div>
+
+      <div class="panel-card mb-4">
+        <div class="panel-card-header">
+          <h2 class="panel-card-title mb-0">نوار آمار (Social proof)</h2>
+        </div>
+        <div class="panel-card-body">
+          {% include "balebot/_settings_field.html" with field=form.stats_label %}
+          <div class="row g-3">
+            <div class="col-md-4">{% include "balebot/_settings_field.html" with field=form.stat_stores %}</div>
+            <div class="col-md-4">{% include "balebot/_settings_field.html" with field=form.stat_orders %}</div>
+            <div class="col-md-4">{% include "balebot/_settings_field.html" with field=form.stat_setup_minutes %}</div>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-panel-primary">ذخیره تنظیمات</button>
+    </form>
+  </div>
+  <div class="col-lg-4">
+    <div class="panel-card">
+      <div class="panel-card-header">
+        <h2 class="panel-card-title mb-0">راهنما</h2>
+      </div>
+      <div class="panel-card-body small text-muted">
+        <p>پلن‌های قیمت از بخش <a href="{% url 'superadmin_plan_list' %}">پلن‌های اشتراک</a> مدیریت می‌شوند.</p>
+        <p class="mb-0">در حال حاضر {{ active_plans }} پلن فعال در لندینگ نمایش داده می‌شود.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

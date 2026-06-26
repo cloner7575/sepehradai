@@ -9,6 +9,7 @@ from balebot import (
     views_panel_users,
     views_webhook,
 )
+from landing import views_panel as landing_views_panel
 
 urlpatterns = [
     path('health/', views_webhook.webhook_health, name='bale_health'),
@@ -96,6 +97,23 @@ urlpatterns = [
     path('users/', views_panel_users.PanelUserListView.as_view(), name='panel_user_list'),
     path('users/new/', views_panel_users.PanelUserCreateView.as_view(), name='panel_user_create'),
     path('users/<int:pk>/edit/', views_panel_users.PanelUserUpdateView.as_view(), name='panel_user_edit'),
+    path('superadmin/', landing_views_panel.SuperAdminDashboardView.as_view(), name='superadmin_dashboard'),
+    path('superadmin/leads/', landing_views_panel.SuperAdminLeadListView.as_view(), name='superadmin_lead_list'),
+    path('superadmin/leads/<int:pk>/', landing_views_panel.SuperAdminLeadDetailView.as_view(), name='superadmin_lead_detail'),
+    path(
+        'superadmin/leads/<int:pk>/toggle-contacted/',
+        landing_views_panel.SuperAdminLeadToggleContactedView.as_view(),
+        name='superadmin_lead_toggle_contacted',
+    ),
+    path('superadmin/plans/', landing_views_panel.SuperAdminPlanListView.as_view(), name='superadmin_plan_list'),
+    path('superadmin/plans/new/', landing_views_panel.SuperAdminPlanCreateView.as_view(), name='superadmin_plan_create'),
+    path('superadmin/plans/<int:pk>/edit/', landing_views_panel.SuperAdminPlanUpdateView.as_view(), name='superadmin_plan_edit'),
+    path('superadmin/plans/<int:pk>/delete/', landing_views_panel.SuperAdminPlanDeleteView.as_view(), name='superadmin_plan_delete'),
+    path(
+        'superadmin/landing-settings/',
+        landing_views_panel.SuperAdminLandingSettingsView.as_view(),
+        name='superadmin_landing_settings',
+    ),
     path('catalog/', views_panel_catalog.CatalogDashboardView.as_view(), name='catalog_dashboard'),
     path('catalog/onboarding/', views_panel_catalog.CatalogOnboardingView.as_view(), name='catalog_onboarding'),
     path('catalog/templates/', views_panel_catalog.StoreTemplateListView.as_view(), name='catalog_templates'),

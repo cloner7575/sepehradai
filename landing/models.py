@@ -1,3 +1,4 @@
+from django.conf import settings as django_settings
 from django.db import models
 
 from landing.constants import MESSENGER_CHOICES
@@ -29,3 +30,97 @@ class Lead(models.Model):
 
     def get_messenger_display_fa(self) -> str:
         return dict(MESSENGER_CHOICES).get(self.messenger, self.messenger or '—')
+
+
+class LandingSettings(models.Model):
+    """تنظیمات سراسری لندینگ — تک‌رکورد."""
+
+    demo_bot_url = models.URLField(
+        max_length=500,
+        blank=True,
+        default='',
+        verbose_name='لینک ربات نمونه',
+    )
+    announce_text = models.CharField(
+        max_length=200,
+        default='راه‌اندازی فروشگاهت کمتر از ۱۰ دقیقه طول می‌کشه',
+        verbose_name='نوار اعلان',
+    )
+    stats_label = models.CharField(
+        max_length=200,
+        default='مورد اعتماد فروشگاه‌های پوشاک، آرایشی، خوراکی و …',
+        verbose_name='متن نوار آمار',
+    )
+    stat_stores = models.CharField(max_length=40, default='+۵۰', verbose_name='آمار فروشگاه')
+    stat_orders = models.CharField(max_length=40, default='+۱۰۰۰', verbose_name='آمار سفارش')
+    stat_setup_minutes = models.CharField(max_length=40, default='۱۰', verbose_name='آمار راه‌اندازی (دقیقه)')
+    pricing_note = models.CharField(
+        max_length=300,
+        default='مطمئن نیستی کدوم مناسبته؟ یه دمو رایگان بگیر، با هم انتخاب می‌کنیم.',
+        verbose_name='یادداشت بخش قیمت',
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'تنظیمات لندینگ'
+        verbose_name_plural = 'تنظیمات لندینگ'
+
+    def __str__(self) -> str:
+        return 'تنظیمات لندینگ'
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def resolved_demo_bot_url(self) -> str:
+        url = (self.demo_bot_url or '').strip()
+        if url:
+            return url
+        return getattr(django_settings, 'LANDING_DEMO_BOT_URL', '').strip()
+
+
+class SubscriptionPlan(models.Model):
+    class ButtonStyle(models.TextChoices):
+        PRIMARY = 'primary', 'اصلی'
+        OUTLINE = 'outline', 'حاشیه‌ای'
+
+    name = models.CharField(max_length=80, verbose_name='نام پلن')
+    slug = models.SlugField(max_length=40, unique=True, verbose_name='شناسه')
+    price_label = models.CharField(
+        max_length=40,
+        verbose_name='مبلغ نمایشی',
+        help_text='مثال: ۴۹۰٬۰۰۰',
+    )
+    price_period = models.CharField(
+        max_length=40,
+        default='تومان / ماه',
+        verbose_name='دوره قیمت',
+    )
+    description = models.CharField(max_length=200, blank=True, verbose_name='توضیح کوتاه')
+    features = models.JSONField(default=list, blank=True, verbose_name='امکانات')
+    is_featured = models.BooleanField(default=False, verbose_name='پیشنهاد ویژه')
+    is_active = models.BooleanField(default=True, verbose_name='فعال در لندینگ')
+    sort_order = models.PositiveSmallIntegerField(default=0, verbose_name='ترتیب')
+    button_style = models.CharField(
+        max_length=16,
+        choices=ButtonStyle.choices,
+        default=ButtonStyle.OUTLINE,
+        verbose_name='استایل دکمه',
+    )
+    cta_label = models.CharField(max_length=60, default='درخواست دمو', verbose_name='متن دکمه')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'پلن اشتراک'
+        verbose_name_plural = 'پلن‌های اشتراک'
+        ordering = ['sort_order', 'id']
+
+    def __str__(self) -> str:
+        return self.name
+
+    def feature_list(self) -> list[str]:
+        if not isinstance(self.features, list):
+            return []
+        return [str(item).strip() for item in self.features if str(item).strip()]

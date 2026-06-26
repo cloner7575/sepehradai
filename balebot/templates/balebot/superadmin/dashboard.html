@@ -1,0 +1,176 @@
+{% extends "balebot/base.html" %}
+{% load jalali_extras %}
+{% block title %}داشبورد پلتفرم{% endblock %}
+{% block page_title %}مدیریت پلتفرم{% endblock %}
+{% block page_subtitle %}
+<p class="app-page-subtitle mb-0 mt-1">نمای کلی لندینگ، سرنخ‌ها، پلن‌ها و اشتراک کاربران پنل.</p>
+{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'superadmin_landing_settings' %}" class="btn btn-panel-ghost flex-shrink-0">
+  <i class="bi bi-gear me-2"></i>تنظیمات لندینگ
+</a>
+<a href="/" class="btn btn-panel-primary flex-shrink-0" target="_blank" rel="noopener">
+  <i class="bi bi-box-arrow-up-left me-2"></i>مشاهده لندینگ
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="app-metrics mb-4">
+  <div class="row g-3">
+    <div class="col-6 col-xl-3">
+      <div class="app-metric d-flex align-items-start gap-3">
+        <span class="app-metric-icon app-metric-icon--info mb-0"><i class="bi bi-inbox-fill"></i></span>
+        <div>
+          <span class="app-metric-label">سرنخ‌های لندینگ</span>
+          <span class="app-metric-value">{{ lead_total }}</span>
+          <span class="small text-muted d-block">{{ lead_uncontacted }} در انتظار تماس</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-xl-3">
+      <div class="app-metric d-flex align-items-start gap-3">
+        <span class="app-metric-icon app-metric-icon--success mb-0"><i class="bi bi-calendar-check"></i></span>
+        <div>
+          <span class="app-metric-label">سرنخ امروز</span>
+          <span class="app-metric-value">{{ lead_today }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-xl-3">
+      <div class="app-metric d-flex align-items-start gap-3">
+        <span class="app-metric-icon app-metric-icon--warn mb-0"><i class="bi bi-tags-fill"></i></span>
+        <div>
+          <span class="app-metric-label">پلن‌های فعال</span>
+          <span class="app-metric-value">{{ plan_active }}</span>
+          <span class="small text-muted d-block">از {{ plan_total }} پلن</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-xl-3">
+      <div class="app-metric d-flex align-items-start gap-3">
+        <span class="app-metric-icon app-metric-icon--info mb-0"><i class="bi bi-people-fill"></i></span>
+        <div>
+          <span class="app-metric-label">کاربران پنل</span>
+          <span class="app-metric-value">{{ panel_user_total }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="app-metrics mb-4">
+  <div class="row g-3">
+    <div class="col-6 col-xl-3">
+      <div class="app-metric d-flex align-items-start gap-3">
+        <span class="app-metric-icon app-metric-icon--success mb-0"><i class="bi bi-shield-check"></i></span>
+        <div>
+          <span class="app-metric-label">اشتراک فعال</span>
+          <span class="app-metric-value">{{ sub_active }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-xl-3">
+      <div class="app-metric d-flex align-items-start gap-3">
+        <span class="app-metric-icon app-metric-icon--warn mb-0"><i class="bi bi-clock-history"></i></span>
+        <div>
+          <span class="app-metric-label">رو به انقضا</span>
+          <span class="app-metric-value">{{ sub_expiring }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-xl-3">
+      <div class="app-metric d-flex align-items-start gap-3">
+        <span class="app-metric-icon app-metric-icon--danger mb-0"><i class="bi bi-exclamation-octagon-fill"></i></span>
+        <div>
+          <span class="app-metric-label">اشتراک منقضی</span>
+          <span class="app-metric-value">{{ sub_expired }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-xl-3">
+      <div class="app-metric d-flex align-items-start gap-3">
+        <span class="app-metric-icon app-metric-icon--info mb-0"><i class="bi bi-infinity"></i></span>
+        <div>
+          <span class="app-metric-label">اشتراک نامحدود</span>
+          <span class="app-metric-value">{{ sub_unlimited }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="panel-card h-100">
+      <div class="panel-card-header">
+        <div>
+          <h2 class="panel-card-title mb-1">آخرین سرنخ‌ها</h2>
+          <p class="panel-card-lead mb-0">درخواست‌های دمو از فرم لندینگ.</p>
+        </div>
+        <a href="{% url 'superadmin_lead_list' %}" class="btn btn-panel-ghost btn-sm">همه سرنخ‌ها</a>
+      </div>
+      {% if recent_leads %}
+      <div class="panel-table-wrap rounded-0 border-top-0">
+        <div class="table-responsive">
+          <table class="table panel-table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>نام</th>
+                <th class="d-none d-md-table-cell">موبایل</th>
+                <th>وضعیت</th>
+                <th class="d-none d-lg-table-cell">تاریخ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for lead in recent_leads %}
+              <tr>
+                <td>
+                  <a href="{% url 'superadmin_lead_detail' lead.pk %}" class="fw-semibold text-decoration-none">{{ lead.name }}</a>
+                  {% if lead.business_name %}<div class="small text-muted">{{ lead.business_name }}</div>{% endif %}
+                </td>
+                <td class="d-none d-md-table-cell" dir="ltr">{{ lead.phone }}</td>
+                <td>
+                  {% if lead.is_contacted %}
+                  <span class="badge bg-success-subtle text-success-emphasis">تماس گرفته شد</span>
+                  {% else %}
+                  <span class="badge bg-warning-subtle text-warning-emphasis">در انتظار</span>
+                  {% endif %}
+                </td>
+                <td class="d-none d-lg-table-cell small text-muted">{{ lead.created_at|jalali_datetime }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% else %}
+      <div class="panel-card-body text-muted">هنوز سرنخی ثبت نشده.</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="panel-card h-100">
+      <div class="panel-card-header">
+        <div>
+          <h2 class="panel-card-title mb-1">دسترسی سریع</h2>
+        </div>
+      </div>
+      <div class="panel-card-body d-grid gap-2">
+        <a href="{% url 'superadmin_lead_list' %}" class="btn btn-panel-ghost text-start">
+          <i class="bi bi-inbox me-2"></i>مدیریت سرنخ‌ها
+        </a>
+        <a href="{% url 'superadmin_plan_list' %}" class="btn btn-panel-ghost text-start">
+          <i class="bi bi-tags me-2"></i>پلن‌های اشتراک
+        </a>
+        <a href="{% url 'superadmin_landing_settings' %}" class="btn btn-panel-ghost text-start">
+          <i class="bi bi-window-sidebar me-2"></i>تنظیمات لندینگ
+        </a>
+        <a href="{% url 'panel_user_list' %}" class="btn btn-panel-ghost text-start">
+          <i class="bi bi-shield-lock me-2"></i>مدیریت کاربران پنل
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
