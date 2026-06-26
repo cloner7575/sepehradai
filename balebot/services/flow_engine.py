@@ -529,6 +529,30 @@ def _send_message_with_inline_markup(
     return False
 
 
+def _collect_consecutive_buttons_markup(
+    items: list[Any],
+    start_idx: int,
+    cfg: BotSettings,
+) -> tuple[dict[str, Any] | None, int]:
+    """Markup from one or more consecutive buttons items; returns (markup, index after last buttons)."""
+    merged_rows: list[list[dict[str, Any]]] = []
+    j = start_idx
+    while j < len(items):
+        item = items[j]
+        if not isinstance(item, dict):
+            break
+        if str(item.get('type', '')).lower() != 'buttons':
+            break
+        _append_markup_rows(
+            merged_rows,
+            build_markup_for_buttons_node(item, cfg=cfg),
+        )
+        j += 1
+    if not merged_rows:
+        return None, start_idx
+    return {'inline_keyboard': merged_rows}, j
+
+
 def send_sequence_items(
     cfg: BotSettings,
     chat_id: int,
@@ -539,65 +563,71 @@ def send_sequence_items(
     pending_markup: dict[str, Any] | None = None,
     attach_markup_to: str = 'first',
 ) -> dict[str, Any] | None:
-    """ارسال آیتم‌های sequence؛ در صورت merge_button_markup ردیف‌های دکمه ادغام می‌شوند."""
+    """ارسال آیتم‌های sequence به ترتیب؛ دکمه‌ها به متن بلافاصله قبل از خود می‌چسبند."""
     platform = cfg.platform
     items = sequence.get('items') or []
 
-    if pending_markup is None and merge_button_markup:
-        merged_rows: list[list[dict[str, Any]]] = []
-        for item in items:
-            if not isinstance(item, dict):
-                continue
-            if str(item.get('type', '')).lower() == 'buttons':
-                _append_markup_rows(
-                    merged_rows,
-                    build_markup_for_buttons_node(item, cfg=cfg),
-                )
-        if merged_rows:
-            pending_markup = {'inline_keyboard': merged_rows}
-
-    attach_idx = -1
-    if pending_markup and attach_markup_to == 'first':
-        for idx, item in enumerate(items):
-            if not isinstance(item, dict):
-                continue
-            if str(item.get('type', '')).lower() == 'text' and (item.get('body') or '').strip():
-                attach_idx = idx
-                break
-    elif pending_markup and attach_markup_to == 'last':
-        for idx, item in enumerate(items):
-            if not isinstance(item, dict):
-                continue
-            if str(item.get('type', '')).lower() == 'text' and (item.get('body') or '').strip():
-                attach_idx = idx
-
-    for idx, item in enumerate(items):
+    i = 0
+    while i < len(items):
+        item = items[i]
         if not isinstance(item, dict):
+            i += 1
             continue
         itype = str(item.get('type', '')).lower()
+
         if itype == 'text':
             body = (item.get('body') or '').strip()
             if not body:
+                i += 1
                 continue
-            reply_markup = pending_markup if idx == attach_idx else None
+            reply_markup = pending_markup
+            next_i = i + 1
+            pending_markup = None
+            if reply_markup is None and merge_button_markup:
+                mk, after_buttons = _collect_consecutive_buttons_markup(items, i + 1, cfg)
+                if mk:
+                    reply_markup = mk
+                    next_i = after_buttons
+
             if reply_markup:
-                if _send_message_with_inline_markup(cfg, chat_id, body, reply_markup):
-                    pending_markup = None
-                continue
-            try:
-                messenger_api.send_message(
-                    platform,
-                    chat_id,
-                    body[:4096],
-                    settings=cfg,
-                )
-            except messenger_api.MessengerAPIError:
-                pass
-        elif itype in ('image', 'video', 'voice', 'document'):
+                if not _send_message_with_inline_markup(cfg, chat_id, body, reply_markup):
+                    try:
+                        messenger_api.send_message(
+                            platform,
+                            chat_id,
+                            body[:4096],
+                            settings=cfg,
+                        )
+                    except messenger_api.MessengerAPIError:
+                        pass
+            else:
+                try:
+                    messenger_api.send_message(
+                        platform,
+                        chat_id,
+                        body[:4096],
+                        settings=cfg,
+                    )
+                except messenger_api.MessengerAPIError:
+                    pass
+            i = next_i
+            continue
+
+        if itype == 'buttons':
+            if merge_button_markup:
+                mk = build_markup_for_buttons_node(item, cfg=cfg)
+                if mk:
+                    _send_inline_keyboard_message(cfg, chat_id, mk)
+            i += 1
+            continue
+
+        if itype in ('image', 'video', 'voice', 'document'):
             send_media_node(cfg, chat_id, item)
         elif itype in _INTERACTIVE_ACTION_TYPES and sub is not None:
             from balebot.services.flow_interactive import _execute_node
+
             _execute_node(cfg, sub, chat_id, item)
+        i += 1
 
     return pending_markup
 

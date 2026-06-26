@@ -1315,7 +1315,7 @@
           ['home', 'صفحه اصلی'],
         ], function (v) {
           block.cta_target.kind = v;
-          bump();
+          bumpInspector();
         })
       );
       if (block.cta_target.kind === 'category' || block.cta_target.kind === 'item') {
@@ -1350,7 +1350,7 @@
           ['flash_sale', 'حراج'],
           ['category', 'دسته'],
           ['tag', 'برچسب'],
-        ], function (v) { block.source = v; bump(); })
+        ], function (v) { block.source = v; bumpInspector(); })
       );
       if (block.source === 'category') {
         host.appendChild(fieldLabel('slug دسته'));
@@ -1440,6 +1440,7 @@
                 ['url', 'لینک'],
               ], function (v) {
                 slide.target.kind = v;
+                renderStories();
                 bump();
               })
             );
@@ -1726,6 +1727,11 @@
   }
 
   function bump() {
+    syncHidden();
+    renderCanvas();
+  }
+
+  function bumpInspector() {
     syncHidden();
     renderCanvas();
     if (selection !== null || globalPanel) renderInspector();
