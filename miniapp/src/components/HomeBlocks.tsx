@@ -363,7 +363,9 @@ export function HomeBlocks({
 
   return (
     <>
-      {blocks.map((block) => {
+      {blocks.map((block, index) => {
+        const prevType = index > 0 ? blocks[index - 1].type : null;
+        const afterHero = block.type === 'story_bar' && prevType === 'hero';
         switch (block.type) {
           case 'hero':
             return <HeroBlockView key={block.id} block={block} />;
@@ -407,7 +409,7 @@ export function HomeBlocks({
           case 'info':
           case 'bundle':
           case 'rich_text':
-            return <BlockRenderer key={block.id} block={block} />;
+            return <BlockRenderer key={block.id} block={block} afterHero={afterHero} />;
           default:
             return null;
         }

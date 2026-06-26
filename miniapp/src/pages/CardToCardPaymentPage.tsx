@@ -1,18 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { fetchOrderPayment, formatPrice, uploadOrderReceipt } from '../api';
 import type { CardToCardDetails } from '../types';
 import { useApp } from '../App';
 import { AppHeader } from '../components/AppHeader';
+import { CopyButton } from '../components/CopyButton';
+import { PaymentStepper } from '../components/PaymentStepper';
+import { ReceiptUploadZone } from '../components/ReceiptUploadZone';
+import { SuccessView } from '../components/SuccessView';
 import { IconCheck, IconChevronLeft } from '../components/Icons';
-
-function copyText(value: string, label: string) {
-  if (!value) return;
-  navigator.clipboard.writeText(value).then(() => {
-    // eslint-disable-next-line no-alert
-    alert(`${label} کپی شد`);
-  });
-}
 
 function BankCardGraphic({
   card,
@@ -26,14 +22,10 @@ function BankCardGraphic({
       <div className="bank-card-visual-bg" aria-hidden />
       <div className="bank-card-visual-chip" aria-hidden />
       <p className="bank-card-visual-label">شماره کارت</p>
-      <button
-        type="button"
-        className="bank-card-visual-number"
-        dir="ltr"
-        onClick={() => copyText(card.number, 'شماره کارت')}
-      >
+      <p className="bank-card-visual-number" dir="ltr">
         {card.number_display || card.number}
-      </button>
+      </p>
+      <CopyButton value={card.number} label="کپی شماره کارت" className="copy-btn copy-btn--on-dark" />
       <div className="bank-card-visual-row">
         <div>
           <p className="bank-card-visual-label">نام صاحب حساب</p>
@@ -51,19 +43,24 @@ function BankCardGraphic({
 function ShebaBlock({ card }: { card: CardToCardDetails }) {
   return (
     <div className="sheba-block">
-      <div>
+      <div className="min-w-0 flex-1">
         <p className="text-xs text-muted">شماره شبا</p>
         <p className="sheba-block-value" dir="ltr">
           {card.sheba_display || card.sheba}
         </p>
       </div>
-      <button
-        type="button"
-        className="btn-secondary shrink-0 px-3 py-2 text-xs"
-        onClick={() => copyText(card.sheba, 'شماره شبا')}
-      >
-        کپی شبا
-      </button>
+      <CopyButton value={card.sheba} label="کپی شبا" className="copy-btn shrink-0" />
+    </div>
+  );
+}
+
+function PaymentSkeleton() {
+  return (
+    <div className="space-y-5 px-4 pt-3 animate-pulse">
+      <div className="skeleton h-10 rounded-2xl" />
+      <div className="skeleton h-48 rounded-3xl" />
+      <div className="skeleton h-16 rounded-2xl" />
+      <div className="skeleton h-40 rounded-2xl" />
     </div>
   );
 }
@@ -72,7 +69,6 @@ export function CardToCardPaymentPage() {
   const { orderId } = useParams();
   const navigate = useNavigate();
   const { adapter, refreshCart } = useApp();
-  const fileRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -83,6 +79,7 @@ export function CardToCardPaymentPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [done, setDone] = useState(false);
   const [paid, setPaid] = useState(false);
+  const previewUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!adapter.initData || !orderId) {
@@ -105,9 +102,15 @@ export function CardToCardPaymentPage() {
   }, [adapter.initData, orderId]);
 
   const onFileChange = (file: File | null) => {
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
     setSelectedFile(file);
     if (file) {
-      setReceiptPreview(URL.createObjectURL(file));
+      const url = URL.createObjectURL(file);
+      previewUrlRef.current = url;
+      setReceiptPreview(url);
     }
   };
 
@@ -129,41 +132,30 @@ export function CardToCardPaymentPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center text-sm text-muted">
-        در حال بارگذاری...
+      <div className="card-to-card-page">
+        <AppHeader title="پرداخت کارت به کارت" showCart={false} />
+        <PaymentSkeleton />
       </div>
     );
   }
 
   if (paid) {
     return (
-      <div className="flex min-h-[70vh] flex-col items-center justify-center px-8 text-center">
-        <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-primary">
-          <IconCheck className="h-7 w-7" />
-        </div>
-        <h1 className="text-lg font-bold">سفارش شما تأیید شد</h1>
-        <p className="mt-2 text-sm text-muted">پرداخت شما تأیید شده است.</p>
-        <Link to="/" className="btn-primary mt-8 max-w-xs">
-          بازگشت به ویترین
-        </Link>
-      </div>
+      <SuccessView
+        icon={<IconCheck className="h-7 w-7" />}
+        title="سفارش شما تأیید شد"
+        subtitle="پرداخت شما تأیید شده است."
+      />
     );
   }
 
   if (done || (receiptUploaded && !selectedFile)) {
     return (
-      <div className="flex min-h-[70vh] flex-col items-center justify-center px-8 text-center">
-        <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-primary">
-          <IconCheck className="h-7 w-7" />
-        </div>
-        <h1 className="text-lg font-bold">رسید دریافت شد</h1>
-        <p className="mt-2 text-sm text-muted">
-          پس از بررسی واریز، نتیجه از طریق ربات به شما اطلاع داده می‌شود.
-        </p>
-        <Link to="/" className="btn-primary mt-8 max-w-xs">
-          بازگشت به ویترین
-        </Link>
-      </div>
+      <SuccessView
+        icon={<IconCheck className="h-7 w-7" />}
+        title="رسید دریافت شد"
+        subtitle="پس از بررسی واریز، نتیجه از طریق ربات به شما اطلاع داده می‌شود."
+      />
     );
   }
 
@@ -176,14 +168,18 @@ export function CardToCardPaymentPage() {
   }
 
   return (
-    <div className="card-to-card-page pb-32">
+    <div className="card-to-card-page pb-36 animate-fade-in">
       <AppHeader title="پرداخت کارت به کارت" subtitle={`سفارش #${orderId}`} showCart={false} />
 
       <div className="space-y-5 px-4 pt-3">
-        <div className="payment-steps-banner">
-          <span className="payment-step is-active">۱. واریز</span>
-          <span className="payment-step">۲. آپلود رسید</span>
-          <span className="payment-step">۳. تأیید</span>
+        <PaymentStepper activeStep={selectedFile ? 1 : 0} />
+
+        <div className="order-summary-strip">
+          <div>
+            <p className="text-xs text-muted">مبلغ قابل واریز</p>
+            <p className="text-lg font-bold text-primary">{formatPrice(amount)}</p>
+          </div>
+          <span className="order-summary-badge">در انتظار پرداخت</span>
         </div>
 
         <BankCardGraphic card={card} amount={amount} />
@@ -191,40 +187,27 @@ export function CardToCardPaymentPage() {
 
         <div className="payment-instructions">
           <p className="text-sm font-semibold">راهنمای پرداخت</p>
-          <ol className="mt-2 list-decimal space-y-1 pr-4 text-xs text-muted">
+          <ol className="mt-2 list-decimal space-y-1.5 pr-4 text-xs leading-relaxed text-muted">
             <li>مبلغ {formatPrice(amount)} را به کارت بالا واریز کنید.</li>
             <li>از رسید واریز عکس بگیرید یا اسکرین‌شات بگیرید.</li>
             <li>تصویر رسید را در بخش زیر آپلود کنید.</li>
           </ol>
         </div>
 
-        <div className="receipt-upload-panel">
-          <p className="text-sm font-semibold mb-3">آپلود رسید واریز</p>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={(e) => onFileChange(e.target.files?.[0] || null)}
-          />
-          {receiptPreview ? (
-            <button type="button" className="receipt-preview-btn" onClick={() => fileRef.current?.click()}>
-              <img src={receiptPreview} alt="پیش‌نمایش رسید" className="receipt-preview-img" />
-              <span className="text-xs text-muted">برای تغییر تصویر بزنید</span>
-            </button>
-          ) : (
-            <button type="button" className="receipt-upload-placeholder" onClick={() => fileRef.current?.click()}>
-              <span className="text-3xl">📎</span>
-              <span className="text-sm font-medium">انتخاب تصویر رسید</span>
-              <span className="text-xs text-muted">JPG یا PNG — حداکثر ۱۰ مگابایت</span>
-            </button>
-          )}
-        </div>
+        <ReceiptUploadZone
+          preview={receiptPreview}
+          file={selectedFile}
+          disabled={busy}
+          onChange={onFileChange}
+        />
 
         {error && <div className="cart-error-banner">{error}</div>}
       </div>
 
       <div className="checkout-footer">
+        {!selectedFile && (
+          <p className="mb-3 text-center text-xs text-muted">ابتدا تصویر رسید را انتخاب کنید</p>
+        )}
         <button
           type="button"
           className="btn-primary checkout-footer-btn"
@@ -234,7 +217,11 @@ export function CardToCardPaymentPage() {
           <span>ارسال رسید</span>
           <IconChevronLeft className="h-4 w-4" />
         </button>
-        <button type="button" className="btn-secondary w-full mt-2" onClick={() => navigate('/cart')}>
+        <button
+          type="button"
+          className="mt-3 w-full text-center text-sm font-semibold text-muted"
+          onClick={() => navigate('/cart')}
+        >
           بازگشت به سبد
         </button>
       </div>

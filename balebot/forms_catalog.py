@@ -8,6 +8,7 @@ from balebot.widgets import PersianClearableFileInput
 from balebot.services.catalog_item_types import ITEM_TYPE_GUIDES, get_item_type_guide
 from balebot.services.catalog_page_layout import get_home_blocks, sanitize_home_blocks
 from balebot.services.checkout_form import default_checkout_form, sanitize_checkout_form
+from balebot.services.jalali_datetime import aware_to_jalali_parts, parse_jalali_date_time
 
 _INPUT = 'form-control panel-input'
 _SELECT = 'form-select panel-input'
@@ -386,6 +387,60 @@ class CatalogItemForm(forms.ModelForm):
         required=False,
         widget=forms.HiddenInput(attrs={'id': 'id_metadata_json'}),
     )
+    jalali_flash_sale_start_date = forms.CharField(
+        required=False,
+        label='تاریخ شروع حراج',
+        widget=forms.TextInput(
+            attrs={
+                'class': _INPUT,
+                'placeholder': '۱۴۰۳/۰۸/۱۵',
+                'dir': 'ltr',
+                'autocomplete': 'off',
+                'data-jalali-date': '1',
+                'readonly': 'readonly',
+            },
+        ),
+    )
+    jalali_flash_sale_start_time = forms.CharField(
+        required=False,
+        label='ساعت شروع',
+        widget=forms.TextInput(
+            attrs={
+                'class': _INPUT,
+                'placeholder': '۰۰:۰۰',
+                'dir': 'ltr',
+                'autocomplete': 'off',
+                'data-jalali-time': '1',
+            },
+        ),
+    )
+    jalali_flash_sale_end_date = forms.CharField(
+        required=False,
+        label='تاریخ پایان حراج',
+        widget=forms.TextInput(
+            attrs={
+                'class': _INPUT,
+                'placeholder': '۱۴۰۳/۰۸/۲۰',
+                'dir': 'ltr',
+                'autocomplete': 'off',
+                'data-jalali-date': '1',
+                'readonly': 'readonly',
+            },
+        ),
+    )
+    jalali_flash_sale_end_time = forms.CharField(
+        required=False,
+        label='ساعت پایان',
+        widget=forms.TextInput(
+            attrs={
+                'class': _INPUT,
+                'placeholder': '۲۳:۵۹',
+                'dir': 'ltr',
+                'autocomplete': 'off',
+                'data-jalali-time': '1',
+            },
+        ),
+    )
 
     class Meta:
         model = CatalogItem
@@ -400,8 +455,10 @@ class CatalogItemForm(forms.ModelForm):
             'download_file',
             'download_link',
             'price',
+            'compare_at_price',
             'sale_mode',
             'stock',
+            'is_flash_sale',
             'is_active',
             'is_featured',
             'sort_order',
@@ -418,8 +475,14 @@ class CatalogItemForm(forms.ModelForm):
             'download_file': PersianClearableFileInput(attrs={'class': 'form-control'}),
             'download_link': forms.URLInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'https://...'}),
             'price': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'به ریال'}),
+            'compare_at_price': forms.NumberInput(
+                attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'قیمت قبل از تخفیف (ریال)'},
+            ),
             'sale_mode': forms.Select(attrs={'class': _SELECT, 'id': 'id_sale_mode'}),
             'stock': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'خالی = نامحدود'}),
+            'is_flash_sale': forms.CheckboxInput(
+                attrs={'class': 'form-check-input', 'role': 'switch', 'id': 'id_is_flash_sale'},
+            ),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
             'is_featured': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
             'sort_order': forms.NumberInput(attrs={'class': _INPUT, 'placeholder': '۰'}),
@@ -452,8 +515,10 @@ class CatalogItemForm(forms.ModelForm):
             'download_file': 'فایل دانلود',
             'download_link': 'لینک مستقیم دانلود',
             'price': 'قیمت (ریال)',
+            'compare_at_price': 'قیمت قبل از تخفیف',
             'sale_mode': 'نحوه فروش',
             'stock': 'موجودی',
+            'is_flash_sale': 'قرارگیری در حراج',
             'is_active': 'نمایش در ویترین',
             'is_featured': 'آیتم ویژه',
             'sort_order': 'ترتیب نمایش',
@@ -473,6 +538,8 @@ class CatalogItemForm(forms.ModelForm):
         self.fields['sort_order'].help_text = 'عدد کوچک‌تر زودتر نمایش داده می‌شود.'
         self.fields['is_active'].help_text = 'غیرفعال = در مینی‌اپ دیده نمی‌شود.'
         self.fields['is_featured'].help_text = 'در بخش «ویژه» صفحه اصلی نمایش داده می‌شود.'
+        self.fields['compare_at_price'].help_text = 'برای نمایش خط‌خورده در کنار قیمت فعلی.'
+        self.fields['is_flash_sale'].help_text = 'آیتم در صفحه حراج و کاروسل حراج نمایش داده می‌شود.'
 
         if self.instance.pk:
             self.fields['metadata_json'].initial = json.dumps(
@@ -480,6 +547,14 @@ class CatalogItemForm(forms.ModelForm):
                 ensure_ascii=False,
                 indent=2,
             )
+            if self.instance.flash_sale_starts_at:
+                d, t = aware_to_jalali_parts(self.instance.flash_sale_starts_at)
+                self.fields['jalali_flash_sale_start_date'].initial = d
+                self.fields['jalali_flash_sale_start_time'].initial = t
+            if self.instance.flash_sale_ends_at:
+                d, t = aware_to_jalali_parts(self.instance.flash_sale_ends_at)
+                self.fields['jalali_flash_sale_end_date'].initial = d
+                self.fields['jalali_flash_sale_end_time'].initial = t
 
     def clean_download_link(self):
         link = (self.cleaned_data.get('download_link') or '').strip()
@@ -514,6 +589,34 @@ class CatalogItemForm(forms.ModelForm):
             if cleaned.get('sale_mode') != CatalogItem.SaleMode.REQUEST_ONLY and not cleaned.get('price'):
                 self.add_error('price', 'برای فروش محصول، قیمت را وارد کنید.')
 
+        if cleaned.get('is_flash_sale'):
+            for label, d_key, t_key in (
+                ('شروع', 'jalali_flash_sale_start_date', 'jalali_flash_sale_start_time'),
+                ('پایان', 'jalali_flash_sale_end_date', 'jalali_flash_sale_end_time'),
+            ):
+                j_date = (cleaned.get(d_key) or '').strip()
+                j_time = (cleaned.get(t_key) or '').strip()
+                if j_date and not j_time:
+                    j_time = '00:00' if d_key.endswith('start_date') else '23:59'
+                if j_date:
+                    try:
+                        dt = parse_jalali_date_time(j_date, j_time or '00:00')
+                        if d_key.endswith('start_date'):
+                            cleaned['flash_sale_starts_at'] = dt
+                        else:
+                            cleaned['flash_sale_ends_at'] = dt
+                    except ValueError as exc:
+                        self.add_error(d_key, str(exc))
+                elif j_time:
+                    self.add_error(d_key, f'تاریخ {label} حراج را انتخاب کنید.')
+            start = cleaned.get('flash_sale_starts_at')
+            end = cleaned.get('flash_sale_ends_at')
+            if start and end and start >= end:
+                self.add_error('jalali_flash_sale_end_date', 'تاریخ پایان باید بعد از شروع باشد.')
+        else:
+            cleaned['flash_sale_starts_at'] = None
+            cleaned['flash_sale_ends_at'] = None
+
         return cleaned
 
     def clean_slug(self):
@@ -543,6 +646,13 @@ class CatalogItemForm(forms.ModelForm):
     def save(self, commit=True):
         obj = super().save(commit=False)
         obj.metadata = self.cleaned_data.get('metadata_json') or {}
+        if 'flash_sale_starts_at' in self.cleaned_data:
+            obj.flash_sale_starts_at = self.cleaned_data.get('flash_sale_starts_at')
+        if 'flash_sale_ends_at' in self.cleaned_data:
+            obj.flash_sale_ends_at = self.cleaned_data.get('flash_sale_ends_at')
+        if not self.cleaned_data.get('is_flash_sale'):
+            obj.flash_sale_starts_at = None
+            obj.flash_sale_ends_at = None
         if commit:
             obj.save()
         return obj

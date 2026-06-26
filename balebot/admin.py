@@ -126,8 +126,8 @@ class CatalogCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(CatalogItem)
 class CatalogItemAdmin(admin.ModelAdmin):
-    list_display = ('title', 'workspace', 'platform', 'price', 'compare_at_price', 'sales_count', 'is_active', 'is_featured')
-    list_filter = ('platform', 'item_type', 'is_active')
+    list_display = ('title', 'workspace', 'platform', 'price', 'compare_at_price', 'is_flash_sale', 'sales_count', 'is_active', 'is_featured')
+    list_filter = ('platform', 'item_type', 'is_active', 'is_flash_sale')
 
 
 @admin.register(CatalogOrder)

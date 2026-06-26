@@ -1182,6 +1182,20 @@ class CatalogItem(models.Model):
         help_text='لینک مستقیم دانلود (گوگل‌درایو، دراپ‌باکس و...)',
     )
     metadata = models.JSONField(default=dict, blank=True)
+    is_flash_sale = models.BooleanField(
+        default=False,
+        help_text='نمایش در بخش حراج مینی‌اپ',
+    )
+    flash_sale_starts_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='شروع حراج (اختیاری)',
+    )
+    flash_sale_ends_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='پایان حراج (اختیاری)',
+    )
     is_active = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
     sort_order = models.PositiveIntegerField(default=0)
@@ -1242,6 +1256,16 @@ class CatalogItem(models.Model):
             if media.media_type == 'image':
                 return media
         return None
+
+    def is_flash_sale_active(self, at=None) -> bool:
+        if not self.is_flash_sale:
+            return False
+        at = at or timezone.now()
+        if self.flash_sale_starts_at and at < self.flash_sale_starts_at:
+            return False
+        if self.flash_sale_ends_at and at > self.flash_sale_ends_at:
+            return False
+        return True
 
 
 class CatalogItemMedia(models.Model):

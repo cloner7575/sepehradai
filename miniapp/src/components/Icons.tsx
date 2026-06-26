@@ -118,3 +118,21 @@ export function IconTrash({ className = 'h-5 w-5' }: IconProps) {
     </svg>
   );
 }
+
+export function IconUpload({ className = 'h-5 w-5' }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 16V4M8 8l4-4 4 4" />
+      <path d="M4 20h16" />
+    </svg>
+  );
+}
+
+export function IconTag({ className = 'h-5 w-5' }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 12l-8 8-8-8V4h8l8 8z" />
+      <circle cx="9" cy="9" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}

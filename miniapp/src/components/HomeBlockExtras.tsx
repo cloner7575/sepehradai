@@ -22,16 +22,19 @@ import { ItemCard } from './ItemCard';
 import { ItemsSection } from './ItemsSection';
 import { SafeImage } from './SafeImage';
 import { resolveMediaUrl } from '../utils/url';
+import { StoryViewer, resolveStorySlides } from './StoryViewer';
 
 function useBlockTargetNav() {
   const navigate = useNavigate();
-  return (target?: { kind: string; value: string }) => {
+  return (target?: BlockTarget) => {
     if (!target) return;
     const kind = target.kind;
     const value = target.value;
     if (kind === 'category' && value) navigate(`/category/${value}`);
     else if (kind === 'item' && value) navigate(`/item/${value}`);
     else if (kind === 'tag' && value) navigate(`/?tag=${encodeURIComponent(value)}`);
+    else if (kind === 'flash_sale') navigate('/sale');
+    else if (kind === 'home') navigate('/');
     else if (kind === 'url' && value) window.open(value, '_blank', 'noopener,noreferrer');
   };
 }
@@ -68,36 +71,53 @@ export function AnnouncementBarView({ block }: { block: AnnouncementBarBlock }) 
   );
 }
 
-export function StoryBarView({ block }: { block: StoryBarBlock }) {
-  const go = useBlockTargetNav();
-  const items = block.items || [];
+export function StoryBarView({
+  block,
+  afterHero = false,
+}: {
+  block: StoryBarBlock;
+  afterHero?: boolean;
+}) {
+  const items = (block.items || []).filter((s) => resolveStorySlides(s).length > 0);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   if (!items.length) return null;
   return (
-    <section className="px-4 pt-4">
-      <div className="flex gap-3 overflow-x-auto pb-1">
-        {items.map((story, i) => (
-          <button
-            key={`${block.id}-${i}`}
-            type="button"
-            className="flex w-16 shrink-0 flex-col items-center gap-1"
-            onClick={() => go(story.target)}
-          >
-            <div className="h-16 w-16 overflow-hidden rounded-full ring-2 ring-primary/30">
-              <SafeImage
-                src={resolveMediaUrl(story.image || '')}
-                className="h-full w-full object-cover"
-                fallback={
-                  <div className="flex h-full w-full items-center justify-center bg-[var(--color-primary-soft)] text-xs text-primary">
-                    {story.title?.slice(0, 2)}
-                  </div>
-                }
-              />
-            </div>
-            <span className="w-full truncate text-center text-[10px] text-muted">{story.title}</span>
-          </button>
-        ))}
-      </div>
-    </section>
+    <>
+      <section className={`story-bar-section px-4 ${afterHero ? 'story-bar-after-hero' : 'pt-4'}`}>
+        <div className="flex gap-3 overflow-x-auto pb-1">
+          {items.map((story, i) => (
+            <button
+              key={`${block.id}-${i}`}
+              type="button"
+              className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5"
+              onClick={() => setViewerIndex(i)}
+            >
+              <div className="story-ring">
+                <div className="story-ring-inner">
+                  <SafeImage
+                    src={resolveMediaUrl(story.image || story.slides?.[0]?.image || '')}
+                    className="h-full w-full object-cover"
+                    fallback={
+                      <div className="flex h-full w-full items-center justify-center bg-[var(--color-primary-soft)] text-xs text-primary">
+                        {story.title?.slice(0, 2)}
+                      </div>
+                    }
+                  />
+                </div>
+              </div>
+              <span className="w-full truncate text-center text-[10px] text-muted">{story.title}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+      {viewerIndex !== null && (
+        <StoryViewer
+          stories={items}
+          startIndex={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+        />
+      )}
+    </>
   );
 }
 
@@ -486,6 +506,7 @@ export function RichTextBlockView({ block }: { block: RichTextBlock }) {
 
 export function BlockRenderer({
   block,
+  afterHero,
   searchInput,
   onSearchInputChange,
   onSearch,
@@ -494,6 +515,7 @@ export function BlockRenderer({
   searchLoading,
 }: {
   block: HomeBlock;
+  afterHero?: boolean;
   searchInput?: string;
   onSearchInputChange?: (v: string) => void;
   onSearch?: () => void;
@@ -505,7 +527,7 @@ export function BlockRenderer({
     case 'announcement_bar':
       return <AnnouncementBarView block={block} />;
     case 'story_bar':
-      return <StoryBarView block={block} />;
+      return <StoryBarView block={block} afterHero={afterHero} />;
     case 'countdown':
       return <CountdownView block={block} />;
     case 'coupon':

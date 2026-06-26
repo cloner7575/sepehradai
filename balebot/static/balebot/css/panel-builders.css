@@ -6204,3 +6204,54 @@ select.panel-input {
   background: #0f172a !important;
   border-color: #0f172a !important;
 }
+
+/* ── Jalali date picker (پنل) ── */
+.sep-jalali-popup {
+  position: absolute;
+  z-index: 1200;
+  min-width: 16rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+}
+.sep-jalali-popup-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.sep-jalali-popup-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.sep-jalali-nav {
+  border: none;
+  background: #f1f5f9;
+  border-radius: 8px;
+  width: 2rem;
+  height: 2rem;
+  cursor: pointer;
+}
+.sep-jalali-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.25rem;
+}
+.sep-jalali-day {
+  border: none;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 0.35rem 0;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.sep-jalali-day.is-selected {
+  background: #0f172a;
+  color: #fff;
+}
+.sep-jalali-day:hover {
+  background: #e2e8f0;
+}

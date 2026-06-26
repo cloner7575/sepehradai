@@ -321,7 +321,7 @@ def build_home_blocks_for_template(
             'title': copy['countdown_title'],
             'ends_at': _ends_at_iso(14),
             'cta_label': 'مشاهده حراج',
-            'cta_target': {'kind': 'category', 'value': first_cat} if first_cat else {'kind': 'home', 'value': ''},
+            'cta_target': {'kind': 'flash_sale', 'value': ''},
             'accent': accent,
         },
         {

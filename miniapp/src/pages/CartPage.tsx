@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { formatPrice, updateCart } from '../api';
 import type { CartLine } from '../types';
@@ -7,32 +7,11 @@ import { AppHeader } from '../components/AppHeader';
 import { CartLineCard } from '../components/CartLineCard';
 import { CartSection } from '../components/CartSection';
 import { CheckoutForm, useCheckoutForm } from '../components/CheckoutForm';
+import { DiscountCodeField } from '../components/DiscountCodeField';
 import { PaymentMethodPicker } from '../components/PaymentMethodPicker';
+import { SuccessView } from '../components/SuccessView';
 import { IconCart, IconCheck, IconChevronLeft, IconSend } from '../components/Icons';
 import { useCheckout } from '../hooks/useCheckout';
-
-function SuccessView({
-  icon,
-  title,
-  subtitle,
-}: {
-  icon: ReactNode;
-  title: string;
-  subtitle?: string;
-}) {
-  return (
-    <div className="flex min-h-[70vh] flex-col items-center justify-center px-8 text-center">
-      <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-primary">
-        {icon}
-      </div>
-      <h1 className="text-lg font-bold tracking-tight">{title}</h1>
-      {subtitle && <p className="mt-2 text-sm text-muted">{subtitle}</p>}
-      <Link to="/" className="btn-primary mt-8 max-w-xs">
-        بازگشت به ویترین
-      </Link>
-    </div>
-  );
-}
 
 export function CartPage() {
   const {
@@ -50,6 +29,7 @@ export function CartPage() {
   const [params] = useSearchParams();
   const [cartBusy, setCartBusy] = useState(false);
   const [discountCode, setDiscountCode] = useState('');
+  const [appliedCode, setAppliedCode] = useState('');
   const paid = params.get('paid');
   const {
     paymentMethod,
@@ -63,12 +43,10 @@ export function CartPage() {
   } = useCheckout();
   const checkoutForm = useCheckoutForm(config?.checkout_form);
 
-  useEffect(() => {
-    refreshCart({ discount_code: discountCode.trim() || undefined });
-  }, [refreshCart, discountCode]);
-
   const applyDiscount = async () => {
-    await refreshCart({ discount_code: discountCode.trim() || undefined });
+    const code = discountCode.trim();
+    await refreshCart({ discount_code: code || undefined });
+    setAppliedCode(code);
   };
 
   const changeQty = async (line: CartLine, qty: number) => {
@@ -80,7 +58,7 @@ export function CartPage() {
     setError('');
     try {
       await updateCart(adapter.initData, { item_id: line.item_id, quantity: qty });
-      await refreshCart();
+      await refreshCart({ discount_code: appliedCode || undefined });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'خطا');
     } finally {
@@ -93,7 +71,7 @@ export function CartPage() {
     const result = await runCheckout({
       use_cart: true,
       customer_data: checkoutForm.customerData,
-      discount_code: discountCode.trim() || undefined,
+      discount_code: appliedCode || undefined,
     });
     if (result?.payment_method === 'admin_cart') {
       navigate('/cart?submitted=1');
@@ -140,7 +118,7 @@ export function CartPage() {
   }
 
   return (
-    <div className="cart-page pb-44">
+    <div className="cart-page pb-44 animate-fade-in">
       <AppHeader
         title={labels.cart || 'سبد خرید'}
         subtitle={cartItems.length > 0 ? `${itemCount} قلم` : undefined}
@@ -217,22 +195,20 @@ export function CartPage() {
                     onChange={setPaymentMethod}
                     embedded
                   />
-                  <div className="mt-4">
-                    <label className="checkout-field-label" htmlFor="discount-code">کد تخفیف</label>
-                    <div className="flex gap-2">
-                      <input
-                        id="discount-code"
-                        className="input-field flex-1"
-                        value={discountCode}
-                        onChange={(e) => setDiscountCode(e.target.value)}
-                        placeholder="کد تخفیف"
-                        disabled={busy}
-                      />
-                      <button type="button" className="btn-secondary shrink-0" disabled={busy} onClick={applyDiscount}>
-                        اعمال
-                      </button>
-                    </div>
-                  </div>
+                  <DiscountCodeField
+                    value={discountCode}
+                    appliedCode={appliedCode}
+                    onChange={(v) => {
+                      setDiscountCode(v);
+                      if (!v.trim()) {
+                        setAppliedCode('');
+                        refreshCart();
+                      }
+                    }}
+                    onApply={applyDiscount}
+                    appliedAmount={cartDiscount}
+                    disabled={busy}
+                  />
                   {!canPurchase && (
                     <p className="cart-warning">
                       پرداخت هنوز در این فروشگاه فعال نشده است. لطفاً بعداً دوباره تلاش کنید.
@@ -244,11 +220,7 @@ export function CartPage() {
           </div>
         )}
 
-        {error && (
-          <div className="cart-error-banner mt-4">
-            {error}
-          </div>
-        )}
+        {error && <div className="cart-error-banner mt-4">{error}</div>}
       </div>
 
       {cartItems.length > 0 && (
@@ -257,8 +229,11 @@ export function CartPage() {
             <div>
               <p className="text-xs text-muted">مبلغ قابل پرداخت</p>
               <p className="checkout-footer-price">{formatPrice(cartTotal)}</p>
+              {cartSubtotal > 0 && cartSubtotal !== cartTotal && (
+                <p className="text-xs text-muted">جمع کالا {formatPrice(cartSubtotal)}</p>
+              )}
               {cartShipping > 0 && (
-                <p className="text-xs text-muted">شامل ارسال {formatPrice(cartShipping)}</p>
+                <p className="text-xs text-muted">ارسال {formatPrice(cartShipping)}</p>
               )}
               {freeShipping && cartSubtotal > 0 && (
                 <p className="text-xs text-green-600">ارسال رایگان</p>

@@ -117,10 +117,22 @@
       return { id: id, type: 'announcement_bar', text: 'ارسال رایگان بالای ۵۰۰ هزار تومان', bg: '#111111', color: '#ffffff', dismissible: true };
     }
     if (type === 'story_bar') {
-      return { id: id, type: 'story_bar', items: [{ title: 'جدید', image: '', target: { kind: 'category', value: '' } }] };
+      return {
+        id: id,
+        type: 'story_bar',
+        items: [{ title: 'جدید', image: '', slides: [{ image: '', duration: 5 }] }],
+      };
     }
     if (type === 'countdown') {
-      return { id: id, type: 'countdown', title: 'فروش ویژه', ends_at: defaultEndsAtIso(), cta_label: 'الان بخر', accent: '#c2402f' };
+      return {
+        id: id,
+        type: 'countdown',
+        title: 'فروش ویژه',
+        ends_at: defaultEndsAtIso(),
+        cta_label: 'مشاهده حراج',
+        cta_target: { kind: 'flash_sale', value: '' },
+        accent: '#c2402f',
+      };
     }
     if (type === 'coupon') {
       return { id: id, type: 'coupon', title: 'کد تخفیف', code: 'WELCOME10', subtitle: '', copy_label: 'کپی کد' };
@@ -1246,10 +1258,72 @@
     if (block.type === 'countdown') {
       host.appendChild(fieldLabel('عنوان'));
       host.appendChild(textInput(block.title, '', 120, function (v) { block.title = v; bump(); }));
-      host.appendChild(fieldLabel('پایان (ISO)'));
-      host.appendChild(textInput(block.ends_at, '2026-07-01T23:59:00', 32, function (v) { block.ends_at = v; bump(); }));
+      var jalaliParts = window.SepJalaliPicker
+        ? window.SepJalaliPicker.isoToJalaliParts(block.ends_at)
+        : { date: '', time: '' };
+      if (!block._jalali_end_date && jalaliParts.date) block._jalali_end_date = jalaliParts.date;
+      if (!block._jalali_end_time && jalaliParts.time) block._jalali_end_time = jalaliParts.time;
+      host.appendChild(fieldLabel('تاریخ پایان (شمسی)'));
+      var dateWrap = document.createElement('div');
+      var dateIn = document.createElement('input');
+      dateIn.type = 'text';
+      dateIn.className = 'form-control panel-input';
+      dateIn.readOnly = true;
+      dateIn.setAttribute('data-jalali-date', '1');
+      dateIn.placeholder = '۱۴۰۳/۰۸/۱۵';
+      dateIn.value = block._jalali_end_date || '';
+      dateIn.addEventListener('change', function () {
+        block._jalali_end_date = dateIn.value;
+        if (window.SepJalaliPicker) {
+          block.ends_at = window.SepJalaliPicker.jalaliToIso(
+            block._jalali_end_date,
+            block._jalali_end_time || '23:59',
+          );
+        }
+        bump();
+      });
+      dateWrap.appendChild(dateIn);
+      host.appendChild(dateWrap);
+      host.appendChild(fieldLabel('ساعت پایان'));
+      var timeIn = document.createElement('input');
+      timeIn.type = 'text';
+      timeIn.className = 'form-control panel-input';
+      timeIn.setAttribute('data-jalali-time', '1');
+      timeIn.placeholder = '۲۳:۵۹';
+      timeIn.value = block._jalali_end_time || jalaliParts.time || '23:59';
+      timeIn.addEventListener('change', function () {
+        block._jalali_end_time = timeIn.value;
+        if (window.SepJalaliPicker && block._jalali_end_date) {
+          block.ends_at = window.SepJalaliPicker.jalaliToIso(block._jalali_end_date, block._jalali_end_time);
+        }
+        bump();
+      });
+      host.appendChild(timeIn);
+      if (window.SepJalaliPicker) {
+        window.SepJalaliPicker.initDate(dateIn);
+        window.SepJalaliPicker.initTime(timeIn);
+      }
       host.appendChild(fieldLabel('دکمه CTA'));
-      host.appendChild(textInput(block.cta_label, 'الان بخر', 40, function (v) { block.cta_label = v; bump(); }));
+      host.appendChild(textInput(block.cta_label, 'مشاهده حراج', 40, function (v) { block.cta_label = v; bump(); }));
+      if (!block.cta_target) block.cta_target = { kind: 'flash_sale', value: '' };
+      host.appendChild(fieldLabel('مقصد CTA'));
+      host.appendChild(
+        selectInput(block.cta_target.kind || 'flash_sale', [
+          ['flash_sale', 'صفحه حراج'],
+          ['category', 'دسته'],
+          ['item', 'محصول'],
+          ['home', 'صفحه اصلی'],
+        ], function (v) {
+          block.cta_target.kind = v;
+          bump();
+        })
+      );
+      if (block.cta_target.kind === 'category' || block.cta_target.kind === 'item') {
+        host.appendChild(textInput(block.cta_target.value, 'slug', 120, function (v) {
+          block.cta_target.value = v;
+          bump();
+        }));
+      }
       host.appendChild(fieldLabel('رنگ'));
       host.appendChild(textInput(block.accent, '#c2402f', 16, function (v) { block.accent = v; bump(); }));
       return;
@@ -1273,6 +1347,7 @@
           ['newest', 'جدیدترین'],
           ['bestselling', 'پرفروش'],
           ['discounted', 'تخفیف‌دار'],
+          ['flash_sale', 'حراج'],
           ['category', 'دسته'],
           ['tag', 'برچسب'],
         ], function (v) { block.source = v; bump(); })
@@ -1330,23 +1405,77 @@
           card.className = 'miniapp-slide-item mb-2';
           card.appendChild(fieldLabel('استوری ' + (si + 1)));
           card.appendChild(textInput(story.title, 'عنوان', 64, function (v) { story.title = v; bump(); }));
-          card.appendChild(fieldLabel('تصویر'));
+          card.appendChild(fieldLabel('تصویر کاور'));
           card.appendChild(imageUploadField(story.image || '', function (url) { story.image = url; bump(); }));
-          card.appendChild(textInput(story.image, 'URL تصویر', 512, function (v) { story.image = v; bump(); }));
-          if (!story.target) story.target = { kind: 'category', value: '' };
-          card.appendChild(fieldLabel('مقصد'));
-          card.appendChild(
-            selectInput(story.target.kind || 'category', [
-              ['category', 'دسته'],
-              ['item', 'محصول'],
-              ['url', 'لینک'],
-            ], function (v) { story.target.kind = v; bump(); })
-          );
-          card.appendChild(textInput(story.target.value, 'slug یا URL', 256, function (v) { story.target.value = v; bump(); }));
+          if (!story.slides) story.slides = [{ image: story.image || '', duration: 5 }];
+          var slidesWrap = document.createElement('div');
+          slidesWrap.className = 'ms-2 border-start ps-2';
+          story.slides.forEach(function (slide, slideIdx) {
+            var slideCard = document.createElement('div');
+            slideCard.className = 'mb-2 pb-2 border-bottom';
+            slideCard.appendChild(fieldLabel('اسلاید ' + (slideIdx + 1)));
+            slideCard.appendChild(imageUploadField(slide.image || '', function (url) {
+              slide.image = url;
+              bump();
+            }));
+            slideCard.appendChild(textInput(slide.image, 'URL تصویر', 512, function (v) {
+              slide.image = v;
+              bump();
+            }));
+            slideCard.appendChild(textInput(slide.text || '', 'متن (اختیاری)', 200, function (v) {
+              slide.text = v;
+              bump();
+            }));
+            slideCard.appendChild(textInput(String(slide.duration || 5), '5', 2, function (v) {
+              slide.duration = parseInt(v, 10) || 5;
+              bump();
+            }));
+            if (!slide.target) slide.target = { kind: 'item', value: '' };
+            slideCard.appendChild(fieldLabel('لینک (اختیاری)'));
+            slideCard.appendChild(
+              selectInput(slide.target.kind || 'item', [
+                ['item', 'محصول'],
+                ['category', 'دسته'],
+                ['flash_sale', 'حراج'],
+                ['url', 'لینک'],
+              ], function (v) {
+                slide.target.kind = v;
+                bump();
+              })
+            );
+            if (slide.target.kind !== 'flash_sale') {
+              slideCard.appendChild(textInput(slide.target.value, 'slug یا URL', 256, function (v) {
+                slide.target.value = v;
+                bump();
+              }));
+            }
+            var rmSlide = document.createElement('button');
+            rmSlide.type = 'button';
+            rmSlide.className = 'btn btn-panel-ghost btn-sm text-danger';
+            rmSlide.textContent = 'حذف اسلاید';
+            rmSlide.addEventListener('click', function () {
+              story.slides.splice(slideIdx, 1);
+              renderStories();
+              bump();
+            });
+            slideCard.appendChild(rmSlide);
+            slidesWrap.appendChild(slideCard);
+          });
+          var addSlide = document.createElement('button');
+          addSlide.type = 'button';
+          addSlide.className = 'btn btn-panel-ghost btn-sm mb-2';
+          addSlide.textContent = '+ اسلاید';
+          addSlide.addEventListener('click', function () {
+            story.slides.push({ image: '', duration: 5 });
+            renderStories();
+            bump();
+          });
+          card.appendChild(slidesWrap);
+          card.appendChild(addSlide);
           var rm = document.createElement('button');
           rm.type = 'button';
           rm.className = 'btn btn-panel-ghost btn-sm text-danger';
-          rm.textContent = 'حذف';
+          rm.textContent = 'حذف استوری';
           rm.addEventListener('click', function () {
             block.items.splice(si, 1);
             renderStories();
@@ -1363,7 +1492,7 @@
       addStory.className = 'btn btn-panel-ghost btn-sm';
       addStory.textContent = '+ استوری';
       addStory.addEventListener('click', function () {
-        block.items.push({ title: 'جدید', image: '', target: { kind: 'category', value: '' } });
+        block.items.push({ title: 'جدید', image: '', slides: [{ image: '', duration: 5 }] });
         renderStories();
         bump();
       });

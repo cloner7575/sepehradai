@@ -53,7 +53,9 @@ export function ItemCard({
       <div className={`product-card-media ${compact ? 'aspect-square' : ''}`}>
         <ItemThumbnail item={item} />
         <div className="product-card-badges">
-          {item.is_downloadable ? (
+          {item.is_flash_sale_active ? (
+            <span className="badge bg-red-600 text-white">حراج</span>
+          ) : item.is_downloadable ? (
             <span className="badge bg-primary text-white">دانلود</span>
           ) : isVideoType(item.item_type) || hasVideo ? (
             <span className="badge bg-violet-600 text-white">ویدیو</span>

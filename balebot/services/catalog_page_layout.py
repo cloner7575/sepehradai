@@ -8,9 +8,9 @@ from typing import Any
 
 _BLOCK_ID_RE = re.compile(r'^b_[a-f0-9]{8}$')
 _HEX_COLOR_RE = re.compile(r'^#[0-9a-fA-F]{3,8}$')
-_TARGET_KINDS = frozenset({'category', 'item', 'tag', 'url'})
+_TARGET_KINDS = frozenset({'category', 'item', 'tag', 'url', 'home', 'flash_sale'})
 _CAROUSEL_SOURCES = frozenset({
-    'featured', 'newest', 'bestselling', 'discounted', 'category', 'tag',
+    'featured', 'newest', 'bestselling', 'discounted', 'flash_sale', 'category', 'tag',
 })
 _RICH_TEXT_TAGS = frozenset({'p', 'b', 'i', 'ul', 'li', 'a', 'br', 'strong', 'em'})
 
@@ -64,6 +64,8 @@ def _sanitize_target(raw: Any) -> dict[str, str] | None:
         return None
     kind = _clip(raw.get('kind'), 16).lower()
     value = _clip(raw.get('value'), 256)
+    if kind in ('home', 'flash_sale'):
+        return {'kind': kind, 'value': ''}
     if kind not in _TARGET_KINDS or not value:
         return None
     return {'kind': kind, 'value': value}
@@ -90,21 +92,57 @@ def _sanitize_slide(slide: Any) -> dict[str, Any] | None:
     return out or None
 
 
+def _sanitize_story_slide(raw: Any) -> dict[str, Any] | None:
+    if not isinstance(raw, dict):
+        return None
+    image = _clip(raw.get('image'), 512)
+    text = _clip(raw.get('text'), 500)
+    target = _sanitize_target(raw.get('target'))
+    duration = int(raw.get('duration') or 5)
+    duration = max(2, min(duration, 30))
+    if not image and not text:
+        return None
+    out: dict[str, Any] = {'duration': duration}
+    if image:
+        out['image'] = image
+    if text:
+        out['text'] = text
+    if target:
+        out['target'] = target
+    return out
+
+
 def _sanitize_story_item(raw: Any) -> dict[str, Any] | None:
     if not isinstance(raw, dict):
         return None
     title = _clip(raw.get('title'), 64)
     image = _clip(raw.get('image'), 512)
     target = _sanitize_target(raw.get('target'))
-    if not title and not image:
+    slides_raw = raw.get('slides')
+    slides: list[dict[str, Any]] = []
+    if isinstance(slides_raw, list):
+        for s in slides_raw:
+            slide = _sanitize_story_slide(s)
+            if slide:
+                slides.append(slide)
+    if not slides and (image or target):
+        legacy: dict[str, Any] = {'duration': 5}
+        if image:
+            legacy['image'] = image
+        if target:
+            legacy['target'] = target
+        slides = [legacy]
+    if not title and not image and not slides:
         return None
     out: dict[str, Any] = {}
     if title:
         out['title'] = title
     if image:
         out['image'] = image
-    if target:
+    if target and not slides:
         out['target'] = target
+    if slides:
+        out['slides'] = slides
     return out or None
 
 
@@ -243,7 +281,7 @@ def _sanitize_block(block: Any) -> dict[str, Any] | None:
             if si:
                 items_out.append(si)
         if not items_out:
-            items_out = [{'title': 'استوری', 'image': ''}]
+            items_out = [{'title': 'استوری', 'image': '', 'slides': [{'duration': 5}]}]
         out['items'] = items_out[:20]
     elif btype == 'countdown':
         out['title'] = _clip(block.get('title'), 120) or 'فروش ویژه'
@@ -254,10 +292,12 @@ def _sanitize_block(block: Any) -> dict[str, Any] | None:
             from django.utils import timezone
 
             out['ends_at'] = (timezone.now() + timedelta(days=7)).strftime('%Y-%m-%dT%H:%M:%S')
-        out['cta_label'] = _clip(block.get('cta_label'), 40) or 'الان بخر'
+        out['cta_label'] = _clip(block.get('cta_label'), 40) or 'مشاهده حراج'
         cta = _sanitize_target(block.get('cta_target'))
         if cta:
             out['cta_target'] = cta
+        else:
+            out['cta_target'] = {'kind': 'flash_sale', 'value': ''}
         out['accent'] = _sanitize_color(block.get('accent'), '#c2402f')
     elif btype == 'coupon':
         out['title'] = _clip(block.get('title'), 120)

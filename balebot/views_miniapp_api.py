@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 
+from django.db.models import Q
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -80,6 +81,7 @@ def _item_dict(item: CatalogItem, request=None, catalog=None) -> dict:
         if cover_url and cover_url not in images:
             images.insert(0, cover_url)
     download_url = item.resolve_download_url(request, catalog) if item.is_downloadable() else ''
+    flash_active = item.is_flash_sale_active()
     return {
         'id': item.pk,
         'slug': item.slug,
@@ -95,6 +97,11 @@ def _item_dict(item: CatalogItem, request=None, catalog=None) -> dict:
         'is_requestable': item.is_requestable(),
         'is_downloadable': item.is_downloadable(),
         'is_featured': item.is_featured,
+        'is_flash_sale': item.is_flash_sale,
+        'is_flash_sale_active': flash_active,
+        'flash_sale_ends_at': (
+            item.flash_sale_ends_at.isoformat() if item.flash_sale_ends_at else None
+        ),
         'metadata': item.metadata or {},
         'media': media_list,
         'images': images,
@@ -275,6 +282,14 @@ def catalog_items(request, public_id):
         qs = qs.order_by('-sales_count', 'sort_order')
     elif source == 'discounted':
         qs = qs.filter(compare_at_price__isnull=False).filter(compare_at_price__gt=0)
+        qs = qs.order_by('sort_order', '-created_at')
+    elif source == 'flash_sale':
+        now = timezone.now()
+        qs = qs.filter(is_flash_sale=True).filter(
+            Q(flash_sale_starts_at__isnull=True) | Q(flash_sale_starts_at__lte=now),
+        ).filter(
+            Q(flash_sale_ends_at__isnull=True) | Q(flash_sale_ends_at__gte=now),
+        )
         qs = qs.order_by('sort_order', '-created_at')
     elif source == 'category' and cat:
         qs = qs.filter(category__slug=cat)

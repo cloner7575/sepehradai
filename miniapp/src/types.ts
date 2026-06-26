@@ -39,8 +39,22 @@ export type HomeBlockType =
   | 'rich_text';
 
 export interface BlockTarget {
-  kind: 'category' | 'item' | 'tag' | 'url' | 'home';
+  kind: 'category' | 'item' | 'tag' | 'url' | 'home' | 'flash_sale';
   value: string;
+}
+
+export interface StorySlide {
+  image?: string;
+  text?: string;
+  duration?: number;
+  target?: BlockTarget;
+}
+
+export interface StoryItem {
+  title?: string;
+  image?: string;
+  target?: BlockTarget;
+  slides?: StorySlide[];
 }
 
 export interface HomeBlockBase {
@@ -108,7 +122,7 @@ export interface AnnouncementBarBlock extends HomeBlockBase {
 
 export interface StoryBarBlock extends HomeBlockBase {
   type: 'story_bar';
-  items?: { title?: string; image?: string; target?: BlockTarget }[];
+  items?: StoryItem[];
 }
 
 export interface CountdownBlock extends HomeBlockBase {
@@ -131,7 +145,7 @@ export interface CouponBlock extends HomeBlockBase {
 export interface ProductCarouselBlock extends HomeBlockBase {
   type: 'product_carousel';
   title?: string;
-  source?: 'featured' | 'newest' | 'bestselling' | 'discounted' | 'category' | 'tag';
+  source?: 'featured' | 'newest' | 'bestselling' | 'discounted' | 'flash_sale' | 'category' | 'tag';
   category?: string;
   tag?: string;
   limit?: number;
@@ -320,6 +334,9 @@ export interface CatalogItem {
   is_requestable: boolean;
   is_downloadable: boolean;
   is_featured: boolean;
+  is_flash_sale?: boolean;
+  is_flash_sale_active?: boolean;
+  flash_sale_ends_at?: string | null;
   metadata: Record<string, unknown>;
   media: ItemMedia[];
   images: string[];
