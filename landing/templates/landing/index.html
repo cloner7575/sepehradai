@@ -4,24 +4,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ساخت فروشگاه و ربات در بله و تلگرام | Sepehrad AI Bot</title>
-  <meta name="description" content="فروشگاه اینستاگرامت رو به فروشگاه واقعی در بله و تلگرام تبدیل کن. ساخت ربات فروشگاهی بله، پرداخت مستقیم بدون درگاه، مینی‌اپ فروشگاهی و اتوماسیون بازاریابی.">
-  <meta name="keywords" content="ساخت ربات فروشگاهی بله, فروشگاه در بله, درگاه پرداخت ربات بله, ربات تلگرام فروشگاهی">
+  <title>ساخت فروشگاه و ربات در بله و تلگرام | {{ site_name_full }}</title>
+  <meta name="description" content="فروشگاه اینستاگرامت رو به فروشگاه واقعی در بله و تلگرام تبدیل کن. {{ site_name_fa }} — ساخت ربات فروشگاهی، پرداخت مستقیم بدون درگاه، مینی‌اپ و اتوماسیون بازاریابی.">
+  <meta name="keywords" content="راحت سل, Rahatsell, ساخت ربات فروشگاهی بله, فروشگاه در بله, ربات تلگرام فروشگاهی">
   <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}/">
+  {% include "landing/_brand_head.html" %}
 
   <meta property="og:type" content="website">
   <meta property="og:locale" content="fa_IR">
-  <meta property="og:title" content="ساخت فروشگاه و ربات در بله و تلگرام | Sepehrad AI Bot">
+  <meta property="og:title" content="ساخت فروشگاه و ربات در بله و تلگرام | {{ site_name_full }}">
   <meta property="og:description" content="فروشگاه کامل با سبد خرید و پرداخت مستقیم داخل بله و تلگرام — بدون سایت و درگاه.">
   <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}/">
-  <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'landing/og-image.svg' %}">
+  <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ brand_icon_url }}">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="ساخت فروشگاه و ربات در بله و تلگرام | Sepehrad AI Bot">
+  <meta name="twitter:title" content="ساخت فروشگاه و ربات در بله و تلگرام | {{ site_name_full }}">
   <meta name="twitter:description" content="فروشگاه کامل با سبد خرید و پرداخت مستقیم داخل بله و تلگرام.">
 
   <link href="{% static 'balebot/css/fonts.css' %}" rel="stylesheet">
-  <link href="{% static 'landing/landing.css' %}?v=2" rel="stylesheet">
+  <link href="{% static 'landing/landing.css' %}?v=4" rel="stylesheet">
 
   <script type="application/ld+json">
   {
@@ -29,13 +30,13 @@
     "@graph": [
       {
         "@type": "Organization",
-        "name": "Sepehrad AI Bot",
+        "name": "{{ site_name_full }}",
         "url": "{{ request.scheme }}://{{ request.get_host }}/",
-        "description": "پلتفرم ساخت ربات و فروشگاه در بله و تلگرام"
+        "description": "{{ site_description }}"
       },
       {
         "@type": "SoftwareApplication",
-        "name": "Sepehrad AI Bot",
+        "name": "{{ site_name_full }}",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Web",
         "offers": {
@@ -60,18 +61,7 @@
   <header class="site-header" id="site-header">
     <div class="container">
       <div class="header-inner">
-        <a href="/" class="logo">
-          <span class="logo-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="10" rx="2"/>
-              <circle cx="12" cy="5" r="2"/>
-              <path d="M12 7v4"/>
-              <line x1="8" y1="16" x2="8" y2="16"/>
-              <line x1="16" y1="16" x2="16" y2="16"/>
-            </svg>
-          </span>
-          <span>Sepehrad AI Bot</span>
-        </a>
+        {% include "balebot/_brand_logo.html" with brand_logo_class="logo" %}
         <nav class="nav-desktop" aria-label="ناوبری اصلی">
           <a href="#features">امکانات</a>
           <a href="#how">نحوه کار</a>
@@ -645,17 +635,8 @@
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
-          <div class="logo">
-            <span class="logo-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="11" width="18" height="10" rx="2"/>
-                <circle cx="12" cy="5" r="2"/>
-                <path d="M12 7v4"/>
-              </svg>
-            </span>
-            <span>Sepehrad AI Bot</span>
-          </div>
-          <p>پلتفرم ساخت ربات و فروشگاه در بله و تلگرام — فروش حرفه‌ای بدون سایت و درگاه.</p>
+          {% include "balebot/_brand_logo.html" with brand_logo_class="footer-logo" brand_logo_icon_size=44 %}
+          <p>{{ site_tagline }}</p>
         </div>
         <div class="footer-links">
           <h4>لینک‌ها</h4>
@@ -675,7 +656,7 @@
         </div>
       </div>
       <div class="footer-bottom">
-        © {% now "Y" %} Sepehrad AI Bot — تمامی حقوق محفوظ است.
+        © {% now "Y" %} {{ site_name_full }} — تمامی حقوق محفوظ است.
       </div>
     </div>
   </footer>

@@ -28,6 +28,31 @@ class LandingSettingsForm(forms.ModelForm):
         }
 
 
+class BrandSettingsForm(forms.ModelForm):
+    class Meta:
+        model = LandingSettings
+        fields = (
+            'brand_icon_svg',
+            'brand_logo_svg',
+            'brand_favicon_svg',
+            'brand_wordmark_primary',
+            'brand_wordmark_accent',
+        )
+        widgets = {
+            'brand_wordmark_primary': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
+            'brand_wordmark_accent': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in ('brand_icon_svg', 'brand_logo_svg', 'brand_favicon_svg'):
+            self.fields[name].required = False
+            self.fields[name].widget.attrs.update({
+                'class': 'form-control panel-input',
+                'accept': '.svg,image/svg+xml',
+            })
+
+
 class SubscriptionPlanForm(forms.ModelForm):
     features_text = forms.CharField(
         label='امکانات (هر خط یک مورد)',

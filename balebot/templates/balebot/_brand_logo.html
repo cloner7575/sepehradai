@@ -1,0 +1,10 @@
+<a href="{{ brand_logo_href|default:'/' }}" class="brand-logo{% if brand_logo_class %} {{ brand_logo_class }}{% endif %}" aria-label="{{ site_name_full }}">
+  {% if brand_use_full_logo %}
+  <img src="{{ brand_logo_url }}" alt="{{ site_name_full }}" class="brand-logo-full" height="{{ brand_logo_icon_size|default:40 }}">
+  {% else %}
+  <img src="{{ brand_icon_url }}" alt="" class="brand-logo-icon" width="{{ brand_logo_icon_size|default:40 }}" height="{{ brand_logo_icon_size|default:40 }}">
+  <span class="brand-logo-text" aria-hidden="true">
+    <span class="brand-logo-rahats">{{ brand_wordmark_primary }}</span><span class="brand-logo-sell">{{ brand_wordmark_accent }}</span>
+  </span>
+  {% endif %}
+</a>

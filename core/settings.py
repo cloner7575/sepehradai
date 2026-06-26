@@ -94,6 +94,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'balebot.context_processors.panel_branding',
+                'core.context_processors.site_brand',
                 'landing.context_processors.landing_settings',
             ],
         },

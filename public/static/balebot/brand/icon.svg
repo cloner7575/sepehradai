@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none" role="img" aria-label="Rahatsell">
+  <path fill="#6338d9" d="M18 30c0-5.5 4.5-10 10-10h24c5.5 0 10 4.5 10 10v24c0 1.8-.9 3.4-2.4 4.4l-7.2 4.8a4 4 0 0 1-4.4 0l-7.2-4.8A5 5 0 0 1 38 54V30z"/>
+  <path fill="#6338d9" d="M28 20a6 6 0 0 1 6-6h12a6 6 0 0 1 6 6v2H28v-2z"/>
+  <path fill="#6338d9" d="M12 54 6 62l8 2z"/>
+  <circle cx="32" cy="42" r="3" fill="#38bdf8"/>
+  <circle cx="40" cy="42" r="3" fill="#38bdf8"/>
+  <circle cx="48" cy="42" r="3" fill="#38bdf8"/>
+  <path fill="#14b8a6" d="M10 58c8-10 18-14 30-14 6 0 12 1.5 17 4.5l-4 6.5C49 50 44.5 49 40 49c-9 0-17 3-23 9l-7-6z"/>
+  <path fill="#14b8a6" d="m57 40 7-12 5 3-7 12z"/>
+</svg>

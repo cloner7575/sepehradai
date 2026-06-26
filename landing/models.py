@@ -1,4 +1,5 @@
 from django.conf import settings as django_settings
+from django.core.validators import FileExtensionValidator
 from django.db import models
 
 from landing.constants import MESSENGER_CHOICES
@@ -95,6 +96,39 @@ class LandingSettings(models.Model):
         max_length=300,
         default='مطمئن نیستی کدوم مناسبته؟ یه دمو رایگان بگیر، با هم انتخاب می‌کنیم.',
         verbose_name='یادداشت بخش قیمت',
+    )
+    brand_icon_svg = models.FileField(
+        upload_to='brand/',
+        blank=True,
+        validators=[FileExtensionValidator(['svg'])],
+        verbose_name='آیکون برند (SVG)',
+        help_text='آیکون مربعی برای سایدبار و هدر. فرمت SVG با پس‌زمینه شفاف.',
+    )
+    brand_logo_svg = models.FileField(
+        upload_to='brand/',
+        blank=True,
+        validators=[FileExtensionValidator(['svg'])],
+        verbose_name='لوگوی افقی (SVG)',
+        help_text='اگر آپلود شود، به‌جای آیکون+متن نمایش داده می‌شود.',
+    )
+    brand_favicon_svg = models.FileField(
+        upload_to='brand/',
+        blank=True,
+        validators=[FileExtensionValidator(['svg'])],
+        verbose_name='فاوآیکون (SVG)',
+        help_text='آیکون تب مرورگر. پیش‌فرض: آیکون برند.',
+    )
+    brand_wordmark_primary = models.CharField(
+        max_length=40,
+        default='Rahat',
+        blank=True,
+        verbose_name='متن وردمارک (بخش اول)',
+    )
+    brand_wordmark_accent = models.CharField(
+        max_length=40,
+        default='sell',
+        blank=True,
+        verbose_name='متن وردمارک (بخش دوم)',
     )
     updated_at = models.DateTimeField(auto_now=True)
 

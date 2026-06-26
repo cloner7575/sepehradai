@@ -134,6 +134,11 @@ urlpatterns = [
         landing_views_panel.SuperAdminLandingSettingsView.as_view(),
         name='superadmin_landing_settings',
     ),
+    path(
+        'superadmin/brand-settings/',
+        landing_views_panel.SuperAdminBrandSettingsView.as_view(),
+        name='superadmin_brand_settings',
+    ),
     path('catalog/', views_panel_catalog.CatalogDashboardView.as_view(), name='catalog_dashboard'),
     path('catalog/onboarding/', views_panel_catalog.CatalogOnboardingView.as_view(), name='catalog_onboarding'),
     path('catalog/templates/', views_panel_catalog.StoreTemplateListView.as_view(), name='catalog_templates'),

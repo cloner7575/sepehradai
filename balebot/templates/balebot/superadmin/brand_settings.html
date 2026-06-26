@@ -1,0 +1,73 @@
+{% extends "balebot/base.html" %}
+{% block title %}تنظیمات برند{% endblock %}
+{% block page_title %}تنظیمات برند و لوگو{% endblock %}
+{% block page_subtitle %}
+<p class="app-page-subtitle mb-0 mt-1">آپلود لوگو و آیکون SVG — لندینگ، پنل و فاوآیکون.</p>
+{% endblock %}
+
+{% block page_actions %}
+<a href="/" class="btn btn-panel-ghost flex-shrink-0" target="_blank" rel="noopener">
+  <i class="bi bi-box-arrow-up-left me-2"></i>پیش‌نمایش لندینگ
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger mb-4">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="panel-card mb-4">
+        <div class="panel-card-header">
+          <h2 class="panel-card-title mb-0">فایل‌های SVG</h2>
+        </div>
+        <div class="panel-card-body">
+          <p class="small text-muted mb-3">فقط فرمت <strong>SVG</strong> با پس‌زمینه شفاف یا سفید آپلود کنید.</p>
+          {% include "balebot/_settings_field.html" with field=form.brand_icon_svg hint="آیکون مربعی — سایدبار پنل و کنار وردمارک در لندینگ." %}
+          {% include "balebot/_settings_field.html" with field=form.brand_logo_svg hint="لوگوی افقی کامل — اگر پر شود، جایگزین آیکون+متن می‌شود." %}
+          {% include "balebot/_settings_field.html" with field=form.brand_favicon_svg hint="فاوآیکون تب مرورگر." %}
+        </div>
+      </div>
+
+      <div class="panel-card mb-4">
+        <div class="panel-card-header">
+          <h2 class="panel-card-title mb-0">وردمارک متنی</h2>
+        </div>
+        <div class="panel-card-body">
+          <p class="small text-muted mb-3">وقتی لوگوی افقی آپلود نشده، کنار آیکون نمایش داده می‌شود.</p>
+          <div class="row g-3">
+            <div class="col-md-6">{% include "balebot/_settings_field.html" with field=form.brand_wordmark_primary %}</div>
+            <div class="col-md-6">{% include "balebot/_settings_field.html" with field=form.brand_wordmark_accent %}</div>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-panel-primary">ذخیره تنظیمات برند</button>
+    </form>
+  </div>
+  <div class="col-lg-4">
+    <div class="panel-card mb-4">
+      <div class="panel-card-header">
+        <h2 class="panel-card-title mb-0">پیش‌نمایش</h2>
+      </div>
+      <div class="panel-card-body">
+        <div class="p-3 rounded border bg-white mb-3">
+          {% include "balebot/_brand_logo.html" with brand_logo_class="login-brand-logo" brand_logo_icon_size=44 %}
+        </div>
+        <div class="d-flex align-items-center gap-2 small text-muted">
+          <img src="{{ brand_favicon_url }}" alt="" width="24" height="24">
+          <span>فاوآیکون فعلی</span>
+        </div>
+      </div>
+    </div>
+    <div class="panel-card">
+      <div class="panel-card-body small text-muted">
+        <p class="mb-0">اگر فایلی آپلود نکنید، از SVG پیش‌فرض راحت‌سل استفاده می‌شود.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

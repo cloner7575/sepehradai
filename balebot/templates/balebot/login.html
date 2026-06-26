@@ -4,21 +4,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ورود به پنل</title>
+  <title>ورود به پنل | {{ site_name_full }}</title>
+  {% include "balebot/_brand_head.html" %}
   <link href="{% static 'balebot/css/fonts.css' %}?v=1" rel="stylesheet">
   <link href="{% static 'balebot/vendor/bootstrap/5.3.3/dist/css/bootstrap.rtl.min.css' %}" rel="stylesheet">
   <link href="{% static 'balebot/vendor/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css' %}" rel="stylesheet">
-  <link href="{% static 'balebot/css/panel-app.css' %}?v=9" rel="stylesheet">
+  <link href="{% static 'balebot/css/panel-app.css' %}?v=28" rel="stylesheet">
 </head>
 <body class="app-body app-theme-bale">
   <div class="login-page">
     <div class="login-card">
       <div class="text-center mb-4">
-        <div class="app-sidebar-logo d-inline-flex mb-3" style="width:56px;height:56px;font-size:1.4rem;">
-          <i class="bi bi-robot"></i>
-        </div>
-        <h1 class="mb-1">ورود به پنل مدیریت</h1>
-        <p class="login-sub mb-0">Sepehrad AI Bot — مدیریت ربات‌های چندپلتفرمی</p>
+        {% include "balebot/_brand_logo.html" with brand_logo_href="/" brand_logo_class="login-brand-logo mx-auto" brand_logo_icon_size=52 %}
+        <h1 class="mb-1 mt-3">ورود به پنل مدیریت</h1>
+        <p class="login-sub mb-0">{{ site_name_full }} — {{ site_tagline }}</p>
       </div>
       <form method="post" action="">
         {% csrf_token %}

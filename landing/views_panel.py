@@ -8,7 +8,7 @@ from django.views.generic import DetailView, FormView, ListView, TemplateView, V
 
 from balebot.mixins import SuperuserRequiredMixin
 from balebot.models import Workspace
-from landing.forms_panel import BusinessCategoryForm, LandingSettingsForm, SubscriptionPlanForm
+from landing.forms_panel import BrandSettingsForm, BusinessCategoryForm, LandingSettingsForm, SubscriptionPlanForm
 from landing.models import BusinessCategory, LandingSettings, Lead, SubscriptionPlan
 
 User = get_user_model()
@@ -214,6 +214,32 @@ class SuperAdminLandingSettingsView(SuperuserRequiredMixin, FormView):
         ctx = super().get_context_data(**kwargs)
         ctx['settings_obj'] = self.get_object()
         ctx['active_plans'] = SubscriptionPlan.objects.filter(is_active=True).count()
+        return ctx
+
+
+class SuperAdminBrandSettingsView(SuperuserRequiredMixin, FormView):
+    form_class = BrandSettingsForm
+    template_name = 'balebot/superadmin/brand_settings.html'
+    success_url = reverse_lazy('superadmin_brand_settings')
+
+    def get_object(self):
+        return LandingSettings.get_solo()
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['instance'] = self.get_object()
+        return kwargs
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(self.request, 'تنظیمات برند ذخیره شد.')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['settings_obj'] = self.get_object()
+        from landing.services.brand_assets import get_brand_context
+        ctx.update(get_brand_context(self.get_object()))
         return ctx
 
 

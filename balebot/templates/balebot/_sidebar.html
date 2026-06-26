@@ -1,9 +1,12 @@
+{% load static %}
 {% with name=request.resolver_match.url_name %}
 <aside class="app-sidebar" id="panel-sidebar">
   <div class="app-sidebar-brand">
-    <div class="app-sidebar-logo"><i class="bi bi-robot"></i></div>
+    <div class="app-sidebar-logo app-sidebar-logo--brand">
+      <img src="{{ brand_icon_url }}" alt="" width="34" height="34">
+    </div>
     <div class="app-sidebar-brand-text">
-      <strong>{% if bot_branding %}{{ bot_branding.panel_brand_title }}{% else %}Sepehrad AI Bot{% endif %}</strong>
+      <strong>{% if bot_branding %}{{ bot_branding.panel_brand_title }}{% else %}{{ site_name_fa }}{% endif %}</strong>
       <span class="app-platform-chip app-platform-chip--{{ active_platform|default:'bale' }}">{{ active_platform_label|default:"بله" }}</span>
     </div>
   </div>
@@ -37,6 +40,9 @@
         </a>
         <a href="{% url 'superadmin_landing_settings' %}" class="app-nav-link app-nav-link--admin {% if name == 'superadmin_landing_settings' %}is-active{% endif %}">
           <i class="bi bi-window-sidebar app-nav-icon"></i><span>تنظیمات لندینگ</span>
+        </a>
+        <a href="{% url 'superadmin_brand_settings' %}" class="app-nav-link app-nav-link--admin {% if name == 'superadmin_brand_settings' %}is-active{% endif %}">
+          <i class="bi bi-palette app-nav-icon"></i><span>تنظیمات برند</span>
         </a>
         <a href="{% url 'panel_user_list' %}" class="app-nav-link app-nav-link--admin {% if name == 'panel_user_list' or name == 'panel_user_create' or name == 'panel_user_edit' %}is-active{% endif %}">
           <i class="bi bi-shield-lock app-nav-icon"></i><span>مدیریت کاربران</span>
