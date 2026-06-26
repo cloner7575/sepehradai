@@ -22,7 +22,7 @@ def _resolve_admin_chat_id(catalog: CatalogSettings) -> int | str | None:
 
 def format_lead_message(lead: Lead) -> str:
     business = lead.business_name or '—'
-    business_type = lead.business_type or '—'
+    business_type = lead.business_type_display()
     messenger = lead.get_messenger_display_fa()
     return (
         'سرنخ جدید 🎯\n'

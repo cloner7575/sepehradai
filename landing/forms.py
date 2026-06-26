@@ -3,8 +3,9 @@ import re
 from django import forms
 
 from instagram.services.phones import validate_iran_mobile
-from landing.constants import BUSINESS_TYPES, MESSENGER_CHOICES
+from landing.constants import MESSENGER_CHOICES
 from landing.models import Lead
+from landing.services.business_categories import form_choices, is_other_selection, other_category_label
 
 _PERSIAN_DIGITS = str.maketrans('۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩', '01234567890123456789')
 
@@ -20,10 +21,18 @@ def normalize_phone(value: str) -> str:
 
 class LeadForm(forms.ModelForm):
     website = forms.CharField(required=False, widget=forms.HiddenInput())
+    business_type_other = forms.CharField(
+        required=False,
+        label='صنف شما',
+        widget=forms.TextInput(attrs={
+            'class': 'landing-input',
+            'placeholder': 'صنف کسب‌وکار خود را بنویسید',
+        }),
+    )
 
     class Meta:
         model = Lead
-        fields = ('name', 'business_name', 'phone', 'messenger', 'business_type', 'note')
+        fields = ('name', 'business_name', 'phone', 'messenger', 'business_type', 'business_type_other', 'note')
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'landing-input',
@@ -57,7 +66,21 @@ class LeadForm(forms.ModelForm):
         self.fields['messenger'].required = False
         self.fields['messenger'].choices = [('', 'انتخاب کنید')] + list(MESSENGER_CHOICES)
         self.fields['business_type'].required = False
-        self.fields['business_type'].choices = [('', 'انتخاب صنف')] + list(BUSINESS_TYPES)
+        self.fields['business_type'].choices = form_choices()
+        self.fields['business_type_other'].widget.attrs['data-other-field'] = '1'
+
+    def clean(self):
+        cleaned = super().clean()
+        business_type = (cleaned.get('business_type') or '').strip()
+        other_text = (cleaned.get('business_type_other') or '').strip()
+        if is_other_selection(business_type) and not other_text:
+            self.add_error(
+                'business_type_other',
+                f'اگر «{other_category_label()}» را انتخاب کردید، لطفاً صنف خود را بنویسید.',
+            )
+        elif not is_other_selection(business_type):
+            cleaned['business_type_other'] = ''
+        return cleaned
 
     def clean_phone(self):
         phone = normalize_phone(self.cleaned_data.get('phone', ''))

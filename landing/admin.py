@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from landing.models import LandingSettings, Lead, SubscriptionPlan
+from landing.models import BusinessCategory, LandingSettings, Lead, SubscriptionPlan
 
 
 @admin.register(Lead)
@@ -23,6 +23,14 @@ class LeadAdmin(admin.ModelAdmin):
 class SubscriptionPlanAdmin(admin.ModelAdmin):
     list_display = ('name', 'price_label', 'is_featured', 'is_active', 'sort_order')
     list_filter = ('is_active', 'is_featured')
+    search_fields = ('name', 'slug')
+    prepopulated_fields = {'slug': ('name',)}
+
+
+@admin.register(BusinessCategory)
+class BusinessCategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'sort_order', 'is_active', 'show_on_landing', 'is_other')
+    list_filter = ('is_active', 'show_on_landing', 'is_other')
     search_fields = ('name', 'slug')
     prepopulated_fields = {'slug': ('name',)}
 

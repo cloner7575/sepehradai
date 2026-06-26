@@ -15,6 +15,11 @@ class Lead(models.Model):
         verbose_name='پیام‌رسان',
     )
     business_type = models.CharField(max_length=60, blank=True, verbose_name='صنف')
+    business_type_other = models.CharField(
+        max_length=80,
+        blank=True,
+        verbose_name='صنف (سایر)',
+    )
     note = models.TextField(blank=True, verbose_name='توضیحات')
     source = models.CharField(max_length=60, default='landing', verbose_name='منبع')
     is_contacted = models.BooleanField(default=False, verbose_name='تماس گرفته شده')
@@ -30,6 +35,38 @@ class Lead(models.Model):
 
     def get_messenger_display_fa(self) -> str:
         return dict(MESSENGER_CHOICES).get(self.messenger, self.messenger or '—')
+
+    def business_type_display(self) -> str:
+        label = (self.business_type or '').strip()
+        other = (self.business_type_other or '').strip()
+        if not label:
+            return other or '—'
+        if other:
+            return f'{label} ({other})'
+        return label
+
+
+class BusinessCategory(models.Model):
+    name = models.CharField(max_length=80, verbose_name='نام صنف')
+    slug = models.SlugField(max_length=40, unique=True, verbose_name='شناسه')
+    sort_order = models.PositiveSmallIntegerField(default=0, verbose_name='ترتیب')
+    is_active = models.BooleanField(default=True, verbose_name='فعال در فرم لندینگ')
+    show_on_landing = models.BooleanField(default=True, verbose_name='نمایش در بخش الگوها')
+    is_other = models.BooleanField(
+        default=False,
+        verbose_name='گزینه سایر',
+        help_text='فقط یک مورد می‌تواند گزینه «سایر» باشد.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'صنف'
+        verbose_name_plural = 'اصناف'
+        ordering = ['sort_order', 'id']
+
+    def __str__(self) -> str:
+        return self.name
 
 
 class LandingSettings(models.Model):

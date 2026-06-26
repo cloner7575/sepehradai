@@ -8,8 +8,8 @@ from django.views.generic import DetailView, FormView, ListView, TemplateView, V
 
 from balebot.mixins import SuperuserRequiredMixin
 from balebot.models import Workspace
-from landing.forms_panel import LandingSettingsForm, SubscriptionPlanForm
-from landing.models import LandingSettings, Lead, SubscriptionPlan
+from landing.forms_panel import BusinessCategoryForm, LandingSettingsForm, SubscriptionPlanForm
+from landing.models import BusinessCategory, LandingSettings, Lead, SubscriptionPlan
 
 User = get_user_model()
 
@@ -68,6 +68,8 @@ class SuperAdminDashboardView(SuperuserRequiredMixin, TemplateView):
             'panel_user_total': len(panel_users),
             'plan_total': SubscriptionPlan.objects.count(),
             'plan_active': SubscriptionPlan.objects.filter(is_active=True).count(),
+            'category_total': BusinessCategory.objects.count(),
+            'category_active': BusinessCategory.objects.filter(is_active=True).count(),
             'recent_leads': Lead.objects.order_by('-created_at')[:8],
             **_subscription_stats(workspaces),
         })
@@ -213,3 +215,69 @@ class SuperAdminLandingSettingsView(SuperuserRequiredMixin, FormView):
         ctx['settings_obj'] = self.get_object()
         ctx['active_plans'] = SubscriptionPlan.objects.filter(is_active=True).count()
         return ctx
+
+
+class SuperAdminBusinessCategoryListView(SuperuserRequiredMixin, ListView):
+    model = BusinessCategory
+    template_name = 'balebot/superadmin/business_category_list.html'
+    context_object_name = 'categories'
+    paginate_by = 30
+
+    def get_queryset(self):
+        return BusinessCategory.objects.all()
+
+
+class SuperAdminBusinessCategoryCreateView(SuperuserRequiredMixin, FormView):
+    form_class = BusinessCategoryForm
+    template_name = 'balebot/superadmin/business_category_form.html'
+    success_url = reverse_lazy('superadmin_business_category_list')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['form_title'] = 'صنف جدید'
+        ctx['is_create'] = True
+        return ctx
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(self.request, f'صنف «{form.instance.name}» ایجاد شد.')
+        return super().form_valid(form)
+
+
+class SuperAdminBusinessCategoryUpdateView(SuperuserRequiredMixin, FormView):
+    form_class = BusinessCategoryForm
+    template_name = 'balebot/superadmin/business_category_form.html'
+    success_url = reverse_lazy('superadmin_business_category_list')
+
+    def dispatch(self, request, *args, **kwargs):
+        self.category = get_object_or_404(BusinessCategory, pk=kwargs['pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['instance'] = self.category
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['form_title'] = f'ویرایش صنف «{self.category.name}»'
+        ctx['is_create'] = False
+        ctx['category'] = self.category
+        return ctx
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(self.request, f'صنف «{form.instance.name}» به‌روزرسانی شد.')
+        return super().form_valid(form)
+
+
+class SuperAdminBusinessCategoryDeleteView(SuperuserRequiredMixin, View):
+    def post(self, request, pk):
+        category = get_object_or_404(BusinessCategory, pk=pk)
+        if category.is_other:
+            messages.error(request, 'گزینه «سایر» قابل حذف نیست؛ فقط می‌توانید آن را ویرایش کنید.')
+            return redirect('superadmin_business_category_list')
+        name = category.name
+        category.delete()
+        messages.success(request, f'صنف «{name}» حذف شد.')
+        return redirect('superadmin_business_category_list')

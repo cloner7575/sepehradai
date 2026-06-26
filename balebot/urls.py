@@ -110,6 +110,26 @@ urlpatterns = [
     path('superadmin/plans/<int:pk>/edit/', landing_views_panel.SuperAdminPlanUpdateView.as_view(), name='superadmin_plan_edit'),
     path('superadmin/plans/<int:pk>/delete/', landing_views_panel.SuperAdminPlanDeleteView.as_view(), name='superadmin_plan_delete'),
     path(
+        'superadmin/business-categories/',
+        landing_views_panel.SuperAdminBusinessCategoryListView.as_view(),
+        name='superadmin_business_category_list',
+    ),
+    path(
+        'superadmin/business-categories/new/',
+        landing_views_panel.SuperAdminBusinessCategoryCreateView.as_view(),
+        name='superadmin_business_category_create',
+    ),
+    path(
+        'superadmin/business-categories/<int:pk>/edit/',
+        landing_views_panel.SuperAdminBusinessCategoryUpdateView.as_view(),
+        name='superadmin_business_category_edit',
+    ),
+    path(
+        'superadmin/business-categories/<int:pk>/delete/',
+        landing_views_panel.SuperAdminBusinessCategoryDeleteView.as_view(),
+        name='superadmin_business_category_delete',
+    ),
+    path(
         'superadmin/landing-settings/',
         landing_views_panel.SuperAdminLandingSettingsView.as_view(),
         name='superadmin_landing_settings',

@@ -1,6 +1,7 @@
 from django.conf import settings as django_settings
 
 from landing.models import LandingSettings, SubscriptionPlan
+from landing.services.business_categories import landing_chip_names, other_category_label
 
 
 def get_public_landing_context() -> dict:
@@ -10,6 +11,8 @@ def get_public_landing_context() -> dict:
         'landing_settings': settings_obj,
         'LANDING_DEMO_BOT_URL': settings_obj.resolved_demo_bot_url(),
         'subscription_plans': plans,
+        'business_categories': landing_chip_names(),
+        'other_category_label': other_category_label(),
     }
 
 

@@ -91,6 +91,29 @@
     });
   }
 
+  /* Business type "other" field */
+  var businessTypeSelect = document.getElementById('id_business_type');
+  var otherRow = document.getElementById('business-type-other-row');
+  var otherInput = document.getElementById('id_business_type_other');
+
+  function syncBusinessTypeOther() {
+    if (!businessTypeSelect || !otherRow) return;
+    var otherLabel = otherRow.getAttribute('data-other-label') || 'سایر';
+    var isOther = businessTypeSelect.value === otherLabel;
+    otherRow.classList.toggle('is-hidden', !isOther);
+    if (otherInput) {
+      otherInput.required = isOther;
+      if (!isOther) {
+        otherInput.value = '';
+      }
+    }
+  }
+
+  if (businessTypeSelect) {
+    syncBusinessTypeOther();
+    businessTypeSelect.addEventListener('change', syncBusinessTypeOther);
+  }
+
   /* Scroll to #cta after form success redirect */
   if (window.location.hash === '#cta') {
     var cta = document.getElementById('cta');

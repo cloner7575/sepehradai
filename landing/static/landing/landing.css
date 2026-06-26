@@ -1235,6 +1235,10 @@ section.surface {
 
 .form-row { margin-bottom: 1rem; }
 
+.form-row.is-hidden {
+  display: none;
+}
+
 .form-row label {
   display: block;
   font-weight: 600;

@@ -328,6 +328,11 @@
           <p>هر الگو با دسته‌بندی، محصول نمونه، منوی ربات و کمپین آماده میاد.</p>
         </div>
         <div class="chips-grid reveal">
+          {% if business_categories %}
+          {% for name in business_categories %}
+          <span class="chip">{{ name }}</span>
+          {% endfor %}
+          {% else %}
           <span class="chip">پوشاک زنانه</span>
           <span class="chip">پوشاک مردانه</span>
           <span class="chip">سیسمونی</span>
@@ -352,6 +357,7 @@
           <span class="chip">آموزشگاه</span>
           <span class="chip">رستوران</span>
           <span class="chip">محصولات دیجیتال</span>
+          {% endif %}
         </div>
       </div>
     </section>
@@ -613,6 +619,11 @@
                   <label for="id_business_type">صنف</label>
                   {{ form.business_type }}
                 </div>
+                <div class="form-row span-2{% if form.business_type.value != other_category_label and not form.business_type_other.errors %} is-hidden{% endif %}" id="business-type-other-row" data-other-label="{{ other_category_label|default:'سایر' }}">
+                  <label for="id_business_type_other">{{ form.business_type_other.label }}</label>
+                  {{ form.business_type_other }}
+                  {% if form.business_type_other.errors %}<div class="form-error">{{ form.business_type_other.errors.0 }}</div>{% endif %}
+                </div>
                 <div class="form-row span-2">
                   <label for="id_note">توضیحات</label>
                   {{ form.note }}
@@ -667,6 +678,6 @@
     </div>
   </footer>
 
-  <script src="{% static 'landing/landing.js' %}?v=2" defer></script>
+  <script src="{% static 'landing/landing.js' %}?v=3" defer></script>
 </body>
 </html>

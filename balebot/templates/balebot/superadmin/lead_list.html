@@ -94,7 +94,7 @@
               {% if lead.business_name %}<div class="small text-muted">{{ lead.business_name }}</div>{% endif %}
             </td>
             <td class="d-none d-md-table-cell" dir="ltr">{{ lead.phone }}</td>
-            <td class="d-none d-lg-table-cell small">{{ lead.business_type|default:"—" }}</td>
+            <td class="d-none d-lg-table-cell small">{{ lead.business_type_display }}</td>
             <td>
               {% if lead.is_contacted %}
               <span class="badge bg-success-subtle text-success-emphasis">تماس گرفته شد</span>

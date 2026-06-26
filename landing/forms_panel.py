@@ -1,6 +1,6 @@
 from django import forms
 
-from landing.models import LandingSettings, SubscriptionPlan
+from landing.models import BusinessCategory, LandingSettings, SubscriptionPlan
 
 _INPUT = 'form-control panel-input'
 
@@ -83,3 +83,31 @@ class SubscriptionPlanForm(forms.ModelForm):
         if commit:
             instance.save()
         return instance
+
+
+class BusinessCategoryForm(forms.ModelForm):
+    class Meta:
+        model = BusinessCategory
+        fields = (
+            'name',
+            'slug',
+            'sort_order',
+            'is_active',
+            'show_on_landing',
+            'is_other',
+        )
+        widgets = {
+            'name': forms.TextInput(attrs={'class': _INPUT}),
+            'slug': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
+            'sort_order': forms.NumberInput(attrs={'class': _INPUT}),
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get('is_other'):
+            qs = BusinessCategory.objects.filter(is_other=True)
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError('فقط یک صنف می‌تواند گزینه «سایر» باشد.')
+        return cleaned
