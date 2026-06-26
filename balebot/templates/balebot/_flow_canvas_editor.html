@@ -1,37 +1,89 @@
 {% load static %}
-{% comment %}ویرایشگر گرافیکی جریان /start — تعامل مستقیم روی canvas چت{% endcomment %}
+{% comment %}ویرایشگر گرافیکی جریان /start — استودیو سه‌ستونه{% endcomment %}
 <div
-  class="flow-canvas-editor"
+  class="flow-canvas-editor flow-canvas-editor--bot"
   id="flow-canvas-editor"
   data-hidden-id="id_start_flow"
   data-upload-url="{% url 'flow_media_upload' %}"
   data-platform-label="{{ active_platform_label|default:'بله' }}"
+  data-has-miniapp="{% if mini_app_url %}1{% else %}0{% endif %}"
   {% if mini_app_url %}data-mini-app-url="{{ mini_app_url }}"{% endif %}
 >
-  <div class="flow-canvas-editor-toolbar" id="flow-canvas-toolbar" role="toolbar" aria-label="افزودن به منو">
-    <span class="flow-canvas-editor-toolbar-label"><i class="bi bi-plus-circle"></i> افزودن به منو</span>
-    <button type="button" class="flow-canvas-tool-btn" data-add-type="text"><i class="bi bi-chat-text"></i> متن</button>
-    <button type="button" class="flow-canvas-tool-btn" data-add-type="image"><i class="bi bi-image"></i> عکس</button>
-    <button type="button" class="flow-canvas-tool-btn" data-add-type="video"><i class="bi bi-camera-video"></i> ویدیو</button>
-    <button type="button" class="flow-canvas-tool-btn" data-add-type="voice"><i class="bi bi-mic"></i> صدا</button>
-    <button type="button" class="flow-canvas-tool-btn" data-add-type="document"><i class="bi bi-paperclip"></i> فایل</button>
-    <button type="button" class="flow-canvas-tool-btn flow-canvas-tool-btn--primary" data-add-type="buttons"><i class="bi bi-ui-checks-grid"></i> دکمه‌ها</button>
-  </div>
+  <header class="bot-studio-header">
+    <div class="bot-studio-header-main">
+      <h2 class="bot-studio-header-title">استودیو منوی /start</h2>
+      <p class="bot-studio-header-sub" id="flow-palette-hint">آیتم را از پنل چپ اضافه کنید · روی canvas ویرایش کنید</p>
+    </div>
+    <div class="bot-studio-header-meta">
+      <span class="bot-studio-chip" id="flow-editor-item-count">۰ آیتم</span>
+      <span class="bot-studio-chip bot-studio-chip--target" id="flow-canvas-toolbar-target" hidden></span>
+      <span class="bot-studio-chip bot-studio-chip--platform">{{ active_platform_label }}</span>
+    </div>
+  </header>
 
-  <div class="flow-canvas-editor-layout">
+  <div class="flow-canvas-editor-layout flow-canvas-editor-layout--bot">
+    <aside class="bot-studio-dock" aria-label="ابزارهای طراحی">
+      <nav class="bot-studio-tabs" role="tablist" aria-label="بخش‌های طراحی">
+        <button type="button" class="bot-studio-tab is-active" role="tab" aria-selected="true" data-dock-tab="add" id="flow-tab-add">
+          <i class="bi bi-plus-lg"></i><span>افزودن</span>
+        </button>
+        <button type="button" class="bot-studio-tab" role="tab" aria-selected="false" data-dock-tab="structure" id="flow-tab-structure">
+          <i class="bi bi-list-nested"></i><span>ساختار</span>
+        </button>
+        <button type="button" class="bot-studio-tab" role="tab" aria-selected="false" data-dock-tab="welcome" id="flow-tab-welcome">
+          <i class="bi bi-chat-left-text"></i><span>پیام شروع</span>
+        </button>
+      </nav>
+
+      <div class="bot-studio-panels">
+        <section class="bot-studio-panel is-active" role="tabpanel" data-dock-panel="add" aria-labelledby="flow-tab-add">
+          <div class="bot-studio-quick-add" id="flow-quick-add"></div>
+          <div class="bot-studio-search-wrap">
+            <i class="bi bi-search bot-studio-search-icon" aria-hidden="true"></i>
+            <input type="search" class="bot-studio-search" id="flow-palette-search" placeholder="جستجو در ویژگی‌ها…" autocomplete="off" />
+          </div>
+          <div class="bot-studio-filters" id="flow-palette-filters" role="group" aria-label="دسته‌بندی"></div>
+          <div class="bot-studio-palette" id="flow-block-palette"></div>
+        </section>
+
+        <section class="bot-studio-panel" role="tabpanel" data-dock-panel="structure" aria-labelledby="flow-tab-structure" hidden>
+          <div class="bot-studio-panel-head">
+            <h3>ساختار منو</h3>
+            <p>ترتیب پیام‌ها و دکمه‌های /start</p>
+          </div>
+          <div class="bot-flow-outline" id="flow-blocks-outline">
+            <div class="bot-flow-outline-empty">هنوز آیتمی اضافه نشده</div>
+          </div>
+        </section>
+
+        <section class="bot-studio-panel" role="tabpanel" data-dock-panel="welcome" aria-labelledby="flow-tab-welcome" hidden id="flow-welcome-panel">
+          <div class="bot-studio-panel-head">
+            <h3>پیام‌های قبل از منو</h3>
+            <p>خوش‌آمد، دریافت شماره و متن پیش‌فرض</p>
+          </div>
+          <div class="bot-editor-welcome-fields">
+            {% include "balebot/_settings_field.html" with field=form.start_message_normal label="پیام خوش‌آمد" hint="بعد از /start برای کاربر ثبت‌شده." %}
+            {% include "balebot/_settings_switch.html" with field=form.collect_contact_on_start title="دریافت شماره قبل از منو" desc="فقط برای کاربر بدون شماره" %}
+            {% include "balebot/_settings_field.html" with field=form.start_message_contact %}
+            {% include "balebot/_settings_field.html" with field=form.contact_button_label %}
+            {% include "balebot/_settings_field.html" with field=form.registration_success_message %}
+            {% include "balebot/_settings_field.html" with field=form.start_flow_default_text label="متن بن‌بست" hint="وقتی دکمه‌ای اکشن ندارد." %}
+          </div>
+        </section>
+      </div>
+    </aside>
+
     <div class="flow-canvas-stage flow-canvas-stage--bot flow-canvas-stage--editable">
       <div class="flow-messenger">
         <div class="flow-messenger-header">
           <div class="flow-messenger-avatar"><i class="bi bi-robot"></i></div>
           <div class="flow-messenger-meta">
             <strong>{% if bot_branding %}{{ bot_branding.panel_brand_title }}{% else %}ربات{% endif %}</strong>
-            <span>پلتفرم {{ active_platform_label }} · ویرایش جریان /start</span>
+            <span>پیش‌نمایش · {{ active_platform_label }}</span>
           </div>
-          <span class="flow-messenger-chip">Canvas</span>
+          <span class="flow-messenger-chip">Live</span>
         </div>
-
         <div class="flow-messenger-thread flow-messenger-thread--editable" id="flow-canvas-thread"></div>
-
         <div class="flow-messenger-compose" aria-hidden="true">
           <span class="flow-messenger-compose-field">پیام کاربر…</span>
           <span class="flow-messenger-compose-send"><i class="bi bi-send"></i></span>
@@ -39,15 +91,16 @@
       </div>
     </div>
 
-    <aside class="flow-canvas-inspector" id="flow-canvas-inspector" aria-label="ویژگی‌های انتخاب‌شده">
+    <aside class="flow-canvas-inspector flow-canvas-inspector--bot" id="flow-canvas-inspector" aria-label="ویژگی‌های انتخاب‌شده">
       <div class="flow-canvas-inspector-head">
         <h3 class="flow-canvas-inspector-title" id="flow-inspector-title">ویژگی‌ها</h3>
-        <span class="flow-canvas-inspector-hint" id="flow-inspector-hint">روی canvas کلیک کنید</span>
+        <span class="flow-canvas-inspector-hint" id="flow-inspector-hint">یک آیتم را انتخاب کنید</span>
       </div>
       <div class="flow-canvas-inspector-body" id="flow-inspector-body">
-        <div class="flow-canvas-inspector-empty">
-          <i class="bi bi-hand-index"></i>
-          <p>یک پیام یا دکمه را روی canvas انتخاب کنید تا اینجا ویرایش شود.</p>
+        <div class="bot-inspector-idle">
+          <div class="bot-inspector-idle-icon"><i class="bi bi-cursor"></i></div>
+          <p class="bot-inspector-idle-title">چیزی انتخاب نشده</p>
+          <p class="bot-inspector-idle-text">روی پیام یا دکمه در پیش‌نمایش کلیک کنید تا تنظیماتش اینجا باز شود.</p>
         </div>
       </div>
     </aside>

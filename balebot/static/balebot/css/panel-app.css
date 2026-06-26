@@ -2659,12 +2659,14 @@ code, kbd, pre, .panel-code {
   background: linear-gradient(180deg, transparent 0%, rgba(17, 17, 19, 0.95) 30%);
 }
 
-/* طراحی منوی ربات و طراحی صفحه مینی‌اپ: پیش‌نمایش چپ، پنل ویژگی‌ها راست */
+/* طراحی منوی ربات و طراحی صفحه مینی‌اپ: پیش‌نمایش وسط، پنل ویژگی‌ها راست */
+.flow-engine-studio .flow-canvas-editor-layout--bot,
 .flow-engine-studio .flow-canvas-editor-layout,
 .flow-canvas-editor--miniapp .flow-canvas-editor-layout {
   direction: ltr;
 }
 
+.flow-engine-studio .bot-studio-dock,
 .flow-engine-studio .flow-canvas-stage,
 .flow-engine-studio .flow-canvas-inspector,
 .flow-canvas-editor--miniapp .flow-canvas-stage,
