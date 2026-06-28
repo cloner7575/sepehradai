@@ -387,9 +387,9 @@ def _sanitize_button(btn: Any, depth: int) -> dict[str, Any] | None:
         'id': _ensure_node_id(btn.get('id')),
         'text': text,
     }
-    label_slug = _slugify_label(str(btn.get('label_slug', '') or ''))
-    if label_slug:
-        out['label_slug'] = label_slug
+    category_slug = _slugify_label(str(btn.get('category_slug', '') or ''))
+    if category_slug:
+        out['category_slug'] = category_slug
     if action:
         out['action'] = action
     return out
@@ -475,7 +475,7 @@ def migrate_inline_keyboard_to_flow(keyboard_data: Any) -> dict[str, Any]:
         out: dict[str, Any] = {'id': _new_node_id(), 'text': text}
         fk = str(btn.get('flow_key', '') or '').strip()
         if fk:
-            out['label_slug'] = _slugify_label(fk) or _slugify_label(text)
+            out['category_slug'] = _slugify_label(fk) or _slugify_label(text)
         if act == 'url':
             url = str(btn.get('url', '') or '').strip()
             if url:

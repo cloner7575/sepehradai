@@ -35,7 +35,9 @@ def _walk_buttons(node: dict[str, Any], state: dict[str, bool], marketing: dict[
                 continue
             atype = (action.get('type') or '').strip().lower()
 
-            if atype == 'url' and (
+            if atype == 'webapp':
+                state['has_webapp'] = True
+            elif atype == 'url' and (
                 label_slug == 'shop'
                 or '{shop_url}' in str(action.get('url') or '')
             ):
@@ -113,14 +115,14 @@ def upgrade_start_flow(
         extra_row.append({
             'id': f'n_{prefix}_ord',
             'label': '📦 پیگیری سفارش',
-            'label_slug': 'order_status',
+            'text': '📦 پیگیری سفارش',
             'action': {'type': 'order_status'},
         })
     if not state['has_my_orders']:
         extra_row.append({
             'id': f'n_{prefix}_myo',
             'label': '🧾 سفارش‌های من',
-            'label_slug': 'my_orders',
+            'text': '🧾 سفارش‌های من',
             'action': {'type': 'my_orders', 'limit': 5},
         })
     if extra_row:
@@ -132,7 +134,7 @@ def upgrade_start_flow(
             rows.append([{
                 'id': f'n_{prefix}_faq',
                 'label': '❓ سوالات متداول',
-                'label_slug': 'faq',
+                'text': '❓ سوالات متداول',
                 'action': {
                     'type': 'faq',
                     'title': 'سوالات متداول',

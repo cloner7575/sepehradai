@@ -768,6 +768,16 @@ class StoreTemplateListView(MiniAppPanelMixin, ListView):
         templates = list(ctx['templates'])
         for tpl in templates:
             tpl.industry_label = STORE_TEMPLATE_INDUSTRY_LABELS.get(tpl.industry, tpl.industry)
+            data = tpl.data if isinstance(tpl.data, dict) else {}
+            settings_data = data.get('settings') if isinstance(data.get('settings'), dict) else {}
+            theme = settings_data.get('theme') if isinstance(settings_data.get('theme'), dict) else {}
+            tpl.template_accent = (
+                (theme.get('primary') or theme.get('primary_color') or '#2563eb').strip()
+            )
+            tpl.sample_category_count = len(data.get('categories') or [])
+            tpl.sample_item_count = len(data.get('items') or [])
+            hero = settings_data.get('hero_subtitle') if isinstance(settings_data, dict) else ''
+            tpl.template_tagline = (hero or tpl.description or '')[:120]
         ctx['templates'] = templates
         industries = sorted({tpl.industry for tpl in templates})
         ctx['industries'] = [

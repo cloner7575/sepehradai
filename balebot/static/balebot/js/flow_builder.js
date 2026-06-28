@@ -29,7 +29,7 @@
   }
 
   function defaultButton() {
-    return { id: newNodeId(), text: '', label_slug: '', action: null };
+    return { id: newNodeId(), text: '', category_slug: '', action: null };
   }
 
   function defaultSequence() {
@@ -130,8 +130,8 @@
         : newNodeId(),
       text: text || '…',
     };
-    var slug = String(btn.label_slug || '').trim().slice(0, 140);
-    if (slug) out.label_slug = slug;
+    var slug = String(btn.category_slug || '').trim().slice(0, 140);
+    if (slug) out.category_slug = slug;
     if (action) out.action = action;
     return out;
   }
@@ -515,9 +515,9 @@
       slugInp.type = 'text';
       slugInp.className = 'form-control form-control-sm panel-input ' + depthClass(depth);
       slugInp.placeholder = 'مثلاً ai-class';
-      slugInp.value = btn.label_slug || '';
+      slugInp.value = btn.category_slug || '';
       slugInp.addEventListener('input', function () {
-        btn.label_slug = slugInp.value;
+        btn.category_slug = slugInp.value;
         onChange();
       });
 

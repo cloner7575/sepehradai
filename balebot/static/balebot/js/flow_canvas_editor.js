@@ -192,7 +192,7 @@
   }
 
   function defaultButton() {
-    return { id: newNodeId(), text: '', label_slug: '', action: null };
+    return { id: newNodeId(), text: '', category_slug: '', action: null };
   }
 
   function slugifyLabel(raw, fallbackId) {
@@ -212,13 +212,13 @@
   }
 
   function buttonHasCategory(btn) {
-    return Boolean(String(btn.label_slug || '').trim());
+    return Boolean(String(btn.category_slug || '').trim());
   }
 
   function ensureButtonCategorySlug(btn) {
     if (!btn.id) btn.id = newNodeId();
     var slug = slugifyLabel(btn.text, btn.id);
-    if (slug) btn.label_slug = slug;
+    if (slug) btn.category_slug = slug;
   }
 
   function appendButtonChipMeta(chip, btn) {
@@ -323,8 +323,8 @@
       id: String(btn.id || newNodeId()).match(/^n_[a-f0-9]{8}$/) ? btn.id : newNodeId(),
       text: text || '…',
     };
-    var slug = String(btn.label_slug || '').trim().slice(0, 140);
-    if (slug) out.label_slug = slug;
+    var slug = String(btn.category_slug || '').trim().slice(0, 140);
+    if (slug) out.category_slug = slug;
     if (action) out.action = action;
     return out;
   }
@@ -1964,8 +1964,8 @@
 
       slugFieldWrap.appendChild(addFieldLabel('شناسه دسته‌بندی (اختیاری)'));
       slugFieldWrap.appendChild(
-        addInput(btn.label_slug || '', 'خودکار از متن دکمه', 140, function (v) {
-          btn.label_slug = String(v || '').trim();
+        addInput(btn.category_slug || '', 'خودکار از متن دکمه', 140, function (v) {
+          btn.category_slug = String(v || '').trim();
           bump();
         })
       );
@@ -1974,12 +1974,12 @@
         if (categoryCheck.checked) {
           ensureButtonCategorySlug(btn);
         } else {
-          btn.label_slug = '';
+          btn.category_slug = '';
         }
         slugFieldWrap.style.display = categoryCheck.checked ? '' : 'none';
         if (categoryCheck.checked) {
           var slugInput = slugFieldWrap.querySelector('input');
-          if (slugInput) slugInput.value = btn.label_slug || '';
+          if (slugInput) slugInput.value = btn.category_slug || '';
         }
         bump();
       });

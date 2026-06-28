@@ -116,13 +116,13 @@ def find_button_by_id(cfg: BotSettings, node_id: str) -> _ButtonRef | None:
     return None
 
 
-def label_slugs_for_button(ref: _ButtonRef) -> list[str]:
+def category_slugs_for_button(ref: _ButtonRef) -> list[str]:
     slugs: list[str] = []
     for anc in ref.ancestors:
-        s = (anc.get('label_slug') or '').strip()
+        s = (anc.get('category_slug') or '').strip()
         if s and s not in slugs:
             slugs.append(s)
-    s = (ref.button.get('label_slug') or '').strip()
+    s = (ref.button.get('category_slug') or '').strip()
     if s and s not in slugs:
         slugs.append(s)
     return slugs
@@ -854,7 +854,7 @@ def handle_flow_callback(
         send_default_text(cfg, chat_id)
         return 'unknown_button', ''
 
-    slugs = label_slugs_for_button(ref)
+    slugs = category_slugs_for_button(ref)
     if slugs:
         try:
             assign_path_tags(sub, slugs, ref)

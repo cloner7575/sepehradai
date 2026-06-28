@@ -28,11 +28,6 @@ _LEGACY_CAMPAIGN_CONTENT_LABELS = {
 
 
 class BotSettingsForm(forms.ModelForm):
-    start_flow = forms.CharField(
-        required=False,
-        label='',
-        widget=forms.HiddenInput(attrs={'id': 'id_start_flow'}),
-    )
     bot_token = forms.CharField(
         required=False,
         label='توکن ربات',
@@ -57,8 +52,6 @@ class BotSettingsForm(forms.ModelForm):
             'start_message_contact',
             'contact_button_label',
             'registration_success_message',
-            'start_flow',
-            'start_flow_default_text',
             'unsubscribe_message',
             'callback_ack_message',
             'help_message',
@@ -109,13 +102,6 @@ class BotSettingsForm(forms.ModelForm):
             'help_message': forms.Textarea(
                 attrs={'class': _SETTINGS_INPUT_CLASS, 'rows': 3},
             ),
-            'start_flow_default_text': forms.Textarea(
-                attrs={
-                    'class': _SETTINGS_INPUT_CLASS,
-                    'rows': 2,
-                    'placeholder': 'وقتی مسیر دکمه به جایی وصل نیست',
-                },
-            ),
             'collect_contact_on_start': forms.CheckboxInput(
                 attrs={'class': 'form-check-input', 'role': 'switch'},
             ),
@@ -148,15 +134,6 @@ class BotSettingsForm(forms.ModelForm):
             self.fields['bot_token'].help_text = (
                 f'توکن فعلی: {self.instance.masked_bot_token()} — برای تغییر، توکن جدید وارد کنید.'
             )
-        raw = getattr(self.instance, 'start_flow', None)
-        if raw and isinstance(raw, dict) and raw.get('version') == 2:
-            norm = sanitize_start_flow(raw)
-        else:
-            norm = empty_start_flow()
-        # ModelForm puts JSONField dict in self.initial; CharField needs a JSON string.
-        dumped = json.dumps(norm, ensure_ascii=False)
-        self.initial['start_flow'] = dumped
-        self.fields['start_flow'].initial = dumped
 
     def clean_bot_token(self):
         token = (self.cleaned_data.get('bot_token') or '').strip()
@@ -165,16 +142,6 @@ class BotSettingsForm(forms.ModelForm):
         if self._initial_bot_token:
             return self._initial_bot_token
         return ''
-
-    def clean_start_flow(self):
-        raw = self.cleaned_data.get('start_flow')
-        if raw is None or (isinstance(raw, str) and not raw.strip()):
-            return empty_start_flow()
-        try:
-            data = json.loads(raw) if isinstance(raw, str) else raw
-        except json.JSONDecodeError as e:
-            raise forms.ValidationError(f'دادهٔ نامعتبر: {e}') from e
-        return sanitize_start_flow(data)
 
     def clean(self):
         cleaned = super().clean()
@@ -214,6 +181,12 @@ class BotSettingsForm(forms.ModelForm):
 class FlowEngineForm(BotSettingsForm):
     """فیلدهای ساخت جریان /start در صفحهٔ موتور جریان."""
 
+    start_flow = forms.CharField(
+        required=False,
+        label='',
+        widget=forms.HiddenInput(attrs={'id': 'id_start_flow'}),
+    )
+
     class Meta(BotSettingsForm.Meta):
         fields = [
             'start_flow',
@@ -224,6 +197,37 @@ class FlowEngineForm(BotSettingsForm):
             'contact_button_label',
             'registration_success_message',
         ]
+        widgets = {
+            **BotSettingsForm.Meta.widgets,
+            'start_flow_default_text': forms.Textarea(
+                attrs={
+                    'class': _SETTINGS_INPUT_CLASS,
+                    'rows': 2,
+                    'placeholder': 'وقتی مسیر دکمه به جایی وصل نیست',
+                },
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        raw = getattr(self.instance, 'start_flow', None)
+        if raw and isinstance(raw, dict) and raw.get('version') == 2:
+            norm = sanitize_start_flow(raw)
+        else:
+            norm = empty_start_flow()
+        dumped = json.dumps(norm, ensure_ascii=False)
+        self.initial['start_flow'] = dumped
+        self.fields['start_flow'].initial = dumped
+
+    def clean_start_flow(self):
+        raw = self.cleaned_data.get('start_flow')
+        if raw is None or (isinstance(raw, str) and not raw.strip()):
+            return empty_start_flow()
+        try:
+            data = json.loads(raw) if isinstance(raw, str) else raw
+        except json.JSONDecodeError as e:
+            raise forms.ValidationError(f'دادهٔ نامعتبر: {e}') from e
+        return sanitize_start_flow(data)
 
     def clean(self):
         cleaned = super(BotSettingsForm, self).clean()

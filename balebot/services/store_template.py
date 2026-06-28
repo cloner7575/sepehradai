@@ -58,6 +58,8 @@ def _normalize_button(btn: dict[str, Any]) -> dict[str, Any]:
     out = dict(btn)
     if 'label' in out and 'text' not in out:
         out['text'] = out['label']
+    # label_slug فقط برای پردازش الگو است، نه برچسب‌گذاری مشترک.
+    out.pop('label_slug', None)
     action = out.get('action')
     if isinstance(action, dict):
         out['action'] = _normalize_action(action)

@@ -7,15 +7,15 @@
 <div class="catalog-panel">
   {% include "balebot/_catalog_subnav.html" %}
 
-  <div class="panel-card mb-4">
+  <div class="panel-card mb-4 store-templates-intro">
     <div class="panel-card-body">
-      <p class="mb-3 text-muted small">
+      <p class="mb-0 text-muted small">
         {{ templates|length }} الگوی آماده برای صنف‌های مختلف — هر الگو شامل دسته‌بندی، محصولات نمونه، ظاهر ویترین،
         منوی خوش‌آمد ربات، کد تخفیف خوش‌آمد و کمپین‌های پیش‌نویس است.
         پس از اعمال، از <a href="{% url 'catalog_onboarding' %}">ویزارد راه‌اندازی</a> ادامه دهید.
       </p>
       {% if industries|length > 1 %}
-      <div class="d-flex flex-wrap gap-2" id="template-industry-filter">
+      <div class="d-flex flex-wrap gap-2 mt-3" id="template-industry-filter">
         <button type="button" class="btn btn-sm btn-panel-primary template-filter-btn is-active" data-industry="all">همه</button>
         {% for ind in industries %}
         <button type="button" class="btn btn-sm btn-panel-ghost template-filter-btn" data-industry="{{ ind.key }}">{{ ind.label }}</button>
@@ -28,21 +28,38 @@
   <div class="row g-4" id="template-grid">
     {% for tpl in templates %}
     <div class="col-md-6 col-xl-4 template-card-col" data-industry="{{ tpl.industry }}">
-      <article class="panel-card h-100">
-        <div class="p-3 text-center" style="background: var(--panel-surface-muted, #f8fafc); min-height: 120px; display: flex; align-items: center; justify-content: center;">
+      <article class="panel-card store-template-card h-100" style="--tpl-accent: {{ tpl.template_accent }};">
+        <div class="store-template-cover">
           {% if tpl.preview_image %}
-          <img src="{{ tpl.preview_image.url }}" alt="" style="max-height: 100px; max-width: 100%; object-fit: contain;">
+          <img src="{{ tpl.preview_image.url }}" alt="" class="store-template-cover-image">
           {% else %}
-          <i class="bi bi-shop fs-1 text-muted opacity-50"></i>
+          <div class="store-template-cover-art" aria-hidden="true">
+            <span class="store-template-blob store-template-blob--1"></span>
+            <span class="store-template-blob store-template-blob--2"></span>
+            <span class="store-template-blob store-template-blob--3"></span>
+          </div>
           {% endif %}
+          <div class="store-template-cover-overlay">
+            <span class="store-template-industry">{{ tpl.industry_label }}</span>
+            <h2 class="store-template-title">{{ tpl.name }}</h2>
+            {% if tpl.template_tagline %}
+            <p class="store-template-tagline">{{ tpl.template_tagline }}</p>
+            {% endif %}
+          </div>
         </div>
-        <div class="panel-card-body d-flex flex-column">
-          <span class="catalog-pill mb-2">{{ tpl.industry_label }}</span>
-          <h2 class="h6 fw-bold mb-1">{{ tpl.name }}</h2>
-          <p class="text-muted small flex-grow-1 mb-3">{{ tpl.description }}</p>
+        <div class="store-template-body">
+          <p class="store-template-desc">{{ tpl.description }}</p>
+          <div class="store-template-meta">
+            {% if tpl.sample_category_count %}
+            <span>{{ tpl.sample_category_count }} دسته</span>
+            {% endif %}
+            {% if tpl.sample_item_count %}
+            <span>{{ tpl.sample_item_count }} محصول نمونه</span>
+            {% endif %}
+          </div>
           <button
             type="button"
-            class="btn btn-panel-primary btn-sm w-100"
+            class="btn btn-panel-primary btn-sm w-100 store-template-cta"
             data-bs-toggle="modal"
             data-bs-target="#apply-template-modal"
             data-template-slug="{{ tpl.slug }}"
