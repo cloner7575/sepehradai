@@ -25,6 +25,7 @@ from balebot.services.catalog_page_layout import sanitize_home_blocks
 logger = logging.getLogger(__name__)
 
 ApplyMode = Literal['append', 'replace']
+ApplyScope = Literal['miniapp', 'bot']
 
 
 def _replace_placeholders(obj: Any, replacements: dict[str, str]) -> Any:
@@ -167,16 +168,40 @@ def apply_template(
     platform: str,
     *,
     mode: ApplyMode = 'append',
+    scope: ApplyScope = 'miniapp',
 ) -> dict[str, int]:
     """
     دادهٔ template.data را داخل workspace+platform مادی می‌کند.
-    mode=replace: دسته‌ها و محصولات فعلی حذف و از نو ساخته می‌شوند.
-    mode=append: رکوردهای با slug تکراری رد می‌شوند.
+    scope=miniapp: ویترین، دسته‌ها و محصولات
+    scope=bot: جریان /start، تنظیمات ربات، تخفیف و کمپین نمونه
     """
     data = template.data or {}
+    stats = {
+        'categories_created': 0,
+        'items_created': 0,
+        'campaign_created': 0,
+        'discount_created': 0,
+        'bot_flow_applied': 0,
+        'bot_settings_applied': 0,
+    }
+
+    if scope == 'miniapp':
+        stats.update(_apply_miniapp_template(template, workspace, platform, data, mode=mode))
+    elif scope == 'bot':
+        stats.update(_apply_bot_template(template, workspace, platform, data, mode=mode))
+
+    return stats
+
+
+def _apply_miniapp_template(
+    template: StoreTemplate,
+    workspace: Workspace,
+    platform: str,
+    data: dict[str, Any],
+    *,
+    mode: ApplyMode,
+) -> dict[str, int]:
     catalog = CatalogSettings.get_for_platform(workspace, platform)
-    bot = BotSettings.get_for_platform(workspace, platform)
-    shop_url = catalog.build_mini_app_url(bot) or f'/shop/{catalog.public_id}/'
 
     if mode == 'replace':
         _clear_catalog_content(workspace, platform)
@@ -281,11 +306,36 @@ def apply_template(
         )
         items_created += 1
 
+    return {
+        'categories_created': categories_created,
+        'items_created': items_created,
+        'campaign_created': 0,
+        'discount_created': 0,
+        'bot_flow_applied': 0,
+        'bot_settings_applied': 0,
+    }
+
+
+def _apply_bot_template(
+    template: StoreTemplate,
+    workspace: Workspace,
+    platform: str,
+    data: dict[str, Any],
+    *,
+    mode: ApplyMode,
+) -> dict[str, int]:
+    catalog = CatalogSettings.get_for_platform(workspace, platform)
+    bot = BotSettings.get_for_platform(workspace, platform)
+    shop_url = catalog.build_mini_app_url(bot) or f'/shop/{catalog.public_id}/'
+
+    bot_flow_applied = 0
     start_flow = data.get('start_flow')
     if isinstance(start_flow, dict) and start_flow.get('root'):
         bot.start_flow = prepare_start_flow(start_flow, shop_url)
         bot.save(update_fields=['start_flow', 'updated_at'])
+        bot_flow_applied = 1
 
+    bot_settings_applied = 0
     bot_settings = data.get('bot_settings') or {}
     if isinstance(bot_settings, dict) and bot_settings:
         bot_fields: list[str] = []
@@ -299,6 +349,7 @@ def apply_template(
         if bot_fields:
             bot_fields.append('updated_at')
             bot.save(update_fields=bot_fields)
+            bot_settings_applied = 1
 
     marketing = data.get('marketing') or {}
     discount_created = 0
@@ -368,8 +419,10 @@ def apply_template(
         campaign_created += 1
 
     return {
-        'categories_created': categories_created,
-        'items_created': items_created,
+        'categories_created': 0,
+        'items_created': 0,
         'campaign_created': campaign_created,
         'discount_created': discount_created,
+        'bot_flow_applied': bot_flow_applied,
+        'bot_settings_applied': bot_settings_applied,
     }

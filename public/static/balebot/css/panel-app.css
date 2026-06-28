@@ -3006,6 +3006,30 @@ code, kbd, pre, .panel-code {
   margin-top: auto;
 }
 
+.store-template-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.store-template-export-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+}
+
+.store-templates-admin {
+  border: 1px dashed color-mix(in srgb, var(--app-primary) 35%, var(--app-border, #e2e8f0));
+  background: color-mix(in srgb, var(--app-primary) 4%, var(--app-surface, #fff));
+}
+
+.store-templates-import-form .form-control {
+  max-width: 100%;
+}
+
 .app-dark .store-template-card {
   border-color: var(--app-border);
 }

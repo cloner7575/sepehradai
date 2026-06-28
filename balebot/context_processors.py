@@ -20,7 +20,14 @@ def _panel_module(request) -> str:
         return 'instagram'
     if name == 'panel_dashboard':
         return 'home'
-    if name in ('bot_settings', 'bot_flow_engine', 'subscriber_list', 'subscriber_detail'):
+    if name in (
+        'bot_settings',
+        'bot_flow_engine',
+        'subscriber_list',
+        'subscriber_detail',
+        'bot_templates',
+        'bot_template_apply',
+    ):
         return 'bot'
     if name.startswith('campaign_'):
         return 'marketing'

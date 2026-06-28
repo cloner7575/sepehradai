@@ -7,7 +7,7 @@ import json
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Q, Sum
-from django.http import HttpResponseRedirect, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views import View
@@ -35,7 +35,17 @@ from balebot.services.catalog_media import detect_media_type
 from balebot.services.catalog_page_layout import get_home_blocks, sanitize_home_blocks
 from balebot.services.checkout_form import get_checkout_form
 from balebot.services.public_url import resolve_public_base_url
+from balebot.mixins import SuperuserRequiredMixin
 from balebot.services.store_template import apply_template
+from balebot.services.store_template_io import (
+    StoreTemplateImportError,
+    build_export_bundle,
+    build_single_export,
+    delete_store_template,
+    delete_all_store_templates,
+    import_store_templates,
+    parse_import_file as parse_store_template_import_file,
+)
 from balebot.services.catalog_bulk_import import (
     build_sample_workbook,
     import_rows,
@@ -222,6 +232,72 @@ class MiniAppPanelMixin(WorkspaceScopedMixin, PanelAccessMixin):
 
     def get_catalog_settings(self) -> CatalogSettings:
         return CatalogSettings.get_for_platform(self.get_workspace(), self.get_active_platform())
+
+
+def resolve_store_template_scope(request) -> str:
+    """bot | miniapp — از نام URL یا پارامتر apply_scope."""
+    name = (request.resolver_match.url_name or '') if request.resolver_match else ''
+    if name in ('bot_templates', 'bot_template_apply'):
+        return 'bot'
+    if name in ('catalog_templates', 'catalog_template_apply'):
+        return 'miniapp'
+    raw = (request.GET.get('scope') or request.POST.get('apply_scope') or 'miniapp').strip()
+    return raw if raw in ('bot', 'miniapp') else 'miniapp'
+
+
+def store_templates_list_url(scope: str) -> str:
+    return reverse('bot_templates' if scope == 'bot' else 'catalog_templates')
+
+
+def store_template_apply_url(scope: str, slug: str) -> str:
+    if scope == 'bot':
+        return reverse('bot_template_apply', kwargs={'slug': slug})
+    return reverse('catalog_template_apply', kwargs={'slug': slug})
+
+
+def _enrich_store_template(tpl: StoreTemplate, *, scope: str) -> None:
+    tpl.industry_label = STORE_TEMPLATE_INDUSTRY_LABELS.get(tpl.industry, tpl.industry)
+    data = tpl.data if isinstance(tpl.data, dict) else {}
+    settings_data = data.get('settings') if isinstance(data.get('settings'), dict) else {}
+    theme = settings_data.get('theme') if isinstance(settings_data.get('theme'), dict) else {}
+    tpl.template_accent = (
+        (theme.get('primary') or theme.get('primary_color') or '#2563eb').strip()
+    )
+    tpl.sample_category_count = len(data.get('categories') or [])
+    tpl.sample_item_count = len(data.get('items') or [])
+    hero = settings_data.get('hero_subtitle') if isinstance(settings_data, dict) else ''
+    tpl.template_tagline = (hero or tpl.description or '')[:120]
+
+    marketing = data.get('marketing') if isinstance(data.get('marketing'), dict) else {}
+    campaign_count = len(marketing.get('campaigns') or [])
+    if not campaign_count and isinstance(data.get('sample_campaign'), dict):
+        if (data['sample_campaign'].get('title') or '').strip():
+            campaign_count = 1
+    tpl.sample_campaign_count = campaign_count
+    tpl.has_start_flow = bool(
+        isinstance(data.get('start_flow'), dict) and data.get('start_flow', {}).get('root')
+    )
+    tpl.has_bot_settings = bool(data.get('bot_settings'))
+    tpl.has_welcome_discount = bool((marketing.get('welcome_discount') or {}).get('code'))
+    tpl.has_bot_content = tpl.has_start_flow or tpl.has_bot_settings or tpl.has_welcome_discount or campaign_count > 0
+    tpl.has_miniapp_content = tpl.sample_category_count > 0 or tpl.sample_item_count > 0 or bool(settings_data)
+    tpl.scope_has_content = tpl.has_bot_content if scope == 'bot' else tpl.has_miniapp_content
+
+
+class StoreTemplatePanelMixin(WorkspaceScopedMixin, PanelAccessMixin):
+    """دسترسی پنل برای صفحهٔ قالب‌ها — مینی‌اپ فقط در scope=miniapp."""
+
+    def dispatch(self, request, *args, **kwargs):
+        if resolve_store_template_scope(request) == 'miniapp':
+            try:
+                require_miniapp_access_for_request(request)
+            except PermissionDenied:
+                messages.error(request, 'دسترسی مینی‌اپ برای پلتفرم فعال ندارید.')
+                return redirect('panel_dashboard')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_template_scope(self) -> str:
+        return resolve_store_template_scope(self.request)
 
 
 class MiniAppFlowEngineView(MiniAppPanelMixin, TemplateView):
@@ -754,7 +830,7 @@ class CatalogOrderUpdateView(MiniAppPanelMixin, View):
         return redirect('catalog_order_detail', pk=pk)
 
 
-class StoreTemplateListView(MiniAppPanelMixin, ListView):
+class StoreTemplateListView(StoreTemplatePanelMixin, ListView):
     model = StoreTemplate
     template_name = 'balebot/catalog_templates.html'
     context_object_name = 'templates'
@@ -764,20 +840,12 @@ class StoreTemplateListView(MiniAppPanelMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        scope = self.get_template_scope()
+        ctx['template_scope'] = scope
         ctx['industry_labels'] = STORE_TEMPLATE_INDUSTRY_LABELS
         templates = list(ctx['templates'])
         for tpl in templates:
-            tpl.industry_label = STORE_TEMPLATE_INDUSTRY_LABELS.get(tpl.industry, tpl.industry)
-            data = tpl.data if isinstance(tpl.data, dict) else {}
-            settings_data = data.get('settings') if isinstance(data.get('settings'), dict) else {}
-            theme = settings_data.get('theme') if isinstance(settings_data.get('theme'), dict) else {}
-            tpl.template_accent = (
-                (theme.get('primary') or theme.get('primary_color') or '#2563eb').strip()
-            )
-            tpl.sample_category_count = len(data.get('categories') or [])
-            tpl.sample_item_count = len(data.get('items') or [])
-            hero = settings_data.get('hero_subtitle') if isinstance(settings_data, dict) else ''
-            tpl.template_tagline = (hero or tpl.description or '')[:120]
+            _enrich_store_template(tpl, scope=scope)
         ctx['templates'] = templates
         industries = sorted({tpl.industry for tpl in templates})
         ctx['industries'] = [
@@ -787,38 +855,167 @@ class StoreTemplateListView(MiniAppPanelMixin, ListView):
             }
             for key in industries
         ]
+        ctx['can_manage_store_templates'] = self.request.user.is_superuser
+        ctx['templates_list_url'] = store_templates_list_url(scope)
+        ctx['template_apply_url_name'] = 'bot_template_apply' if scope == 'bot' else 'catalog_template_apply'
+        if ctx['can_manage_store_templates']:
+            ctx['store_template_active_count'] = StoreTemplate.objects.filter(is_active=True).count()
+            ctx['store_template_total_count'] = StoreTemplate.objects.count()
         return ctx
 
 
-class StoreTemplateApplyView(MiniAppPanelMixin, View):
+class StoreTemplateApplyView(StoreTemplatePanelMixin, View):
     def post(self, request, slug):
         template = get_object_or_404(StoreTemplate, slug=slug, is_active=True)
+        scope = resolve_store_template_scope(request)
         mode = (request.POST.get('mode') or 'append').strip()
         if mode not in ('append', 'replace'):
             mode = 'append'
+        list_url = store_templates_list_url(scope)
         try:
             stats = apply_template(
                 template,
                 self.get_workspace(),
                 self.get_active_platform(),
                 mode=mode,
+                scope=scope,
             )
         except Exception as exc:
             messages.error(request, f'اعمال الگو ناموفق بود: {exc}')
-            return redirect('catalog_templates')
+            return redirect(list_url)
+
+        if scope == 'bot':
+            parts = []
+            if stats.get('bot_flow_applied'):
+                parts.append('منوی /start')
+            if stats.get('bot_settings_applied'):
+                parts.append('تنظیمات ربات')
+            if stats.get('discount_created'):
+                parts.append(f'{stats["discount_created"]} کد تخفیف')
+            if stats.get('campaign_created'):
+                parts.append(f'{stats["campaign_created"]} کمپین نمونه')
+            detail = '، '.join(parts) if parts else 'بدون تغییر قابل‌توجه'
+            messages.success(
+                request,
+                f'بخش ربات از الگوی «{template.name}» اعمال شد — {detail}.',
+            )
+            return redirect('bot_flow_engine')
 
         messages.success(
             request,
             (
-                f'الگوی «{template.name}» اعمال شد — '
+                f'بخش مینی‌اپ از الگوی «{template.name}» اعمال شد — '
                 f'{stats["categories_created"]} دسته، '
-                f'{stats["items_created"]} محصول'
-                + (f'، {stats["campaign_created"]} کمپین نمونه' if stats['campaign_created'] else '')
-                + (f'، {stats["discount_created"]} کد تخفیف' if stats.get('discount_created') else '')
-                + '.'
+                f'{stats["items_created"]} محصول.'
             ),
         )
         return redirect('catalog_onboarding')
+
+
+class StoreTemplateExportAllView(SuperuserRequiredMixin, PanelAccessMixin, View):
+    """دانلود همهٔ الگوها به‌صورت JSON."""
+
+    def get(self, request):
+        include_inactive = (request.GET.get('all') or '').strip() in ('1', 'true', 'yes')
+        qs = StoreTemplate.objects.order_by('sort_order', 'name')
+        if not include_inactive:
+            qs = qs.filter(is_active=True)
+        payload = build_export_bundle(qs)
+        body = json.dumps(payload, ensure_ascii=False, indent=2)
+        response = HttpResponse(body, content_type='application/json; charset=utf-8')
+        suffix = 'all' if include_inactive else 'active'
+        response['Content-Disposition'] = f'attachment; filename="store-templates-{suffix}.json"'
+        return response
+
+
+class StoreTemplateExportView(SuperuserRequiredMixin, PanelAccessMixin, View):
+    """دانلود یک الگو به‌صورت JSON."""
+
+    def get(self, request, slug):
+        template = get_object_or_404(StoreTemplate, slug=slug)
+        payload = build_single_export(template)
+        body = json.dumps(payload, ensure_ascii=False, indent=2)
+        response = HttpResponse(body, content_type='application/json; charset=utf-8')
+        response['Content-Disposition'] = f'attachment; filename="store-template-{slug}.json"'
+        return response
+
+
+class StoreTemplateImportView(SuperuserRequiredMixin, PanelAccessMixin, View):
+    """آپلود JSON الگوها — ایجاد یا به‌روزرسانی بر اساس slug."""
+
+    def get(self, request):
+        return redirect('catalog_templates')
+
+    def post(self, request):
+        upload = request.FILES.get('file')
+        if not upload:
+            messages.error(request, 'فایل JSON را انتخاب کنید.')
+            return redirect('catalog_templates')
+
+        if upload.size > 5 * 1024 * 1024:
+            messages.error(request, 'حداکثر حجم فایل ۵ مگابایت است.')
+            return redirect('catalog_templates')
+
+        name = (upload.name or '').lower()
+        if not name.endswith('.json'):
+            messages.error(request, 'فقط فایل JSON پذیرفته می‌شود.')
+            return redirect('catalog_templates')
+
+        try:
+            content = upload.read()
+            rows = parse_store_template_import_file(content)
+            deactivate_missing = (request.POST.get('deactivate_missing') or '').strip() == 'on'
+            stats = import_store_templates(rows, deactivate_missing=deactivate_missing)
+        except StoreTemplateImportError as exc:
+            messages.error(request, str(exc))
+            return redirect('catalog_templates')
+        except Exception as exc:
+            messages.error(request, f'ایمپورت ناموفق: {exc}')
+            return redirect('catalog_templates')
+
+        parts = [
+            f'{stats["created"]} الگوی جدید',
+            f'{stats["updated"]} به‌روزرسانی',
+        ]
+        if stats.get('deactivated'):
+            parts.append(f'{stats["deactivated"]} غیرفعال‌شده')
+        messages.success(request, 'ایمپورت انجام شد: ' + '، '.join(parts) + '.')
+        return redirect('catalog_templates')
+
+
+class StoreTemplateDeleteView(SuperuserRequiredMixin, PanelAccessMixin, View):
+    """حذف دائمی یک الگو."""
+
+    def get(self, request, slug):
+        return redirect('catalog_templates')
+
+    def post(self, request, slug):
+        try:
+            name = delete_store_template(slug)
+        except StoreTemplateImportError as exc:
+            messages.error(request, str(exc))
+            return redirect('catalog_templates')
+        messages.success(request, f'الگوی «{name}» حذف شد.')
+        return redirect('catalog_templates')
+
+
+class StoreTemplateDeleteAllView(SuperuserRequiredMixin, PanelAccessMixin, View):
+    """حذف دسته‌جمعی الگوها."""
+
+    def get(self, request):
+        return redirect('catalog_templates')
+
+    def post(self, request):
+        scope = (request.POST.get('scope') or 'active').strip()
+        if scope not in ('active', 'all'):
+            scope = 'active'
+        count = delete_all_store_templates(include_inactive=(scope == 'all'))
+        if count:
+            label = 'همه الگوها' if scope == 'all' else 'الگوهای فعال'
+            messages.success(request, f'{count} مورد از {label} حذف شد.')
+        else:
+            messages.info(request, 'الگویی برای حذف یافت نشد.')
+        return redirect('catalog_templates')
 
 
 class CatalogBulkImportView(MiniAppPanelMixin, TemplateView):

@@ -1,21 +1,65 @@
 {% extends "balebot/base.html" %}
-{% block title %}الگوهای آماده{% endblock %}
-{% block page_title %}الگوهای آماده فروشگاه{% endblock %}
-{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">یک الگوی صنف خود را انتخاب کنید و با یک کلیک فروشگاه نمونه بسازید</p>{% endblock %}
+{% block title %}{% if template_scope == 'bot' %}قالب‌های آماده ربات{% else %}قالب‌های آماده مینی‌اپ{% endif %}{% endblock %}
+{% block page_title %}{% if template_scope == 'bot' %}قالب‌های آماده ربات{% else %}قالب‌های آماده مینی‌اپ{% endif %}{% endblock %}
+{% block page_subtitle %}
+<p class="topbar-meta mb-0 mt-1">
+  {% if template_scope == 'bot' %}
+    منوی /start، تنظیمات ربات و بازاریابی نمونه — بدون تغییر ویترین مینی‌اپ
+  {% else %}
+    دسته‌بندی، محصولات نمونه و ظاهر ویترین — بدون تغییر منوی ربات
+  {% endif %}
+</p>
+{% endblock %}
 
 {% block content %}
-<div class="catalog-panel">
+<div class="catalog-panel store-templates-page{% if template_scope == 'bot' %} store-templates-page--bot{% else %} store-templates-page--miniapp{% endif %}">
+  {% if template_scope == 'miniapp' %}
   {% include "balebot/_catalog_subnav.html" %}
+  {% endif %}
+
+  <div class="store-templates-scope-bar panel-card mb-4">
+    <div class="panel-card-body store-templates-scope-bar-inner">
+      <div class="store-templates-scope-copy">
+        <span class="store-templates-scope-kicker">
+          {% if template_scope == 'bot' %}
+          <i class="bi bi-robot"></i> بخش ربات
+          {% else %}
+          <i class="bi bi-shop"></i> بخش مینی‌اپ
+          {% endif %}
+        </span>
+        <p class="store-templates-scope-lead mb-0">
+          {% if template_scope == 'bot' %}
+            با «استفاده از قالب» فقط جریان پیام‌رسان، تنظیمات ربات و کمپین‌های نمونه اعمال می‌شود.
+            پس از اعمال به <a href="{% url 'bot_flow_engine' %}">طراحی منوی ربات</a> بروید.
+          {% else %}
+            با «استفاده از قالب» فقط ویترین، دسته‌ها و محصولات نمونه اعمال می‌شود.
+            پس از اعمال از <a href="{% url 'catalog_onboarding' %}">ویزارد راه‌اندازی</a> ادامه دهید.
+          {% endif %}
+        </p>
+      </div>
+      <nav class="store-templates-scope-nav" aria-label="انتخاب بخش اعمال قالب">
+        <a href="{% url 'bot_templates' %}" class="store-templates-scope-tab{% if template_scope == 'bot' %} is-active{% endif %}">
+          <i class="bi bi-robot"></i><span>ربات</span>
+        </a>
+        {% if has_miniapp_access %}
+        <a href="{% url 'catalog_templates' %}" class="store-templates-scope-tab{% if template_scope == 'miniapp' %} is-active{% endif %}">
+          <i class="bi bi-shop"></i><span>مینی‌اپ</span>
+        </a>
+        {% endif %}
+      </nav>
+    </div>
+  </div>
 
   <div class="panel-card mb-4 store-templates-intro">
     <div class="panel-card-body">
-      <p class="mb-0 text-muted small">
-        {{ templates|length }} الگوی آماده برای صنف‌های مختلف — هر الگو شامل دسته‌بندی، محصولات نمونه، ظاهر ویترین،
-        منوی خوش‌آمد ربات، کد تخفیف خوش‌آمد و کمپین‌های پیش‌نویس است.
-        پس از اعمال، از <a href="{% url 'catalog_onboarding' %}">ویزارد راه‌اندازی</a> ادامه دهید.
-      </p>
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
+        <h2 class="h6 fw-bold mb-0">{{ templates|length }} قالب فعال</h2>
+        {% if industries|length > 1 %}
+        <span class="small text-muted">فیلتر بر اساس صنف</span>
+        {% endif %}
+      </div>
       {% if industries|length > 1 %}
-      <div class="d-flex flex-wrap gap-2 mt-3" id="template-industry-filter">
+      <div class="d-flex flex-wrap gap-2" id="template-industry-filter">
         <button type="button" class="btn btn-sm btn-panel-primary template-filter-btn is-active" data-industry="all">همه</button>
         {% for ind in industries %}
         <button type="button" class="btn btn-sm btn-panel-ghost template-filter-btn" data-industry="{{ ind.key }}">{{ ind.label }}</button>
@@ -25,10 +69,61 @@
     </div>
   </div>
 
+  {% if can_manage_store_templates %}
+  <details class="panel-card mb-4 store-templates-admin">
+    <summary class="store-templates-admin-summary">
+      <span>
+        <i class="bi bi-shield-lock me-1"></i>
+        مدیریت قالب‌ها (سوپرادمین)
+      </span>
+      <i class="bi bi-chevron-down store-templates-admin-chevron" aria-hidden="true"></i>
+    </summary>
+    <div class="panel-card-body border-top">
+      <div class="row g-4">
+        <div class="col-lg-4">
+          <h3 class="h6 fw-bold mb-2">اکسپورت</h3>
+          <p class="small text-muted mb-3">فایل JSON را ویرایش و دوباره ایمپورت کنید.</p>
+          <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'catalog_templates_export' %}" class="btn btn-panel-ghost btn-sm">
+              <i class="bi bi-download me-1"></i>الگوهای فعال
+            </a>
+            <a href="{% url 'catalog_templates_export' %}?all=1" class="btn btn-panel-ghost btn-sm">
+              <i class="bi bi-download me-1"></i>همه
+            </a>
+          </div>
+        </div>
+        <div class="col-lg-5">
+          <h3 class="h6 fw-bold mb-2">ایمپورت</h3>
+          <form method="post" action="{% url 'catalog_templates_import' %}" enctype="multipart/form-data" class="store-templates-import-form">
+            {% csrf_token %}
+            <div class="mb-3">
+              <input type="file" name="file" class="form-control form-control-sm" accept=".json,application/json" required>
+            </div>
+            <label class="d-flex gap-2 align-items-start mb-3">
+              <input type="checkbox" name="deactivate_missing" class="mt-1">
+              <span class="small text-muted">غیرفعال کردن slugهای خارج از فایل</span>
+            </label>
+            <button type="submit" class="btn btn-panel-primary btn-sm">
+              <i class="bi bi-upload me-1"></i>ایمپورت JSON
+            </button>
+          </form>
+        </div>
+        <div class="col-lg-3">
+          <h3 class="h6 fw-bold mb-2">حذف</h3>
+          <p class="small text-muted mb-3">{{ store_template_active_count }} فعال / {{ store_template_total_count }} کل</p>
+          <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#delete-all-templates-modal">
+            <i class="bi bi-trash me-1"></i>حذف همه…
+          </button>
+        </div>
+      </div>
+    </div>
+  </details>
+  {% endif %}
+
   <div class="row g-4" id="template-grid">
     {% for tpl in templates %}
     <div class="col-md-6 col-xl-4 template-card-col" data-industry="{{ tpl.industry }}">
-      <article class="panel-card store-template-card h-100" style="--tpl-accent: {{ tpl.template_accent }};">
+      <article class="panel-card store-template-card h-100{% if not tpl.scope_has_content %} store-template-card--empty{% endif %}" style="--tpl-accent: {{ tpl.template_accent }};">
         <div class="store-template-cover">
           {% if tpl.preview_image %}
           <img src="{{ tpl.preview_image.url }}" alt="" class="store-template-cover-image">
@@ -50,23 +145,39 @@
         <div class="store-template-body">
           <p class="store-template-desc">{{ tpl.description }}</p>
           <div class="store-template-meta">
-            {% if tpl.sample_category_count %}
-            <span>{{ tpl.sample_category_count }} دسته</span>
-            {% endif %}
-            {% if tpl.sample_item_count %}
-            <span>{{ tpl.sample_item_count }} محصول نمونه</span>
+            {% if template_scope == 'bot' %}
+              {% if tpl.has_start_flow %}<span>منوی /start</span>{% endif %}
+              {% if tpl.has_bot_settings %}<span>تنظیمات ربات</span>{% endif %}
+              {% if tpl.has_welcome_discount %}<span>کد تخفیف</span>{% endif %}
+              {% if tpl.sample_campaign_count %}<span>{{ tpl.sample_campaign_count }} کمپین نمونه</span>{% endif %}
+              {% if not tpl.has_bot_content %}<span class="store-template-meta-warn">بدون بخش ربات</span>{% endif %}
+            {% else %}
+              {% if tpl.sample_category_count %}<span>{{ tpl.sample_category_count }} دسته</span>{% endif %}
+              {% if tpl.sample_item_count %}<span>{{ tpl.sample_item_count }} محصول</span>{% endif %}
+              {% if not tpl.has_miniapp_content %}<span class="store-template-meta-warn">بدون بخش مینی‌اپ</span>{% endif %}
             {% endif %}
           </div>
-          <button
-            type="button"
-            class="btn btn-panel-primary btn-sm w-100 store-template-cta"
-            data-bs-toggle="modal"
-            data-bs-target="#apply-template-modal"
-            data-template-slug="{{ tpl.slug }}"
-            data-template-name="{{ tpl.name }}"
-          >
-            استفاده از این الگو
-          </button>
+          <div class="store-template-actions">
+            <button
+              type="button"
+              class="btn btn-panel-primary btn-sm flex-grow-1 store-template-cta"
+              data-bs-toggle="modal"
+              data-bs-target="#apply-template-modal"
+              data-template-slug="{{ tpl.slug }}"
+              data-template-name="{{ tpl.name }}"
+              data-template-has-content="{% if tpl.scope_has_content %}1{% else %}0{% endif %}"
+            >
+              استفاده از قالب
+            </button>
+            {% if can_manage_store_templates %}
+            <a href="{% url 'catalog_template_export' tpl.slug %}" class="btn btn-panel-ghost btn-sm store-template-export-btn" title="اکسپورت JSON" aria-label="اکسپورت {{ tpl.name }}">
+              <i class="bi bi-download"></i>
+            </a>
+            <button type="button" class="btn btn-panel-ghost btn-sm store-template-delete-btn text-danger" title="حذف قالب" aria-label="حذف {{ tpl.name }}" data-bs-toggle="modal" data-bs-target="#delete-template-modal" data-template-slug="{{ tpl.slug }}" data-template-name="{{ tpl.name }}">
+              <i class="bi bi-trash"></i>
+            </button>
+            {% endif %}
+          </div>
         </div>
       </article>
     </div>
@@ -74,7 +185,7 @@
     <div class="col-12">
       <div class="catalog-empty-state">
         <i class="bi bi-layout-text-window-reverse"></i>
-        <p>الگوی فعالی یافت نشد</p>
+        <p>قالب فعالی یافت نشد</p>
       </div>
     </div>
     {% endfor %}
@@ -86,40 +197,127 @@
     <div class="modal-content">
       <form method="post" id="apply-template-form" action="">
         {% csrf_token %}
+        <input type="hidden" name="apply_scope" value="{{ template_scope }}">
         <div class="modal-header">
-          <h2 class="modal-title h5" id="apply-template-title">اعمال الگو</h2>
+          <h2 class="modal-title h5" id="apply-template-title">
+            {% if template_scope == 'bot' %}اعمال قالب روی ربات{% else %}اعمال قالب روی مینی‌اپ{% endif %}
+          </h2>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
         </div>
         <div class="modal-body">
-          <p class="mb-3">
-            الگوی <strong id="apply-template-name"></strong> به فروشگاه شما اضافه می‌شود.
-            نحوهٔ اعمال را انتخاب کنید:
+          <p class="mb-2">
+            قالب <strong id="apply-template-name"></strong>
+          </p>
+          <p class="small text-muted mb-3" id="apply-template-scope-note">
+            {% if template_scope == 'bot' %}
+              فقط منوی /start، تنظیمات ربات، کد تخفیف و کمپین‌های پیش‌نویس اعمال می‌شود. ویترین و محصولات تغییر نمی‌کنند.
+            {% else %}
+              فقط ظاهر ویترین، دسته‌بندی‌ها و محصولات نمونه اعمال می‌شود. منوی ربات تغییر نمی‌کند.
+            {% endif %}
+          </p>
+          <p class="small text-warning mb-3 d-none" id="apply-template-empty-warn">
+            این قالب برای این بخش محتوای آماده ندارد؛ ممکن است تغییری ایجاد نشود.
           </p>
           <div class="d-grid gap-3">
             <label class="d-flex gap-2 align-items-start">
               <input type="radio" name="mode" value="append" class="mt-1" checked>
               <span>
                 <strong>افزودن به موجود</strong>
-                <small class="d-block text-muted">دسته‌ها و محصولات با slug تکراری نادیده گرفته می‌شوند.</small>
+                <small class="d-block text-muted" id="apply-mode-append-help">
+                  {% if template_scope == 'bot' %}
+                    کمپین‌های پیش‌نویس با عنوان تکراری نادیده گرفته می‌شوند.
+                  {% else %}
+                    دسته‌ها و محصولات با slug تکراری نادیده گرفته می‌شوند.
+                  {% endif %}
+                </small>
               </span>
             </label>
             <label class="d-flex gap-2 align-items-start">
               <input type="radio" name="mode" value="replace" class="mt-1">
               <span>
-                <strong>جایگزینی کامل</strong>
-                <small class="d-block text-muted">همهٔ دسته‌ها و محصولات فعلی حذف و از نو ساخته می‌شوند.</small>
+                <strong>جایگزینی</strong>
+                <small class="d-block text-muted" id="apply-mode-replace-help">
+                  {% if template_scope == 'bot' %}
+                    کمپین‌های پیش‌نویس با عنوان تکراری حذف و دوباره ساخته می‌شوند. منوی /start جایگزین می‌شود.
+                  {% else %}
+                    همهٔ دسته‌ها و محصولات فعلی حذف و از نو ساخته می‌شوند.
+                  {% endif %}
+                </small>
               </span>
             </label>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-panel-ghost" data-bs-dismiss="modal">انصراف</button>
-          <button type="submit" class="btn btn-panel-primary">اعمال الگو</button>
+          <button type="submit" class="btn btn-panel-primary">اعمال قالب</button>
         </div>
       </form>
     </div>
   </div>
 </div>
+
+{% if can_manage_store_templates %}
+<div class="modal fade" id="delete-template-modal" tabindex="-1" aria-labelledby="delete-template-title" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" id="delete-template-form" action="">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h2 class="modal-title h5" id="delete-template-title">حذف قالب</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-0">
+            قالب <strong id="delete-template-name"></strong> برای همیشه حذف می‌شود.
+            قبل از حذف در صورت نیاز JSON آن را اکسپورت کنید.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-panel-ghost" data-bs-dismiss="modal">انصراف</button>
+          <button type="submit" class="btn btn-danger">حذف</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="delete-all-templates-modal" tabindex="-1" aria-labelledby="delete-all-templates-title" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{% url 'catalog_templates_delete_all' %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h2 class="modal-title h5" id="delete-all-templates-title">حذف همه قالب‌ها</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-3 text-danger fw-semibold">این عمل غیرقابل بازگشت است.</p>
+          <div class="d-grid gap-3">
+            <label class="d-flex gap-2 align-items-start">
+              <input type="radio" name="scope" value="active" class="mt-1" checked>
+              <span>
+                <strong>فقط فعال</strong>
+                <small class="d-block text-muted">{{ store_template_active_count }} قالب</small>
+              </span>
+            </label>
+            <label class="d-flex gap-2 align-items-start">
+              <input type="radio" name="scope" value="all" class="mt-1">
+              <span>
+                <strong>همه</strong>
+                <small class="d-block text-muted">{{ store_template_total_count }} قالب</small>
+              </span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-panel-ghost" data-bs-dismiss="modal">انصراف</button>
+          <button type="submit" class="btn btn-danger">حذف</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
@@ -127,16 +325,22 @@
 (function () {
   var modal = document.getElementById('apply-template-modal');
   var form = document.getElementById('apply-template-form');
-  if (!modal || !form) return;
-  var urlPattern = "{% url 'catalog_template_apply' '___SLUG___' %}";
-  modal.addEventListener('show.bs.modal', function (e) {
-    var btn = e.relatedTarget;
-    if (!btn) return;
-    var slug = btn.getAttribute('data-template-slug');
-    var name = btn.getAttribute('data-template-name');
-    document.getElementById('apply-template-name').textContent = name || '';
-    form.action = urlPattern.replace('___SLUG___', slug);
-  });
+  if (modal && form) {
+    var urlPattern = "{% url template_apply_url_name slug='___SLUG___' %}";
+    var emptyWarn = document.getElementById('apply-template-empty-warn');
+    modal.addEventListener('show.bs.modal', function (e) {
+      var btn = e.relatedTarget;
+      if (!btn) return;
+      var slug = btn.getAttribute('data-template-slug');
+      var name = btn.getAttribute('data-template-name');
+      var hasContent = btn.getAttribute('data-template-has-content') === '1';
+      document.getElementById('apply-template-name').textContent = name || '';
+      form.action = urlPattern.replace('___SLUG___', slug);
+      if (emptyWarn) {
+        emptyWarn.classList.toggle('d-none', hasContent);
+      }
+    });
+  }
 
   var filterWrap = document.getElementById('template-industry-filter');
   if (filterWrap) {
@@ -153,6 +357,20 @@
         var show = industry === 'all' || card.getAttribute('data-industry') === industry;
         card.style.display = show ? '' : 'none';
       });
+    });
+  }
+
+  var deleteModal = document.getElementById('delete-template-modal');
+  var deleteForm = document.getElementById('delete-template-form');
+  if (deleteModal && deleteForm) {
+    var deleteUrlPattern = "{% url 'catalog_template_delete' '___SLUG___' %}";
+    deleteModal.addEventListener('show.bs.modal', function (e) {
+      var btn = e.relatedTarget;
+      if (!btn) return;
+      var slug = btn.getAttribute('data-template-slug');
+      var name = btn.getAttribute('data-template-name');
+      document.getElementById('delete-template-name').textContent = name || '';
+      deleteForm.action = deleteUrlPattern.replace('___SLUG___', slug);
     });
   }
 })();

@@ -73,6 +73,9 @@
           <a href="{% url 'bot_settings' %}" class="app-nav-link {% if name == 'bot_settings' %}is-active{% endif %}">
             <i class="bi bi-sliders2 app-nav-icon"></i><span>راه‌اندازی ربات</span>
           </a>
+          <a href="{% url 'bot_templates' %}" class="app-nav-link {% if name == 'bot_templates' or name == 'bot_template_apply' %}is-active{% endif %}">
+            <i class="bi bi-layout-text-window-reverse app-nav-icon"></i><span>قالب‌های آماده</span>
+          </a>
         </nav>
       </div>
 
