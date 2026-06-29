@@ -27,11 +27,11 @@ import { StoryViewer, resolveStorySlides } from './StoryViewer';
 function useBlockTargetNav() {
   const navigate = useNavigate();
   return (target?: BlockTarget) => {
-    if (!target) return;
+    if (!target?.kind) return;
     const kind = target.kind;
     const value = target.value;
-    if (kind === 'category' && value) navigate(`/category/${value}`);
-    else if (kind === 'item' && value) navigate(`/item/${value}`);
+    if (kind === 'category' && value) navigate(`/category/${encodeURIComponent(value)}`);
+    else if (kind === 'item' && value) navigate(`/item/${encodeURIComponent(value)}`);
     else if (kind === 'tag' && value) navigate(`/?tag=${encodeURIComponent(value)}`);
     else if (kind === 'flash_sale') navigate('/sale');
     else if (kind === 'home') navigate('/');
@@ -204,12 +204,12 @@ export function CouponBlockView({ block }: { block: CouponBlock }) {
     }
   };
   return (
-    <section className="mx-4 mt-4 rounded-2xl border border-dashed border-primary/40 bg-[var(--color-primary-soft)] p-4">
-      {block.title && <h2 className="text-sm font-bold">{block.title}</h2>}
-      {block.subtitle && <p className="mt-1 text-xs text-muted">{block.subtitle}</p>}
-      <div className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-surface px-3 py-2">
-        <code className="font-mono text-sm font-bold tracking-wider text-primary">{block.code}</code>
-        <button type="button" className="btn-primary btn-sm text-xs" onClick={copy}>
+    <section className="mx-4 mt-3 rounded-xl border border-dashed border-primary/35 bg-[var(--color-primary-soft)] p-3">
+      {block.title && <h2 className="text-xs font-bold">{block.title}</h2>}
+      {block.subtitle && <p className="mt-0.5 text-[11px] leading-snug text-muted">{block.subtitle}</p>}
+      <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-surface px-2.5 py-1.5">
+        <code className="font-mono text-xs font-semibold tracking-wide text-primary">{block.code}</code>
+        <button type="button" className="btn-primary shrink-0 px-2.5 py-1 text-[11px]" onClick={copy}>
           {copied ? 'کپی شد ✓' : block.copy_label || 'کپی کد'}
         </button>
       </div>

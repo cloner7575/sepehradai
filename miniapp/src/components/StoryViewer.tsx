@@ -16,10 +16,16 @@ function useStoryNav() {
   const navigate = useNavigate();
   return useCallback(
     (target?: BlockTarget) => {
-      if (!target) return;
+      if (!target?.kind) return;
       const { kind, value } = target;
-      if (kind === 'category' && value) navigate(`/category/${value}`);
-      else if (kind === 'item' && value) navigate(`/item/${value}`);
+      if (kind === 'category' && value) {
+        navigate(`/category/${encodeURIComponent(value)}`);
+        return;
+      }
+      if (kind === 'item' && value) {
+        navigate(`/item/${encodeURIComponent(value)}`);
+        return;
+      }
       else if (kind === 'tag' && value) navigate(`/?tag=${encodeURIComponent(value)}`);
       else if (kind === 'flash_sale') navigate('/sale');
       else if (kind === 'home') navigate('/');
@@ -134,8 +140,11 @@ export function StoryViewer({
   const handleTap = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    if (x < rect.width * 0.3) prev();
-    else if (x > rect.width * 0.7) next();
+    const isRtl = document.documentElement.dir === 'rtl';
+    const onStart = x < rect.width * 0.3;
+    const onEnd = x > rect.width * 0.7;
+    if (onStart) (isRtl ? next : prev)();
+    else if (onEnd) (isRtl ? prev : next)();
     else setPaused((p) => !p);
   };
 
@@ -182,8 +191,15 @@ export function StoryViewer({
         }}
         onTouchEnd={(e) => {
           if (!touchStart.current) return;
-          const dy = e.changedTouches[0].clientY - touchStart.current.y;
-          if (dy > 80) onClose();
+          const touch = e.changedTouches[0];
+          const dy = touch.clientY - touchStart.current.y;
+          const dx = touch.clientX - touchStart.current.x;
+          if (dy > 80) {
+            onClose();
+          } else if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+            if (dx > 0) prev();
+            else next();
+          }
           touchStart.current = null;
         }}
       >
@@ -201,10 +217,10 @@ export function StoryViewer({
         {current.text && current.image && (
           <div className="story-viewer-caption">{current.text}</div>
         )}
-        {paused && <div className="story-viewer-pause-hint">متوقف</div>}
+        {paused && <div className="story-viewer-pause-hint">متوقف — برای ادامه لمس کنید</div>}
       </div>
 
-      {current.target && (
+      {current.target?.kind && (
         <button
           type="button"
           className="story-viewer-cta"

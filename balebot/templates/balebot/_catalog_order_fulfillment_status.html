@@ -1,0 +1,3 @@
+{% with f=order.fulfillment_status %}
+<span class="catalog-pill catalog-order-fulfillment-pill{% if f == 'delivered' %} catalog-pill--ok{% elif f == 'shipped' %} catalog-pill--info{% elif f == 'preparing' %} catalog-pill--warn{% elif f == 'paid' %} catalog-pill--ok{% elif f == 'cancelled' or f == 'returned' %} catalog-pill--muted{% elif f == 'pending' %} catalog-pill--warn{% endif %}">{{ order.get_fulfillment_status_display }}</span>
+{% endwith %}

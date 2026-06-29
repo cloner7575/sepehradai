@@ -21,6 +21,7 @@ from balebot.models import (
 )
 from balebot.services import messenger_api
 from balebot.services.card_to_card import build_card_to_card_payload
+from balebot.services.catalog_currency import format_toman_label
 from balebot.services.checkout_form import format_customer_data_for_message
 from balebot.services.discount import DiscountError, apply_discount_to_order, validate_discount_code
 from balebot.services.shipping import calculate_shipping
@@ -227,12 +228,8 @@ def create_checkout_order(
 def _format_order_lines(order: CatalogOrder) -> str:
     lines = []
     for ln in order.lines.all():
-        lines.append(f'• {ln.title_snapshot} × {ln.quantity} — {ln.price_snapshot:,} ریال')
+        lines.append(f'• {ln.title_snapshot} × {ln.quantity} — {format_toman_label(ln.price_snapshot)}')
     return '\n'.join(lines) or '—'
-
-
-def _format_price(amount: int) -> str:
-    return f'{amount:,} ریال'
 
 
 def mark_order_paid(order: CatalogOrder) -> CatalogOrder:
@@ -275,13 +272,13 @@ def mark_order_paid(order: CatalogOrder) -> CatalogOrder:
                 customer_text = (
                     f'✅ سفارش شما تأیید شد.\n'
                     f'شماره سفارش: #{order.pk}\n'
-                    f'مبلغ: {_format_price(order.total_amount)}'
+                    f'مبلغ: {format_toman_label(order.total_amount)}'
                 )
             else:
                 customer_text = (
                     f'✅ پرداخت شما با موفقیت انجام شد.\n'
                     f'شماره سفارش: #{order.pk}\n'
-                    f'مبلغ: {_format_price(order.total_amount)}'
+                    f'مبلغ: {format_toman_label(order.total_amount)}'
                 )
             messenger_api.send_message(
                 order.platform,
@@ -296,7 +293,7 @@ def mark_order_paid(order: CatalogOrder) -> CatalogOrder:
             text = (
                 f'💰 سفارش جدید پرداخت‌شده #{order.pk}\n'
                 f'کاربر: {user_label}\n'
-                f'مبلغ: {_format_price(order.total_amount)}\n\n'
+                f'مبلغ: {format_toman_label(order.total_amount)}\n\n'
                 f'{_format_order_lines(order)}'
             )
             messenger_api.send_message(
@@ -340,7 +337,7 @@ def submit_admin_cart_order(
         text += f'\n📋 اطلاعات سفارش:\n{customer_block}\n'
     text += (
         f'\n{_format_order_lines(order)}\n\n'
-        f'جمع کل: {_format_price(order.total_amount)}'
+        f'جمع کل: {format_toman_label(order.total_amount)}'
     )
     messenger_api.send_message(
         cfg.platform,
@@ -352,7 +349,7 @@ def submit_admin_cart_order(
     ack = (
         f'سبد خرید شما برای ادمین ارسال شد.\n'
         f'شماره پیگیری: #{order.pk}\n'
-        f'مبلغ: {_format_price(order.total_amount)}'
+        f'مبلغ: {format_toman_label(order.total_amount)}'
     )
     messenger_api.send_message(cfg.platform, subscriber.chat_id, ack, settings=cfg)
 
@@ -417,7 +414,7 @@ def submit_payment_receipt(
         caption = (
             f'📎 رسید واریز جدید — سفارش #{order.pk}\n'
             f'کاربر: {user_label}\n'
-            f'مبلغ: {_format_price(order.total_amount)}\n'
+            f'مبلغ: {format_toman_label(order.total_amount)}\n'
             f'برای تأیید به پنل مدیریت بروید.'
         )
         try:

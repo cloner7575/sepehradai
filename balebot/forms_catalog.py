@@ -1,10 +1,11 @@
 import json
 
 from django import forms
-from django.utils.text import slugify
 
 from balebot.models import CatalogCategory, CatalogItem, CatalogOrder, CatalogSettings
 from balebot.widgets import PersianClearableFileInput
+from balebot.services.slug_utils import resolve_model_slug
+from balebot.services.catalog_currency import rial_to_toman, toman_to_rial
 from balebot.services.catalog_item_types import ITEM_TYPE_GUIDES, get_item_type_guide
 from balebot.services.catalog_page_layout import get_home_blocks, sanitize_home_blocks
 from balebot.services.checkout_form import default_checkout_form, sanitize_checkout_form
@@ -181,6 +182,10 @@ class CatalogSettingsForm(forms.ModelForm):
             enabled.add(CatalogSettings.PaymentMethod.BALE)
         if enabled and default not in enabled:
             cleaned['payment_default_method'] = next(iter(enabled))
+        for name in ('shipping_flat_cost', 'free_shipping_threshold'):
+            val = cleaned.get(name)
+            if val not in (None, ''):
+                cleaned[name] = toman_to_rial(int(val))
         return cleaned
 
     def __init__(self, *args, **kwargs):
@@ -229,6 +234,19 @@ class CatalogSettingsForm(forms.ModelForm):
         self.fields['channel_invite_link'].help_text = (
             'لینک دعوت کانال برای دکمه «عضویت در کانال» در مینی‌اپ.'
         )
+        self.fields['shipping_flat_cost'].label = 'هزینه ثابت ارسال (تومان)'
+        self.fields['free_shipping_threshold'].label = 'آستانه ارسال رایگان (تومان)'
+        if self.instance and self.instance.pk and not self.data:
+            if self.instance.shipping_flat_cost:
+                self.initial.setdefault(
+                    'shipping_flat_cost',
+                    rial_to_toman(self.instance.shipping_flat_cost),
+                )
+            if self.instance.free_shipping_threshold is not None:
+                self.initial.setdefault(
+                    'free_shipping_threshold',
+                    rial_to_toman(self.instance.free_shipping_threshold),
+                )
         self._filter_payment_default_choices()
 
     def _filter_payment_default_choices(self):
@@ -367,19 +385,53 @@ class CatalogCategoryForm(forms.ModelForm):
         }
 
     def __init__(self, *args, workspace=None, platform=None, **kwargs):
+        self.workspace = workspace
+        self.platform = platform
         super().__init__(*args, **kwargs)
         qs = CatalogCategory.objects.filter(workspace=workspace, platform=platform)
         if self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
         self.fields['parent'].queryset = qs.order_by('sort_order', 'name')
         self.fields['parent'].required = False
+        self.fields['parent'].empty_label = '— بدون والد (دستهٔ اصلی) —'
+        self.fields['slug'].required = False
+
+        labels = {
+            'parent': 'دستهٔ والد',
+            'name': 'نام دسته‌بندی',
+            'slug': 'نامک آدرس',
+            'image': 'تصویر دسته',
+            'sort_order': 'ترتیب نمایش',
+            'is_active': 'نمایش در ویترین',
+        }
+        for name, label in labels.items():
+            if name in self.fields:
+                self.fields[name].label = label
+
+        self.fields['name'].widget.attrs.setdefault('placeholder', 'مثلاً مانتو، اکسسوری، دوره‌های آموزشی')
+        self.fields['slug'].widget.attrs.setdefault('placeholder', 'خودکار — مثل manto')
+        self.fields['sort_order'].widget.attrs.setdefault('placeholder', '۰')
+
+        self.fields['parent'].help_text = 'برای زیردسته، دستهٔ والد را انتخاب کنید؛ در غیر این صورت خالی بگذارید.'
+        self.fields['slug'].help_text = (
+            'آدرس انگلیسی دسته در مینی‌اپ. خالی بگذارید تا از نام فارسی خودکار ساخته شود؛ '
+            'در صورت تکراری بودن، پسوند عددی اضافه می‌شود.'
+        )
+        self.fields['image'].help_text = 'در صفحهٔ اصلی و فیلتر دسته‌ها نمایش داده می‌شود. اندازهٔ پیشنهادی: ۴۰۰×۴۰۰ پیکسل.'
+        self.fields['sort_order'].help_text = 'عدد کوچک‌تر = نمایش زودتر در لیست دسته‌ها.'
+        self.fields['is_active'].help_text = 'غیرفعال = در مینی‌اپ و فیلترها دیده نمی‌شود.'
 
     def clean_slug(self):
-        slug = (self.cleaned_data.get('slug') or '').strip()
-        if not slug:
-            name = self.cleaned_data.get('name') or ''
-            slug = slugify(name, allow_unicode=False) or 'category'
-        return slug[:140]
+        return resolve_model_slug(
+            CatalogCategory,
+            self.cleaned_data.get('name') or '',
+            manual_slug=self.cleaned_data.get('slug') or '',
+            workspace=self.workspace,
+            platform=self.platform,
+            exclude_pk=self.instance.pk if self.instance.pk else None,
+            fallback='category',
+            max_length=140,
+        )
 
 
 class CatalogItemForm(forms.ModelForm):
@@ -474,9 +526,9 @@ class CatalogItemForm(forms.ModelForm):
             'cover': PersianClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
             'download_file': PersianClearableFileInput(attrs={'class': 'form-control'}),
             'download_link': forms.URLInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'https://...'}),
-            'price': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'به ریال'}),
+            'price': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'به تومان'}),
             'compare_at_price': forms.NumberInput(
-                attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'قیمت قبل از تخفیف (ریال)'},
+                attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'قیمت قبل از تخفیف (تومان)'},
             ),
             'sale_mode': forms.Select(attrs={'class': _SELECT, 'id': 'id_sale_mode'}),
             'stock': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'خالی = نامحدود'}),
@@ -489,6 +541,8 @@ class CatalogItemForm(forms.ModelForm):
         }
 
     def __init__(self, *args, workspace=None, platform=None, **kwargs):
+        self.workspace = workspace
+        self.platform = platform
         super().__init__(*args, **kwargs)
         self.fields['category'].queryset = CatalogCategory.objects.filter(
             workspace=workspace,
@@ -514,8 +568,8 @@ class CatalogItemForm(forms.ModelForm):
             'cover': 'تصویر کاور',
             'download_file': 'فایل دانلود',
             'download_link': 'لینک مستقیم دانلود',
-            'price': 'قیمت (ریال)',
-            'compare_at_price': 'قیمت قبل از تخفیف',
+            'price': 'قیمت (تومان)',
+            'compare_at_price': 'قیمت قبل از تخفیف (تومان)',
             'sale_mode': 'نحوه فروش',
             'stock': 'موجودی',
             'is_flash_sale': 'قرارگیری در حراج',
@@ -527,13 +581,14 @@ class CatalogItemForm(forms.ModelForm):
             if name in self.fields:
                 self.fields[name].label = label
 
-        self.fields['slug'].help_text = 'برای آدرس صفحه آیتم — اگر خالی بماند از عنوان ساخته می‌شود.'
+        self.fields['slug'].help_text = 'خالی بماند از عنوان به‌صورت خودکار (انگلیسی) ساخته می‌شود؛ در صورت تکراری، پسوند عددی اضافه می‌شود.'
+        self.fields['slug'].required = False
         self.fields['cover'].help_text = 'در لیست و صفحه آیتم نمایش داده می‌شود.'
         self.fields['download_file'].help_text = 'فایل روی سرور شما ذخیره می‌شود.'
         self.fields['download_link'].help_text = 'یا لینک مستقیم فایل (گوگل‌درایو، دراپ‌باکس، CDN و…).'
         self.fields['item_type'].help_text = 'نوع آیتم مشخص می‌کند کاربر بتواند بخرد، دانلود کند یا درخواست بدهد.'
         self.fields['sale_mode'].help_text = 'مشخص کنید کاربر بتواند بخرد، درخواست بدهد یا هر دو.'
-        self.fields['price'].help_text = 'برای فروش الزامی است. مقدار به ریال وارد شود.'
+        self.fields['price'].help_text = 'برای فروش الزامی است. مقدار به تومان وارد شود.'
         self.fields['stock'].help_text = 'اختیاری — خالی بگذارید اگر محدودیت موجودی ندارید.'
         self.fields['sort_order'].help_text = 'عدد کوچک‌تر زودتر نمایش داده می‌شود.'
         self.fields['is_active'].help_text = 'غیرفعال = در مینی‌اپ دیده نمی‌شود.'
@@ -542,6 +597,14 @@ class CatalogItemForm(forms.ModelForm):
         self.fields['is_flash_sale'].help_text = 'آیتم در صفحه حراج و کاروسل حراج نمایش داده می‌شود.'
 
         if self.instance.pk:
+            if not self.data:
+                if self.instance.price is not None:
+                    self.initial.setdefault('price', rial_to_toman(self.instance.price))
+                if self.instance.compare_at_price is not None:
+                    self.initial.setdefault(
+                        'compare_at_price',
+                        rial_to_toman(self.instance.compare_at_price),
+                    )
             self.fields['metadata_json'].initial = json.dumps(
                 self.instance.metadata or {},
                 ensure_ascii=False,
@@ -617,13 +680,24 @@ class CatalogItemForm(forms.ModelForm):
             cleaned['flash_sale_starts_at'] = None
             cleaned['flash_sale_ends_at'] = None
 
+        for field in ('price', 'compare_at_price'):
+            val = cleaned.get(field)
+            if val not in (None, ''):
+                cleaned[field] = toman_to_rial(int(val))
+
         return cleaned
 
     def clean_slug(self):
-        slug = (self.cleaned_data.get('slug') or '').strip()
-        if not slug:
-            slug = slugify(self.cleaned_data.get('title') or '', allow_unicode=False) or 'item'
-        return slug[:220]
+        return resolve_model_slug(
+            CatalogItem,
+            self.cleaned_data.get('title') or '',
+            manual_slug=self.cleaned_data.get('slug') or '',
+            workspace=self.workspace,
+            platform=self.platform,
+            exclude_pk=self.instance.pk if self.instance.pk else None,
+            fallback='item',
+            max_length=220,
+        )
 
     def clean_metadata_json(self):
         raw = (self.cleaned_data.get('metadata_json') or '').strip()

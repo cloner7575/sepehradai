@@ -8,8 +8,8 @@
 
   <div class="catalog-toolbar">
     <span class="catalog-toolbar-meta text-muted small">{{ categories|length }} دسته</span>
-    <a href="{% url 'catalog_category_create' %}" class="btn btn-panel-primary btn-sm">
-      <i class="bi bi-folder-plus me-1"></i>دسته جدید
+        <a href="{% url 'catalog_category_create' %}" class="btn btn-panel-primary btn-sm">
+      <i class="bi bi-folder-plus me-1"></i>دسته‌بندی جدید
     </a>
   </div>
 
@@ -21,7 +21,7 @@
           <tr>
             <th style="width:56px"></th>
             <th>نام</th>
-            <th>slug</th>
+            <th>نامک</th>
             <th>آیتم</th>
             <th>ترتیب</th>
             <th>وضعیت</th>
@@ -51,8 +51,10 @@
               <span class="catalog-pill">غیرفعال</span>
               {% endif %}
             </td>
-            <td class="text-end">
-              <a href="{% url 'catalog_category_edit' c.pk %}" class="btn btn-sm btn-panel-ghost">ویرایش</a>
+            <td class="text-end text-nowrap">
+              {% url 'catalog_category_edit' c.pk as edit_url %}
+              {% url 'catalog_category_delete' c.pk as delete_url %}
+              {% include "balebot/_catalog_row_actions.html" with label=c.name entity_type="category" item_count=c.item_count %}
             </td>
           </tr>
           {% endfor %}
@@ -64,8 +66,8 @@
   <div class="panel-card">
     <div class="catalog-empty-state">
       <i class="bi bi-folder"></i>
-      <p>دسته‌ای نیست</p>
-      <a href="{% url 'catalog_category_create' %}" class="btn btn-panel-primary btn-sm">اولین دسته</a>
+      <p>هنوز دسته‌بندی ندارید</p>
+      <a href="{% url 'catalog_category_create' %}" class="btn btn-panel-primary btn-sm">اولین دسته‌بندی</a>
     </div>
   </div>
   {% endif %}

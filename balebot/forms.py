@@ -7,6 +7,7 @@ from django.core.files.storage import default_storage
 from balebot.models import BotSettings, Campaign, Platform, Tag
 from balebot.widgets import PersianClearableFileInput
 from balebot.services.jalali_datetime import aware_to_jalali_parts, parse_jalali_date_time
+from balebot.services.slug_utils import resolve_model_slug
 
 # هم‌نام با مقدار سشن در views_panel (آپلود ویدیو)
 _CAMPAIGN_PENDING_MEDIA_SESSION_KEY = 'campaign_pending_media'
@@ -521,33 +522,30 @@ class TagForm(forms.ModelForm):
         self.fields['slug'].required = False
 
     def clean_slug(self):
-        from django.utils.text import slugify
-
-        slug = (self.cleaned_data.get('slug') or '').strip()
-        name = (self.cleaned_data.get('name') or '').strip()
-        if not slug and name:
-            slug = slugify(name, allow_unicode=False)
-        if not slug:
-            raise forms.ValidationError('شناسه دسته‌بندی معتبر نیست.')
-        return slug[:140]
+        return resolve_model_slug(
+            Tag,
+            self.cleaned_data.get('name') or '',
+            manual_slug=self.cleaned_data.get('slug') or '',
+            workspace=self.workspace,
+            platform=self.platform,
+            exclude_pk=self.instance.pk if self.instance.pk else None,
+            fallback='tag',
+            max_length=140,
+        )
 
     def clean(self):
         cleaned = super().clean()
         if not self.workspace or not self.platform:
             return cleaned
-        slug = cleaned.get('slug')
         name = cleaned.get('name')
-        if slug and Tag.objects.filter(
-            workspace=self.workspace,
-            platform=self.platform,
-            slug=slug,
-        ).exists():
-            self.add_error('slug', 'این شناسه قبلاً ثبت شده است.')
-        if name and Tag.objects.filter(
+        qs = Tag.objects.filter(
             workspace=self.workspace,
             platform=self.platform,
             name=name,
-        ).exists():
+        )
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if name and qs.exists():
             self.add_error('name', 'این نام قبلاً ثبت شده است.')
         return cleaned
 

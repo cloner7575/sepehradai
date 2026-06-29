@@ -133,5 +133,6 @@ export async function submitRequest(initData: string, body: Record<string, unkno
 
 export function formatPrice(amount: number | null | undefined) {
   if (amount == null) return 'تماس بگیرید';
-  return new Intl.NumberFormat('fa-IR').format(amount) + ' ریال';
+  const toman = Math.floor(amount / 10);
+  return new Intl.NumberFormat('fa-IR').format(toman) + ' تومان';
 }

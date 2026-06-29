@@ -1,6 +1,20 @@
 (function () {
   'use strict';
 
+  var RIAL_PER_TOMAN = 10;
+
+  function tomanFromRial(rial) {
+    return Math.floor(Number(rial || 0) / RIAL_PER_TOMAN);
+  }
+
+  function rialFromToman(toman) {
+    return (parseInt(String(toman || '0'), 10) || 0) * RIAL_PER_TOMAN;
+  }
+
+  function formatTomanFromRial(rial) {
+    return tomanFromRial(rial).toLocaleString('fa-IR') + ' تومان';
+  }
+
   var BLOCK_LABELS = {
     hero: 'هیرو',
     slider: 'اسلایدر',
@@ -67,6 +81,9 @@
   var blockCountEl = null;
   var categories = [];
   var items = [];
+  var pickerCategories = [];
+  var pickerItems = [];
+  var pickerTags = [];
   var state = { blocks: [] };
   var selection = null;
   var globalPanel = null;
@@ -385,7 +402,7 @@
     return card;
   }
 
-  function uploadImage(file, onOk, onErr) {
+  function uploadMedia(file, onOk, onErr) {
     if (!uploadUrl) {
       if (onErr) onErr('آدرس آپلود تنظیم نشده.');
       return;
@@ -407,24 +424,50 @@
       });
   }
 
-  function imageUploadField(currentUrl, onUploaded) {
+  function uploadImage(file, onOk, onErr) {
+    uploadMedia(file, onOk, onErr);
+  }
+
+  function mediaUploadField(currentUrl, onUploaded, options) {
+    options = options || {};
+    var accept = options.accept || 'image/*';
+    var kind = options.kind || 'image';
+    var uploadLabel = options.uploadLabel || 'آپلود فایل';
+    var changeLabel = options.changeLabel || 'تغییر فایل';
     var wrap = document.createElement('div');
     wrap.className = 'miniapp-image-upload mb-2';
 
-    if (currentUrl) {
-      var prev = mkImageThumb(currentUrl, 'miniapp-slide-preview-thumb');
-      wrap.appendChild(prev);
+    function renderPreview(url) {
+      var old = wrap.querySelector('.miniapp-media-upload-preview');
+      if (old) old.remove();
+      if (!url) return;
+      var box = document.createElement('div');
+      box.className = 'miniapp-media-upload-preview';
+      if (kind === 'video') {
+        var vid = document.createElement('video');
+        vid.src = url;
+        vid.controls = true;
+        vid.playsInline = true;
+        vid.className = 'miniapp-video-upload-preview';
+        box.appendChild(vid);
+      } else {
+        box.appendChild(mkImageThumb(url, 'miniapp-slide-preview-thumb'));
+      }
+      wrap.insertBefore(box, wrap.firstChild);
     }
+
+    renderPreview(currentUrl);
 
     var fileInp = document.createElement('input');
     fileInp.type = 'file';
-    fileInp.accept = 'image/*';
+    fileInp.accept = accept;
     fileInp.className = 'visually-hidden';
 
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'btn btn-panel-ghost btn-sm';
-    btn.innerHTML = '<i class="bi bi-cloud-upload me-1"></i>' + (currentUrl ? 'تغییر تصویر' : 'آپلود تصویر');
+    btn.innerHTML =
+      '<i class="bi bi-cloud-upload me-1"></i>' + (currentUrl ? changeLabel : uploadLabel);
     btn.addEventListener('click', function () {
       fileInp.click();
     });
@@ -434,17 +477,20 @@
       if (!f) return;
       btn.disabled = true;
       btn.textContent = 'در حال آپلود…';
-      uploadImage(
+      uploadMedia(
         f,
         function (url) {
+          currentUrl = url;
           onUploaded(url);
+          renderPreview(url);
           btn.disabled = false;
-          btn.innerHTML = '<i class="bi bi-cloud-upload me-1"></i>تغییر تصویر';
+          btn.innerHTML = '<i class="bi bi-cloud-upload me-1"></i>' + changeLabel;
           fileInp.value = '';
         },
         function () {
           btn.disabled = false;
-          btn.innerHTML = '<i class="bi bi-cloud-upload me-1"></i>آپلود تصویر';
+          btn.innerHTML =
+            '<i class="bi bi-cloud-upload me-1"></i>' + (currentUrl ? changeLabel : uploadLabel);
           fileInp.value = '';
         }
       );
@@ -453,6 +499,24 @@
     wrap.appendChild(btn);
     wrap.appendChild(fileInp);
     return wrap;
+  }
+
+  function imageUploadField(currentUrl, onUploaded) {
+    return mediaUploadField(currentUrl, onUploaded, {
+      accept: 'image/*',
+      kind: 'image',
+      uploadLabel: 'آپلود تصویر',
+      changeLabel: 'تغییر تصویر',
+    });
+  }
+
+  function videoUploadField(currentUrl, onUploaded) {
+    return mediaUploadField(currentUrl, onUploaded, {
+      accept: 'video/mp4,video/webm,video/quicktime,video/x-matroska,.mp4,.webm,.mov,.mkv',
+      kind: 'video',
+      uploadLabel: 'آپلود ویدیو',
+      changeLabel: 'تغییر ویدیو',
+    });
   }
 
   function syncStoreTitle() {
@@ -876,7 +940,7 @@
       if (block.bundle_price) {
         var price = document.createElement('div');
         price.className = 'miniapp-preview-bundle-price';
-        price.textContent = Number(block.bundle_price).toLocaleString('fa-IR') + ' ریال';
+        price.textContent = formatTomanFromRial(block.bundle_price);
         bundleWrap.appendChild(price);
       }
       body.appendChild(bundleWrap);
@@ -971,6 +1035,221 @@
     return l;
   }
 
+  function fieldHint(text) {
+    var p = document.createElement('p');
+    p.className = 'miniapp-field-hint';
+    p.textContent = text;
+    return p;
+  }
+
+  function mkStoryThumbEl(url) {
+    if (url) return mkImageThumb(url, 'miniapp-story-thumb');
+    var ph = document.createElement('div');
+    ph.className = 'miniapp-story-thumb miniapp-story-thumb--empty';
+    var ic = document.createElement('i');
+    ic.className = 'bi bi-camera';
+    ph.appendChild(ic);
+    return ph;
+  }
+
+  function iconBtn(icon, title, className, onClick) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = className || 'btn btn-panel-ghost btn-sm';
+    btn.title = title;
+    btn.setAttribute('aria-label', title);
+    btn.innerHTML = '<i class="bi bi-' + icon + '"></i>';
+    btn.addEventListener('click', onClick);
+    return btn;
+  }
+
+  function itemPickerSource() {
+    return pickerItems.length ? pickerItems : items;
+  }
+
+  function categoryPickerSource() {
+    return pickerCategories.length ? pickerCategories : categories;
+  }
+
+  function itemPickerOptions() {
+    var opts = [['', '— یک محصول انتخاب کنید —']];
+    itemPickerSource().forEach(function (it) {
+      var slug = (it.slug || '').trim();
+      var label = (it.title || slug).trim();
+      if (slug && label) opts.push([slug, label]);
+    });
+    return opts;
+  }
+
+  function categoryPickerOptions() {
+    var opts = [['', '— یک دسته انتخاب کنید —']];
+    categoryPickerSource().forEach(function (c) {
+      var slug = (c.slug || '').trim();
+      var label = (c.name || slug).trim();
+      if (slug && label) opts.push([slug, label]);
+    });
+    return opts;
+  }
+
+  function tagPickerOptions() {
+    var opts = [['', '— یک برچسب انتخاب کنید —']];
+    pickerTags.forEach(function (t) {
+      var slug = (t.slug || '').trim();
+      var label = (t.name || slug).trim();
+      if (slug && label) opts.push([slug, label]);
+    });
+    return opts;
+  }
+
+  function appendItemPickerField(parent, value, onChange, label) {
+    parent.appendChild(fieldLabel(label || 'انتخاب محصول'));
+    parent.appendChild(
+      searchableSelectInput(value || '', itemPickerOptions(), onChange, {
+        searchPlaceholder: 'جستجوی نام محصول…',
+        listSize: 6,
+      })
+    );
+  }
+
+  function appendCategoryPickerField(parent, value, onChange, label) {
+    parent.appendChild(fieldLabel(label || 'انتخاب دسته‌بندی'));
+    parent.appendChild(
+      searchableSelectInput(value || '', categoryPickerOptions(), onChange, {
+        searchPlaceholder: 'جستجوی نام دسته…',
+        listSize: 6,
+      })
+    );
+  }
+
+  function appendTagPickerField(parent, value, onChange) {
+    parent.appendChild(fieldLabel('انتخاب برچسب'));
+    if (!pickerTags.length) {
+      parent.appendChild(fieldHint('برچسبی در فروشگاه تعریف نشده است.'));
+      parent.appendChild(textInput(value || '', '', 120, onChange));
+      return;
+    }
+    parent.appendChild(
+      searchableSelectInput(value || '', tagPickerOptions(), onChange, {
+        searchPlaceholder: 'جستجوی برچسب…',
+        listSize: 6,
+      })
+    );
+  }
+
+  function multiProductPickerField(selectedSlugs, onChange) {
+    if (!selectedSlugs) selectedSlugs = [];
+    var wrap = document.createElement('div');
+    wrap.className = 'miniapp-multi-product-picker mb-2';
+
+    var selectedWrap = document.createElement('div');
+    selectedWrap.className = 'miniapp-multi-product-picker__selected';
+
+    function itemBySlug(slug) {
+      var list = itemPickerSource();
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].slug === slug) return list[i];
+      }
+      return null;
+    }
+
+    function renderSelected() {
+      selectedWrap.innerHTML = '';
+      if (!selectedSlugs.length) {
+        var empty = document.createElement('p');
+        empty.className = 'miniapp-field-hint mb-0';
+        empty.textContent = 'هنوز محصولی انتخاب نشده';
+        selectedWrap.appendChild(empty);
+        return;
+      }
+      selectedSlugs.forEach(function (slug) {
+        var it = itemBySlug(slug);
+        var chip = document.createElement('div');
+        chip.className = 'miniapp-product-chip';
+        var label = document.createElement('span');
+        label.textContent = it ? it.title : slug;
+        chip.appendChild(label);
+        chip.appendChild(
+          iconBtn('x', 'حذف', 'miniapp-product-chip-remove', function () {
+            var next = selectedSlugs.filter(function (s) {
+              return s !== slug;
+            });
+            selectedSlugs = next;
+            onChange(next);
+            renderSelected();
+          })
+        );
+        selectedWrap.appendChild(chip);
+      });
+    }
+
+    renderSelected();
+    wrap.appendChild(selectedWrap);
+    wrap.appendChild(fieldLabel('افزودن محصول'));
+    wrap.appendChild(
+      searchableSelectInput('', itemPickerOptions(), function (slug) {
+        if (!slug || selectedSlugs.indexOf(slug) >= 0) return;
+        var next = selectedSlugs.concat([slug]);
+        selectedSlugs = next;
+        onChange(next);
+        renderSelected();
+      }, {
+        searchPlaceholder: 'جستجو و افزودن محصول…',
+        listSize: 5,
+      })
+    );
+    return wrap;
+  }
+
+  function appendTargetValueField(parent, target) {
+    if (!target || !target.kind) return;
+    if (target.kind === 'item') {
+      appendItemPickerField(parent, target.value || '', function (v) {
+        target.value = v;
+        bump();
+      });
+      return;
+    }
+    if (target.kind === 'category') {
+      appendCategoryPickerField(parent, target.value || '', function (v) {
+        target.value = v;
+        bump();
+      });
+      return;
+    }
+    if (target.kind === 'url') {
+      parent.appendChild(fieldLabel('آدرس لینک'));
+      parent.appendChild(
+        textInput(target.value || '', 'https://example.com', 512, function (v) {
+          target.value = v;
+          bump();
+        })
+      );
+    }
+  }
+
+  function appendStoryTargetFields(parent, target, onKindChange) {
+    if (!target) target = { kind: '', value: '' };
+    parent.appendChild(fieldLabel('دکمه «مشاهده» (اختیاری)'));
+    parent.appendChild(
+      selectInput(target.kind || '', [
+        ['', 'بدون لینک'],
+        ['item', 'محصول'],
+        ['category', 'دسته‌بندی'],
+        ['flash_sale', 'صفحه حراج'],
+        ['home', 'صفحه اصلی'],
+        ['url', 'لینک خارجی'],
+      ], function (v) {
+        target.kind = v;
+        if (!v) target.value = '';
+        if (onKindChange) onKindChange();
+        else bump();
+      })
+    );
+    if (target.kind && target.kind !== 'flash_sale' && target.kind !== 'home') {
+      appendTargetValueField(parent, target);
+    }
+  }
+
   function textInput(value, placeholder, maxLen, onInput) {
     var inp = document.createElement('input');
     inp.type = 'text';
@@ -1011,6 +1290,89 @@
       onChange(sel.value);
     });
     return sel;
+  }
+
+  function searchableSelectInput(selectedValue, options, onChange, config) {
+    config = config || {};
+    var wrap = document.createElement('div');
+    wrap.className = 'miniapp-searchable-select mb-2';
+
+    var searchInp = document.createElement('input');
+    searchInp.type = 'search';
+    searchInp.className = 'form-control panel-input miniapp-searchable-select__search';
+    searchInp.placeholder = config.searchPlaceholder || 'جستجوی نام…';
+    searchInp.setAttribute('autocomplete', 'off');
+
+    var sel = document.createElement('select');
+    sel.className = 'form-select panel-input miniapp-searchable-select__list';
+    sel.size = config.listSize || 6;
+
+    function norm(s) {
+      return String(s || '').trim().toLowerCase();
+    }
+
+    function labelForValue(val) {
+      for (var i = 0; i < options.length; i++) {
+        if (options[i][0] === val) return options[i][1];
+      }
+      return '';
+    }
+
+    function matchesQuery(val, label, q) {
+      if (!q) return true;
+      return norm(label).indexOf(q) !== -1 || norm(val).indexOf(q) !== -1;
+    }
+
+    function fillOptions(query) {
+      var q = norm(query);
+      sel.innerHTML = '';
+      var count = 0;
+      options.forEach(function (pair) {
+        var val = pair[0];
+        var label = pair[1];
+        if (val === '' && q) return;
+        if (val !== '' && !matchesQuery(val, label, q)) return;
+        var opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label;
+        sel.appendChild(opt);
+        count++;
+      });
+      if (!count) {
+        var none = document.createElement('option');
+        none.value = '';
+        none.textContent = 'نتیجه‌ای یافت نشد';
+        none.disabled = true;
+        sel.appendChild(none);
+      } else if (selectedValue) {
+        for (var j = 0; j < sel.options.length; j++) {
+          if (sel.options[j].value === selectedValue) {
+            sel.value = selectedValue;
+            break;
+          }
+        }
+      }
+    }
+
+    searchInp.addEventListener('input', function () {
+      fillOptions(searchInp.value);
+    });
+
+    sel.addEventListener('change', function () {
+      selectedValue = sel.value;
+      onChange(selectedValue);
+      searchInp.value = selectedValue ? labelForValue(selectedValue) : '';
+    });
+
+    fillOptions('');
+    if (selectedValue) {
+      searchInp.value = labelForValue(selectedValue);
+      sel.value = selectedValue;
+    }
+
+    wrap.appendChild(searchInp);
+    wrap.appendChild(sel);
+    return wrap;
   }
 
   function mountHeroFields(host, block) {
@@ -1315,14 +1677,12 @@
           ['home', 'صفحه اصلی'],
         ], function (v) {
           block.cta_target.kind = v;
+          block.cta_target.value = '';
           bumpInspector();
         })
       );
       if (block.cta_target.kind === 'category' || block.cta_target.kind === 'item') {
-        host.appendChild(textInput(block.cta_target.value, 'slug', 120, function (v) {
-          block.cta_target.value = v;
-          bump();
-        }));
+        appendTargetValueField(host, block.cta_target);
       }
       host.appendChild(fieldLabel('رنگ'));
       host.appendChild(textInput(block.accent, '#c2402f', 16, function (v) { block.accent = v; bump(); }));
@@ -1353,12 +1713,16 @@
         ], function (v) { block.source = v; bumpInspector(); })
       );
       if (block.source === 'category') {
-        host.appendChild(fieldLabel('slug دسته'));
-        host.appendChild(textInput(block.category, '', 120, function (v) { block.category = v; bump(); }));
+        appendCategoryPickerField(host, block.category || '', function (v) {
+          block.category = v;
+          bump();
+        });
       }
       if (block.source === 'tag') {
-        host.appendChild(fieldLabel('برچسب'));
-        host.appendChild(textInput(block.tag, '', 120, function (v) { block.tag = v; bump(); }));
+        appendTagPickerField(host, block.tag || '', function (v) {
+          block.tag = v;
+          bump();
+        });
       }
       host.appendChild(fieldLabel('تعداد'));
       host.appendChild(textInput(String(block.limit || 10), '10', 2, function (v) { block.limit = parseInt(v, 10) || 10; bump(); }));
@@ -1367,9 +1731,11 @@
     if (block.type === 'video') {
       host.appendChild(fieldLabel('عنوان'));
       host.appendChild(textInput(block.title, '', 120, function (v) { block.title = v; bump(); }));
-      host.appendChild(fieldLabel('آدرس ویدیو'));
-      host.appendChild(textInput(block.url, '', 512, function (v) { block.url = v; bump(); }));
-      host.appendChild(fieldLabel('پوستر'));
+      host.appendChild(fieldLabel('ویدیو'));
+      host.appendChild(videoUploadField(block.url || '', function (url) { block.url = url; bump(); }));
+      host.appendChild(fieldHint('یا آدرس مستقیم وارد کنید (حداکثر ۵۰ مگابایت برای آپلود)'));
+      host.appendChild(textInput(block.url, 'https://…', 512, function (v) { block.url = v; bump(); }));
+      host.appendChild(fieldLabel('پوستر (اختیاری)'));
       host.appendChild(imageUploadField(block.poster || '', function (url) { block.poster = url; bump(); }));
       return;
     }
@@ -1396,104 +1762,191 @@
     }
     if (block.type === 'story_bar') {
       if (!block.items) block.items = [];
-      host.appendChild(fieldLabel('استوری‌ها'));
+      host.appendChild(
+        fieldHint('استوری‌ها در بالای ویترین نمایش داده می‌شوند. هر استوری می‌تواند چند اسلاید داشته باشد.')
+      );
       var storyList = document.createElement('div');
+      storyList.className = 'miniapp-story-list';
+
       function renderStories() {
         storyList.innerHTML = '';
+        if (!block.items.length) {
+          var empty = document.createElement('div');
+          empty.className = 'miniapp-story-empty';
+          empty.textContent = 'هنوز استوری اضافه نشده — دکمه پایین را بزنید.';
+          storyList.appendChild(empty);
+          return;
+        }
         block.items.forEach(function (story, si) {
-          var card = document.createElement('div');
-          card.className = 'miniapp-slide-item mb-2';
-          card.appendChild(fieldLabel('استوری ' + (si + 1)));
-          card.appendChild(textInput(story.title, 'عنوان', 64, function (v) { story.title = v; bump(); }));
-          card.appendChild(fieldLabel('تصویر کاور'));
-          card.appendChild(imageUploadField(story.image || '', function (url) { story.image = url; bump(); }));
-          if (!story.slides) story.slides = [{ image: story.image || '', duration: 5 }];
-          var slidesWrap = document.createElement('div');
-          slidesWrap.className = 'ms-2 border-start ps-2';
-          story.slides.forEach(function (slide, slideIdx) {
-            var slideCard = document.createElement('div');
-            slideCard.className = 'mb-2 pb-2 border-bottom';
-            slideCard.appendChild(fieldLabel('اسلاید ' + (slideIdx + 1)));
-            slideCard.appendChild(imageUploadField(slide.image || '', function (url) {
-              slide.image = url;
-              bump();
-            }));
-            slideCard.appendChild(textInput(slide.image, 'URL تصویر', 512, function (v) {
-              slide.image = v;
-              bump();
-            }));
-            slideCard.appendChild(textInput(slide.text || '', 'متن (اختیاری)', 200, function (v) {
-              slide.text = v;
-              bump();
-            }));
-            slideCard.appendChild(textInput(String(slide.duration || 5), '5', 2, function (v) {
-              slide.duration = parseInt(v, 10) || 5;
-              bump();
-            }));
-            if (!slide.target) slide.target = { kind: 'item', value: '' };
-            slideCard.appendChild(fieldLabel('لینک (اختیاری)'));
-            slideCard.appendChild(
-              selectInput(slide.target.kind || 'item', [
-                ['item', 'محصول'],
-                ['category', 'دسته'],
-                ['flash_sale', 'حراج'],
-                ['url', 'لینک'],
-              ], function (v) {
-                slide.target.kind = v;
+          if (!story.slides || !story.slides.length) {
+            story.slides = [{ image: story.image || '', duration: 5, target: { kind: '', value: '' } }];
+          }
+          var card = document.createElement('details');
+          card.className = 'miniapp-story-card';
+          card.open = si === 0;
+
+          var summary = document.createElement('summary');
+          summary.className = 'miniapp-story-card-head';
+          summary.appendChild(mkStoryThumbEl(story.image || (story.slides[0] && story.slides[0].image) || ''));
+
+          var headText = document.createElement('div');
+          headText.className = 'miniapp-story-card-head-text';
+          var titleEl = document.createElement('strong');
+          titleEl.className = 'miniapp-story-card-title';
+          titleEl.textContent = story.title || 'استوری ' + (si + 1);
+          var meta = document.createElement('span');
+          meta.className = 'miniapp-story-card-meta';
+          meta.textContent = story.slides.length + ' اسلاید';
+          headText.appendChild(titleEl);
+          headText.appendChild(meta);
+          summary.appendChild(headText);
+
+          var headActions = document.createElement('div');
+          headActions.className = 'miniapp-story-card-head-actions';
+          if (si > 0) {
+            headActions.appendChild(
+              iconBtn('arrow-up', 'جابجایی به بالا', 'btn btn-panel-ghost btn-sm', function (e) {
+                e.preventDefault();
+                var tmp = block.items[si];
+                block.items[si] = block.items[si - 1];
+                block.items[si - 1] = tmp;
                 renderStories();
                 bump();
               })
             );
-            if (slide.target.kind !== 'flash_sale') {
-              slideCard.appendChild(textInput(slide.target.value, 'slug یا URL', 256, function (v) {
-                slide.target.value = v;
+          }
+          if (si < block.items.length - 1) {
+            headActions.appendChild(
+              iconBtn('arrow-down', 'جابجایی به پایین', 'btn btn-panel-ghost btn-sm', function (e) {
+                e.preventDefault();
+                var tmp = block.items[si];
+                block.items[si] = block.items[si + 1];
+                block.items[si + 1] = tmp;
+                renderStories();
                 bump();
-              }));
+              })
+            );
+          }
+          headActions.appendChild(
+            iconBtn('trash', 'حذف استوری', 'btn btn-panel-ghost btn-sm text-danger', function (e) {
+              e.preventDefault();
+              if (!window.confirm('این استوری حذف شود؟')) return;
+              block.items.splice(si, 1);
+              renderStories();
+              bump();
+            })
+          );
+          summary.appendChild(headActions);
+          card.appendChild(summary);
+
+          var body = document.createElement('div');
+          body.className = 'miniapp-story-card-body';
+
+          body.appendChild(fieldLabel('عنوان'));
+          body.appendChild(
+            textInput(story.title, 'مثلاً تخفیف ویژه', 64, function (v) {
+              story.title = v;
+              titleEl.textContent = v || 'استوری ' + (si + 1);
+              bump();
+            })
+          );
+
+          body.appendChild(fieldLabel('تصویر کاور (حلقه)'));
+          body.appendChild(fieldHint('روی دایره استوری در ویترین دیده می‌شود.'));
+          body.appendChild(
+            imageUploadField(story.image || '', function (url) {
+              story.image = url;
+              renderStories();
+              bump();
+            })
+          );
+
+          body.appendChild(fieldLabel('اسلایدها'));
+          var slidesWrap = document.createElement('div');
+          slidesWrap.className = 'miniapp-story-slides';
+
+          story.slides.forEach(function (slide, slideIdx) {
+            if (!slide.target) slide.target = { kind: '', value: '' };
+            var slideCard = document.createElement('div');
+            slideCard.className = 'miniapp-story-slide';
+
+            var slideTop = document.createElement('div');
+            slideTop.className = 'miniapp-story-slide-top';
+            slideTop.appendChild(fieldLabel('اسلاید ' + (slideIdx + 1)));
+            if (story.slides.length > 1) {
+              slideTop.appendChild(
+                iconBtn('x-lg', 'حذف اسلاید', 'btn btn-panel-ghost btn-sm text-danger', function () {
+                  story.slides.splice(slideIdx, 1);
+                  renderStories();
+                  bump();
+                })
+              );
             }
-            var rmSlide = document.createElement('button');
-            rmSlide.type = 'button';
-            rmSlide.className = 'btn btn-panel-ghost btn-sm text-danger';
-            rmSlide.textContent = 'حذف اسلاید';
-            rmSlide.addEventListener('click', function () {
-              story.slides.splice(slideIdx, 1);
+            slideCard.appendChild(slideTop);
+
+            slideCard.appendChild(
+              imageUploadField(slide.image || '', function (url) {
+                slide.image = url;
+                if (!story.image && slideIdx === 0) story.image = url;
+                renderStories();
+                bump();
+              })
+            );
+
+            slideCard.appendChild(fieldLabel('متن روی اسلاید (اختیاری)'));
+            slideCard.appendChild(
+              textInput(slide.text || '', 'توضیح کوتاه', 200, function (v) {
+                slide.text = v;
+                bump();
+              })
+            );
+
+            slideCard.appendChild(fieldLabel('مدت نمایش (ثانیه)'));
+            slideCard.appendChild(
+              textInput(String(slide.duration || 5), '۵', 2, function (v) {
+                slide.duration = Math.min(30, Math.max(1, parseInt(v, 10) || 5));
+                bump();
+              })
+            );
+
+            appendStoryTargetFields(slideCard, slide.target, function () {
               renderStories();
               bump();
             });
-            slideCard.appendChild(rmSlide);
+
             slidesWrap.appendChild(slideCard);
           });
+
+          body.appendChild(slidesWrap);
+
           var addSlide = document.createElement('button');
           addSlide.type = 'button';
-          addSlide.className = 'btn btn-panel-ghost btn-sm mb-2';
-          addSlide.textContent = '+ اسلاید';
+          addSlide.className = 'btn btn-panel-ghost btn-sm miniapp-story-add-slide';
+          addSlide.innerHTML = '<i class="bi bi-plus-lg me-1"></i>اسلاید جدید';
           addSlide.addEventListener('click', function () {
-            story.slides.push({ image: '', duration: 5 });
+            story.slides.push({ image: '', duration: 5, target: { kind: '', value: '' } });
             renderStories();
             bump();
           });
-          card.appendChild(slidesWrap);
-          card.appendChild(addSlide);
-          var rm = document.createElement('button');
-          rm.type = 'button';
-          rm.className = 'btn btn-panel-ghost btn-sm text-danger';
-          rm.textContent = 'حذف استوری';
-          rm.addEventListener('click', function () {
-            block.items.splice(si, 1);
-            renderStories();
-            bump();
-          });
-          card.appendChild(rm);
+          body.appendChild(addSlide);
+          card.appendChild(body);
           storyList.appendChild(card);
         });
       }
+
       renderStories();
       host.appendChild(storyList);
+
       var addStory = document.createElement('button');
       addStory.type = 'button';
-      addStory.className = 'btn btn-panel-ghost btn-sm';
-      addStory.textContent = '+ استوری';
+      addStory.className = 'btn btn-panel-primary btn-sm w-100 miniapp-story-add';
+      addStory.innerHTML = '<i class="bi bi-plus-circle me-1"></i>افزودن استوری';
       addStory.addEventListener('click', function () {
-        block.items.push({ title: 'جدید', image: '', slides: [{ image: '', duration: 5 }] });
+        block.items.push({
+          title: 'استوری جدید',
+          image: '',
+          slides: [{ image: '', duration: 5, target: { kind: '', value: '' } }],
+        });
         renderStories();
         bump();
       });
@@ -1518,13 +1971,19 @@
           card.appendChild(fieldLabel('بنر ' + (bi + 1)));
           card.appendChild(imageUploadField(banner.image || '', function (url) { banner.image = url; bump(); }));
           if (!banner.target) banner.target = { kind: 'category', value: '' };
+          card.appendChild(fieldLabel('مقصد کلیک'));
           card.appendChild(
             selectInput(banner.target.kind || 'category', [
-              ['category', 'دسته'],
+              ['category', 'دسته‌بندی'],
               ['item', 'محصول'],
-            ], function (v) { banner.target.kind = v; bump(); })
+            ], function (v) {
+              banner.target.kind = v;
+              banner.target.value = '';
+              renderBanners();
+              bump();
+            })
           );
-          card.appendChild(textInput(banner.target.value, 'slug', 120, function (v) { banner.target.value = v; bump(); }));
+          appendTargetValueField(card, banner.target);
           var rm = document.createElement('button');
           rm.type = 'button';
           rm.className = 'btn btn-panel-ghost btn-sm text-danger';
@@ -1681,11 +2140,11 @@
       host.appendChild(textInput(block.title, '', 120, function (v) { block.title = v; bump(); }));
       host.appendChild(fieldLabel('برچسب (اختیاری)'));
       host.appendChild(textInput(block.badge, '', 40, function (v) { block.badge = v; bump(); }));
-      host.appendChild(fieldLabel('قیمت باندل (ریال)'));
-      host.appendChild(textInput(String(block.bundle_price || 0), '0', 12, function (v) { block.bundle_price = parseInt(v, 10) || 0; bump(); }));
-      host.appendChild(fieldLabel('slug محصولات (با کاما)'));
-      host.appendChild(textInput((block.item_slugs || []).join(', '), '', 500, function (v) {
-        block.item_slugs = v.split(/[,،]/).map(function (s) { return s.trim(); }).filter(Boolean);
+      host.appendChild(fieldLabel('قیمت باندل (تومان)'));
+      host.appendChild(textInput(String(tomanFromRial(block.bundle_price || 0)), '0', 12, function (v) { block.bundle_price = rialFromToman(v); bump(); }));
+      host.appendChild(fieldLabel('محصولات'));
+      host.appendChild(multiProductPickerField(block.item_slugs || [], function (slugs) {
+        block.item_slugs = slugs;
         bump();
       }));
       return;
@@ -1791,6 +2250,21 @@
       items = JSON.parse(root.getAttribute('data-items') || '[]');
     } catch (e2) {
       items = [];
+    }
+    try {
+      pickerCategories = JSON.parse(root.getAttribute('data-picker-categories') || '[]');
+    } catch (e3) {
+      pickerCategories = [];
+    }
+    try {
+      pickerItems = JSON.parse(root.getAttribute('data-picker-items') || '[]');
+    } catch (e4) {
+      pickerItems = [];
+    }
+    try {
+      pickerTags = JSON.parse(root.getAttribute('data-picker-tags') || '[]');
+    } catch (e5) {
+      pickerTags = [];
     }
 
     state.blocks = parseInitialBlocks();

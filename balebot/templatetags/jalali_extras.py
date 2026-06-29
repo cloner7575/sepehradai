@@ -1,5 +1,6 @@
 from django import template
 
+from balebot.services.catalog_currency import format_number as _format_number, format_toman as _format_toman
 from balebot.services.jalali_datetime import aware_to_jalali_parts
 
 register = template.Library()
@@ -21,3 +22,21 @@ def get_item(mapping, key):
         return mapping.get(key)
     except AttributeError:
         return None
+
+
+@register.filter(name='format_toman')
+def format_toman(value):
+    """مقدار ریال → عدد تومان با جداکننده (مثلاً 385,000)."""
+    return _format_toman(value)
+
+
+@register.filter(name='format_rial')
+def format_rial(value):
+    """سازگاری با قالب‌های قبلی — همان format_toman."""
+    return _format_toman(value)
+
+
+@register.filter(name='format_number')
+def format_number(value):
+    """عدد خام با جداکننده هزارگان (بدون تبدیل ریال/تومان)."""
+    return _format_number(value)

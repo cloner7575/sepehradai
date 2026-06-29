@@ -7,7 +7,7 @@ import logging
 from typing import Any, Literal
 
 from django.db import transaction
-from django.utils.text import slugify
+from balebot.services.slug_utils import resolve_model_slug, slug_from_text
 
 from balebot.models import (
     BotSettings,
@@ -232,9 +232,15 @@ def _apply_miniapp_template(
     for row in data.get('categories') or []:
         if not isinstance(row, dict):
             continue
-        slug = (row.get('slug') or slugify(row.get('name') or ''))[:140]
-        if not slug:
-            continue
+        slug = resolve_model_slug(
+            CatalogCategory,
+            row.get('name') or '',
+            manual_slug=(row.get('slug') or '').strip(),
+            workspace=workspace,
+            platform=platform,
+            fallback='category',
+            max_length=140,
+        )
         if mode == 'append' and _category_exists(workspace, platform, slug):
             category_by_slug[slug] = CatalogCategory.objects.get(
                 workspace=workspace, platform=platform, slug=slug,
@@ -269,9 +275,15 @@ def _apply_miniapp_template(
     for row in data.get('items') or []:
         if not isinstance(row, dict):
             continue
-        slug = (row.get('slug') or slugify(row.get('name') or ''))[:220]
-        if not slug:
-            continue
+        slug = resolve_model_slug(
+            CatalogItem,
+            row.get('name') or row.get('title') or '',
+            manual_slug=(row.get('slug') or '').strip(),
+            workspace=workspace,
+            platform=platform,
+            fallback='item',
+            max_length=220,
+        )
         if mode == 'append' and _item_exists(workspace, platform, slug):
             continue
         cat_slug = row.get('category') or ''

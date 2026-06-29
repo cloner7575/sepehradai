@@ -28,8 +28,10 @@ from balebot.models import (
     CatalogOrder,
     CatalogSettings,
     StoreTemplate,
+    Tag,
 )
 from balebot.platform import get_bot_settings_for_request, require_miniapp_access_for_request
+from balebot.services.catalog_currency import format_toman_label
 from balebot.services.catalog_item_types import ITEM_TYPE_GUIDES, get_item_type_guide
 from balebot.services.catalog_media import detect_media_type
 from balebot.services.catalog_page_layout import get_home_blocks, sanitize_home_blocks
@@ -114,7 +116,7 @@ def _catalog_item_status(item: CatalogItem | None, form=None) -> dict:
         'sale_mode_label': sale_label,
         'price_label': (
             'رایگان' if item_type == CatalogItem.ItemType.DOWNLOAD
-            else (f'{price:,} ریال' if price else '—')
+            else (format_toman_label(price) if price else '—')
         ),
         'is_download': item_type == CatalogItem.ItemType.DOWNLOAD,
     }
@@ -162,6 +164,239 @@ def _order_list_querystring(request, *, exclude_page: bool = True, exclude_keys:
     for key in exclude_keys or []:
         params.pop(key, None)
     return params.urlencode()
+
+
+def _item_list_querystring(request, *, exclude_page: bool = True, exclude_keys: list[str] | None = None) -> str:
+    params = request.GET.copy()
+    if exclude_page and 'page' in params:
+        params.pop('page')
+    for key in exclude_keys or []:
+        params.pop(key, None)
+    return params.urlencode()
+
+
+def _build_item_filter_url(request, **changes) -> str:
+    params = request.GET.copy()
+    params.pop('page', None)
+    for key, value in changes.items():
+        if value is None or value == '':
+            params.pop(key, None)
+        else:
+            params[key] = str(value)
+    qs = params.urlencode()
+    return f'?{qs}' if qs else '?'
+
+
+def _apply_item_filters(qs, request, *, skip: set[str] | None = None):
+    skip = skip or set()
+    q = (request.GET.get('q') or '').strip()
+    if q and 'q' not in skip:
+        qs = qs.filter(Q(title__icontains=q) | Q(short_description__icontains=q))
+
+    item_type = (request.GET.get('type') or '').strip()
+    valid_types = {choice[0] for choice in CatalogItem.ItemType.choices}
+    if 'type' not in skip and 'featured' not in skip:
+        if item_type in valid_types:
+            qs = qs.filter(item_type=item_type)
+        elif item_type == 'showcase':
+            qs = qs.filter(item_type__in=[CatalogItem.ItemType.SHOWCASE, 'portfolio'])
+        elif (request.GET.get('featured') or '').strip() == '1':
+            qs = qs.filter(is_featured=True)
+
+    status = (request.GET.get('status') or '').strip()
+    if status == 'active' and 'status' not in skip:
+        qs = qs.filter(is_active=True)
+    elif status == 'inactive' and 'status' not in skip:
+        qs = qs.filter(is_active=False)
+
+    category_id = (request.GET.get('category') or '').strip()
+    if 'category' not in skip:
+        if category_id == 'none':
+            qs = qs.filter(category__isnull=True)
+        elif category_id.isdigit():
+            qs = qs.filter(category_id=int(category_id))
+
+    return qs
+
+
+def _item_filter_context(request, scope: dict) -> dict:
+    base_qs = _apply_item_filters(CatalogItem.objects.filter(**scope), request, skip={'category'})
+    category_count_map = {
+        row['category_id']: row['c']
+        for row in base_qs.values('category_id').annotate(c=Count('id'))
+    }
+    uncategorized_count = base_qs.filter(category__isnull=True).count()
+
+    current_type = (request.GET.get('type') or '').strip()
+    current_status = (request.GET.get('status') or '').strip()
+    current_featured = (request.GET.get('featured') or '').strip() == '1'
+    current_category = (request.GET.get('category') or '').strip()
+    current_q = (request.GET.get('q') or '').strip()
+
+    type_base_qs = _apply_item_filters(CatalogItem.objects.filter(**scope), request, skip={'type', 'featured'})
+    type_count_map = {
+        row['item_type']: row['c']
+        for row in type_base_qs.values('item_type').annotate(c=Count('id'))
+    }
+    type_showcase_count = type_count_map.get(CatalogItem.ItemType.SHOWCASE, 0) + type_count_map.get('portfolio', 0)
+
+    type_filters = [
+        {
+            'key': 'all',
+            'label': 'همه انواع',
+            'icon': 'grid',
+            'count': type_base_qs.count(),
+            'url': _build_item_filter_url(request, type=None),
+            'is_active': not current_type,
+        },
+        {
+            'key': 'product',
+            'label': 'محصول',
+            'icon': 'bag',
+            'count': type_count_map.get(CatalogItem.ItemType.PRODUCT, 0),
+            'url': _build_item_filter_url(request, type='product'),
+            'is_active': current_type == 'product',
+        },
+        {
+            'key': 'download',
+            'label': 'دانلود',
+            'icon': 'download',
+            'count': type_count_map.get(CatalogItem.ItemType.DOWNLOAD, 0),
+            'url': _build_item_filter_url(request, type='download'),
+            'is_active': current_type == 'download',
+        },
+        {
+            'key': 'video',
+            'label': 'ویدیو',
+            'icon': 'play-btn',
+            'count': type_count_map.get(CatalogItem.ItemType.VIDEO, 0),
+            'url': _build_item_filter_url(request, type='video'),
+            'is_active': current_type == 'video',
+        },
+        {
+            'key': 'showcase',
+            'label': 'معرفی',
+            'icon': 'images',
+            'count': type_showcase_count,
+            'url': _build_item_filter_url(request, type='showcase'),
+            'is_active': current_type == 'showcase',
+        },
+    ]
+
+    featured_filter = {
+        'label': 'ویژه',
+        'count': type_base_qs.filter(is_featured=True).count(),
+        'url_on': _build_item_filter_url(request, featured='1'),
+        'url_off': _build_item_filter_url(request, featured=None),
+        'is_active': current_featured,
+    }
+
+    status_base_qs = _apply_item_filters(CatalogItem.objects.filter(**scope), request, skip={'status'})
+    status_filters = [
+        {
+            'key': 'all',
+            'label': 'همه',
+            'count': status_base_qs.count(),
+            'url': _build_item_filter_url(request, status=None),
+            'is_active': not current_status,
+        },
+        {
+            'key': 'active',
+            'label': 'فعال',
+            'count': status_base_qs.filter(is_active=True).count(),
+            'url': _build_item_filter_url(request, status='active'),
+            'is_active': current_status == 'active',
+        },
+        {
+            'key': 'inactive',
+            'label': 'غیرفعال',
+            'count': status_base_qs.filter(is_active=False).count(),
+            'url': _build_item_filter_url(request, status='inactive'),
+            'is_active': current_status == 'inactive',
+        },
+    ]
+
+    categories = list(
+        CatalogCategory.objects.filter(**scope).order_by('sort_order', 'name')
+    )
+    category_filters = [
+        {
+            'key': 'all',
+            'label': 'همه دسته‌ها',
+            'count': base_qs.count(),
+            'image_url': '',
+            'url': _build_item_filter_url(request, category=None),
+            'is_active': not current_category,
+        },
+        {
+            'key': 'none',
+            'label': 'بدون دسته',
+            'count': uncategorized_count,
+            'image_url': '',
+            'url': _build_item_filter_url(request, category='none'),
+            'is_active': current_category == 'none',
+        },
+    ]
+    for category in categories:
+        category_filters.append({
+            'key': str(category.pk),
+            'label': category.name,
+            'count': category_count_map.get(category.pk, 0),
+            'image_url': category.image.url if category.image else '',
+            'url': _build_item_filter_url(request, category=category.pk),
+            'is_active': current_category == str(category.pk),
+        })
+
+    categories_by_id = {str(c.pk): c for c in categories}
+    active_filters = []
+    if current_q:
+        active_filters.append({
+            'label': f'جستجو: {current_q}',
+            'url': _build_item_filter_url(request, q=None),
+        })
+    if current_type:
+        type_labels = {f['key']: f['label'] for f in type_filters}
+        active_filters.append({
+            'label': type_labels.get(current_type, current_type),
+            'url': _build_item_filter_url(request, type=None),
+        })
+    if current_featured:
+        active_filters.append({
+            'label': 'ویژه',
+            'url': _build_item_filter_url(request, featured=None),
+        })
+    if current_status == 'active':
+        active_filters.append({'label': 'فعال', 'url': _build_item_filter_url(request, status=None)})
+    elif current_status == 'inactive':
+        active_filters.append({'label': 'غیرفعال', 'url': _build_item_filter_url(request, status=None)})
+    if current_category == 'none':
+        active_filters.append({'label': 'بدون دسته', 'url': _build_item_filter_url(request, category=None)})
+    elif current_category and current_category in categories_by_id:
+        active_filters.append({
+            'label': categories_by_id[current_category].name,
+            'url': _build_item_filter_url(request, category=None),
+        })
+
+    has_filters = bool(active_filters)
+    active_category_label = next(
+        (f['label'] for f in category_filters if f['is_active']),
+        'همه دسته‌ها',
+    )
+
+    return {
+        'type_filters': type_filters,
+        'featured_filter': featured_filter,
+        'status_filters': status_filters,
+        'category_filters': category_filters,
+        'active_filters': active_filters,
+        'has_item_filters': has_filters,
+        'active_category_label': active_category_label,
+        'current_type': current_type,
+        'current_status': current_status,
+        'current_featured': current_featured,
+        'current_category': current_category,
+        'list_qs': _item_list_querystring(request),
+    }
 
 
 def _build_onboarding_steps(
@@ -324,6 +559,19 @@ class MiniAppFlowEngineView(MiniAppPanelMixin, TemplateView):
             CatalogCategory.objects.filter(**scope, is_active=True, parent__isnull=True)
             .order_by('sort_order', 'name')[:12]
         )
+        picker_categories = list(
+            CatalogCategory.objects.filter(**scope, is_active=True)
+            .select_related('parent')
+            .order_by('sort_order', 'name')[:300]
+        )
+        picker_items = list(
+            CatalogItem.objects.filter(**scope, is_active=True)
+            .select_related('category')
+            .order_by('sort_order', 'title')[:500]
+        )
+        picker_tags = list(
+            Tag.objects.filter(**scope, is_active=True).order_by('name')[:200]
+        )
         cat_json = [
             {
                 'name': c.name,
@@ -345,6 +593,29 @@ class MiniAppFlowEngineView(MiniAppPanelMixin, TemplateView):
             }
             for i in items
         ]
+        picker_cat_json = [
+            {
+                'name': (
+                    f'{c.parent.name} › {c.name}' if c.parent_id and c.parent else c.name
+                ),
+                'slug': c.slug,
+            }
+            for c in picker_categories
+        ]
+        picker_items_json = [
+            {
+                'title': i.title,
+                'slug': i.slug,
+            }
+            for i in picker_items
+        ]
+        picker_tags_json = [
+            {
+                'name': t.name,
+                'slug': t.slug,
+            }
+            for t in picker_tags
+        ]
 
         blocks = get_home_blocks(catalog.theme_config)
         if catalog_form and catalog_form.is_bound and not catalog_form.is_valid():
@@ -364,6 +635,9 @@ class MiniAppFlowEngineView(MiniAppPanelMixin, TemplateView):
             'catalog_categories': categories,
             'catalog_categories_json': json.dumps(cat_json, ensure_ascii=False),
             'catalog_items_json': json.dumps(items_json, ensure_ascii=False),
+            'catalog_picker_categories_json': json.dumps(picker_cat_json, ensure_ascii=False),
+            'catalog_picker_items_json': json.dumps(picker_items_json, ensure_ascii=False),
+            'catalog_picker_tags_json': json.dumps(picker_tags_json, ensure_ascii=False),
             'home_blocks_json': json.dumps(blocks, ensure_ascii=False),
             'mini_app_url': catalog.build_mini_app_url(bot),
         }
@@ -547,6 +821,11 @@ class CatalogCategoryCreateView(MiniAppPanelMixin, CreateView):
         kw['platform'] = self.get_active_platform()
         return kw
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['category_item_count'] = 0
+        return ctx
+
     def form_valid(self, form):
         form.instance.workspace = self.get_workspace()
         form.instance.platform = self.get_active_platform()
@@ -571,6 +850,12 @@ class CatalogCategoryUpdateView(MiniAppPanelMixin, UpdateView):
         kw['platform'] = self.get_active_platform()
         return kw
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        obj = self.object
+        ctx['category_item_count'] = obj.items.count() if obj and obj.pk else 0
+        return ctx
+
     def form_valid(self, form):
         messages.success(self.request, 'دسته‌بندی به‌روزرسانی شد.')
         return super().form_valid(form)
@@ -579,18 +864,31 @@ class CatalogCategoryUpdateView(MiniAppPanelMixin, UpdateView):
         return reverse('catalog_category_list')
 
 
+class CatalogCategoryDeleteView(MiniAppPanelMixin, View):
+    http_method_names = ['post']
+
+    def post(self, request, pk, *args, **kwargs):
+        category = get_object_or_404(CatalogCategory.objects.filter(**self.scope_filter()), pk=pk)
+        name = category.name
+        category.delete()
+        messages.success(request, f'دسته «{name}» حذف شد.')
+        return redirect('catalog_category_list')
+
+
 class CatalogItemListView(MiniAppPanelMixin, ListView):
     model = CatalogItem
     template_name = 'balebot/catalog_item_list.html'
     context_object_name = 'items'
-    paginate_by = 30
+    paginate_by = 24
 
     def get_queryset(self):
         qs = CatalogItem.objects.filter(**self.scope_filter()).select_related('category').prefetch_related('media')
-        q = (self.request.GET.get('q') or '').strip()
-        if q:
-            qs = qs.filter(Q(title__icontains=q) | Q(short_description__icontains=q))
-        return qs.order_by('sort_order', '-created_at')
+        return _apply_item_filters(qs, self.request).order_by('sort_order', '-created_at')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx.update(_item_filter_context(self.request, self.scope_filter()))
+        return ctx
 
 
 class CatalogItemCreateView(MiniAppPanelMixin, CreateView):
@@ -674,6 +972,17 @@ class CatalogItemUpdateView(MiniAppPanelMixin, UpdateView):
         return reverse('catalog_item_list')
 
 
+class CatalogItemDeleteView(MiniAppPanelMixin, View):
+    http_method_names = ['post']
+
+    def post(self, request, pk, *args, **kwargs):
+        item = get_object_or_404(CatalogItem.objects.filter(**self.scope_filter()), pk=pk)
+        title = item.title
+        item.delete()
+        messages.success(request, f'آیتم «{title}» حذف شد.')
+        return redirect('catalog_item_list')
+
+
 class CatalogItemMediaDeleteView(MiniAppPanelMixin, View):
     def post(self, request, pk, media_pk):
         item = get_object_or_404(CatalogItem, pk=pk, **self.scope_filter())
@@ -712,6 +1021,15 @@ class CatalogOrderListView(MiniAppPanelMixin, ListView):
                 | Q(subscriber__username__icontains=q)
                 | Q(subscriber__phone_number__icontains=q)
                 | Q(note__icontains=q)
+                | Q(admin_note__icontains=q)
+                | Q(customer_note__icontains=q)
+                | Q(recipient_name__icontains=q)
+                | Q(recipient_phone__icontains=q)
+                | Q(recipient_address__icontains=q)
+                | Q(tracking_code__icontains=q)
+                | Q(payment_charge_id__icontains=q)
+                | Q(discount_code__icontains=q)
+                | Q(public_token__icontains=q)
             )
             if q.isdigit():
                 filters |= Q(pk=int(q)) | Q(subscriber__messenger_user_id=int(q))
@@ -730,6 +1048,7 @@ class CatalogOrderListView(MiniAppPanelMixin, ListView):
         )
         ctx['current_status'] = (self.request.GET.get('status') or '').strip()
         ctx['current_payment'] = (self.request.GET.get('payment') or '').strip()
+        ctx['payment_method_choices'] = CatalogSettings.PaymentMethod.choices
         ctx['list_qs'] = _order_list_querystring(self.request)
         ctx['filter_base_qs'] = _order_list_querystring(self.request, exclude_keys=['payment'])
         return ctx
@@ -828,6 +1147,17 @@ class CatalogOrderUpdateView(MiniAppPanelMixin, View):
         else:
             messages.success(request, 'سفارش ذخیره شد.')
         return redirect('catalog_order_detail', pk=pk)
+
+
+class CatalogOrderDeleteView(MiniAppPanelMixin, View):
+    http_method_names = ['post']
+
+    def post(self, request, pk, *args, **kwargs):
+        order = get_object_or_404(CatalogOrder.objects.filter(**self.scope_filter()), pk=pk)
+        order_id = order.pk
+        order.delete()
+        messages.success(request, f'سفارش #{order_id} حذف شد.')
+        return redirect('catalog_order_list')
 
 
 class StoreTemplateListView(StoreTemplatePanelMixin, ListView):

@@ -604,16 +604,22 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
             return self._redirect_subscriber(request)
 
         if action == 'create_assign_tag':
-            from django.utils.text import slugify
+            from balebot.models import Tag
+            from balebot.services.slug_utils import resolve_model_slug
 
             name = (request.POST.get('tag_name') or '').strip()[:120]
             if not name:
                 messages.error(request, 'نام دسته‌بندی را وارد کنید.')
                 return self._redirect_subscriber(request)
             scope = self.scope_filter()
-            slug = slugify(name, allow_unicode=False)[:140]
-            if not slug:
-                slug = f'tag-{uuid.uuid4().hex[:8]}'
+            slug = resolve_model_slug(
+                Tag,
+                name,
+                workspace=scope['workspace'],
+                platform=scope['platform'],
+                fallback='tag',
+                max_length=140,
+            )
             tag, _ = Tag.objects.get_or_create(
                 workspace=scope['workspace'],
                 platform=scope['platform'],

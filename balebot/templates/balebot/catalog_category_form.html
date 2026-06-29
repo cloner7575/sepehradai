@@ -1,40 +1,171 @@
 {% extends "balebot/base.html" %}
-{% block title %}{% if object %}ویرایش دسته{% else %}دسته جدید{% endif %}{% endblock %}
-{% block page_title %}{% if object %}ویرایش دسته{% else %}دسته جدید{% endif %}{% endblock %}
+{% load static %}
+{% block title %}{% if object %}ویرایش دسته‌بندی{% else %}دسته‌بندی جدید{% endif %}{% endblock %}
+{% block page_title %}{% if object %}ویرایش دسته‌بندی{% else %}دسته‌بندی جدید{% endif %}{% endblock %}
+{% block page_subtitle %}
+<p class="topbar-meta mb-0 mt-1">
+  {% if object %}
+  ویرایش «{{ object.name }}»{% if category_item_count %} · {{ category_item_count }} آیتم{% endif %}
+  {% else %}
+  دستهٔ جدید برای سازماندهی محصولات در ویترین مینی‌اپ
+  {% endif %}
+</p>
+{% endblock %}
+
 {% block content %}
-<div class="catalog-panel">
+<div class="catalog-panel catalog-category-form-page">
   {% include "balebot/_catalog_subnav.html" %}
 
-  <div class="row g-4">
-    <div class="col-lg-8">
-      <div class="panel-card">
-        <div class="panel-card-header">
-          <h2 class="panel-card-title mb-0">اطلاعات دسته</h2>
-        </div>
-        <div class="panel-card-body">
-          <form method="post" enctype="multipart/form-data">{% csrf_token %}
-            {% for field in form %}
-            <div class="mb-3">
-              <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-              {{ field }}
-              {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-              {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
-            </div>
-            {% endfor %}
-            {% if object and object.image %}
-            <div class="mb-3">
-              <label class="form-label">تصویر فعلی</label>
-              <img src="{{ object.image.url }}" alt="" class="catalog-settings-logo-preview rounded">
-            </div>
-            {% endif %}
-            <div class="d-flex flex-wrap gap-2">
-              <button type="submit" class="btn btn-panel-primary">ذخیره</button>
-              <a href="{% url 'catalog_category_list' %}" class="btn btn-panel-ghost">بازگشت</a>
-            </div>
-          </form>
-        </div>
+  <form method="post" enctype="multipart/form-data" class="catalog-category-form" id="catalog-category-form" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger mb-4">
+      {% for err in form.non_field_errors %}{{ err }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="bot-setup-status catalog-category-status" aria-label="خلاصه دسته">
+      <div class="bot-setup-status-item is-ok" id="cat-status-name-item">
+        <span class="bot-setup-status-icon"><i class="bi bi-folder2"></i></span>
+        <span class="bot-setup-status-label">نام</span>
+        <span class="bot-setup-status-value" id="cat-status-name">{% if object %}{{ object.name }}{% else %}—{% endif %}</span>
+      </div>
+      <div class="bot-setup-status-item {% if not object or object.is_active %}is-ok{% else %}is-off{% endif %}" id="cat-status-active-item">
+        <span class="bot-setup-status-icon"><i class="bi bi-eye"></i></span>
+        <span class="bot-setup-status-label">وضعیت</span>
+        <span class="bot-setup-status-value" id="cat-status-active">{% if not object or object.is_active %}فعال{% else %}غیرفعال{% endif %}</span>
+      </div>
+      <div class="bot-setup-status-item is-ok" id="cat-status-slug-item">
+        <span class="bot-setup-status-icon"><i class="bi bi-link-45deg"></i></span>
+        <span class="bot-setup-status-label">نامک</span>
+        <span class="bot-setup-status-value catalog-category-status-slug" id="cat-status-slug" dir="ltr">{% if object %}{{ object.slug }}{% else %}خودکار{% endif %}</span>
       </div>
     </div>
-  </div>
+
+    <div class="row g-4 align-items-start">
+      <div class="col-lg-8">
+        <div class="panel-card catalog-category-section">
+          <header class="panel-card-header">
+            <div>
+              <h2 class="panel-card-title mb-1">اطلاعات دسته‌بندی</h2>
+              <p class="panel-card-lead mb-0">نام فارسی دسته را وارد کنید؛ نامک آدرس به‌صورت خودکار از نام ساخته می‌شود.</p>
+            </div>
+          </header>
+          <div class="panel-card-body">
+            {% include "balebot/_settings_field.html" with field=form.name hint=form.name.help_text %}
+            {% include "balebot/_settings_field.html" with field=form.slug hint=form.slug.help_text %}
+            {% include "balebot/_settings_field.html" with field=form.parent hint=form.parent.help_text %}
+          </div>
+        </div>
+
+        <div class="panel-card catalog-category-section">
+          <header class="panel-card-header">
+            <div>
+              <h2 class="panel-card-title mb-1">تصویر دسته</h2>
+              <p class="panel-card-lead mb-0">تصویر کوچک کنار نام دسته در مینی‌اپ نمایش داده می‌شود.</p>
+            </div>
+          </header>
+          <div class="panel-card-body">
+            <div class="catalog-category-image-box" id="cat-image-box">
+              <div class="catalog-category-image-preview" id="cat-image-preview">
+                {% if object and object.image %}
+                <img src="{{ object.image.url }}" alt="" id="cat-image-preview-img">
+                <div class="catalog-category-image-placeholder d-none" id="cat-image-placeholder">
+                  <i class="bi bi-image"></i>
+                  <span>پیش‌نمایش تصویر</span>
+                </div>
+                {% else %}
+                <div class="catalog-category-image-placeholder" id="cat-image-placeholder">
+                  <i class="bi bi-image"></i>
+                  <span>پیش‌نمایش تصویر</span>
+                </div>
+                <img src="" alt="" class="d-none" id="cat-image-preview-img">
+                {% endif %}
+              </div>
+              <div class="catalog-category-image-upload">
+                {% include "balebot/_settings_field.html" with field=form.image hint=form.image.help_text %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-card catalog-category-section">
+          <header class="panel-card-header">
+            <div>
+              <h2 class="panel-card-title mb-1">تنظیمات نمایش</h2>
+              <p class="panel-card-lead mb-0">ترتیب و وضعیت نمایش دسته در ویترین.</p>
+            </div>
+          </header>
+          <div class="panel-card-body">
+            {% include "balebot/_settings_field.html" with field=form.sort_order hint=form.sort_order.help_text %}
+            <div class="settings-switch-group border-top pt-3 mt-2">
+              {% include "balebot/_settings_switch.html" with field=form.is_active title="نمایش در ویترین" desc=form.is_active.help_text %}
+            </div>
+          </div>
+        </div>
+
+        <div class="catalog-category-form-actions">
+          <button type="submit" class="btn btn-panel-primary">
+            <i class="bi bi-check-lg me-1"></i>{% if object %}ذخیره تغییرات{% else %}ایجاد دسته{% endif %}
+          </button>
+          <a href="{% url 'catalog_category_list' %}" class="btn btn-panel-ghost">انصراف</a>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="panel-card catalog-category-preview-card">
+          <header class="panel-card-header">
+            <h2 class="panel-card-title mb-0">پیش‌نمایش در مینی‌اپ</h2>
+          </header>
+          <div class="panel-card-body">
+            <div class="catalog-category-preview-chip" id="cat-preview-chip">
+              <div class="catalog-category-preview-thumb" id="cat-preview-thumb">
+                {% if object and object.image %}
+                <img src="{{ object.image.url }}" alt="" id="cat-preview-thumb-img">
+                {% else %}
+                <i class="bi bi-folder2" id="cat-preview-thumb-icon"></i>
+                <img src="" alt="" class="d-none" id="cat-preview-thumb-img">
+                {% endif %}
+              </div>
+              <span class="catalog-category-preview-name" id="cat-preview-name">{% if object %}{{ object.name }}{% else %}نام دسته{% endif %}</span>
+            </div>
+            <p class="catalog-category-preview-hint small text-muted mb-0 mt-3">
+              دسته‌ها در صفحهٔ اصلی و فیلتر کناری محصولات نمایش داده می‌شوند.
+            </p>
+          </div>
+        </div>
+
+        <div class="panel-card catalog-category-tips-card">
+          <header class="panel-card-header">
+            <h2 class="panel-card-title mb-0"><i class="bi bi-lightbulb me-1"></i>راهنما</h2>
+          </header>
+          <div class="panel-card-body">
+            <ul class="catalog-category-tips list-unstyled mb-0">
+              <li><i class="bi bi-check2-circle"></i>نام دسته را کوتاه و قابل فهم بنویسید.</li>
+              <li><i class="bi bi-check2-circle"></i>برای زیردسته‌ها، دستهٔ والد را انتخاب کنید.</li>
+              <li><i class="bi bi-check2-circle"></i>نامک آدرس را خالی بگذارید تا خودکار ساخته شود.</li>
+              <li><i class="bi bi-check2-circle"></i>ترتیب نمایش با عدد کوچک‌تر، بالاتر دیده می‌شود.</li>
+            </ul>
+          </div>
+        </div>
+
+        {% if object and category_item_count %}
+        <div class="panel-card catalog-category-meta-card">
+          <div class="panel-card-body">
+            <p class="small mb-2"><strong>{{ category_item_count }}</strong> آیتم به این دسته متصل است.</p>
+            <a href="{% url 'catalog_item_list' %}?category={{ object.pk }}" class="btn btn-panel-ghost btn-sm w-100">
+              <i class="bi bi-box-seam me-1"></i>مشاهده آیتم‌ها
+            </a>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </form>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'balebot/js/catalog_category_form.js' %}?v=1"></script>
 {% endblock %}

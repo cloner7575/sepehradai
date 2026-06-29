@@ -1,5 +1,5 @@
 {% extends "balebot/base.html" %}
-{% load static %}
+{% load static jalali_extras %}
 {% block title %}داشبورد مینی‌اپ{% endblock %}
 {% block page_title %}داشبورد مینی‌اپ{% endblock %}
 {% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">ویترین و محتوای مینی‌اپ {{ active_platform_label }}</p>{% endblock %}
@@ -205,7 +205,7 @@
               <div class="catalog-feed-meta">
                 {% if item.category %}{{ item.category.name }} · {% endif %}
                 {{ item.get_item_type_display }}
-                {% if item.price %} · {{ item.price|floatformat:0 }} ریال{% endif %}
+                {% if item.price %} · {{ item.price|format_toman }} تومان{% endif %}
               </div>
             </div>
             {% if item.is_active %}
@@ -238,7 +238,7 @@
               <tr>
                 <td><a href="{% url 'catalog_order_detail' o.pk %}">#{{ o.pk }}</a></td>
                 <td>{% include "balebot/_catalog_order_status.html" with order=o %}</td>
-                <td class="small">{{ o.total_amount|floatformat:0 }}</td>
+                <td class="small">{{ o.total_amount|format_toman }}</td>
                 <td class="small">{% if o.subscriber %}{{ o.subscriber.first_name|default:"—" }}{% else %}—{% endif %}</td>
               </tr>
               {% empty %}

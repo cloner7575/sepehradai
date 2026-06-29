@@ -189,9 +189,19 @@ urlpatterns = [
     path('catalog/categories/', views_panel_catalog.CatalogCategoryListView.as_view(), name='catalog_category_list'),
     path('catalog/categories/new/', views_panel_catalog.CatalogCategoryCreateView.as_view(), name='catalog_category_create'),
     path('catalog/categories/<int:pk>/edit/', views_panel_catalog.CatalogCategoryUpdateView.as_view(), name='catalog_category_edit'),
+    path(
+        'catalog/categories/<int:pk>/delete/',
+        views_panel_catalog.CatalogCategoryDeleteView.as_view(),
+        name='catalog_category_delete',
+    ),
     path('catalog/items/', views_panel_catalog.CatalogItemListView.as_view(), name='catalog_item_list'),
     path('catalog/items/new/', views_panel_catalog.CatalogItemCreateView.as_view(), name='catalog_item_create'),
     path('catalog/items/<int:pk>/edit/', views_panel_catalog.CatalogItemUpdateView.as_view(), name='catalog_item_edit'),
+    path(
+        'catalog/items/<int:pk>/delete/',
+        views_panel_catalog.CatalogItemDeleteView.as_view(),
+        name='catalog_item_delete',
+    ),
     path(
         'catalog/items/<int:pk>/media/<int:media_pk>/delete/',
         views_panel_catalog.CatalogItemMediaDeleteView.as_view(),
@@ -203,6 +213,11 @@ urlpatterns = [
         'catalog/orders/<int:pk>/update/',
         views_panel_catalog.CatalogOrderUpdateView.as_view(),
         name='catalog_order_update',
+    ),
+    path(
+        'catalog/orders/<int:pk>/delete/',
+        views_panel_catalog.CatalogOrderDeleteView.as_view(),
+        name='catalog_order_delete',
     ),
     path('api/shop/<uuid:public_id>/config/', views_miniapp_api.catalog_config, name='api_catalog_config'),
     path(

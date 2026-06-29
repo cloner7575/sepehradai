@@ -62,12 +62,29 @@
     return ['basics', 'media', 'publish'];
   }
 
+  function transliterateToLatin(raw) {
+    var map = {
+      '\u0622': 'a', '\u0627': 'a', '\u0628': 'b', '\u067e': 'p', '\u062a': 't', '\u062b': 's',
+      '\u062c': 'j', '\u0686': 'ch', '\u062d': 'h', '\u062e': 'kh', '\u062f': 'd', '\u0630': 'z',
+      '\u0631': 'r', '\u0632': 'z', '\u0698': 'zh', '\u0633': 's', '\u0634': 'sh', '\u0635': 's',
+      '\u0636': 'z', '\u0637': 't', '\u0638': 'z', '\u0639': 'a', '\u063a': 'gh', '\u0641': 'f',
+      '\u0642': 'gh', '\u06a9': 'k', '\u06af': 'g', '\u0644': 'l', '\u0645': 'm', '\u0646': 'n',
+      '\u0648': 'v', '\u0647': 'h', '\u06cc': 'y', '\u064a': 'y', '\u200c': '-'
+    };
+  var out = '';
+    for (var i = 0; i < raw.length; i++) {
+      var ch = raw.charAt(i);
+      out += map[ch] || ch;
+    }
+    return out;
+  }
+
   function slugifyTitle(raw) {
-    return String(raw || '')
+    return transliterateToLatin(String(raw || ''))
       .trim()
       .toLowerCase()
       .replace(/\s+/g, '-')
-      .replace(/[^\w\u0600-\u06FF-]+/g, '')
+      .replace(/[^a-z0-9-]+/g, '')
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '')
       .slice(0, 80);
@@ -91,9 +108,9 @@
     var num = parseInt(String(value || '').replace(/[^\d]/g, ''), 10);
     if (!num || num <= 0) return '—';
     try {
-      return new Intl.NumberFormat('fa-IR').format(num) + ' ریال';
+      return new Intl.NumberFormat('fa-IR').format(num) + ' تومان';
     } catch (e) {
-      return num + ' ریال';
+      return num + ' تومان';
     }
   }
 

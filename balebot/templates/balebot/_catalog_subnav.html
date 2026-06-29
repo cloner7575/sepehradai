@@ -21,7 +21,7 @@
   <a href="{% url 'catalog_bulk_import' %}" class="catalog-subnav-link{% if name == 'catalog_bulk_import' or name == 'catalog_bulk_import_sample' %} is-active{% endif %}">
     <i class="bi bi-file-earmark-spreadsheet"></i><span>ورود گروهی</span>
   </a>
-  <a href="{% url 'catalog_order_list' %}" class="catalog-subnav-link{% if name == 'catalog_order_list' or name == 'catalog_order_detail' %} is-active{% endif %}">
+  <a href="{% url 'catalog_order_list' %}" class="catalog-subnav-link{% if name == 'catalog_order_list' or name == 'catalog_order_detail' or name == 'catalog_order_update' %} is-active{% endif %}">
     <i class="bi bi-receipt"></i><span>سفارش‌ها</span>
   </a>
   <a href="{% url 'catalog_settings' %}" class="catalog-subnav-link{% if name == 'catalog_settings' %} is-active{% endif %}">

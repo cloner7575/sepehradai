@@ -1,4 +1,5 @@
 {% extends "balebot/base.html" %}
+{% load jalali_extras %}
 {% block title %}سفارش‌ها{% endblock %}
 {% block page_title %}سفارش‌های مینی‌اپ{% endblock %}
 {% block page_subtitle %}
@@ -43,7 +44,7 @@
           <span class="app-metric-icon app-metric-icon--neutral mb-0"><i class="bi bi-cash-stack"></i></span>
           <div>
             <span class="app-metric-label">درآمد پرداخت‌شده</span>
-            <span class="app-metric-value catalog-order-revenue">{{ order_revenue|floatformat:0 }}<small class="catalog-order-revenue-unit">ریال</small></span>
+            <span class="app-metric-value catalog-order-revenue">{{ order_revenue|format_toman }}<small class="catalog-order-revenue-unit">تومان</small></span>
           </div>
         </div>
       </div>
@@ -53,7 +54,7 @@
   <div class="catalog-toolbar catalog-orders-toolbar">
     <form method="get" class="catalog-toolbar-search">
       <i class="bi bi-search catalog-toolbar-search-icon"></i>
-      <input name="q" value="{{ request.GET.q }}" class="form-control panel-input" placeholder="شماره سفارش، نام، موبایل یا شناسه کاربر…">
+      <input name="q" value="{{ request.GET.q }}" class="form-control panel-input" placeholder="شماره، نام، موبایل، کد رهگیری، توکن…">
       {% if current_status %}<input type="hidden" name="status" value="{{ current_status }}">{% endif %}
       {% if current_payment %}<input type="hidden" name="payment" value="{{ current_payment }}">{% endif %}
       <button type="submit" class="btn btn-panel-ghost btn-sm">جستجو</button>
@@ -91,8 +92,9 @@
         <p class="panel-card-lead mb-0 small">{% if is_paginated %}نمایش {{ page_obj.start_index }}–{{ page_obj.end_index }} از {{ paginator.count }}{% else %}{{ orders|length }} سفارش{% endif %}</p>
       </div>
       <div class="catalog-orders-payment-filters">
-        <a href="?{% if filter_base_qs %}{{ filter_base_qs }}&{% endif %}payment=card_to_card" class="catalog-mini-filter{% if current_payment == 'card_to_card' %} is-active{% endif %}">کارت به کارت</a>
-        <a href="?{% if filter_base_qs %}{{ filter_base_qs }}&{% endif %}payment=admin_cart" class="catalog-mini-filter{% if current_payment == 'admin_cart' %} is-active{% endif %}">ارسال به ادمین</a>
+        {% for value, label in payment_method_choices %}
+        <a href="?{% if filter_base_qs %}{{ filter_base_qs }}&{% endif %}payment={{ value }}" class="catalog-mini-filter{% if current_payment == value %} is-active{% endif %}">{{ label }}</a>
+        {% endfor %}
         {% if current_payment %}
         <a href="?{{ filter_base_qs }}" class="catalog-mini-filter catalog-mini-filter--clear">همه روش‌ها</a>
         {% endif %}
@@ -103,7 +105,8 @@
         <thead>
           <tr>
             <th>سفارش</th>
-            <th>وضعیت</th>
+            <th>وضعیت پرداخت</th>
+            <th class="d-none d-md-table-cell">ارسال</th>
             <th class="d-none d-md-table-cell">نوع</th>
             <th class="d-none d-lg-table-cell">اقلام</th>
             <th>مبلغ</th>
@@ -121,6 +124,12 @@
             </td>
             <td>{% include "balebot/_catalog_order_status.html" with order=o %}</td>
             <td class="d-none d-md-table-cell">
+              {% include "balebot/_catalog_order_fulfillment_status.html" with order=o %}
+              {% if o.tracking_code %}
+              <div class="small text-muted mt-1" dir="ltr">{{ o.tracking_code }}</div>
+              {% endif %}
+            </td>
+            <td class="d-none d-md-table-cell">
               {% if o.status == 'request' %}
               <span class="catalog-order-type catalog-order-type--request"><i class="bi bi-chat-dots"></i>درخواست</span>
               {% elif o.total_amount > 0 %}
@@ -131,8 +140,8 @@
             </td>
             <td class="d-none d-lg-table-cell small text-muted">{{ o.line_count }}</td>
             <td>
-              <span class="catalog-order-amount">{% if o.total_amount %}{{ o.total_amount|floatformat:0 }}{% else %}—{% endif %}</span>
-              {% if o.total_amount %}<span class="catalog-order-amount-unit">ریال</span>{% endif %}
+              <span class="catalog-order-amount">{% if o.total_amount %}{{ o.total_amount|format_toman }}{% else %}—{% endif %}</span>
+              {% if o.total_amount %}<span class="catalog-order-amount-unit">تومان</span>{% endif %}
             </td>
             <td class="d-none d-md-table-cell">
               {% if o.subscriber %}
@@ -149,16 +158,26 @@
             <td class="d-none d-xl-table-cell small">
               {% if o.payment_method == 'card_to_card' %}کارت به کارت
               {% elif o.payment_method == 'admin_cart' %}ارسال به ادمین
+              {% elif o.payment_method == 'bale' %}پرداخت بله
+              {% elif o.payment_method == 'zarinpal' %}زرین‌پال
+              {% elif o.payment_method %}{{ o.payment_method }}
               {% else %}—{% endif %}
             </td>
             <td class="d-none d-lg-table-cell small text-muted">{{ o.created_at|date:"Y/m/d H:i" }}</td>
             <td class="text-end text-nowrap">
-              <a href="{% url 'catalog_order_detail' o.pk %}" class="btn btn-panel-ghost btn-sm" title="جزئیات"><i class="bi bi-eye"></i></a>
+              <a href="{% url 'catalog_order_detail' o.pk %}" class="btn btn-panel-primary btn-sm">مدیریت</a>
+              {% if o.subscriber %}
+              <a href="{% url 'subscriber_detail' o.subscriber.pk %}" class="btn btn-panel-ghost btn-sm" title="مشترک"><i class="bi bi-person"></i></a>
+              {% endif %}
+              <form method="post" action="{% url 'catalog_order_delete' o.pk %}" class="d-inline" onsubmit="return confirm('سفارش #{{ o.pk }} حذف شود؟ این کار قابل بازگشت نیست.');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger btn-sm border-opacity-50" title="حذف"><i class="bi bi-trash"></i></button>
+              </form>
             </td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="9">
+            <td colspan="10">
               <div class="catalog-empty-state catalog-empty-state--table">
                 <i class="bi bi-receipt"></i>
                 <p>{% if request.GET.q %}نتیجه‌ای برای «{{ request.GET.q }}» نیست{% else %}سفارشی ثبت نشده{% endif %}</p>

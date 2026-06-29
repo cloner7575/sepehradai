@@ -1,73 +1,185 @@
 {% extends "balebot/base.html" %}
+{% load static jalali_extras %}
 {% block title %}آیتم‌ها{% endblock %}
-{% block page_title %}آیتم‌های مینی‌اپ{% endblock %}
-{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">محصول، ویدیو، فایل و خدمات</p>{% endblock %}
+{% block page_title %}محصولات و آیتم‌ها{% endblock %}
+{% block page_subtitle %}
+<p class="topbar-meta mb-0 mt-1">مدیریت ویترین مینی‌اپ</p>
+{% endblock %}
 {% block content %}
-<div class="catalog-panel">
+<div class="catalog-panel catalog-shop-page">
   {% include "balebot/_catalog_subnav.html" %}
 
-  <div class="catalog-toolbar">
-    <form method="get" class="catalog-toolbar-search">
-      <i class="bi bi-search catalog-toolbar-search-icon"></i>
-      <input name="q" value="{{ request.GET.q }}" class="form-control panel-input" placeholder="جستجوی عنوان…">
-      <button class="btn btn-panel-ghost btn-sm">جستجو</button>
-    </form>
-    <a href="{% url 'catalog_item_create' %}" class="btn btn-panel-primary btn-sm">
-      <i class="bi bi-plus-lg me-1"></i>آیتم جدید
-    </a>
-  </div>
-
-  {% if items %}
-  <div class="panel-card">
-    <div class="panel-card-body">
-      <div class="catalog-items-grid">
-        {% for item in items %}
-        <a href="{% url 'catalog_item_edit' item.pk %}" class="catalog-item-card">
-          <div class="catalog-item-card-thumb">
-            {% if item.cover %}
-            <img src="{{ item.cover.url }}" alt="">
-            {% elif item.first_image %}
-            <img src="{{ item.first_image.file.url }}" alt="">
-            {% elif item.media.all %}
-            <i class="bi bi-{% if item.media.all.0.media_type == 'video' %}play-btn{% else %}file-earmark{% endif %}"></i>
+  <div class="catalog-shop-layout">
+    <aside class="catalog-shop-sidebar panel-card" aria-label="دسته‌بندی‌ها">
+      <div class="catalog-shop-sidebar-head">
+        <div>
+          <h2 class="catalog-shop-sidebar-title">دسته‌بندی</h2>
+          <p class="catalog-shop-sidebar-sub">{{ active_category_label }}</p>
+        </div>
+        <a href="{% url 'catalog_category_list' %}" class="catalog-shop-sidebar-manage" title="مدیریت دسته‌ها">
+          <i class="bi bi-gear"></i>
+        </a>
+      </div>
+      <nav class="catalog-shop-cat-nav">
+        {% for f in category_filters %}
+        <a href="{{ f.url }}" class="catalog-shop-cat{% if f.is_active %} is-active{% endif %}">
+          <span class="catalog-shop-cat-icon">
+            {% if f.image_url %}
+            <img src="{{ f.image_url }}" alt="">
+            {% elif f.key == 'none' %}
+            <i class="bi bi-dash-lg"></i>
+            {% elif f.key == 'all' %}
+            <i class="bi bi-grid"></i>
             {% else %}
-            <i class="bi bi-{% if item.item_type == 'download' %}download{% elif item.item_type == 'video' %}play-btn{% elif item.item_type == 'showcase' or item.item_type == 'portfolio' %}images{% else %}box-seam{% endif %}"></i>
+            <i class="bi bi-folder2"></i>
             {% endif %}
-          </div>
-          <div class="catalog-item-card-body">
-            <div class="catalog-item-card-title">{{ item.title }}</div>
-            <div class="catalog-item-card-meta">
-              {% if item.category %}{{ item.category.name }} · {% endif %}
-              {{ item.get_item_type_display }}
-            </div>
-            {% if item.short_description %}
-            <div class="catalog-item-card-meta text-truncate">{{ item.short_description }}</div>
-            {% endif %}
-            <div class="catalog-item-card-badges">
-              {% if item.is_active %}<span class="catalog-pill catalog-pill--ok">فعال</span>{% else %}<span class="catalog-pill">غیرفعال</span>{% endif %}
-              {% if item.item_type == 'download' %}<span class="catalog-pill catalog-pill--info">دانلود</span>{% endif %}
-              {% if item.item_type == 'video' %}<span class="catalog-pill catalog-pill--info">ویدیو</span>{% endif %}
-              {% if item.item_type == 'showcase' or item.item_type == 'portfolio' %}<span class="catalog-pill">معرفی</span>{% endif %}
-              {% if item.is_featured %}<span class="catalog-pill catalog-pill--warn">ویژه</span>{% endif %}
-            </div>
-            {% if item.price %}
-            <div class="catalog-item-card-price">{{ item.price|floatformat:0 }} ریال</div>
-            {% endif %}
-          </div>
-          <i class="bi bi-chevron-left catalog-item-card-arrow"></i>
+          </span>
+          <span class="catalog-shop-cat-name">{{ f.label }}</span>
+          <span class="catalog-shop-cat-count">{{ f.count }}</span>
         </a>
         {% endfor %}
+      </nav>
+      <a href="{% url 'catalog_category_create' %}" class="catalog-shop-cat-add">
+        <i class="bi bi-plus-lg"></i>دسته جدید
+      </a>
+    </aside>
+
+    <div class="catalog-shop-main">
+      <div class="catalog-shop-hero panel-card">
+        <div class="catalog-shop-hero-top">
+          <form method="get" class="catalog-shop-search">
+            <i class="bi bi-search"></i>
+            <input type="search" name="q" value="{{ request.GET.q }}" class="form-control panel-input" placeholder="جستجو در محصولات…" autocomplete="off">
+            {% if current_type %}<input type="hidden" name="type" value="{{ current_type }}">{% endif %}
+            {% if current_status %}<input type="hidden" name="status" value="{{ current_status }}">{% endif %}
+            {% if current_featured %}<input type="hidden" name="featured" value="1">{% endif %}
+            {% if current_category %}<input type="hidden" name="category" value="{{ current_category }}">{% endif %}
+          </form>
+          <a href="{% url 'catalog_item_create' %}" class="btn btn-panel-primary catalog-shop-add-btn">
+            <i class="bi bi-plus-lg"></i>
+            <span>آیتم جدید</span>
+          </a>
+        </div>
+
+        <div class="catalog-shop-hero-foot">
+          <div class="catalog-shop-toolbar-filters">
+            <label class="catalog-shop-filter-select">
+              <span class="catalog-shop-filter-select-label">نوع</span>
+              <select class="form-select form-select-sm panel-input catalog-shop-type-select" aria-label="فیلتر نوع آیتم">
+                {% for f in type_filters %}
+                <option value="{{ f.url }}"{% if f.is_active %} selected{% endif %}>{{ f.label }} ({{ f.count }})</option>
+                {% endfor %}
+              </select>
+            </label>
+            <div class="catalog-shop-status" role="tablist" aria-label="وضعیت">
+              {% for f in status_filters %}
+              <a href="{{ f.url }}" class="catalog-shop-status-btn{% if f.is_active %} is-active{% endif %}" role="tab">
+                {{ f.label }}
+              </a>
+              {% endfor %}
+            </div>
+            <a href="{% if featured_filter.is_active %}{{ featured_filter.url_off }}{% else %}{{ featured_filter.url_on }}{% endif %}" class="catalog-shop-featured-btn{% if featured_filter.is_active %} is-active{% endif %}" title="فقط آیتم‌های ویژه">
+              <i class="bi bi-star{% if featured_filter.is_active %}-fill{% endif %}"></i>
+              <span>ویژه</span>
+              <em>{{ featured_filter.count }}</em>
+            </a>
+          </div>
+          <p class="catalog-shop-result">
+            {% if is_paginated %}{{ paginator.count }} آیتم{% else %}{{ items|length }} آیتم{% endif %}
+          </p>
+        </div>
+
+        {% if has_item_filters %}
+        <div class="catalog-shop-tags">
+          {% for f in active_filters %}
+          <a href="{{ f.url }}" class="catalog-shop-tag">
+            {{ f.label }}<i class="bi bi-x"></i>
+          </a>
+          {% endfor %}
+          <a href="{% url 'catalog_item_list' %}" class="catalog-shop-tags-clear">پاک کردن</a>
+        </div>
+        {% endif %}
       </div>
+
+      {% if items %}
+      <div class="panel-card catalog-item-list-card">
+        <div class="catalog-item-list">
+          {% for item in items %}
+          <article class="catalog-item-row{% if not item.is_active %} is-inactive{% endif %}">
+            <a href="{% url 'catalog_item_edit' item.pk %}" class="catalog-item-row-thumb" tabindex="-1" aria-hidden="true">
+              {% if item.cover %}
+              <img src="{{ item.cover.url }}" alt="" loading="lazy">
+              {% elif item.first_image %}
+              <img src="{{ item.first_image.file.url }}" alt="" loading="lazy">
+              {% else %}
+              <i class="bi bi-{% if item.item_type == 'download' %}download{% elif item.item_type == 'video' %}play-btn{% elif item.item_type == 'showcase' or item.item_type == 'portfolio' %}images{% else %}bag{% endif %}"></i>
+              {% endif %}
+            </a>
+            <div class="catalog-item-row-body">
+              <div class="catalog-item-row-head">
+                <a href="{% url 'catalog_item_edit' item.pk %}" class="catalog-item-row-title">{{ item.title }}</a>
+                <div class="catalog-item-row-pills">
+                  {% if item.is_active %}
+                  <span class="catalog-pill catalog-pill--ok">فعال</span>
+                  {% else %}
+                  <span class="catalog-pill">غیرفعال</span>
+                  {% endif %}
+                  {% if item.is_featured %}<span class="catalog-pill catalog-pill--warn">ویژه</span>{% endif %}
+                  {% if item.stock is not None and item.stock == 0 %}
+                  <span class="catalog-pill catalog-pill--danger">ناموجود</span>
+                  {% elif item.stock is not None and item.stock <= 5 %}
+                  <span class="catalog-pill catalog-pill--warn">{{ item.stock }} عدد</span>
+                  {% endif %}
+                </div>
+              </div>
+              <p class="catalog-item-row-meta">
+                {{ item.get_item_type_display }}
+                {% if item.category %}<span class="catalog-item-row-dot">·</span>{{ item.category.name }}{% endif %}
+                {% if item.price %}<span class="catalog-item-row-dot">·</span><span class="catalog-item-row-price">{{ item.price|format_toman }} تومان</span>{% endif %}
+                {% if item.compare_at_price and item.price and item.compare_at_price > item.price %}
+                <span class="catalog-item-row-compare">{{ item.compare_at_price|format_toman }}</span>
+                {% endif %}
+              </p>
+              {% if item.short_description %}
+              <p class="catalog-item-row-desc">{{ item.short_description }}</p>
+              {% endif %}
+            </div>
+            {% url 'catalog_item_edit' item.pk as edit_url %}
+            {% url 'catalog_item_delete' item.pk as delete_url %}
+            {% include "balebot/_catalog_row_actions.html" with edit_url=edit_url delete_url=delete_url label=item.title entity_type="item" %}
+          </article>
+          {% endfor %}
+        </div>
+      </div>
+
+      {% if is_paginated %}
+      <nav class="catalog-shop-pagination" aria-label="صفحه‌بندی">
+        {% if page_obj.has_previous %}
+        <a class="btn btn-panel-ghost btn-sm" href="?{% if list_qs %}{{ list_qs }}&{% endif %}page={{ page_obj.previous_page_number }}">قبلی</a>
+        {% endif %}
+        <span>صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a class="btn btn-panel-ghost btn-sm" href="?{% if list_qs %}{{ list_qs }}&{% endif %}page={{ page_obj.next_page_number }}">بعدی</a>
+        {% endif %}
+      </nav>
+      {% endif %}
+
+      {% else %}
+      <div class="catalog-shop-empty panel-card">
+        <div class="catalog-shop-empty-icon"><i class="bi bi-box-seam"></i></div>
+        {% if has_item_filters %}
+        <h3>چیزی پیدا نشد</h3>
+        <p>فیلترها را عوض کنید یا جستجو را پاک کنید.</p>
+        <a href="{% url 'catalog_item_list' %}" class="btn btn-panel-primary btn-sm">نمایش همه</a>
+        {% else %}
+        <h3>ویترین خالی است</h3>
+        <p>اولین محصول یا محتوای خود را اضافه کنید.</p>
+        <a href="{% url 'catalog_item_create' %}" class="btn btn-panel-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>افزودن آیتم</a>
+        {% endif %}
+      </div>
+      {% endif %}
     </div>
   </div>
-  {% else %}
-  <div class="panel-card">
-    <div class="catalog-empty-state">
-      <i class="bi bi-box-seam"></i>
-      <p>آیتمی نیست</p>
-      <a href="{% url 'catalog_item_create' %}" class="btn btn-panel-primary btn-sm">اولین آیتم را بسازید</a>
-    </div>
-  </div>
-  {% endif %}
 </div>
+<script src="{% static 'balebot/js/catalog_item_list.js' %}?v=3"></script>
 {% endblock %}

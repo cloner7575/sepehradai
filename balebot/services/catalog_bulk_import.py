@@ -6,10 +6,10 @@ import csv
 import io
 from typing import Any
 
-from django.utils.text import slugify
+from balebot.services.slug_utils import resolve_model_slug, slug_from_text
 from openpyxl import Workbook, load_workbook
 
-from balebot.models import CatalogCategory, CatalogItem, CatalogSettings
+from balebot.services.catalog_currency import toman_to_rial
 
 REQUIRED_COLUMNS = ('name', 'category', 'price')
 OPTIONAL_COLUMNS = ('stock', 'description', 'image_url')
@@ -50,7 +50,7 @@ def _parse_row_dict(row: dict[str, Any], line_no: int) -> tuple[dict[str, Any] |
         'stock': stock_val,
         'description': (row.get('description') or '')[:5000],
         'image_url': (row.get('image_url') or '').strip()[:500],
-        'slug': slugify(name, allow_unicode=False)[:220] or f'item-{line_no}',
+        'slug': slug_from_text(name, fallback=f'item-{line_no}', max_length=220),
     }, None
 
 
@@ -117,8 +117,8 @@ def build_sample_workbook() -> bytes:
     ws = wb.active
     ws.title = 'products'
     ws.append(list(ALL_COLUMNS))
-    ws.append(['مانتو کرپ', 'مانتو', 3850000, 10, 'توضیح نمونه', ''])
-    ws.append(['شال نخی', 'اکسسوری', 690000, '', 'نخ ابریشم', ''])
+    ws.append(['مانتو کرپ', 'مانتو', 385000, 10, 'توضیح نمونه', ''])
+    ws.append(['شال نخی', 'اکسسوری', 69000, '', 'نخ ابریشم', ''])
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()
@@ -135,7 +135,7 @@ def import_rows(
 
     for row in rows:
         cat_name = row['category']
-        cat_slug = slugify(cat_name, allow_unicode=False)[:140] or 'cat'
+        cat_slug = slug_from_text(cat_name, fallback='cat', max_length=140)
         category, cat_created = CatalogCategory.objects.get_or_create(
             workspace=workspace,
             platform=platform,
@@ -145,9 +145,14 @@ def import_rows(
         if cat_created:
             created_categories += 1
 
-        slug = row['slug']
-        if CatalogItem.objects.filter(workspace=workspace, platform=platform, slug=slug).exists():
-            slug = f'{slug}-{created_items + 1}'[:220]
+        slug = resolve_model_slug(
+            CatalogItem,
+            row['name'],
+            workspace=workspace,
+            platform=platform,
+            fallback='item',
+            max_length=220,
+        )
 
         CatalogItem.objects.create(
             workspace=workspace,
@@ -156,7 +161,7 @@ def import_rows(
             title=row['name'],
             slug=slug,
             description=row.get('description') or '',
-            price=row['price'],
+            price=toman_to_rial(row['price']),
             stock=row.get('stock'),
             item_type=CatalogItem.ItemType.PRODUCT,
             sale_mode=CatalogItem.SaleMode.BUYABLE,
