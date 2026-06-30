@@ -377,6 +377,28 @@ body {
     bottom: calc(2rem + env(safe-area-inset-bottom));
   }
 
+  /* ── Coupon block (home) ── */
+  .coupon-block {
+    @apply mx-4 mt-3 rounded-xl border border-dashed p-3;
+    border-color: color-mix(in srgb, var(--color-primary) 28%, transparent);
+    background: var(--color-primary-soft);
+  }
+  .coupon-block-title {
+    @apply text-xs font-bold;
+  }
+  .coupon-block-subtitle {
+    @apply mt-0.5 text-[11px] leading-snug text-muted;
+  }
+  .coupon-block-row {
+    @apply mt-2 flex items-center gap-2 rounded-lg bg-surface px-2.5 py-2 ring-1 ring-border;
+  }
+  .coupon-code {
+    @apply min-w-0 flex-1 truncate font-mono text-xs font-semibold tracking-wide text-primary;
+  }
+  .coupon-copy-btn {
+    @apply mt-0 inline-flex shrink-0 items-center justify-center rounded-lg border border-border bg-[var(--color-primary-soft)] px-2.5 py-1 text-[11px] font-semibold leading-none text-primary transition active:scale-95;
+  }
+
   /* ── Discount code ── */
   .discount-code-card {
     @apply rounded-2xl border border-dashed bg-[var(--color-primary-soft)] p-4;
@@ -393,7 +415,7 @@ body {
     --tw-ring-color: color-mix(in srgb, var(--color-primary) 20%, transparent);
   }
   .discount-apply-btn {
-    @apply py-4 text-base;
+    @apply py-3 text-sm;
   }
   .discount-applied-banner {
     @apply flex items-center justify-between gap-3 rounded-2xl border border-green-200 bg-green-50 px-4 py-3;

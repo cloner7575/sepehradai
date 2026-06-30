@@ -19,6 +19,7 @@ import type {
   VideoBlock,
 } from '../types';
 import { ItemCard } from './ItemCard';
+import { CopyButton } from './CopyButton';
 import { ItemsSection } from './ItemsSection';
 import { SafeImage } from './SafeImage';
 import { resolveMediaUrl } from '../utils/url';
@@ -193,25 +194,18 @@ export function CountdownView({ block }: { block: CountdownBlock }) {
 }
 
 export function CouponBlockView({ block }: { block: CouponBlock }) {
-  const [copied, setCopied] = useState(false);
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(block.code || '');
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* ignore */
-    }
-  };
   return (
-    <section className="mx-4 mt-3 rounded-xl border border-dashed border-primary/35 bg-[var(--color-primary-soft)] p-3">
-      {block.title && <h2 className="text-xs font-bold">{block.title}</h2>}
-      {block.subtitle && <p className="mt-0.5 text-[11px] leading-snug text-muted">{block.subtitle}</p>}
-      <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-surface px-2.5 py-1.5">
-        <code className="font-mono text-xs font-semibold tracking-wide text-primary">{block.code}</code>
-        <button type="button" className="btn-primary shrink-0 px-2.5 py-1 text-[11px]" onClick={copy}>
-          {copied ? 'کپی شد ✓' : block.copy_label || 'کپی کد'}
-        </button>
+    <section className="coupon-block">
+      {block.title && <h2 className="coupon-block-title">{block.title}</h2>}
+      {block.subtitle && <p className="coupon-block-subtitle">{block.subtitle}</p>}
+      <div className="coupon-block-row">
+        <code className="coupon-code">{block.code}</code>
+        <CopyButton
+          value={block.code || ''}
+          label={block.copy_label || 'کپی'}
+          copiedLabel="کپی شد"
+          className="coupon-copy-btn"
+        />
       </div>
     </section>
   );
