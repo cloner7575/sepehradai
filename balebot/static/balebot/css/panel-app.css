@@ -53,7 +53,7 @@
   --app-focus-ring: 0 0 0 3px rgba(99, 56, 217, 0.12);
 
   /* Layout */
-  --app-sidebar-w: 260px;
+  --app-sidebar-w: 248px;
   --app-header-h: 56px;
   --app-container-max: 1280px;
   --app-transition: 0.2s ease;
@@ -84,6 +84,9 @@
   --app-product-instagram-hover: #c13584;
   --app-product-instagram-rgb: 225, 48, 108;
   --app-product-instagram-soft: rgba(225, 48, 108, 0.08);
+  --app-product-platform: var(--gen-primary);
+  --app-product-platform-rgb: var(--gen-primary-rgb);
+  --app-product-platform-soft: rgba(99, 56, 217, 0.08);
 }
 
 .app-theme-bale {
@@ -150,43 +153,31 @@
   box-shadow: inset -3px 0 0 var(--app-platform, var(--gen-primary));
 }
 
-/* ── Sidebar (light editorial) ── */
+/* ── Sidebar ── */
 .app-sidebar {
   width: var(--app-sidebar-w);
-  background: var(--app-surface);
+  background: var(--app-bg);
   color: var(--app-muted);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   border-inline-start: 1px solid var(--app-border);
-  position: relative;
-}
-
-.app-sidebar::before {
-  content: '';
-  position: absolute;
-  inset-inline-end: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--app-platform, var(--gen-primary));
-  opacity: 0.85;
-  pointer-events: none;
 }
 
 .app-sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
+  gap: 11px;
+  padding: 16px 18px;
   border-bottom: 1px solid var(--app-border);
   min-height: var(--app-header-h);
+  background: var(--app-surface);
 }
 
 .app-sidebar-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--app-radius-md);
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   background: var(--app-primary);
   color: var(--app-surface);
   display: flex;
@@ -194,12 +185,14 @@
   justify-content: center;
   font-size: 1.1rem;
   flex-shrink: 0;
+  box-shadow: 0 2px 10px rgba(var(--app-primary-rgb), 0.22);
 }
 
 .app-sidebar-logo--brand {
-  background: #f4f0ff;
-  padding: 3px;
+  background: linear-gradient(145deg, #f4f0ff 0%, #ede9fe 100%);
+  padding: 4px;
   overflow: hidden;
+  box-shadow: none;
 }
 
 .app-sidebar-logo--brand img {
@@ -207,6 +200,350 @@
   height: 100%;
   object-fit: contain;
   display: block;
+}
+
+.app-sidebar-brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 4px;
+}
+
+.app-sidebar-brand-text strong {
+  font-family: var(--font-display);
+  color: var(--app-text);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.app-sidebar-platform {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: var(--app-radius-pill);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.app-sidebar-platform--bale {
+  background: rgba(0, 184, 148, 0.12);
+  color: #007a63;
+}
+
+.app-sidebar-platform--telegram {
+  background: rgba(42, 171, 238, 0.12);
+  color: #157bb8;
+}
+
+.app-sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 12px 18px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--app-border) transparent;
+}
+
+.app-sidebar-block {
+  --sidebar-accent: var(--gen-primary);
+  --sidebar-accent-rgb: var(--gen-primary-rgb);
+  --sidebar-soft: var(--app-product-platform-soft);
+  --sidebar-border: rgba(99, 56, 217, 0.16);
+  margin-top: 12px;
+}
+
+.app-sidebar-block--home {
+  --sidebar-accent: var(--gen-primary);
+  --sidebar-accent-rgb: var(--gen-primary-rgb);
+  --sidebar-soft: rgba(99, 56, 217, 0.06);
+  --sidebar-border: rgba(99, 56, 217, 0.14);
+  margin-top: 0;
+}
+
+.app-sidebar-block--bot {
+  --sidebar-accent: var(--app-platform, var(--app-primary));
+  --sidebar-accent-rgb: var(--app-platform-rgb, var(--app-primary-rgb));
+  --sidebar-soft: rgba(var(--app-platform-rgb, var(--app-primary-rgb)), 0.07);
+  --sidebar-border: rgba(var(--app-platform-rgb, var(--app-primary-rgb)), 0.18);
+}
+
+.app-sidebar-block--miniapp {
+  --sidebar-accent: var(--app-product-miniapp);
+  --sidebar-accent-rgb: var(--app-product-miniapp-rgb);
+  --sidebar-soft: var(--app-product-miniapp-soft);
+  --sidebar-border: rgba(var(--app-product-miniapp-rgb), 0.2);
+}
+
+.app-sidebar-block--instagram {
+  --sidebar-accent: var(--app-product-instagram);
+  --sidebar-accent-rgb: var(--app-product-instagram-rgb);
+  --sidebar-soft: var(--app-product-instagram-soft);
+  --sidebar-border: rgba(var(--app-product-instagram-rgb), 0.2);
+}
+
+.app-sidebar-block--platform {
+  --sidebar-accent: var(--app-product-platform);
+  --sidebar-accent-rgb: var(--app-product-platform-rgb);
+  --sidebar-soft: var(--app-product-platform-soft);
+  --sidebar-border: rgba(var(--app-product-platform-rgb), 0.2);
+}
+
+.app-sidebar-card {
+  position: relative;
+  padding: 12px 10px 10px;
+  border-radius: var(--app-radius-lg);
+  border: 1px solid var(--sidebar-border);
+  background: linear-gradient(180deg, var(--sidebar-soft) 0%, var(--app-surface) 72%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+  transition: border-color var(--app-transition), box-shadow var(--app-transition);
+}
+
+.app-sidebar-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  inset-inline: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--sidebar-accent), color-mix(in srgb, var(--sidebar-accent) 55%, #fff));
+}
+
+.app-sidebar-block.is-current .app-sidebar-card {
+  border-color: color-mix(in srgb, var(--sidebar-accent) 32%, var(--app-border));
+  box-shadow:
+    0 4px 18px rgba(var(--sidebar-accent-rgb), 0.1),
+    0 0 0 1px color-mix(in srgb, var(--sidebar-accent) 8%, transparent);
+}
+
+.app-sidebar-card--home {
+  padding: 6px;
+}
+
+.app-sidebar-section-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 2px 4px 10px;
+  margin-bottom: 2px;
+}
+
+.app-sidebar-section-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  color: var(--sidebar-accent);
+  background: color-mix(in srgb, var(--sidebar-accent) 14%, var(--app-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sidebar-accent) 18%, transparent);
+}
+
+.app-sidebar-section-title {
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--app-text);
+}
+
+.app-sidebar-section-tag {
+  margin-inline-start: auto;
+  padding: 2px 8px;
+  border-radius: var(--app-radius-pill);
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--sidebar-accent);
+  background: color-mix(in srgb, var(--sidebar-accent) 10%, var(--app-surface));
+  border: 1px solid color-mix(in srgb, var(--sidebar-accent) 16%, transparent);
+}
+
+.app-sidebar-subsection {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed color-mix(in srgb, var(--sidebar-accent) 22%, var(--app-border));
+}
+
+.app-sidebar-subsection-label {
+  margin: 0 0 6px;
+  padding: 0 6px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--app-neutral);
+}
+
+.app-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.app-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.app-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  color: var(--app-muted);
+  text-decoration: none;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  transition: background 0.15s ease, color 0.15s ease;
+  position: relative;
+}
+
+.app-nav-link--top {
+  font-weight: 600;
+}
+
+.app-nav-link--sub {
+  font-size: 0.78125rem;
+  color: var(--app-neutral);
+}
+
+.app-nav-link:hover {
+  background: color-mix(in srgb, var(--sidebar-accent, var(--app-primary)) 6%, var(--app-surface));
+  color: var(--app-text);
+}
+
+.app-nav-link.is-active {
+  background: color-mix(in srgb, var(--sidebar-accent, var(--app-primary)) 12%, var(--app-surface));
+  color: var(--sidebar-accent, var(--app-primary));
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sidebar-accent, var(--app-primary)) 14%, transparent);
+}
+
+.app-nav-link.is-active::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: -2px;
+  top: 20%;
+  bottom: 20%;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--sidebar-accent, var(--app-primary));
+}
+
+.app-nav-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+  color: var(--app-muted);
+  background: var(--app-surface);
+  box-shadow: inset 0 0 0 1px var(--app-border);
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.app-nav-link:hover .app-nav-icon {
+  color: var(--sidebar-accent, var(--app-primary));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sidebar-accent, var(--app-primary)) 20%, var(--app-border));
+}
+
+.app-nav-link.is-active .app-nav-icon {
+  color: var(--sidebar-accent, var(--app-primary));
+  background: color-mix(in srgb, var(--sidebar-accent, var(--app-primary)) 12%, var(--app-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sidebar-accent, var(--app-primary)) 22%, transparent);
+}
+
+.app-nav-badge {
+  margin-inline-start: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--app-radius-pill);
+  background: var(--app-danger);
+  color: var(--app-surface);
+  font-size: 0.625rem;
+  font-weight: 700;
+  font-style: normal;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(239, 68, 68, 0.35);
+}
+
+.app-sidebar-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--app-border);
+  font-size: 0.6875rem;
+  background: var(--app-surface);
+  min-width: 0;
+}
+
+.app-sidebar-foot-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--app-success);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.22);
+}
+
+.app-sidebar-foot-text {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  color: var(--app-muted);
+}
+
+@media (min-width: 992px) {
+  .app-sidebar-collapsed .app-sidebar { width: 72px; }
+  .app-sidebar-collapsed .app-sidebar-brand-text,
+  .app-sidebar-collapsed .app-sidebar-section-head,
+  .app-sidebar-collapsed .app-sidebar-subsection,
+  .app-sidebar-collapsed .app-nav-link span,
+  .app-sidebar-collapsed .app-nav-badge,
+  .app-sidebar-collapsed .app-sidebar-foot-text,
+  .app-sidebar-collapsed .app-sidebar-foot-dot { display: none; }
+  .app-sidebar-collapsed .app-sidebar-brand {
+    justify-content: center;
+    padding-inline: 10px;
+  }
+  .app-sidebar-collapsed .app-sidebar-scroll { padding-inline: 8px; }
+  .app-sidebar-collapsed .app-sidebar-card {
+    padding: 8px 6px;
+    background: var(--app-surface);
+  }
+  .app-sidebar-collapsed .app-sidebar-card::before { height: 2px; }
+  .app-sidebar-collapsed .app-nav-link {
+    justify-content: center;
+    padding: 8px 6px;
+  }
+  .app-sidebar-collapsed .app-nav-link::after { display: none; }
+  .app-sidebar-collapsed .app-nav-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+  .app-sidebar-collapsed .app-sidebar-block { margin-top: 10px; }
+  .app-sidebar-collapsed .app-sidebar-foot {
+    justify-content: center;
+    padding-inline: 8px;
+  }
 }
 
 .login-brand-logo {
@@ -221,318 +558,6 @@
 .login-brand-logo .brand-logo-icon {
   width: 52px;
   height: 52px;
-}
-
-.app-sidebar-brand-text { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
-.app-sidebar-brand-text strong {
-  font-family: var(--font-display);
-  color: var(--app-text);
-  font-size: 0.9375rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.app-sidebar-brand-text span { font-size: 0.75rem; color: var(--app-muted); font-weight: 500; }
-
-.app-platform-chip {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  padding: 2px 8px;
-  border-radius: var(--app-radius-pill);
-  font-size: 0.6875rem;
-  font-weight: 600;
-}
-
-.app-platform-chip--bale {
-  background: rgba(0, 184, 148, 0.12);
-  color: #007a63;
-}
-
-.app-platform-chip--telegram {
-  background: rgba(42, 171, 238, 0.12);
-  color: #157bb8;
-}
-
-.app-sidebar-scroll {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px 8px 16px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--app-border) transparent;
-}
-
-.app-nav-group { margin-bottom: 8px; }
-.app-nav-group-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--app-neutral);
-}
-.app-nav-group.is-open .app-nav-group-head { color: var(--app-muted); }
-.app-nav-group-head i { font-size: 0.75rem; opacity: 0.7; }
-
-/* Global nav (dashboard) */
-.app-nav--global {
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--app-border);
-}
-
-/* Product sections */
-.app-nav-product {
-  margin-bottom: 16px;
-  padding: 12px 8px;
-  border-radius: var(--app-radius-lg);
-  border: 1px solid var(--app-border);
-  background: var(--app-surface);
-}
-
-.app-nav-product.is-current {
-  background: var(--app-shell-tint, var(--app-surface-2));
-}
-
-.app-nav-product-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 4px 8px 10px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--app-border);
-}
-
-.app-nav-product-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--app-radius-md);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  flex-shrink: 0;
-}
-
-.app-nav-product-title {
-  font-family: var(--font-display);
-  font-size: 0.875rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: var(--app-text);
-}
-
-.app-nav-product-meta {
-  margin-inline-start: auto;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: var(--app-muted);
-  padding: 2px 8px;
-  border-radius: var(--app-radius-pill);
-  background: var(--app-surface-2);
-}
-
-.app-nav-product--bot .app-nav-product-icon {
-  background: rgba(var(--app-platform-rgb, var(--app-primary-rgb)), 0.12);
-  color: var(--app-platform, var(--app-primary));
-}
-
-.app-nav-product--bot.is-current {
-  border-color: rgba(var(--app-platform-rgb, var(--app-primary-rgb)), 0.25);
-  box-shadow: inset 3px 0 0 var(--app-platform, var(--app-primary));
-}
-
-[dir='rtl'] .app-nav-product--bot.is-current {
-  box-shadow: inset -3px 0 0 var(--app-platform, var(--app-primary));
-}
-
-.app-nav-product--miniapp .app-nav-product-icon {
-  background: var(--app-product-miniapp-soft);
-  color: var(--app-product-miniapp);
-}
-
-.app-nav-product--miniapp.is-current {
-  border-color: rgba(var(--app-product-miniapp-rgb), 0.25);
-  background: var(--app-product-miniapp-soft);
-  box-shadow: inset 3px 0 0 var(--app-product-miniapp);
-}
-
-[dir='rtl'] .app-nav-product--miniapp.is-current {
-  box-shadow: inset -3px 0 0 var(--app-product-miniapp);
-}
-
-.app-nav-product--instagram .app-nav-product-icon {
-  background: var(--app-product-instagram-soft);
-  color: var(--app-product-instagram);
-}
-
-.app-nav-product--instagram.is-current {
-  border-color: rgba(var(--app-product-instagram-rgb), 0.25);
-  background: var(--app-product-instagram-soft);
-  box-shadow: inset 3px 0 0 var(--app-product-instagram);
-}
-
-[dir='rtl'] .app-nav-product--instagram.is-current {
-  box-shadow: inset -3px 0 0 var(--app-product-instagram);
-}
-
-.app-nav-subgroup { margin-bottom: 8px; }
-.app-nav-subgroup:last-child { margin-bottom: 0; }
-
-.app-nav-subgroup-label {
-  display: block;
-  padding: 6px 12px 4px;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--app-neutral);
-}
-
-.app-nav-product--bot .app-nav-link.is-active {
-  background: rgba(var(--app-platform-rgb, var(--app-primary-rgb)), 0.1);
-  color: var(--app-platform, var(--app-primary));
-}
-
-.app-nav-product--bot .app-nav-link.is-active::before {
-  background: var(--app-platform, var(--app-primary));
-}
-
-.app-nav-product--bot .app-nav-link.is-active .app-nav-icon {
-  color: var(--app-platform, var(--app-primary));
-}
-
-.app-nav-product--miniapp .app-nav-link.is-active {
-  background: var(--app-product-miniapp-soft);
-  color: var(--app-product-miniapp);
-}
-
-.app-nav-product--miniapp .app-nav-link.is-active::before {
-  background: var(--app-product-miniapp);
-}
-
-.app-nav-product--miniapp .app-nav-link.is-active .app-nav-icon {
-  color: var(--app-product-miniapp);
-}
-
-.app-nav-product--instagram .app-nav-link.is-active {
-  background: var(--app-product-instagram-soft);
-  color: var(--app-product-instagram);
-}
-
-.app-nav-product--instagram .app-nav-link.is-active::before {
-  background: var(--app-product-instagram);
-}
-
-.app-nav-product--instagram .app-nav-link.is-active .app-nav-icon {
-  color: var(--app-product-instagram);
-}
-
-.app-nav { display: flex; flex-direction: column; gap: 2px; padding-inline: 4px; }
-
-.app-nav-link {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: var(--app-radius-md);
-  color: var(--app-muted);
-  text-decoration: none;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: background var(--app-transition), color var(--app-transition), transform var(--app-transition);
-  position: relative;
-}
-
-.app-nav-link:hover {
-  background: var(--app-surface-2);
-  color: var(--app-text);
-}
-
-.app-nav-link.is-active {
-  background: rgba(var(--app-primary-rgb), 0.08);
-  color: var(--app-primary);
-  font-weight: 600;
-}
-
-.app-nav-link.is-active::before {
-  content: '';
-  position: absolute;
-  inset-inline-end: 0;
-  top: 20%;
-  bottom: 20%;
-  width: 3px;
-  border-radius: 3px;
-  background: var(--app-primary);
-}
-
-.app-nav-icon {
-  width: 18px;
-  font-size: 0.9rem;
-  opacity: 0.75;
-  flex-shrink: 0;
-  text-align: center;
-}
-
-.app-nav-link.is-active .app-nav-icon { opacity: 1; color: var(--app-primary); }
-
-.app-nav-badge {
-  margin-inline-start: auto;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: var(--app-radius-pill);
-  background: var(--app-danger);
-  color: var(--app-surface);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  font-style: normal;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.app-sidebar-foot {
-  padding: 12px 16px;
-  border-top: 1px solid var(--app-border);
-  font-size: 0.75rem;
-  color: var(--app-neutral);
-}
-
-@media (min-width: 992px) {
-  .app-sidebar-collapsed .app-sidebar { width: 72px; }
-  .app-sidebar-collapsed .app-sidebar-brand-text,
-  .app-sidebar-collapsed .app-nav-subgroup-label,
-  .app-sidebar-collapsed .app-nav-product-title,
-  .app-sidebar-collapsed .app-nav-product-meta,
-  .app-sidebar-collapsed .app-nav-link span,
-  .app-sidebar-collapsed .app-nav-badge,
-  .app-sidebar-collapsed .app-sidebar-foot { display: none; }
-  .app-sidebar-collapsed .app-nav-product {
-    padding: 8px 4px;
-    border: none;
-    background: transparent;
-    box-shadow: none !important;
-  }
-  .app-sidebar-collapsed .app-nav-product-head {
-    justify-content: center;
-    border-bottom: none;
-    padding: 8px 4px;
-    margin-bottom: 0;
-  }
-  .app-sidebar-collapsed .app-nav-subgroup { margin-bottom: 4px; }
-  .app-sidebar-collapsed .app-nav-link { justify-content: center; padding: 10px; }
-  .app-sidebar-collapsed .app-nav-icon { width: auto; font-size: 1rem; }
-  .app-sidebar-collapsed .app-nav--global {
-    border-bottom: none;
-    margin-bottom: 8px;
-    padding-bottom: 0;
-  }
 }
 
 .app-backdrop {
@@ -1862,14 +1887,42 @@ code, kbd, pre, .panel-code {
   border-color: rgba(42, 171, 238, 0.3);
 }
 
-.app-dark .app-nav-product {
+.app-dark .app-sidebar {
+  background: var(--app-bg);
+  border-color: var(--app-border);
+}
+
+.app-dark .app-sidebar-brand,
+.app-dark .app-sidebar-foot {
   background: var(--app-surface);
   border-color: var(--app-border);
 }
 
-.app-dark .app-sidebar {
-  background: var(--app-surface);
-  border-color: var(--app-border);
+.app-dark .app-sidebar-platform--bale {
+  background: rgba(0, 184, 148, 0.15);
+  color: #5eead4;
+}
+
+.app-dark .app-sidebar-platform--telegram {
+  background: rgba(42, 171, 238, 0.15);
+  color: #7dd3fc;
+}
+
+.app-dark .app-sidebar-card {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--sidebar-soft) 80%, var(--app-surface)) 0%, var(--app-surface) 75%);
+}
+
+.app-dark .app-nav-icon {
+  background: var(--app-surface-2);
+  box-shadow: inset 0 0 0 1px var(--app-border);
+}
+
+.app-dark .app-nav-link:hover {
+  background: color-mix(in srgb, var(--sidebar-accent, var(--app-primary)) 10%, var(--app-surface-2));
+}
+
+.app-dark .app-nav-link.is-active {
+  background: color-mix(in srgb, var(--sidebar-accent, var(--app-primary)) 16%, var(--app-surface));
 }
 
 .app-dark .app-card,

@@ -10,10 +10,10 @@
   <link href="{% static 'balebot/vendor/bootstrap/5.3.3/dist/css/bootstrap.rtl.min.css' %}" rel="stylesheet">
   <link href="{% static 'balebot/vendor/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css' %}" rel="stylesheet">
   <link href="{% static 'balebot/css/panel-builders.css' %}?v=32" rel="stylesheet">
-  <link href="{% static 'balebot/css/panel-app.css' %}?v=35" rel="stylesheet">
+  <link href="{% static 'balebot/css/panel-app.css' %}?v=40" rel="stylesheet">
   {% block extra_css %}{% endblock %}
 </head>
-<body class="app-body app-theme-{{ active_platform|default:'bale' }}" id="app-body">
+<body class="app-body app-theme-{{ active_platform|default:'bale' }}" id="app-body" data-panel-product="{{ panel_product|default:'home' }}">
   <div class="app-shell">
     <button type="button" class="app-backdrop" id="app-backdrop" tabindex="-1" aria-hidden="true" aria-label="بستن منو"></button>
     {% include "balebot/_sidebar.html" %}
@@ -56,7 +56,7 @@
   {% include "balebot/_platform_sync_modal.html" %}
 
   <script src="{% static 'balebot/vendor/bootstrap/5.3.3/dist/js/bootstrap.bundle.min.js' %}"></script>
-  <script src="{% static 'balebot/js/panel-app.js' %}?v=6"></script>
+  <script src="{% static 'balebot/js/panel-app.js' %}?v=8"></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -34,9 +34,26 @@
   }
 
   if (sidebarCollapse) {
+    var collapsedStored = localStorage.getItem('app-sidebar-collapsed');
+    if (collapsedStored === '1') {
+      body.classList.add('app-sidebar-collapsed');
+      updateCollapseIcon(true);
+    }
     sidebarCollapse.addEventListener('click', function () {
-      body.classList.toggle('app-sidebar-collapsed');
+      var collapsed = body.classList.toggle('app-sidebar-collapsed');
+      localStorage.setItem('app-sidebar-collapsed', collapsed ? '1' : '0');
+      updateCollapseIcon(collapsed);
     });
+  }
+
+  function updateCollapseIcon(collapsed) {
+    if (!sidebarCollapse) return;
+    var icon = sidebarCollapse.querySelector('i');
+    if (icon) {
+      icon.className = collapsed ? 'bi bi-layout-sidebar-reverse' : 'bi bi-layout-sidebar-inset-reverse';
+    }
+    sidebarCollapse.setAttribute('aria-label', collapsed ? 'باز کردن منو' : 'جمع کردن منو');
+    sidebarCollapse.title = collapsed ? 'باز کردن منو' : 'جمع کردن منو';
   }
 
   document.addEventListener('keydown', function (e) {
