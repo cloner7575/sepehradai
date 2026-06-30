@@ -1167,6 +1167,87 @@
   margin-inline-start: 2px;
 }
 
+/* Dashboard metric cards — compact, no overflow */
+.dash-section .app-metric.d-flex {
+  padding: 14px 16px;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.dash-section .app-metric.d-flex > .min-w-0,
+.dash-section .app-metric.d-flex > div:not(.app-metric-icon) {
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.dash-section .app-metric.d-flex .app-metric-icon {
+  width: 34px;
+  height: 34px;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.dash-section .app-metric.d-flex .app-metric-label {
+  font-size: 0.75rem;
+  margin-bottom: 4px;
+  line-height: 1.35;
+}
+
+.dash-section .app-metric.d-flex .app-metric-value {
+  font-size: clamp(1rem, 0.88rem + 0.35vw, 1.2rem);
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.dash-section .app-metric.d-flex .app-metric-hint {
+  font-size: 0.6875rem;
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+.dash-store-metrics .dash-metric-money {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+.dash-store-metrics .dash-metric-amount {
+  font-size: clamp(0.9375rem, 0.82rem + 0.35vw, 1.125rem);
+  font-weight: 700;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.dash-store-metrics .dash-metric-unit {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--app-muted);
+  line-height: 1.2;
+}
+
+.dash-store-metrics .app-kpi-spark {
+  height: 22px;
+  margin-top: 8px;
+}
+
+@media (max-width: 575.98px) {
+  .dash-store-metrics .dash-metric-amount {
+    font-size: 0.9rem;
+  }
+
+  .dash-section .app-metric.d-flex .app-metric-value {
+    font-size: 1rem;
+  }
+}
+
 .dash-main-stack {
   display: flex;
   flex-direction: column;

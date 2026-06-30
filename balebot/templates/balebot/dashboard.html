@@ -129,59 +129,70 @@
     {% endif %}
   </div>
 
-  <div class="app-metrics mb-4">
+  <div class="app-metrics dash-store-metrics mb-4">
     <div class="row g-3">
-      <div class="col-6 col-lg-4 col-xl-2">
+      <div class="col-6 col-md-4">
         <a href="{% url 'catalog_order_list' %}" class="app-metric app-metric-link d-flex align-items-start gap-3 dash-metric-highlight">
           <span class="app-metric-icon app-metric-icon--success mb-0"><i class="bi bi-currency-exchange"></i></span>
-          <div>
+          <div class="min-w-0 flex-grow-1">
             <span class="app-metric-label">درآمد کل</span>
-            <span class="app-metric-value dash-metric-money">{{ catalog_revenue_total|format_toman }}<small>ت</small></span>
+            <span class="app-metric-value dash-metric-money">
+              <span class="dash-metric-amount">{{ catalog_revenue_total|format_toman }}</span>
+              <span class="dash-metric-unit">تومان</span>
+            </span>
           </div>
         </a>
       </div>
-      <div class="col-6 col-lg-4 col-xl-2">
+      <div class="col-6 col-md-4">
         <a href="{% url 'catalog_order_list' %}" class="app-metric app-metric-link d-flex align-items-start gap-3">
           <span class="app-metric-icon app-metric-icon--success mb-0"><i class="bi bi-graph-up-arrow"></i></span>
-          <div>
+          <div class="min-w-0 flex-grow-1">
             <span class="app-metric-label">درآمد هفته</span>
-            <span class="app-metric-value dash-metric-money">{{ catalog_revenue_week|format_toman }}<small>ت</small></span>
+            <span class="app-metric-value dash-metric-money">
+              <span class="dash-metric-amount">{{ catalog_revenue_week|format_toman }}</span>
+              <span class="dash-metric-unit">تومان</span>
+            </span>
             <span class="app-metric-hint">{{ catalog_order_paid_week }} پرداخت</span>
           </div>
         </a>
       </div>
-      <div class="col-6 col-lg-4 col-xl-2">
+      <div class="col-6 col-md-4">
         <a href="{% url 'catalog_order_list' %}" class="app-metric app-metric-link d-flex align-items-start gap-3">
           <span class="app-metric-icon app-metric-icon--info mb-0"><i class="bi bi-receipt"></i></span>
-          <div>
+          <div class="min-w-0 flex-grow-1">
             <span class="app-metric-label">سفارش‌ها</span>
             <span class="app-metric-value">{{ catalog_order_total }}</span>
             <span class="app-metric-hint">+{{ catalog_order_week }} این هفته</span>
           </div>
         </a>
       </div>
-      <div class="col-6 col-lg-4 col-xl-2">
+      <div class="col-6 col-md-4">
         <a href="{% url 'catalog_order_list' %}?status=pending" class="app-metric app-metric-link d-flex align-items-start gap-3">
           <span class="app-metric-icon app-metric-icon--{% if catalog_order_pending %}warn{% else %}info{% endif %} mb-0"><i class="bi bi-hourglass-split"></i></span>
-          <div>
+          <div class="min-w-0 flex-grow-1">
             <span class="app-metric-label">در انتظار</span>
             <span class="app-metric-value">{{ catalog_order_pending }}</span>
           </div>
         </a>
       </div>
-      <div class="col-6 col-lg-4 col-xl-2">
+      <div class="col-6 col-md-4">
         <div class="app-metric d-flex align-items-start gap-3">
           <span class="app-metric-icon app-metric-icon--info mb-0"><i class="bi bi-calculator"></i></span>
-          <div>
+          <div class="min-w-0 flex-grow-1">
             <span class="app-metric-label">میانگین سفارش</span>
-            <span class="app-metric-value dash-metric-money">{% if catalog_order_aov_toman %}{{ catalog_order_aov_toman|format_number }}{% else %}—{% endif %}<small>{% if catalog_order_aov_toman %}ت{% endif %}</small></span>
+            <span class="app-metric-value dash-metric-money">
+              {% if catalog_order_aov_toman %}
+              <span class="dash-metric-amount">{{ catalog_order_aov_toman|format_number }}</span>
+              <span class="dash-metric-unit">تومان</span>
+              {% else %}—{% endif %}
+            </span>
           </div>
         </div>
       </div>
-      <div class="col-6 col-lg-4 col-xl-2">
+      <div class="col-6 col-md-4">
         <a href="{% url 'catalog_dashboard' %}" class="app-metric app-metric-link d-flex align-items-start gap-3">
           <span class="app-metric-icon app-metric-icon--info mb-0"><i class="bi bi-funnel"></i></span>
-          <div>
+          <div class="min-w-0 flex-grow-1">
             <span class="app-metric-label">نرخ تبدیل</span>
             <span class="app-metric-value">{% if store_conversion_rate_pct %}{{ store_conversion_rate_pct }}%{% else %}—{% endif %}</span>
             <span class="app-metric-hint">{{ miniapp_visitors }} بازدید</span>
@@ -334,7 +345,7 @@
       <div class="col-6 col-md-3">
         <a href="{% url 'subscriber_list' %}" class="app-metric app-metric-link d-flex align-items-start gap-3">
           <span class="app-metric-icon app-metric-icon--success mb-0"><i class="bi bi-person-check"></i></span>
-          <div class="flex-grow-1 min-w-0">
+          <div class="min-w-0 flex-grow-1">
             <span class="app-metric-label">مخاطبین فعال</span>
             <span class="app-metric-value">{{ subscriber_active|floatformat:0 }}</span>
             <span class="app-metric-hint">+{{ subscriber_new_week }} این هفته</span>
