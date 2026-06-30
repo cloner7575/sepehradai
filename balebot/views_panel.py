@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.files.storage import default_storage
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse, reverse_lazy
@@ -20,11 +20,14 @@ from balebot.platform import (
     allowed_platforms_for_workspace,
     get_active_platform,
     get_bot_settings_for_request,
+    has_instagram_access_for_request,
     has_miniapp_access_for_request,
     platform_label,
     require_workspace_for_request,
     set_active_platform,
 )
+from instagram.services.stats import workspace_instagram_stats
+from balebot.services.dashboard_sales_stats import build_sales_dashboard_stats
 from balebot.workspace import user_has_panel_access
 from balebot.services import messenger_api
 from balebot.services.webhook_setup import (
@@ -189,73 +192,220 @@ class PlatformSyncView(WorkspaceScopedMixin, PanelAccessMixin, View):
         return HttpResponseRedirect(request.POST.get('next') or '/')
 
 
+def _dashboard_bot_health(bot: BotSettings) -> dict:
+    webhook_configured = bool((bot.webhook_secret or '').strip() and (bot.webhook_public_url or '').strip())
+    has_token = bot.has_bot_token()
+    return {
+        'has_token': has_token,
+        'is_enabled': bot.is_enabled,
+        'webhook_configured': webhook_configured,
+        'ready': has_token and bot.is_enabled and webhook_configured,
+    }
+
+
+def _dashboard_alerts(
+    *,
+    bot: BotSettings,
+    bot_health: dict,
+    inbound_open: int,
+    catalog_order_pending: int,
+    has_miniapp: bool,
+    catalog_enabled: bool,
+) -> list[dict]:
+    alerts: list[dict] = []
+    if not bot_health['has_token']:
+        alerts.append({
+            'level': 'danger',
+            'icon': 'bi-key',
+            'title': 'توکن ربات تنظیم نشده',
+            'text': f'برای دریافت پیام در {platform_label(bot.platform)}، توکن را وارد کنید.',
+            'url_name': 'bot_settings',
+            'action': 'راه‌اندازی ربات',
+        })
+    elif not bot_health['webhook_configured']:
+        alerts.append({
+            'level': 'warning',
+            'icon': 'bi-broadcast',
+            'title': 'وب‌هوک ثبت نشده',
+            'text': 'ربات به سرور متصل نیست؛ وب‌هوک را همگام‌سازی کنید.',
+            'url_name': 'bot_settings',
+            'action': 'اتصال وب‌هوک',
+        })
+    elif not bot_health['is_enabled']:
+        alerts.append({
+            'level': 'warning',
+            'icon': 'bi-power',
+            'title': 'ربات غیرفعال است',
+            'text': 'تا فعال‌سازی مجدد، پیام‌های کاربران پردازش نمی‌شوند.',
+            'url_name': 'bot_settings',
+            'action': 'فعال‌سازی',
+        })
+    if inbound_open:
+        alerts.append({
+            'level': 'warning' if inbound_open >= 3 else 'info',
+            'icon': 'bi-headset',
+            'title': f'{inbound_open} تیکت پشتیبانی خوانده نشده',
+            'text': 'کاربران منتظر پاسخ شما هستند.',
+            'url_name': 'inbound_list',
+            'action': 'مشاهده تیکت‌ها',
+        })
+    if has_miniapp and catalog_order_pending:
+        alerts.append({
+            'level': 'info',
+            'icon': 'bi-bag',
+            'title': f'{catalog_order_pending} سفارش در انتظار پرداخت',
+            'text': 'بررسی و پیگیری سفارش‌های باز مینی‌اپ.',
+            'url_name': 'catalog_order_list',
+            'action': 'سفارش‌ها',
+        })
+    if has_miniapp and not catalog_enabled:
+        alerts.append({
+            'level': 'info',
+            'icon': 'bi-shop',
+            'title': 'مینی‌اپ هنوز فعال نشده',
+            'text': 'محتوا را آماده کنید و روش پرداخت را تنظیم کنید.',
+            'url_name': 'catalog_settings',
+            'action': 'تنظیمات مینی‌اپ',
+        })
+    return alerts
+
+
+def _subscriber_sparkline(scope: dict, days: int = 7) -> list[int]:
+    today = timezone.localdate()
+    counts: list[int] = []
+    for offset in range(days - 1, -1, -1):
+        day = today - timezone.timedelta(days=offset)
+        counts.append(
+            Subscriber.objects.filter(**scope, created_at__date=day).count()
+        )
+    return counts
+
+
 class DashboardView(WorkspaceScopedMixin, PanelAccessMixin, TemplateView):
     template_name = 'balebot/dashboard.html'
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         scope = self.scope_filter()
-        ctx['subscriber_active'] = Subscriber.objects.filter(
-            **scope, is_active=True, is_registered=True,
-        ).count()
-        ctx['subscriber_total'] = Subscriber.objects.filter(**scope).count()
-        ctx['campaign_recent'] = Campaign.objects.filter(**scope).order_by('-created_at')[:8]
-        sent = CampaignDelivery.objects.filter(
-            campaign__workspace=scope['workspace'],
-            campaign__platform=scope['platform'],
-            status=CampaignDelivery.DeliveryStatus.SENT,
-        ).count()
-        failed = CampaignDelivery.objects.filter(
-            campaign__workspace=scope['workspace'],
-            campaign__platform=scope['platform'],
-            status=CampaignDelivery.DeliveryStatus.FAILED,
-        ).count()
-        ctx['delivery_sent'] = sent
-        ctx['delivery_failed'] = failed
-        delivery_total = sent + failed
-        ctx['delivery_rate_pct'] = round(sent * 100 / delivery_total, 1) if delivery_total else None
         week_ago = timezone.now() - timezone.timedelta(days=7)
-        ctx['subscriber_new_week'] = Subscriber.objects.filter(
-            **scope, created_at__gte=week_ago,
-        ).count()
-        ctx['inbound_recent'] = (
-            InboundMessage.objects.filter(
-                subscriber__workspace=scope['workspace'],
-                subscriber__platform=scope['platform'],
-            )
-            .select_related('subscriber')
-            .order_by('-created_at')[:15]
+
+        subscriber_qs = Subscriber.objects.filter(**scope)
+        subscriber_total = subscriber_qs.count()
+        subscriber_active = subscriber_qs.filter(is_active=True, is_registered=True).count()
+        subscriber_registered = subscriber_qs.filter(is_registered=True).count()
+        subscriber_new_week = subscriber_qs.filter(created_at__gte=week_ago).count()
+
+        delivery_qs = CampaignDelivery.objects.filter(
+            campaign__workspace=scope['workspace'],
+            campaign__platform=scope['platform'],
         )
-        ctx['support_tickets_recent'] = (
-            InboundMessage.objects.filter(
-                subscriber__workspace=scope['workspace'],
-                subscriber__platform=scope['platform'],
-                is_support_request=True,
-            )
-            .select_related('subscriber')
-            .order_by('-created_at')[:6]
-        )
-        ctx['campaign_total'] = Campaign.objects.filter(**scope).count()
-        ctx['campaign_running'] = Campaign.objects.filter(
-            **scope,
-            status__in=(Campaign.Status.QUEUED, Campaign.Status.SENDING),
-        ).count()
-        ctx['callback_recent_count'] = CallbackLog.objects.filter(
+        sent = delivery_qs.filter(status=CampaignDelivery.DeliveryStatus.SENT).count()
+        failed = delivery_qs.filter(status=CampaignDelivery.DeliveryStatus.FAILED).count()
+        delivery_total = sent + failed
+
+        inbound_open = InboundMessage.objects.filter(
             subscriber__workspace=scope['workspace'],
             subscriber__platform=scope['platform'],
+            is_support_request=True,
+            is_support_read=False,
         ).count()
-        ctx['has_miniapp_access'] = has_miniapp_access_for_request(self.request, scope['workspace'])
-        if ctx['has_miniapp_access']:
-            catalog = CatalogSettings.get_for_platform(scope['workspace'], scope['platform'])
-            bot = get_bot_settings_for_request(self.request)
-            ctx['catalog'] = catalog
-            ctx['catalog_theme'] = catalog.theme_config or {}
-            ctx['catalog_item_count'] = CatalogItem.objects.filter(**scope).count()
-            ctx['catalog_order_pending'] = CatalogOrder.objects.filter(
+
+        bot = get_bot_settings_for_request(self.request)
+        bot_health = _dashboard_bot_health(bot)
+        has_miniapp = has_miniapp_access_for_request(self.request, scope['workspace'])
+        catalog_enabled = False
+        catalog_order_pending = 0
+
+        sparkline = _subscriber_sparkline(scope)
+
+        ctx.update({
+            'subscriber_active': subscriber_active,
+            'subscriber_total': subscriber_total,
+            'subscriber_registered': subscriber_registered,
+            'subscriber_new_week': subscriber_new_week,
+            'registration_rate_pct': (
+                round(subscriber_registered * 100 / subscriber_total, 1) if subscriber_total else None
+            ),
+            'subscriber_sparkline': sparkline,
+            'subscriber_sparkline_max': max(sparkline) or 1,
+            'campaign_recent': Campaign.objects.filter(**scope).order_by('-created_at')[:8],
+            'campaign_total': Campaign.objects.filter(**scope).count(),
+            'campaign_running': Campaign.objects.filter(
                 **scope,
-                status=CatalogOrder.Status.PENDING,
-            ).count()
-            ctx['mini_app_url'] = catalog.build_mini_app_url(bot)
+                status__in=(Campaign.Status.QUEUED, Campaign.Status.SENDING),
+            ).count(),
+            'delivery_sent': sent,
+            'delivery_failed': failed,
+            'delivery_rate_pct': round(sent * 100 / delivery_total, 1) if delivery_total else None,
+            'delivery_week_sent': delivery_qs.filter(
+                status=CampaignDelivery.DeliveryStatus.SENT,
+                sent_at__gte=week_ago,
+            ).count(),
+            'support_tickets_recent': (
+                InboundMessage.objects.filter(
+                    subscriber__workspace=scope['workspace'],
+                    subscriber__platform=scope['platform'],
+                    is_support_request=True,
+                )
+                .select_related('subscriber')
+                .order_by('-created_at')[:6]
+            ),
+            'inbound_open_count': inbound_open,
+            'callback_week_count': CallbackLog.objects.filter(
+                subscriber__workspace=scope['workspace'],
+                subscriber__platform=scope['platform'],
+                created_at__gte=week_ago,
+            ).count(),
+            'tag_count': Tag.objects.filter(**scope).count(),
+            'bot_health': bot_health,
+            'bot_username': bot.panel_brand_title,
+            'has_miniapp_access': has_miniapp,
+            'has_instagram_access': has_instagram_access_for_request(self.request, scope['workspace']),
+        })
+
+        if ctx['has_instagram_access']:
+            ctx['instagram_stats'] = workspace_instagram_stats(scope['workspace'])
+
+        if has_miniapp:
+            catalog = CatalogSettings.get_for_platform(scope['workspace'], scope['platform'])
+            catalog_enabled = catalog.is_enabled
+            sales = build_sales_dashboard_stats(scope)
+            catalog_order_pending = sales['order_pending']
+            ctx.update({
+                'catalog': catalog,
+                'catalog_theme': catalog.theme_config or {},
+                'catalog_item_count': CatalogItem.objects.filter(**scope).count(),
+                'catalog_item_active_count': CatalogItem.objects.filter(**scope, is_active=True).count(),
+                'catalog_order_pending': catalog_order_pending,
+                'catalog_order_paid_week': sales['order_paid_week'],
+                'catalog_order_total': sales['order_total'],
+                'catalog_order_paid_total': sales['order_paid_total'],
+                'catalog_order_week': sales['order_week'],
+                'catalog_revenue_total': sales['revenue_total'],
+                'catalog_revenue_week': sales['revenue_week'],
+                'catalog_revenue_month': sales['revenue_month'],
+                'catalog_order_aov_toman': sales['order_aov_toman'],
+                'catalog_preparing_count': sales['preparing_count'],
+                'catalog_shipped_count': sales['shipped_count'],
+                'miniapp_visitors': sales['miniapp_visitors'],
+                'store_conversion_rate_pct': sales['conversion_rate_pct'],
+                'sales_charts': sales['charts'],
+                'mini_app_url': catalog.build_mini_app_url(bot),
+                'catalog_recent_orders': (
+                    CatalogOrder.objects.filter(**scope)
+                    .select_related('subscriber')
+                    .order_by('-created_at')[:8]
+                ),
+            })
+
+        ctx['dash_alerts'] = _dashboard_alerts(
+            bot=bot,
+            bot_health=bot_health,
+            inbound_open=inbound_open,
+            catalog_order_pending=catalog_order_pending,
+            has_miniapp=has_miniapp,
+            catalog_enabled=catalog_enabled,
+        )
         return ctx
 
 
