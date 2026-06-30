@@ -1,0 +1,21 @@
+{% load static %}
+<div class="chat-demo" data-demo-image="{% static 'landing/assets/demo-storefront.png' %}">
+  <div class="chat-demo-header">
+    <img class="chat-demo-avatar" src="{% static 'landing/brand/icon.png' %}" alt="" width="28" height="28">
+    <div class="chat-demo-meta">
+      <strong>ریحانی‌شاپ</strong>
+      <span class="chat-demo-status">
+        <span class="chat-demo-online-dot" aria-hidden="true"></span>
+        ۲ هزار کاربر
+      </span>
+    </div>
+  </div>
+  <div class="chat-demo-thread" aria-live="polite"></div>
+  <div class="chat-demo-typing" hidden aria-hidden="true">
+    <div class="chat-bubble chat-bubble--bot chat-bubble--typing">
+      <span class="chat-typing-dot"></span>
+      <span class="chat-typing-dot"></span>
+      <span class="chat-typing-dot"></span>
+    </div>
+  </div>
+</div>

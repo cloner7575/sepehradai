@@ -22,7 +22,7 @@
   <meta name="twitter:description" content="فروشگاه کامل با سبد خرید و پرداخت مستقیم داخل بله و تلگرام.">
 
   <link href="{% static 'balebot/css/fonts.css' %}" rel="stylesheet">
-  <link href="{% static 'landing/landing.css' %}?v=4" rel="stylesheet">
+  <link href="{% static 'landing/landing.css' %}?v=5" rel="stylesheet">
 
   <script type="application/ld+json">
   {
@@ -124,54 +124,7 @@
           <div class="phone-frame">
             <div class="phone-notch"></div>
             <div class="phone-screen">
-              <div class="mini-app">
-                <div class="mini-header">
-                  <span class="mini-header-title">فروشگاه نمونه</span>
-                  <span class="mini-cart">🛒</span>
-                </div>
-                <div class="mini-search">جستجوی محصول…</div>
-                <div class="mini-cats">
-                  <span class="mini-cat active">همه</span>
-                  <span class="mini-cat">پوشاک</span>
-                  <span class="mini-cat">جدید</span>
-                </div>
-                <div class="mini-products">
-                  <div class="mini-product">
-                    <div class="mini-product-img"></div>
-                    <div class="mini-product-info">
-                      <div class="mini-product-name">مانتو مجلسی</div>
-                      <div class="mini-product-price">۸۹۰٬۰۰۰ ت</div>
-                    </div>
-                  </div>
-                  <div class="mini-product">
-                    <div class="mini-product-img" style="background:linear-gradient(135deg,#fce7f3,#ede9fe)"></div>
-                    <div class="mini-product-info">
-                      <div class="mini-product-name">کیف چرمی</div>
-                      <div class="mini-product-price">۴۵۰٬۰۰۰ ت</div>
-                    </div>
-                  </div>
-                  <div class="mini-product">
-                    <div class="mini-product-img" style="background:linear-gradient(135deg,#d1fae5,#ecfdf5)"></div>
-                    <div class="mini-product-info">
-                      <div class="mini-product-name">کفش اسپرت</div>
-                      <div class="mini-product-price">۱٬۲۰۰٬۰۰۰ ت</div>
-                    </div>
-                  </div>
-                  <div class="mini-product">
-                    <div class="mini-product-img" style="background:linear-gradient(135deg,#fef3c7,#fde68a)"></div>
-                    <div class="mini-product-info">
-                      <div class="mini-product-name">شال ابریشم</div>
-                      <div class="mini-product-price">۳۲۰٬۰۰۰ ت</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="mini-nav">
-                  <span class="active">خانه</span>
-                  <span>دسته‌ها</span>
-                  <span>سبد</span>
-                  <span>پروفایل</span>
-                </div>
-              </div>
+              {% include "landing/_chat_demo.html" %}
             </div>
           </div>
         </div>
@@ -661,6 +614,7 @@
     </div>
   </footer>
 
+  <script src="{% static 'landing/chat-demo.js' %}?v=1" defer></script>
   <script src="{% static 'landing/landing.js' %}?v=3" defer></script>
 </body>
 </html>
