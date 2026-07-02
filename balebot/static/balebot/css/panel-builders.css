@@ -7362,56 +7362,112 @@ select.panel-input {
   }
 }
 
-/* ── Mobile studio: tab navigation ── */
-.flow-studio-mobile-nav {
+/* ── Mobile studio: canvas + bottom sheets ── */
+.flow-studio-fab {
   display: none;
   position: fixed;
-  bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
-  left: 0;
-  right: 0;
-  z-index: 99;
-  margin: 0 auto;
-  max-width: 28rem;
-  padding: 0.35rem 0.75rem;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid var(--fc-border, #e2e8f0);
-  border-radius: 999px;
-  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.12);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  gap: 0.25rem;
-  align-items: stretch;
-  justify-content: space-between;
-}
-
-.flow-studio-mobile-nav-btn {
-  flex: 1;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.1rem;
-  min-height: 44px;
-  padding: 0.35rem 0.5rem;
+  inset-inline-start: 1rem;
+  bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
+  z-index: 102;
+  width: 3.5rem;
+  height: 3.5rem;
   border: none;
   border-radius: 999px;
-  background: transparent;
-  color: #64748b;
-  font-size: 0.62rem;
-  font-weight: 700;
-  font-family: inherit;
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 8px 28px rgba(37, 99, 235, 0.45);
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: transform 0.2s ease, background 0.2s ease;
 }
 
-.flow-studio-mobile-nav-btn i {
-  font-size: 1rem;
-  line-height: 1;
+.flow-studio-fab.is-active {
+  transform: rotate(45deg);
+  background: #64748b;
 }
 
-.flow-studio-mobile-nav-btn.is-active {
+.flow-studio-mobile-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 108;
+  background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.flow-studio-mobile-coach {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.65rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
   background: #eff6ff;
-  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.flow-studio-mobile-coach-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.flow-studio-mobile-coach-dismiss {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  color: #1e40af;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flow-studio-sheet-head {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem 0.5rem;
+  border-bottom: 1px solid var(--fc-border, #e2e8f0);
+  flex-shrink: 0;
+}
+
+.flow-studio-sheet-head--inspector {
+  padding: 0;
+  border-bottom: none;
+  width: 100%;
+}
+
+.flow-studio-sheet-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.flow-studio-sheet-close {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
 }
 
 .flow-canvas-drag-handle {
@@ -7446,79 +7502,170 @@ select.panel-input {
 
 @media (max-width: 991.98px) {
   .flow-engine-studio-form {
-    padding-bottom: calc(9rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
   }
 
   .flow-engine-save-bar {
-    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    padding: 0.5rem 0.75rem;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
   }
 
-  .flow-canvas-editor--mobile .flow-studio-mobile-nav {
+  .flow-engine-save-bar-inner {
+    flex-direction: row;
+    align-items: center;
+    padding: 0.55rem 0.85rem;
+    gap: 0.5rem;
+  }
+
+  .flow-engine-save-bar-inner .btn-panel-primary {
+    flex: 1;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .flow-engine-save-bar-inner .small.text-muted {
+    display: none;
+  }
+
+  .flow-engine-studio-hint {
+    display: none !important;
+  }
+
+  .flow-canvas-editor--mobile {
+    border: none;
+    border-radius: 12px;
+    box-shadow: none;
+  }
+
+  .flow-canvas-editor--mobile .bot-studio-header,
+  .flow-canvas-editor--mobile .miniapp-editor-topbar {
+    padding: 0.55rem 0.75rem;
+  }
+
+  .flow-canvas-editor--mobile .bot-studio-header-sub {
+    display: none;
+  }
+
+  .flow-canvas-editor--mobile .bot-studio-header-title {
+    font-size: 0.88rem;
+  }
+
+  .flow-canvas-editor--mobile .flow-studio-fab {
+    display: inline-flex;
+  }
+
+  .flow-canvas-editor--mobile .flow-studio-sheet-head {
     display: flex;
+  }
+
+  .flow-canvas-editor--mobile .flow-canvas-editor-layout {
+    min-height: 0;
   }
 
   .flow-canvas-editor--mobile .bot-studio-dock,
   .flow-canvas-editor--mobile .miniapp-editor-sidebar,
-  .flow-canvas-editor--mobile .flow-canvas-stage,
   .flow-canvas-editor--mobile .flow-canvas-inspector {
-    display: none !important;
-    order: unset;
-    min-height: 0;
-  }
-
-  .flow-canvas-editor--mobile[data-mobile-panel='add'] .bot-studio-dock,
-  .flow-canvas-editor--mobile[data-mobile-panel='add'] .miniapp-editor-sidebar {
     display: flex !important;
     flex-direction: column;
-    max-height: calc(100dvh - 12rem);
-    overflow: hidden;
-  }
-
-  .flow-canvas-editor--mobile[data-mobile-panel='add'] .bot-studio-palette,
-  .flow-canvas-editor--mobile[data-mobile-panel='add'] .miniapp-block-palette {
-    max-height: min(50vh, 420px);
-    overflow-y: auto;
-  }
-
-  .flow-canvas-editor--mobile[data-mobile-panel='add'] .miniapp-editor-sidebar-section--layers {
-    max-height: 220px;
-    overflow-y: auto;
-  }
-
-  .flow-canvas-editor--mobile[data-mobile-panel='preview'] .flow-canvas-stage {
-    display: block !important;
-  }
-
-  .flow-canvas-editor--mobile[data-mobile-panel='preview'] .flow-messenger-thread {
-    max-height: calc(100dvh - 13rem);
-  }
-
-  .flow-canvas-editor--mobile[data-mobile-panel='inspect'] .flow-canvas-inspector {
-    display: flex !important;
-    flex-direction: column;
-    max-height: calc(100dvh - 12rem);
-    overflow-y: auto;
-  }
-
-  .flow-engine-save-bar-inner {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .flow-engine-save-bar-inner .btn-panel-primary {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 110;
     width: 100%;
-    justify-content: center;
-    min-height: 44px;
+    max-height: min(86dvh, 720px);
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.18);
+    transform: translateY(105%);
+    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+    overflow: hidden;
+    background: #fff;
+    visibility: hidden;
+    pointer-events: none;
   }
 
-  .flow-engine-studio-hint .btn-panel-ghost .btn-label {
-    display: none;
+  .flow-canvas-editor--mobile .flow-canvas-stage {
+    display: block !important;
+    min-height: calc(100dvh - 11.5rem);
   }
 
-  .flow-engine-studio-hint .btn-panel-ghost {
-    min-width: 44px;
+  .flow-canvas-editor--mobile .flow-messenger,
+  .flow-canvas-editor--mobile .flow-messenger--shop {
+    min-height: calc(100dvh - 12.5rem);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .flow-canvas-editor--mobile .flow-messenger-thread,
+  .flow-canvas-editor--mobile .flow-messenger-thread--miniapp {
+    flex: 1;
+    max-height: none !important;
+    min-height: 280px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .flow-canvas-editor--mobile.flow-sheet-open .flow-studio-mobile-backdrop {
+    display: block;
+  }
+
+  .flow-canvas-editor--mobile.flow-sheet-open--add .bot-studio-dock,
+  .flow-canvas-editor--mobile.flow-sheet-open--add .miniapp-editor-sidebar {
+    transform: translateY(0);
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .flow-canvas-editor--mobile.flow-sheet-open--inspect .flow-canvas-inspector {
+    transform: translateY(0);
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .flow-canvas-editor--mobile.flow-sheet-open--add .bot-studio-panels,
+  .flow-canvas-editor--mobile.flow-sheet-open--add .miniapp-editor-sidebar {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .flow-canvas-editor--mobile.flow-sheet-open--add .bot-studio-palette,
+  .flow-canvas-editor--mobile.flow-sheet-open--add .miniapp-block-palette {
+    max-height: none;
+  }
+
+  .flow-canvas-editor--mobile.flow-sheet-open--add .miniapp-editor-sidebar-section--layers {
+    max-height: none;
+  }
+
+  .flow-canvas-editor--mobile.flow-sheet-open--inspect .flow-canvas-inspector-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 1rem;
+  }
+
+  .flow-canvas-editor--mobile .miniapp-palette-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .flow-canvas-editor--mobile .miniapp-palette-btn {
+    min-height: 3.25rem;
+    font-size: 0.78rem;
+    padding: 0.65rem 0.5rem;
+  }
+
+  .flow-canvas-editor--mobile .bot-studio-tile {
+    min-height: 3rem;
+    padding: 0.65rem 0.55rem;
+  }
+
+  .flow-canvas-editor--mobile .bot-studio-tab {
     min-height: 44px;
-    padding-inline: 12px;
+    font-size: 0.72rem;
   }
 
   .flow-canvas-block.is-selected .flow-canvas-block-actions {
@@ -7550,10 +7697,6 @@ select.panel-input {
 }
 
 @media (max-width: 575.98px) {
-  .flow-studio-mobile-nav {
-    max-width: calc(100% - 1.5rem);
-  }
-
   .catalog-item-form-grid .col-md-6 {
     flex: 0 0 100%;
     max-width: 100%;

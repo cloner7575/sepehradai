@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="flow-engine-studio" id="flow-engine-studio">
+<div class="flow-engine-studio flow-engine-studio--immersive" id="flow-engine-studio">
   <form method="post" class="flow-engine-studio-form" id="flow-bot-form" enctype="multipart/form-data">
     {% csrf_token %}
     {% if bot_form.non_field_errors %}
@@ -31,6 +31,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'balebot/js/flow_canvas_mobile.js' %}?v=2"></script>
-<script src="{% static 'balebot/js/flow_canvas_editor.js' %}?v=17"></script>
+<script src="{% static 'balebot/js/flow_canvas_mobile.js' %}?v=3"></script>
+<script src="{% static 'balebot/js/flow_canvas_editor.js' %}?v=18"></script>
 {% endblock %}

@@ -11,7 +11,7 @@
   {% include "balebot/_catalog_subnav.html" %}
 </div>
 
-<div class="flow-engine-studio" id="miniapp-flow-studio">
+<div class="flow-engine-studio flow-engine-studio--immersive" id="miniapp-flow-studio">
   <form method="post" class="flow-engine-studio-form miniapp-flow-form" id="miniapp-flow-form" enctype="multipart/form-data">
     {% csrf_token %}
     {% if catalog_form.non_field_errors %}
@@ -48,7 +48,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'balebot/js/flow_canvas_mobile.js' %}?v=2"></script>
+<script src="{% static 'balebot/js/flow_canvas_mobile.js' %}?v=3"></script>
 <script src="{% static 'balebot/js/jalali_date_picker.js' %}?v=1"></script>
-<script src="{% static 'balebot/js/flow_canvas_miniapp_editor.js' %}?v=12"></script>
+<script src="{% static 'balebot/js/flow_canvas_miniapp_editor.js' %}?v=13"></script>
 {% endblock %}

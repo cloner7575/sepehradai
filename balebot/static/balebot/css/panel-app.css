@@ -3754,3 +3754,28 @@ code, kbd, pre, .panel-code {
   flex-wrap: nowrap;
   -webkit-overflow-scrolling: touch;
 }
+
+/* Flow studio immersive mobile */
+@media (max-width: 991.98px) {
+  body.app-body--flow-studio .app-page-head {
+    padding: 10px 12px 6px;
+  }
+
+  body.app-body--flow-studio .app-page-title {
+    font-size: 1.05rem;
+  }
+
+  body.app-body--flow-studio .app-page-subtitle,
+  body.app-body--flow-studio .topbar-meta {
+    display: none;
+  }
+
+  body.app-body--flow-studio .app-content {
+    padding-inline: 8px;
+    padding-bottom: calc(40px + var(--app-safe-bottom));
+  }
+
+  body.app-body--flow-studio .catalog-panel {
+    display: none;
+  }
+}

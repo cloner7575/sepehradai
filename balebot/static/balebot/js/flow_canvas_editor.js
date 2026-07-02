@@ -1049,6 +1049,7 @@
     renderInspector();
     renderFlowOutline();
     updateToolbarContext();
+    if (mobileApi) mobileApi.onClearSelection();
   }
 
   function stopProp(e) {
@@ -2997,6 +2998,7 @@
 
     state.root.items.splice(insertAt, 0, node);
     selectPath([{ kind: 'item', index: insertAt }], 'item');
+    if (mobileApi) mobileApi.onItemAdded();
   }
 
   function mount(root) {
@@ -3063,6 +3065,7 @@
     renderCanvas();
     renderInspector();
     updateToolbarContext();
+    if (mobileApi) mobileApi.suggestAddIfEmpty(state.root.items.length);
   }
 
   document.addEventListener('DOMContentLoaded', function () {

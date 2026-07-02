@@ -559,6 +559,7 @@
     restoreMovedFields();
     renderCanvas();
     renderInspector();
+    if (mobileApi) mobileApi.onClearSelection();
   }
 
   function selectBlock(index) {
@@ -2519,6 +2520,7 @@
     if (selection !== null) insertAt = selection + 1;
     state.blocks.splice(insertAt, 0, b);
     selectBlock(insertAt);
+    if (mobileApi) mobileApi.onItemAdded();
   }
 
   function moveBlock(delta, fromIndex) {
@@ -2632,6 +2634,7 @@
     }
     renderCanvas();
     renderInspector();
+    if (mobileApi) mobileApi.suggestAddIfEmpty(state.blocks.length);
   }
 
   document.addEventListener('DOMContentLoaded', mount);

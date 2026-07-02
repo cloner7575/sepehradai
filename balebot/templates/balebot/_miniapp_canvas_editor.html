@@ -24,8 +24,22 @@
     </div>
   </div>
 
+  <div class="flow-studio-mobile-coach" hidden>
+    <span class="flow-studio-mobile-coach-text"><i class="bi bi-hand-index-thumb"></i> ضربه = تنظیمات · نگه دارید = جابجایی · دکمه + = افزودن</span>
+    <button type="button" class="flow-studio-mobile-coach-dismiss" data-flow-coach-dismiss aria-label="بستن راهنما"><i class="bi bi-x-lg"></i></button>
+  </div>
+
+  <button type="button" class="flow-studio-fab" hidden aria-label="افزودن المان" aria-expanded="false">
+    <i class="bi bi-plus-lg" aria-hidden="true"></i>
+  </button>
+  <div class="flow-studio-mobile-backdrop" hidden aria-hidden="true"></div>
+
   <div class="flow-canvas-editor-layout flow-canvas-editor-layout--miniapp">
     <aside class="miniapp-editor-sidebar" aria-label="کتابخانه و لایه‌ها">
+      <div class="flow-studio-sheet-head">
+        <h3 class="flow-studio-sheet-title">افزودن المان</h3>
+        <button type="button" class="flow-studio-sheet-close" data-flow-sheet-close aria-label="بستن"><i class="bi bi-x-lg"></i></button>
+      </div>
       <section class="miniapp-editor-sidebar-section">
         <header class="miniapp-editor-sidebar-head">
           <h4 class="miniapp-editor-sidebar-title">افزودن المان</h4>
@@ -71,24 +85,18 @@
 
     <aside class="flow-canvas-inspector flow-canvas-inspector--miniapp" id="miniapp-canvas-inspector" aria-label="ویژگی‌های انتخاب‌شده">
       <div class="flow-canvas-inspector-head">
-        <h3 class="flow-canvas-inspector-title" id="miniapp-inspector-title">ویژگی‌ها</h3>
-        <span class="flow-canvas-inspector-hint" id="miniapp-inspector-hint">یک المان را انتخاب کنید</span>
+        <div class="flow-studio-sheet-head flow-studio-sheet-head--inspector">
+          <div>
+            <h3 class="flow-canvas-inspector-title" id="miniapp-inspector-title">ویژگی‌ها</h3>
+            <span class="flow-canvas-inspector-hint" id="miniapp-inspector-hint">یک المان را انتخاب کنید</span>
+          </div>
+          <button type="button" class="flow-studio-sheet-close" data-flow-sheet-close aria-label="بستن"><i class="bi bi-x-lg"></i></button>
+        </div>
       </div>
       <div class="flow-canvas-inspector-body" id="miniapp-inspector-body"></div>
     </aside>
   </div>
 
-  <nav class="flow-studio-mobile-nav" role="tablist" aria-label="بخش‌های طراحی" hidden>
-    <button type="button" class="flow-studio-mobile-nav-btn" data-mobile-tab="add" role="tab" aria-selected="false">
-      <i class="bi bi-plus-lg" aria-hidden="true"></i><span>افزودن</span>
-    </button>
-    <button type="button" class="flow-studio-mobile-nav-btn is-active" data-mobile-tab="preview" role="tab" aria-selected="true">
-      <i class="bi bi-phone" aria-hidden="true"></i><span>پیش‌نمایش</span>
-    </button>
-    <button type="button" class="flow-studio-mobile-nav-btn" data-mobile-tab="inspect" role="tab" aria-selected="false">
-      <i class="bi bi-sliders" aria-hidden="true"></i><span>ویژگی‌ها</span>
-    </button>
-  </nav>
 </div>
 
 <div class="visually-hidden miniapp-inspector-vault" aria-hidden="true">
