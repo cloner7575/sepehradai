@@ -194,12 +194,36 @@
       return false;
     }
 
+    function clearTextSelection() {
+      try {
+        var sel = window.getSelection && window.getSelection();
+        if (sel && sel.removeAllRanges) sel.removeAllRanges();
+      } catch (selErr) {
+        /* ignore */
+      }
+    }
+
+    function detachHoldTouchMove() {
+      if (!touchState || !touchState.holdTouchMove) return;
+      document.removeEventListener('touchmove', touchState.holdTouchMove);
+      touchState.holdTouchMove = null;
+    }
+
     function clearTouchState() {
       if (!touchState) return;
       if (touchState.timer) clearTimeout(touchState.timer);
+      detachHoldTouchMove();
       touchState.el.classList.remove('is-long-press-pending', 'is-long-press-drag');
       touchState = null;
     }
+
+    el.addEventListener('selectstart', function (e) {
+      if (isMobile()) e.preventDefault();
+    });
+
+    el.addEventListener('contextmenu', function (e) {
+      if (isMobile()) e.preventDefault();
+    });
 
     el.addEventListener(
       'touchstart',
@@ -209,17 +233,25 @@
 
         var t = e.touches[0];
         clearTouchState();
+        clearTextSelection();
 
         var node = el;
+        var holdTouchMove = function (moveEv) {
+          if (!touchState || touchState.el !== node) return;
+          moveEv.preventDefault();
+        };
+
         touchState = {
           el: node,
           x: t.clientX,
           y: t.clientY,
           dragStarted: false,
+          holdTouchMove: holdTouchMove,
           timer: setTimeout(function () {
             if (!touchState || touchState.el !== node) return;
             touchState.dragStarted = true;
             touchState.timer = null;
+            clearTextSelection();
             node.classList.remove('is-long-press-pending');
             node.classList.add('is-long-press-drag');
             try {
@@ -231,6 +263,7 @@
           }, LONG_PRESS_MS),
         };
         node.classList.add('is-long-press-pending');
+        document.addEventListener('touchmove', holdTouchMove, { passive: false });
       },
       { passive: true }
     );
@@ -254,6 +287,7 @@
       var wasDrag = touchState.dragStarted;
       var node = touchState.el;
       clearTouchState();
+      clearTextSelection();
       if (wasDrag) return;
       if (onTap) {
         node._flowSkipClick = true;
@@ -261,7 +295,10 @@
       }
     });
 
-    el.addEventListener('touchcancel', clearTouchState);
+    el.addEventListener('touchcancel', function () {
+      clearTouchState();
+      clearTextSelection();
+    });
   }
 
   function shouldSkipClick(el) {

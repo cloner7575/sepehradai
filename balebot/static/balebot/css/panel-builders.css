@@ -7488,11 +7488,19 @@ select.panel-input {
 .flow-canvas-block.is-long-press-pending {
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
   transition: box-shadow 0.15s ease;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .flow-canvas-block.is-long-press-drag {
   opacity: 0.88;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.45);
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .flow-canvas-block-badge.flow-canvas-drag-handle {
@@ -7666,6 +7674,28 @@ select.panel-input {
   .flow-canvas-editor--mobile .bot-studio-tab {
     min-height: 44px;
     font-size: 0.72rem;
+  }
+
+  .flow-canvas-editor--mobile .flow-messenger-thread--editable,
+  .flow-canvas-editor--mobile .flow-messenger-thread--editable .flow-canvas-block,
+  .flow-canvas-editor--mobile .flow-messenger-thread--editable .flow-chat-bubble,
+  .flow-canvas-editor--mobile .flow-messenger-thread--editable .flow-canvas-block-body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .flow-canvas-editor--mobile .flow-messenger-thread.is-canvas-dragging,
+  .flow-canvas-editor--mobile .flow-messenger-thread.is-canvas-dragging * {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+  }
+
+  .flow-canvas-editor--mobile .flow-messenger-thread--editable .flow-canvas-keyboard-btn {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
   }
 
   .flow-canvas-block.is-selected .flow-canvas-block-actions {
