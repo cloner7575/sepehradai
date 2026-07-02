@@ -154,6 +154,14 @@
 
     updateMode();
 
+    function teardown() {
+      closeSheet();
+      setBodyClass(false);
+      document.body.style.overflow = '';
+    }
+
+    window.addEventListener('pagehide', teardown);
+
     return {
       onSelection: function () {
         if (isMobile()) openSheet('inspect');
@@ -177,6 +185,7 @@
         if (!isMobile() || coachDismissed) return;
         if (count === 0) openSheet('add');
       },
+      teardown: teardown,
     };
   }
 

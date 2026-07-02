@@ -328,12 +328,20 @@
   if (modal && form) {
     var urlPattern = "{% url template_apply_url_name slug='___SLUG___' %}";
     var emptyWarn = document.getElementById('apply-template-empty-warn');
+    var pendingSlug = '';
+
+    document.querySelectorAll('[data-bs-target="#apply-template-modal"]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        pendingSlug = btn.getAttribute('data-template-slug') || '';
+      });
+    });
+
     modal.addEventListener('show.bs.modal', function (e) {
       var btn = e.relatedTarget;
-      if (!btn) return;
-      var slug = btn.getAttribute('data-template-slug');
-      var name = btn.getAttribute('data-template-name');
-      var hasContent = btn.getAttribute('data-template-has-content') === '1';
+      var slug = (btn && btn.getAttribute('data-template-slug')) || pendingSlug;
+      if (!slug) return;
+      var name = btn ? btn.getAttribute('data-template-name') : '';
+      var hasContent = btn ? btn.getAttribute('data-template-has-content') === '1' : true;
       document.getElementById('apply-template-name').textContent = name || '';
       form.action = urlPattern.replace('___SLUG___', slug);
       if (emptyWarn) {

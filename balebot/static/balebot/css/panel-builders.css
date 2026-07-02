@@ -7449,6 +7449,15 @@ select.panel-input {
   width: 100%;
 }
 
+.flow-canvas-inspector-head-main {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.flow-studio-inspector-close {
+  display: none;
+}
+
 .flow-studio-sheet-title {
   margin: 0;
   font-size: 0.95rem;
@@ -7564,6 +7573,18 @@ select.panel-input {
 
   .flow-canvas-editor--mobile .flow-studio-sheet-head {
     display: flex;
+  }
+
+  .flow-canvas-editor--mobile .flow-canvas-inspector-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .flow-canvas-editor--mobile .flow-studio-inspector-close {
+    display: inline-flex;
+    flex-shrink: 0;
   }
 
   .flow-canvas-editor--mobile .flow-canvas-editor-layout {

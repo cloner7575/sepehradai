@@ -50,6 +50,7 @@ from balebot.services.store_template_io import (
     import_store_templates,
     parse_import_file as parse_store_template_import_file,
 )
+from balebot.services.store_template import apply_template
 from balebot.services.catalog_bulk_import import (
     build_sample_workbook,
     import_rows,

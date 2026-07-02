@@ -1474,7 +1474,7 @@
     var handle = ensureDragHandle(wrap);
     var payload = { kind: 'block', indices: indices.slice() };
     var ignore =
-      '.flow-canvas-keyboard-btn, .flow-canvas-button-cell, .flow-canvas-drop-zone, .flow-canvas-chip-gap, .flow-canvas-drag-handle';
+      '.flow-canvas-keyboard-btn, .flow-canvas-button-cell, .flow-canvas-drop-zone, .flow-canvas-chip-gap, .flow-canvas-drag-handle, .flow-canvas-submenu, .flow-canvas-block--nested';
 
     attachDragSource(handle, payload, '.flow-canvas-block', ignore);
 

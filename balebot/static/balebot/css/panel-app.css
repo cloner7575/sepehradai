@@ -3775,7 +3775,7 @@ code, kbd, pre, .panel-code {
     padding-bottom: calc(40px + var(--app-safe-bottom));
   }
 
-  body.app-body--flow-studio .catalog-panel {
+  body.app-body--flow-studio .catalog-panel--flow-subnav {
     display: none;
   }
 }
