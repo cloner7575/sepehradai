@@ -9,21 +9,21 @@
 {% block page_actions %}
 <div class="d-flex flex-wrap gap-2">
   {% if has_miniapp_access %}
-  <a href="{% url 'catalog_order_list' %}" class="btn btn-panel-ghost btn-sm flex-shrink-0">
-    <i class="bi bi-receipt me-1"></i>سفارش‌ها
+  <a href="{% url 'catalog_order_list' %}" class="btn btn-panel-ghost btn-sm flex-shrink-0" title="سفارش‌ها" aria-label="سفارش‌ها">
+    <i class="bi bi-receipt me-1"></i><span class="btn-label">سفارش‌ها</span>
   </a>
   {% endif %}
-  <a href="{% url 'campaign_create' %}" class="btn btn-panel-ghost btn-sm flex-shrink-0">
-    <i class="bi bi-megaphone me-1"></i>کمپین جدید
+  <a href="{% url 'campaign_create' %}" class="btn btn-panel-ghost btn-sm flex-shrink-0" title="کمپین جدید" aria-label="کمپین جدید">
+    <i class="bi bi-megaphone me-1"></i><span class="btn-label">کمپین جدید</span>
   </a>
   {% if has_miniapp_access and mini_app_url %}
-  <a href="{{ mini_app_url }}" target="_blank" rel="noopener" class="btn btn-panel-ghost btn-sm flex-shrink-0">
-    <i class="bi bi-box-arrow-up-left me-1"></i>پیش‌نمایش فروشگاه
+  <a href="{{ mini_app_url }}" target="_blank" rel="noopener" class="btn btn-panel-ghost btn-sm flex-shrink-0" title="پیش‌نمایش فروشگاه" aria-label="پیش‌نمایش فروشگاه">
+    <i class="bi bi-box-arrow-up-left me-1"></i><span class="btn-label">پیش‌نمایش فروشگاه</span>
   </a>
   {% endif %}
   {% if has_miniapp_access %}
-  <a href="{% url 'catalog_dashboard' %}" class="btn btn-panel-primary btn-sm flex-shrink-0">
-    <i class="bi bi-shop me-1"></i>فروشگاه
+  <a href="{% url 'catalog_dashboard' %}" class="btn btn-panel-primary btn-sm flex-shrink-0" title="فروشگاه" aria-label="فروشگاه">
+    <i class="bi bi-shop me-1"></i><span class="btn-label">فروشگاه</span>
   </a>
   {% endif %}
 </div>
@@ -107,7 +107,9 @@
       <p class="dash-section-lead">آمار فروش، سفارش‌ها و عملکرد مینی‌اپ</p>
     </div>
     {% if has_miniapp_access %}
-    <a href="{% url 'catalog_dashboard' %}" class="btn btn-panel-ghost btn-sm flex-shrink-0">داشبورد فروشگاه</a>
+    <a href="{% url 'catalog_dashboard' %}" class="btn btn-panel-ghost btn-sm flex-shrink-0" title="داشبورد فروشگاه" aria-label="داشبورد فروشگاه">
+      <i class="bi bi-shop me-1"></i><span class="btn-label">داشبورد فروشگاه</span>
+    </a>
     {% endif %}
   </div>
 
@@ -337,7 +339,9 @@
       <h2 class="dash-section-title dash-section-title--bot"><i class="bi bi-robot"></i>ربات و مخاطبین</h2>
       <p class="dash-section-lead">کاربران {{ active_platform_label }} و ثبت شماره تماس</p>
     </div>
-    <a href="{% url 'subscriber_list' %}" class="btn btn-panel-ghost btn-sm">همه مخاطبین</a>
+    <a href="{% url 'subscriber_list' %}" class="btn btn-panel-ghost btn-sm" title="همه مخاطبین" aria-label="همه مخاطبین">
+      <i class="bi bi-people me-1"></i><span class="btn-label">همه مخاطبین</span>
+    </a>
   </div>
 
   <div class="app-metrics mb-4">
@@ -397,7 +401,9 @@
       <h2 class="dash-section-title dash-section-title--marketing"><i class="bi bi-megaphone"></i>بازاریابی و پشتیبانی</h2>
       <p class="dash-section-lead">کمپین‌های انبوه، تحویل پیام و تیکت‌های پشتیبانی</p>
     </div>
-    <a href="{% url 'campaign_create' %}" class="btn btn-panel-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>کمپین جدید</a>
+    <a href="{% url 'campaign_create' %}" class="btn btn-panel-primary btn-sm" title="کمپین جدید" aria-label="کمپین جدید">
+      <i class="bi bi-plus-lg me-1"></i><span class="btn-label">کمپین جدید</span>
+    </a>
   </div>
 
   <div class="app-metrics mb-4">
@@ -501,7 +507,9 @@
       <h2 class="dash-section-title"><i class="bi bi-instagram"></i>اینستاگرام</h2>
       <p class="dash-section-lead">استخراج و بانک شماره‌ها</p>
     </div>
-    <a href="{% url 'instagram:dashboard' %}" class="btn btn-panel-ghost btn-sm">مدیریت</a>
+    <a href="{% url 'instagram:dashboard' %}" class="btn btn-panel-ghost btn-sm" title="مدیریت اینستاگرام" aria-label="مدیریت اینستاگرام">
+      <i class="bi bi-instagram me-1"></i><span class="btn-label">مدیریت</span>
+    </a>
   </div>
   <div class="row g-3">
     <div class="col-sm-4">

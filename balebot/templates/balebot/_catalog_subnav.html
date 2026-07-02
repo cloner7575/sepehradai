@@ -1,5 +1,5 @@
 {% with name=request.resolver_match.url_name %}
-<nav class="catalog-subnav" aria-label="ناوبری مینی‌اپ">
+<nav class="catalog-subnav app-subnav-scroll" aria-label="ناوبری مینی‌اپ">
   <a href="{% url 'catalog_dashboard' %}" class="catalog-subnav-link{% if name == 'catalog_dashboard' %} is-active{% endif %}">
     <i class="bi bi-speedometer2"></i><span>داشبورد</span>
   </a>

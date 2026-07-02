@@ -94,6 +94,7 @@
   var logoPreviewObjectUrl = '';
   var heroBgSavedUrl = '';
   var heroBgPreviewObjectUrl = '';
+  var mobileApi = null;
 
   function $(id) {
     return document.getElementById(id);
@@ -566,6 +567,7 @@
     renderCanvas();
     renderInspector();
     scrollBlockIntoView(index);
+    if (mobileApi) mobileApi.onSelection();
   }
 
   function toggleBlock(index) {
@@ -672,7 +674,7 @@
     var wasActive = pointerDrag.active;
     var target = wasActive ? hitDropTarget(clientX, clientY) : null;
     if (pointerDrag.host) {
-      pointerDrag.host.classList.remove('is-dragging');
+      pointerDrag.host.classList.remove('is-dragging', 'is-long-press-drag', 'is-long-press-pending');
       pointerDrag.host.style.pointerEvents = '';
       pointerDrag.host.style.visibility = '';
     }
@@ -689,7 +691,7 @@
     var dx = Math.abs(e.clientX - pointerDrag.startX);
     var dy = Math.abs(e.clientY - pointerDrag.startY);
     if (!pointerDrag.active) {
-      if (dx < 3 && dy < 3) return;
+      if (dx < 8 && dy < 8) return;
       pointerDrag.active = true;
       dragPayload = pointerDrag.payload;
       if (pointerDrag.host) {
@@ -728,49 +730,94 @@
       var t = e.changedTouches && e.changedTouches[0];
       finishPointerDrag(t ? t.clientX : pointerDrag.startX, t ? t.clientY : pointerDrag.startY);
     });
+    document.addEventListener('touchcancel', function () {
+      if (!pointerDrag) return;
+      finishPointerDrag(pointerDrag.startX, pointerDrag.startY);
+    });
+  }
+
+  function beginPointerDrag(sourceEl, clientX, clientY, payload, hostSelector, e) {
+    if (e && e.type !== 'touchstart') {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    bindPointerDragListeners();
+    pointerDrag = {
+      payload: payload,
+      handle: sourceEl,
+      host: hostSelector ? sourceEl.closest(hostSelector) : sourceEl,
+      startX: clientX,
+      startY: clientY,
+      active: false,
+      dropTarget: null,
+      ghost: null,
+    };
   }
 
   function attachDragSource(sourceEl, payload, hostSelector, ignoreSelector) {
     if (!sourceEl) return;
-    function startPointerDrag(clientX, clientY, e) {
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      bindPointerDragListeners();
-      pointerDrag = {
-        payload: payload,
-        handle: sourceEl,
-        host: hostSelector ? sourceEl.closest(hostSelector) : sourceEl,
-        startX: clientX,
-        startY: clientY,
-        active: false,
-        dropTarget: null,
-        ghost: null,
-      };
-    }
     sourceEl.addEventListener('mousedown', function (e) {
       if (e.button !== 0) return;
       if (ignoreSelector && e.target && e.target.closest(ignoreSelector)) return;
-      startPointerDrag(e.clientX, e.clientY, e);
+      beginPointerDrag(sourceEl, e.clientX, e.clientY, payload, hostSelector, e);
     });
-    sourceEl.addEventListener(
-      'touchstart',
-      function (e) {
-        if (!e.touches.length) return;
-        var t = e.touches[0];
-        var under = document.elementFromPoint(t.clientX, t.clientY);
-        if (ignoreSelector && under && under.closest(ignoreSelector)) return;
-        startPointerDrag(t.clientX, t.clientY, e);
-      },
-      { passive: false }
-    );
+
+    var useTouchOnHandle =
+      !window.FlowCanvasMobile || !window.FlowCanvasMobile.isMobile();
+    if (useTouchOnHandle) {
+      sourceEl.addEventListener(
+        'touchstart',
+        function (e) {
+          if (!e.touches.length) return;
+          var t = e.touches[0];
+          var under = document.elementFromPoint(t.clientX, t.clientY);
+          if (ignoreSelector && under && under.closest(ignoreSelector)) return;
+          beginPointerDrag(sourceEl, t.clientX, t.clientY, payload, hostSelector, e);
+        },
+        { passive: true }
+      );
+    }
   }
 
-  function decorateBlockDrag(wrap, index) {
+  function attachBlockTouchInteraction(wrap, payload, ignoreSelector, onTap) {
+    if (!wrap || !onTap || !window.FlowCanvasMobile || !FlowCanvasMobile.attachTouchSelectOrDrag) return;
+    FlowCanvasMobile.attachTouchSelectOrDrag(wrap, {
+      ignoreSelector: ignoreSelector,
+      onTap: onTap,
+      onStartDrag: function (clientX, clientY) {
+        beginPointerDrag(wrap, clientX, clientY, payload, '.flow-canvas-block', null);
+      },
+    });
+  }
+
+  function bindBlockTap(wrap, onTap) {
+    wrap.addEventListener('click', function (e) {
+      if (window.FlowCanvasMobile && FlowCanvasMobile.shouldSkipClick(wrap)) return;
+      if (window.FlowCanvasMobile && FlowCanvasMobile.isMobile()) return;
+      stopProp(e);
+      onTap(e);
+    });
+  }
+
+  function decorateBlockDrag(wrap, index, onTap) {
     if (!wrap || index < 0) return;
     wrap.classList.add('flow-canvas-block--draggable');
-    attachDragSource(wrap, { kind: 'block', indices: [index] }, '.flow-canvas-block', '.flow-canvas-drop-zone');
+    var handle = wrap.querySelector('.flow-canvas-block-badge');
+    if (handle) {
+      handle.classList.add('flow-canvas-drag-handle');
+      handle.setAttribute('aria-label', 'جابجایی');
+    }
+    var payload = { kind: 'block', indices: [index] };
+    var ignore = '.flow-canvas-drop-zone, .flow-canvas-drag-handle';
+
+    attachDragSource(handle || wrap, payload, '.flow-canvas-block', ignore);
+
+    if (onTap) {
+      attachBlockTouchInteraction(wrap, payload, ignore, function () {
+        onTap();
+      });
+      bindBlockTap(wrap, onTap);
+    }
   }
 
   function appendDropZone(insertIndex) {
@@ -1172,9 +1219,7 @@
     }
 
     wrap.appendChild(body);
-    decorateBlockDrag(wrap, index);
-    wrap.addEventListener('click', function (e) {
-      stopProp(e);
+    decorateBlockDrag(wrap, index, function () {
       toggleBlock(index);
     });
     return wrap;
@@ -1192,7 +1237,7 @@
         '<div class="flow-chat-empty flow-canvas-empty">' +
         '<i class="bi bi-layout-text-window-reverse"></i>' +
         '<p>صفحه خالی است. از پنل چپ یک المان اضافه کنید.</p>' +
-        '<p class="flow-canvas-empty-hint">بعد از افزودن، المان را بکشید و جابه‌جا کنید</p></div>';
+        '<p class="flow-canvas-empty-hint">برای جابجایی، انگشت را روی المان نگه دارید و بکشید</p></div>';
     } else {
       appendDropZone(0);
       state.blocks.forEach(function (block, i) {
@@ -2508,6 +2553,8 @@
     blockCountEl = $('miniapp-editor-block-count');
     if (!root || !form || !threadEl) return;
 
+    mobileApi = window.FlowCanvasMobile ? FlowCanvasMobile.mount(root) : null;
+
     uploadUrl = root.getAttribute('data-upload-url') || '';
     logoSavedUrl = root.getAttribute('data-logo-url') || '';
     heroBgSavedUrl = root.getAttribute('data-hero-background-url') || '';
@@ -2555,6 +2602,7 @@
         selection = null;
         renderCanvas();
         renderInspector();
+        if (mobileApi) mobileApi.onSelection();
       });
     }
 

@@ -37,6 +37,8 @@
         class="app-platform-btn {% if value == active_platform %}is-active{% endif %}"
         data-platform="{{ value }}"
         aria-pressed="{% if value == active_platform %}true{% else %}false{% endif %}"
+        aria-label="{{ label }}"
+        title="{{ label }}"
       >
         {% if value == 'telegram' %}
         <i class="bi bi-send-fill"></i>

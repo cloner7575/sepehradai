@@ -1,5 +1,5 @@
 {% with name=request.resolver_match.url_name %}
-<nav class="ig-subnav" aria-label="ناوبری اینستاگرام">
+<nav class="ig-subnav app-subnav-scroll" aria-label="ناوبری اینستاگرام">
   <a href="{% url 'instagram:dashboard' %}" class="ig-subnav-link{% if name == 'dashboard' %} is-active{% endif %}">
     <i class="bi bi-grid-1x2"></i><span>داشبورد</span>
   </a>

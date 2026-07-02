@@ -23,11 +23,11 @@
       {% if available_platforms|length > 1 %}
       <span class="small text-muted">برای بله/تلگرام از نوار بالا سوئیچ کنید</span>
       {% endif %}
-      <a href="{% url 'bot_flow_engine' %}" class="btn-panel-ghost btn-sm ms-auto">
-        <i class="bi bi-robot"></i> طراحی منوی ربات
+      <a href="{% url 'bot_flow_engine' %}" class="btn-panel-ghost btn-sm ms-auto" title="طراحی منوی ربات" aria-label="طراحی منوی ربات">
+        <i class="bi bi-robot"></i> <span class="btn-label">طراحی منوی ربات</span>
       </a>
-      <a href="{% url 'catalog_item_create' %}" class="btn-panel-ghost btn-sm">
-        <i class="bi bi-plus-lg"></i> محصول
+      <a href="{% url 'catalog_item_create' %}" class="btn-panel-ghost btn-sm" title="محصول جدید" aria-label="محصول جدید">
+        <i class="bi bi-plus-lg"></i> <span class="btn-label">محصول</span>
       </a>
     </div>
 
@@ -48,6 +48,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'balebot/js/flow_canvas_mobile.js' %}?v=2"></script>
 <script src="{% static 'balebot/js/jalali_date_picker.js' %}?v=1"></script>
-<script src="{% static 'balebot/js/flow_canvas_miniapp_editor.js' %}?v=10"></script>
+<script src="{% static 'balebot/js/flow_canvas_miniapp_editor.js' %}?v=12"></script>
 {% endblock %}
