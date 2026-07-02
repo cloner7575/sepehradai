@@ -16,8 +16,8 @@ from balebot.services.flow_sanitize import empty_start_flow, sanitize_start_flow
 
 logger = logging.getLogger(__name__)
 
-_FLOW_CB = re.compile(r'^f(n_[a-f0-9]{8})$')
-_FLOW_BACK_CB = re.compile(r'^fb(n_[a-f0-9]{8})$')
+_FLOW_CB = re.compile(r'^f(n_[a-zA-Z0-9_]{1,48})$')
+_FLOW_BACK_CB = re.compile(r'^fb(n_[a-zA-Z0-9_]{1,48})$')
 _MAX_CB_LEN = 64
 _MAX_LOOP_VISITS = 32
 
@@ -89,7 +89,17 @@ def _collect_buttons_recursive(
     ntype = str(node.get('type', '')).lower()
     if ntype == 'sequence':
         for item in node.get('items') or []:
-            if isinstance(item, dict):
+            if not isinstance(item, dict):
+                continue
+            itype = str(item.get('type', '')).lower()
+            if itype == 'button':
+                if item.get('id'):
+                    refs.append(_ButtonRef(item, list(ancestors)))
+                action = item.get('action')
+                if isinstance(action, dict) and str(action.get('type', '')).lower() == 'buttons':
+                    path = ancestors + [item]
+                    refs.extend(_collect_buttons_recursive(action, path))
+            else:
                 refs.extend(_collect_buttons_recursive(item, ancestors))
     elif ntype == 'buttons':
         rows = node.get('rows') or []
@@ -484,7 +494,8 @@ def build_root_flow_markup(cfg: BotSettings) -> dict[str, Any] | None:
     if str(root.get('type', '')).lower() != 'sequence':
         return None
     merged_rows: list[list[dict[str, Any]]] = []
-    for item in root.get('items') or []:
+    last_row_key: int | None = None
+    for idx, item in enumerate(root.get('items') or []):
         if not isinstance(item, dict):
             continue
         if str(item.get('type', '')).lower() == 'buttons':
@@ -492,6 +503,20 @@ def build_root_flow_markup(cfg: BotSettings) -> dict[str, Any] | None:
                 merged_rows,
                 build_markup_for_buttons_node(item, cfg=cfg),
             )
+            last_row_key = None
+        elif str(item.get('type', '')).lower() == 'button':
+            text = (item.get('text') or '').strip()[:64]
+            if not text:
+                continue
+            entry = _button_api_entry(item, text, cfg=cfg)
+            if not entry:
+                continue
+            row_key = int(item.get('row', idx))
+            if last_row_key is not None and row_key == last_row_key and merged_rows:
+                merged_rows[-1].append(entry)
+            else:
+                merged_rows.append([entry])
+            last_row_key = row_key
     if not merged_rows:
         return None
     return {'inline_keyboard': merged_rows}
@@ -529,19 +554,58 @@ def _send_message_with_inline_markup(
     return False
 
 
+def _append_button_item_rows(
+    merged_rows: list[list[dict[str, Any]]],
+    items: list[Any],
+    start_idx: int,
+    cfg: BotSettings,
+) -> int:
+    """دکمه‌های متوالی را با حفظ ردیف (فیلد row) به markup اضافه می‌کند."""
+    j = start_idx
+    pending_row_key: int | None = None
+    pending_entries: list[dict[str, Any]] = []
+
+    def flush() -> None:
+        nonlocal pending_row_key, pending_entries
+        if pending_entries:
+            merged_rows.append(pending_entries)
+        pending_entries = []
+        pending_row_key = None
+
+    while j < len(items):
+        item = items[j]
+        if not isinstance(item, dict) or str(item.get('type', '')).lower() != 'button':
+            break
+        text = (item.get('text') or '').strip()[:64]
+        row_key = int(item.get('row', j))
+        entry = _button_api_entry(item, text, cfg=cfg) if text else None
+        if entry:
+            if pending_row_key is not None and row_key != pending_row_key:
+                flush()
+            pending_row_key = row_key
+            pending_entries.append(entry)
+        j += 1
+    flush()
+    return j
+
+
 def _collect_consecutive_buttons_markup(
     items: list[Any],
     start_idx: int,
     cfg: BotSettings,
 ) -> tuple[dict[str, Any] | None, int]:
-    """Markup from one or more consecutive buttons items; returns (markup, index after last buttons)."""
+    """Markup from consecutive button/buttons items; returns (markup, index after last)."""
     merged_rows: list[list[dict[str, Any]]] = []
     j = start_idx
     while j < len(items):
         item = items[j]
         if not isinstance(item, dict):
             break
-        if str(item.get('type', '')).lower() != 'buttons':
+        itype = str(item.get('type', '')).lower()
+        if itype == 'button':
+            j = _append_button_item_rows(merged_rows, items, j, cfg)
+            continue
+        if itype != 'buttons':
             break
         _append_markup_rows(
             merged_rows,
@@ -618,6 +682,26 @@ def send_sequence_items(
                 mk = build_markup_for_buttons_node(item, cfg=cfg)
                 if mk:
                     _send_inline_keyboard_message(cfg, chat_id, mk)
+            i += 1
+            continue
+
+        if itype == 'button':
+            if merge_button_markup:
+                mk, after_buttons = _collect_consecutive_buttons_markup(items, i, cfg)
+                if mk:
+                    _send_inline_keyboard_message(cfg, chat_id, mk)
+                    i = after_buttons
+                    continue
+            else:
+                text = (item.get('text') or '').strip()[:64]
+                if text:
+                    entry = _button_api_entry(item, text, cfg=cfg)
+                    if entry:
+                        _send_inline_keyboard_message(
+                            cfg,
+                            chat_id,
+                            {'inline_keyboard': [[entry]]},
+                        )
             i += 1
             continue
 

@@ -40,6 +40,8 @@
     ['coupon', 'کد تخفیف'],
     ['join_gate', 'عضویت کانال'],
     ['invoice', 'پرداخت بله'],
+    ['request_contact', 'درخواست ارسال شماره'],
+    ['request_location', 'درخواست موقعیت'],
   ];
 
   var INTERACTIVE_TYPES = [
@@ -83,7 +85,7 @@
     if (t === 'join_gate') return { type: 'join_gate', channel: '', prompt: 'اول عضو کانال شو', then: { type: 'text', body: 'خوش اومدی!' } };
     if (t === 'tag') return { type: 'tag', add: [], remove: [] };
     if (t === 'faq') return { type: 'faq', title: 'سوالات متداول', items: [{ q: 'سوال؟', a: 'پاسخ' }] };
-    if (t === 'coupon') return { type: 'coupon', code: '', message: '' };
+    if (t === 'coupon') return { type: 'coupon', discount_id: null, code: '', message: '' };
     if (t === 'handoff') return { type: 'handoff', message: 'پیامت رو بفرست' };
     return null;
   }
@@ -171,6 +173,7 @@
   var paletteSearchEl = null;
   var dockTabsEl = null;
   var selection = null;
+  var discountCodes = [];
 
   var PALETTE_FILTER_OPTIONS = [
     ['all', 'همه'],
@@ -181,7 +184,7 @@
     ['advanced', 'پیشرفته'],
   ];
 
-  var QUICK_ADD_TYPES = ['text', 'buttons', 'image'];
+  var QUICK_ADD_TYPES = ['text', 'button', 'image'];
 
   function $(id) {
     return document.getElementById(id);
@@ -264,6 +267,13 @@
       ACTION_OPTIONS.forEach(function (o) {
         if (o[0] === t) hint = o[1];
       });
+      if (t === 'coupon') {
+        if (action.code) return 'تخفیف · ' + action.code;
+        if (action.discount_id != null) {
+          var dc = findDiscountCode(action.discount_id);
+          if (dc) return 'تخفیف · ' + dc.code;
+        }
+      }
       return hint;
     }
     return t;
@@ -286,7 +296,7 @@
       if (!item) return;
       var t = String(item.type || '').toLowerCase();
       if (t === 'text') {
-        var body = String(item.body || '').trim();
+        var body = String(item.body || item.text || '').trim();
         if (body) items.push({ type: 'text', body: body.slice(0, 4096) });
       } else if (isMediaType(t)) {
         var media = normalizeMediaItem(item, t);
@@ -300,7 +310,7 @@
     if (!action || depth > MAX_DEPTH) return null;
     var t = String(action.type || '').toLowerCase();
     if (t === 'text') {
-      var body = String(action.body || '').trim().slice(0, 4096);
+      var body = String(action.body || action.text || '').trim().slice(0, 4096);
       return body ? { type: 'text', body: body } : null;
     }
     if (isMediaType(t)) return normalizeMediaItem(action, t);
@@ -316,11 +326,13 @@
 
   function normalizeButton(btn, depth) {
     if (!btn || depth > MAX_DEPTH) return null;
-    var text = String(btn.text || '').trim().slice(0, 64);
+    var text = String(btn.text || btn.label || '').trim().slice(0, 64);
     var action = btn.action ? normalizeAction(btn.action, depth + 1) : null;
     if (!text && !action) return null;
+    var idRaw = String(btn.id || '').trim();
+    var idOk = /^n_[a-zA-Z0-9_]{1,48}$/.test(idRaw);
     var out = {
-      id: String(btn.id || newNodeId()).match(/^n_[a-f0-9]{8}$/) ? btn.id : newNodeId(),
+      id: idOk ? idRaw.slice(0, 56) : newNodeId(),
       text: text || '…',
     };
     var slug = String(btn.category_slug || '').trim().slice(0, 140);
@@ -344,6 +356,38 @@
     return rowsOut.length ? { type: 'buttons', rows: rowsOut } : null;
   }
 
+  function buttonItemFromNode(btn, depth, row) {
+    var nb = normalizeButton(btn, depth);
+    if (!nb) return null;
+    var out = { type: 'button', id: nb.id, text: nb.text, action: nb.action || null };
+    if (nb.category_slug) out.category_slug = nb.category_slug;
+    if (row !== undefined && row !== null) out.row = row;
+    else if (btn.row !== undefined && btn.row !== null) out.row = btn.row;
+    return out;
+  }
+
+  function flattenToIndependentItems(items) {
+    var out = [];
+    (items || []).forEach(function (item) {
+      if (!item) return;
+      var t = String(item.type || '').toLowerCase();
+      if (t === 'buttons') {
+        (item.rows || []).forEach(function (row, rowIdx) {
+          (row || []).forEach(function (btn) {
+            var bi = buttonItemFromNode(btn, 0, rowIdx);
+            if (bi) out.push(bi);
+          });
+        });
+      } else if (t === 'button') {
+        var flat = buttonItemFromNode(item, 0);
+        if (flat) out.push(flat);
+      } else {
+        out.push(item);
+      }
+    });
+    return out;
+  }
+
   function normalizeSequence(seq, depth) {
     if (!seq || String(seq.type).toLowerCase() !== 'sequence') return defaultSequence();
     var items = [];
@@ -351,7 +395,7 @@
       if (!item) return;
       var t = String(item.type || '').toLowerCase();
       if (t === 'text') {
-        var body = String(item.body || '').trim();
+        var body = String(item.body || item.text || '').trim();
         if (body) items.push({ type: 'text', body: body.slice(0, 4096) });
       } else if (isMediaType(t)) {
         var media = normalizeMediaItem(item, t);
@@ -359,12 +403,15 @@
       } else if (t === 'buttons') {
         var b = normalizeButtons(item, depth);
         if (b) items.push(b);
+      } else if (t === 'button') {
+        var bi = buttonItemFromNode(item, depth);
+        if (bi) items.push(bi);
       } else if (isInteractiveType(t)) {
         var ia = normalizeInteractiveAction(item);
         if (ia) items.push(ia);
       }
     });
-    return { type: 'sequence', items: items };
+    return { type: 'sequence', items: flattenToIndependentItems(items) };
   }
 
   function parseHidden() {
@@ -474,8 +521,96 @@
     return ref;
   }
 
+  function cloneJson(obj) {
+    try {
+      return JSON.parse(JSON.stringify(obj));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function pruneEmptyButtonRows(buttons) {
+    if (!buttons || !buttons.rows) return;
+    buttons.rows = (buttons.rows || []).filter(function (row) {
+      return row && row.length;
+    });
+    if (!buttons.rows.length) buttons.rows = [[defaultButton()]];
+  }
+
+  function removeButtonAt(ref) {
+    if (!ref || !ref.buttons || ref.rowIndex < 0 || ref.btnIndex < 0) return null;
+    var row = ref.buttons.rows[ref.rowIndex];
+    if (!row || !row[ref.btnIndex]) return null;
+    var btn = cloneJson(row[ref.btnIndex]);
+    row.splice(ref.btnIndex, 1);
+    if (!row.length) {
+      ref.buttons.rows.splice(ref.rowIndex, 1);
+    }
+    pruneEmptyButtonRows(ref.buttons);
+    return btn;
+  }
+
+  function isTopLevelButtonSelection(path) {
+    return path && path.length === 2 && path[0].kind === 'item' && path[1].kind === 'btn';
+  }
+
+  function listTopLevelButtonsBlocks(excludeIndex) {
+    var out = [];
+    var n = 0;
+    state.root.items.forEach(function (item, idx) {
+      if (!item || item.type !== 'buttons') return;
+      if (idx === excludeIndex) return;
+      n += 1;
+      var count = 0;
+      (item.rows || []).forEach(function (row) {
+        count += (row || []).length;
+      });
+      out.push({ index: idx, label: 'منو #' + n + ' (' + count + ' دکمه)' });
+    });
+    return out;
+  }
+
+  function extractButtonToNewBlock(ref, path) {
+    if (!isTopLevelButtonSelection(path)) return false;
+    var btn = removeButtonAt(ref);
+    if (!btn) return false;
+    var insertAt = ref.itemIndex + 1;
+    state.root.items.splice(insertAt, 0, { type: 'buttons', rows: [[btn]] });
+    selectPath([{ kind: 'item', index: insertAt }], 'item');
+    return true;
+  }
+
+  function convertButtonToStandaloneBlock(ref, path) {
+    if (!isTopLevelButtonSelection(path)) return false;
+    var action = ref.button && ref.button.action;
+    if (!action) return false;
+    var atype = String(action.type || '').toLowerCase();
+    if (!isInteractiveType(atype) || atype === 'buttons') return false;
+    var node = cloneJson(action);
+    if (!node) return false;
+    if (!removeButtonAt(ref)) return false;
+    var insertAt = ref.itemIndex + 1;
+    state.root.items.splice(insertAt, 0, node);
+    selectPath([{ kind: 'item', index: insertAt }], 'item');
+    return true;
+  }
+
+  function moveButtonToBlock(ref, path, targetIndex) {
+    if (!isTopLevelButtonSelection(path)) return false;
+    var target = state.root.items[targetIndex];
+    if (!target || target.type !== 'buttons' || targetIndex === ref.itemIndex) return false;
+    var btn = removeButtonAt(ref);
+    if (!btn) return false;
+    target.rows.push([btn]);
+    selectPath([{ kind: 'item', index: targetIndex }], 'item');
+    return true;
+  }
+
   function newContentNode(type) {
     if (type === 'text') return { type: 'text', body: '' };
+    if (type === 'button') {
+      return { type: 'button', id: newNodeId(), text: '', category_slug: '', action: null };
+    }
     if (type === 'buttons') return { type: 'buttons', rows: [[defaultButton()]] };
     if (isMediaType(type)) return defaultMediaItem(type);
     if (isInteractiveType(type)) return defaultInteractiveAction(type);
@@ -492,7 +627,7 @@
       {
         id: 'menu',
         group: 'منو',
-        blocks: ['buttons'],
+        blocks: ['button'],
       },
     ];
     if (hasMiniApp) {
@@ -618,7 +753,8 @@
     });
     if (isMediaType(type)) label = MEDIA_LABELS[type] || type;
     if (type === 'text') label = 'متن';
-    if (type === 'buttons') label = 'دکمه‌ها';
+    if (type === 'button') label = 'دکمه منو';
+    if (type === 'buttons') label = 'زیرمنو';
     if (type === 'request_contact') label = 'درخواست شماره';
     if (type === 'request_location') label = 'درخواست موقعیت';
     return label;
@@ -639,7 +775,10 @@
       (item.rows || []).forEach(function (row) {
         count += (row || []).length;
       });
-      return 'دکمه‌ها · ' + count + ' دکمه';
+      return 'زیرمنو · ' + count + ' دکمه';
+    }
+    if (t === 'button') {
+      return buttonSummary(item);
     }
     if (isInteractiveType(t)) {
       var label = paletteLabel(t);
@@ -760,6 +899,7 @@
       var icon = 'chat-text';
       var t = String(item.type || '');
       if (isMediaType(t)) icon = MEDIA_ICONS[t] || 'paperclip';
+      else if (t === 'button') icon = 'ui-radios';
       else if (t === 'buttons') icon = 'ui-checks-grid';
       else if (isInteractiveType(t)) icon = PALETTE_ICONS[t] || 'lightning';
       row.innerHTML =
@@ -913,6 +1053,463 @@
     e.stopPropagation();
   }
 
+  var dragPayload = null;
+  var pointerDrag = null;
+  var pointerDragListenersBound = false;
+
+  function isPageRtl() {
+    var dir = document.documentElement.getAttribute('dir') || '';
+    if (dir) return dir.toLowerCase() === 'rtl';
+    return window.getComputedStyle(document.documentElement).direction === 'rtl';
+  }
+
+  function getButtonRowKey(item, index) {
+    if (item && item.row !== undefined && item.row !== null) return item.row;
+    return index;
+  }
+
+  function compactButtonRows() {
+    var items = state.root.items;
+    var i = 0;
+    var nextRow = 0;
+    while (i < items.length) {
+      if (String(items[i].type || '').toLowerCase() !== 'button') {
+        i += 1;
+        continue;
+      }
+      var rowKey = getButtonRowKey(items[i], i);
+      var j = i + 1;
+      while (j < items.length) {
+        var next = items[j];
+        if (String(next.type || '').toLowerCase() !== 'button') break;
+        if (getButtonRowKey(next, j) !== rowKey) break;
+        j += 1;
+      }
+      for (var k = i; k < j; k += 1) {
+        items[k].row = nextRow;
+      }
+      nextRow += 1;
+      i = j;
+    }
+  }
+
+  function findFlatButtonIndexById(id) {
+    if (!id) return -1;
+    for (var i = 0; i < state.root.items.length; i += 1) {
+      var item = state.root.items[i];
+      if (String(item.type || '').toLowerCase() === 'button' && item.id === id) return i;
+    }
+    return -1;
+  }
+
+  function moveIndicesRange(indices, toIndex) {
+    if (!indices || !indices.length) return;
+    var sorted = indices.slice().sort(function (a, b) {
+      return a - b;
+    });
+    var fromStart = sorted[0];
+    var count = sorted.length;
+    if (toIndex >= fromStart && toIndex <= fromStart + count) return;
+
+    var items = state.root.items;
+    var moving = [];
+    var i;
+    for (i = sorted.length - 1; i >= 0; i -= 1) {
+      moving.unshift(items.splice(sorted[i], 1)[0]);
+    }
+    var adjusted = toIndex;
+    if (toIndex > fromStart) adjusted = toIndex - count;
+    for (i = 0; i < moving.length; i += 1) {
+      items.splice(adjusted + i, 0, moving[i]);
+    }
+  }
+
+  function moveFlatButtonToRow(dragIndex, targetIndex, before) {
+    var items = state.root.items;
+    var dragItem = items[dragIndex];
+    if (!dragItem || String(dragItem.type || '').toLowerCase() !== 'button') return -1;
+
+    var dragId = dragItem.id;
+    items.splice(dragIndex, 1);
+    var adjTarget = dragIndex < targetIndex ? targetIndex - 1 : targetIndex;
+    var target = items[adjTarget];
+    if (!target || String(target.type || '').toLowerCase() !== 'button') {
+      items.splice(dragIndex, 0, dragItem);
+      return dragIndex;
+    }
+
+    dragItem.row = getButtonRowKey(target, adjTarget);
+    var insertAt = before ? adjTarget : adjTarget + 1;
+    items.splice(insertAt, 0, dragItem);
+    compactButtonRows();
+    return findFlatButtonIndexById(dragId);
+  }
+
+  function moveFlatButtonToNewLine(dragIndex, insertIndex) {
+    var items = state.root.items;
+    var dragItem = items[dragIndex];
+    if (!dragItem || String(dragItem.type || '').toLowerCase() !== 'button') return -1;
+
+    var dragId = dragItem.id;
+    items.splice(dragIndex, 1);
+    var adjustedInsert = insertIndex > dragIndex ? insertIndex - 1 : insertIndex;
+    dragItem.row = 9999;
+    items.splice(adjustedInsert, 0, dragItem);
+    compactButtonRows();
+    return findFlatButtonIndexById(dragId);
+  }
+
+  function clearDropHighlights() {
+    if (!threadEl) return;
+    threadEl.querySelectorAll('.is-drop-active').forEach(function (el) {
+      el.classList.remove('is-drop-active');
+    });
+    threadEl.querySelectorAll('.is-drop-target-left, .is-drop-target-right').forEach(function (el) {
+      el.classList.remove('is-drop-target-left', 'is-drop-target-right');
+    });
+  }
+
+  function removeDragGhost() {
+    if (!pointerDrag || !pointerDrag.ghost) return;
+    if (pointerDrag.ghost.parentNode) pointerDrag.ghost.parentNode.removeChild(pointerDrag.ghost);
+    pointerDrag.ghost = null;
+  }
+
+  function createDragGhost(host) {
+    if (!host) return null;
+    var ghost = host.cloneNode(true);
+    ghost.className = ghost.className + ' flow-canvas-drag-ghost';
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.style.width = host.offsetWidth + 'px';
+    document.body.appendChild(ghost);
+    return ghost;
+  }
+
+  function positionDragGhost(clientX, clientY) {
+    if (!pointerDrag || !pointerDrag.ghost) return;
+    pointerDrag.ghost.style.left = clientX + 14 + 'px';
+    pointerDrag.ghost.style.top = clientY + 14 + 'px';
+  }
+
+  function elementAtPoint(clientX, clientY) {
+    var hidden = [];
+    if (pointerDrag && pointerDrag.host) {
+      pointerDrag.host.style.visibility = 'hidden';
+      hidden.push(pointerDrag.host);
+    }
+    if (pointerDrag && pointerDrag.ghost) {
+      pointerDrag.ghost.style.visibility = 'hidden';
+      hidden.push(pointerDrag.ghost);
+    }
+    var el = document.elementFromPoint(clientX, clientY);
+    hidden.forEach(function (node) {
+      node.style.visibility = '';
+    });
+    return el;
+  }
+
+  function moveFlatButtonToGap(dragIndex, insertIndex, rowKey) {
+    var items = state.root.items;
+    var dragItem = items[dragIndex];
+    if (!dragItem || String(dragItem.type || '').toLowerCase() !== 'button') return -1;
+
+    var dragId = dragItem.id;
+    items.splice(dragIndex, 1);
+    var adjustedInsert = insertIndex > dragIndex ? insertIndex - 1 : insertIndex;
+    dragItem.row = rowKey;
+    items.splice(adjustedInsert, 0, dragItem);
+    compactButtonRows();
+    return findFlatButtonIndexById(dragId);
+  }
+
+  function bumpCanvas() {
+    syncHidden();
+    renderCanvas();
+    renderInspector();
+    updateToolbarContext();
+  }
+
+  function dropBeforeInRow(clientX, rect) {
+    var leftHalf = clientX < rect.left + rect.width / 2;
+    return isPageRtl() ? !leftHalf : leftHalf;
+  }
+
+  function hitDropTarget(clientX, clientY) {
+    if (!pointerDrag || !threadEl) return null;
+
+    var el = elementAtPoint(clientX, clientY);
+    if (!el || !threadEl.contains(el)) return null;
+
+    var gap = el.closest('.flow-canvas-chip-gap');
+    if (gap && pointerDrag.payload && pointerDrag.payload.kind === 'button') {
+      var gapInsert = parseInt(gap.getAttribute('data-insert-index'), 10);
+      var gapRow = parseInt(gap.getAttribute('data-row-key'), 10);
+      if (!isNaN(gapInsert) && !isNaN(gapRow)) {
+        return { type: 'chip-gap', insertIndex: gapInsert, rowKey: gapRow, gap: gap };
+      }
+    }
+
+    var zone = el.closest('.flow-canvas-drop-zone');
+    if (zone) {
+      var insertIndex = parseInt(zone.getAttribute('data-insert-index'), 10);
+      if (!isNaN(insertIndex)) {
+        return { type: 'line', insertIndex: insertIndex, zone: zone };
+      }
+    }
+
+    var chip = el.closest('.flow-canvas-keyboard-btn[data-flat-button-index]');
+    if (chip && pointerDrag.payload && pointerDrag.payload.kind === 'button') {
+      var targetIndex = parseInt(chip.getAttribute('data-flat-button-index'), 10);
+      if (!isNaN(targetIndex)) {
+        var rect = chip.getBoundingClientRect();
+        return {
+          type: 'chip',
+          targetIndex: targetIndex,
+          before: dropBeforeInRow(clientX, rect),
+          chip: chip,
+        };
+      }
+    }
+
+    return null;
+  }
+
+  function updateDropHighlights(target) {
+    clearDropHighlights();
+    if (!target) return;
+    if (target.type === 'line' && target.zone) {
+      target.zone.classList.add('is-drop-active');
+      return;
+    }
+    if (target.type === 'chip-gap' && target.gap) {
+      target.gap.classList.add('is-drop-active');
+      return;
+    }
+    if (target.type === 'chip' && target.chip) {
+      target.chip.classList.toggle('is-drop-target-left', target.before);
+      target.chip.classList.toggle('is-drop-target-right', !target.before);
+    }
+  }
+
+  function applyPointerDrop(target) {
+    if (!pointerDrag || !pointerDrag.active || !target) return;
+
+    var payload = pointerDrag.payload;
+    if (target.type === 'chip-gap' && payload.kind === 'button') {
+      if (target.insertIndex === payload.index || target.insertIndex === payload.index + 1) return;
+      var gapIdx = moveFlatButtonToGap(payload.index, target.insertIndex, target.rowKey);
+      if (gapIdx >= 0) selectPath([{ kind: 'item', index: gapIdx }], 'item');
+      bumpCanvas();
+      return;
+    }
+
+    if (target.type === 'line') {
+      if (payload.kind === 'block') {
+        moveIndicesRange(payload.indices, target.insertIndex);
+        bumpCanvas();
+      } else if (payload.kind === 'button') {
+        var newIdx = moveFlatButtonToNewLine(payload.index, target.insertIndex);
+        if (newIdx >= 0) selectPath([{ kind: 'item', index: newIdx }], 'item');
+        bumpCanvas();
+      }
+      return;
+    }
+
+    if (target.type === 'chip' && payload.kind === 'button') {
+      if (target.targetIndex === payload.index) return;
+      var movedIdx = moveFlatButtonToRow(payload.index, target.targetIndex, target.before);
+      if (movedIdx >= 0) selectPath([{ kind: 'item', index: movedIdx }], 'item');
+      bumpCanvas();
+    }
+  }
+
+  function finishPointerDrag(clientX, clientY) {
+    if (!pointerDrag) return;
+
+    var wasActive = pointerDrag.active;
+    var target = wasActive ? hitDropTarget(clientX, clientY) : null;
+
+    if (pointerDrag.host) {
+      pointerDrag.host.classList.remove('is-dragging');
+      pointerDrag.host.style.pointerEvents = '';
+      pointerDrag.host.style.visibility = '';
+    }
+    removeDragGhost();
+    if (threadEl) threadEl.classList.remove('is-canvas-dragging');
+
+    if (wasActive) applyPointerDrop(target);
+
+    dragPayload = null;
+    pointerDrag = null;
+    clearDropHighlights();
+  }
+
+  function onDocumentPointerMove(e) {
+    if (!pointerDrag) return;
+
+    var dx = Math.abs(e.clientX - pointerDrag.startX);
+    var dy = Math.abs(e.clientY - pointerDrag.startY);
+
+    if (!pointerDrag.active) {
+      if (dx < 3 && dy < 3) return;
+      pointerDrag.active = true;
+      dragPayload = pointerDrag.payload;
+      if (pointerDrag.host) {
+        pointerDrag.host.classList.add('is-dragging');
+        pointerDrag.host.style.pointerEvents = 'none';
+        pointerDrag.ghost = createDragGhost(pointerDrag.host);
+      }
+      if (threadEl) threadEl.classList.add('is-canvas-dragging');
+    }
+
+    e.preventDefault();
+    positionDragGhost(e.clientX, e.clientY);
+    var target = hitDropTarget(e.clientX, e.clientY);
+    pointerDrag.dropTarget = target;
+    updateDropHighlights(target);
+  }
+
+  function onDocumentPointerUp(e) {
+    if (!pointerDrag) return;
+    finishPointerDrag(e.clientX, e.clientY);
+  }
+
+  function bindPointerDragListeners() {
+    if (pointerDragListenersBound) return;
+    pointerDragListenersBound = true;
+    document.addEventListener('mousemove', onDocumentPointerMove);
+    document.addEventListener('mouseup', onDocumentPointerUp);
+    document.addEventListener('touchmove', function (e) {
+      if (!pointerDrag || !e.touches.length) return;
+      onDocumentPointerMove(e.touches[0]);
+    }, { passive: false });
+    document.addEventListener('touchend', function (e) {
+      if (!pointerDrag) return;
+      var t = e.changedTouches && e.changedTouches[0];
+      finishPointerDrag(t ? t.clientX : pointerDrag.startX, t ? t.clientY : pointerDrag.startY);
+    });
+  }
+
+  function attachDragSource(sourceEl, payload, hostSelector, ignoreSelector) {
+    if (!sourceEl) return;
+
+    function startPointerDrag(clientX, clientY, e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      bindPointerDragListeners();
+      pointerDrag = {
+        payload: payload,
+        handle: sourceEl,
+        host: hostSelector ? sourceEl.closest(hostSelector) : sourceEl,
+        startX: clientX,
+        startY: clientY,
+        active: false,
+        dropTarget: null,
+        ghost: null,
+      };
+    }
+
+    sourceEl.addEventListener('mousedown', function (e) {
+      if (e.button !== 0) return;
+      if (ignoreSelector && e.target && e.target.closest(ignoreSelector)) return;
+      startPointerDrag(e.clientX, e.clientY, e);
+    });
+    sourceEl.addEventListener('touchstart', function (e) {
+      if (!e.touches.length) return;
+      var t = e.touches[0];
+      var under = document.elementFromPoint(t.clientX, t.clientY);
+      if (ignoreSelector && under && under.closest(ignoreSelector)) return;
+      startPointerDrag(t.clientX, t.clientY, e);
+    }, { passive: false });
+  }
+
+  function decorateBlockDrag(wrap, indices) {
+    if (!wrap || !indices || !indices.length) return;
+    wrap.classList.add('flow-canvas-block--draggable');
+    attachDragSource(
+      wrap,
+      { kind: 'block', indices: indices.slice() },
+      '.flow-canvas-block',
+      '.flow-canvas-keyboard-btn, .flow-canvas-button-cell, .flow-canvas-drop-zone, .flow-canvas-chip-gap'
+    );
+  }
+
+  function appendChipGap(rowEl, insertIndex, rowKey) {
+    var gap = document.createElement('div');
+    gap.className = 'flow-canvas-chip-gap';
+    gap.setAttribute('data-insert-index', String(insertIndex));
+    gap.setAttribute('data-row-key', String(rowKey));
+    gap.innerHTML = '<span class="flow-canvas-chip-gap-line" aria-hidden="true"></span>';
+    rowEl.appendChild(gap);
+    return gap;
+  }
+
+  function appendDropZone(insertIndex) {
+    if (!threadEl) return;
+    var zone = document.createElement('div');
+    zone.className = 'flow-canvas-drop-zone';
+    zone.setAttribute('data-insert-index', String(insertIndex));
+    zone.innerHTML =
+      '<span class="flow-canvas-drop-zone-line" aria-hidden="true"></span>' +
+      '<span class="flow-canvas-drop-zone-label">ردیف جدید</span>';
+    threadEl.appendChild(zone);
+  }
+
+  function setupCanvasDragDrop() {
+    bindPointerDragListeners();
+  }
+
+  function appendInspectorItemActions(container, itemIndex) {
+    var tools = document.createElement('div');
+    tools.className = 'flow-inspector-item-actions d-flex flex-wrap gap-2 mt-3 pt-3 border-top';
+
+    if (itemIndex > 0) {
+      var moveUp = document.createElement('button');
+      moveUp.type = 'button';
+      moveUp.className = 'btn btn-panel-ghost btn-sm';
+      moveUp.innerHTML = '<i class="bi bi-arrow-up"></i> بالا';
+      moveUp.addEventListener('click', function () {
+        var items = state.root.items;
+        var tmp = items[itemIndex - 1];
+        items[itemIndex - 1] = items[itemIndex];
+        items[itemIndex] = tmp;
+        compactButtonRows();
+        selectPath([{ kind: 'item', index: itemIndex - 1 }], 'item');
+      });
+      tools.appendChild(moveUp);
+    }
+
+    if (itemIndex < state.root.items.length - 1) {
+      var moveDown = document.createElement('button');
+      moveDown.type = 'button';
+      moveDown.className = 'btn btn-panel-ghost btn-sm';
+      moveDown.innerHTML = '<i class="bi bi-arrow-down"></i> پایین';
+      moveDown.addEventListener('click', function () {
+        var items = state.root.items;
+        var tmp = items[itemIndex + 1];
+        items[itemIndex + 1] = items[itemIndex];
+        items[itemIndex] = tmp;
+        compactButtonRows();
+        selectPath([{ kind: 'item', index: itemIndex + 1 }], 'item');
+      });
+      tools.appendChild(moveDown);
+    }
+
+    var del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'btn btn-panel-ghost btn-sm text-danger';
+    del.innerHTML = '<i class="bi bi-trash"></i> حذف';
+    del.addEventListener('click', function () {
+      state.root.items.splice(itemIndex, 1);
+      clearSelection();
+    });
+    tools.appendChild(del);
+
+    container.appendChild(tools);
+  }
+
   function mkBtn(type, icon, title, handler) {
     var b = document.createElement('button');
     b.type = 'button';
@@ -924,42 +1521,6 @@
       handler();
     });
     return b;
-  }
-
-  function mkBlockActions(itemIndex) {
-    var bar = document.createElement('div');
-    bar.className = 'flow-canvas-block-actions';
-    bar.addEventListener('click', stopProp);
-
-    if (itemIndex > 0) {
-      bar.appendChild(
-        mkBtn('up', 'arrow-up', 'جابجایی بالا', function () {
-          var items = state.root.items;
-          var tmp = items[itemIndex - 1];
-          items[itemIndex - 1] = items[itemIndex];
-          items[itemIndex] = tmp;
-          selectPath([{ kind: 'item', index: itemIndex - 1 }], 'item');
-        })
-      );
-    }
-    if (itemIndex < state.root.items.length - 1) {
-      bar.appendChild(
-        mkBtn('down', 'arrow-down', 'جابجایی پایین', function () {
-          var items = state.root.items;
-          var tmp = items[itemIndex + 1];
-          items[itemIndex + 1] = items[itemIndex];
-          items[itemIndex] = tmp;
-          selectPath([{ kind: 'item', index: itemIndex + 1 }], 'item');
-        })
-      );
-    }
-    bar.appendChild(
-      mkBtn('del', 'trash', 'حذف', function () {
-        state.root.items.splice(itemIndex, 1);
-        clearSelection();
-      })
-    );
-    return bar;
   }
 
   function isSelected(path, kind) {
@@ -980,7 +1541,7 @@
     if (!(item.body || '').trim()) bubble.classList.add('is-placeholder');
 
     wrap.appendChild(bubble);
-    wrap.appendChild(mkBlockActions(itemIndex));
+    decorateBlockDrag(wrap, [itemIndex]);
     wrap.addEventListener('click', function () {
       toggleSelect(path, 'item');
     });
@@ -1018,7 +1579,7 @@
     }
 
     wrap.appendChild(bubble);
-    wrap.appendChild(mkBlockActions(itemIndex));
+    decorateBlockDrag(wrap, [itemIndex]);
     wrap.addEventListener('click', function () {
       toggleSelect(path, 'item');
     });
@@ -1069,7 +1630,7 @@
         if (e.target.closest('.flow-canvas-keyboard-btn')) return;
         toggleSelect(basePath, 'item');
       });
-      wrap.appendChild(mkBlockActions(itemIndex));
+      decorateBlockDrag(wrap, [itemIndex]);
     }
 
     var kb = document.createElement('div');
@@ -1139,8 +1700,90 @@
     if (!preview) bubble.classList.add('is-placeholder');
 
     wrap.appendChild(bubble);
-    wrap.appendChild(mkBlockActions(itemIndex));
+    decorateBlockDrag(wrap, [itemIndex]);
     wrap.addEventListener('click', function () {
+      toggleSelect(path, 'item');
+    });
+    return wrap;
+  }
+
+  function renderButtonItemBlock(item, itemIndex) {
+    return renderButtonItemGroup([{ item: item, index: itemIndex }]);
+  }
+
+  function renderButtonItemGroup(entries) {
+    if (!entries || !entries.length) return document.createElement('div');
+    var firstIndex = entries[0].index;
+    var rowKey = getButtonRowKey(entries[0].item, firstIndex);
+    var path = [{ kind: 'item', index: firstIndex }];
+    var wrap = document.createElement('div');
+    wrap.className =
+      'flow-canvas-block flow-canvas-button-row-block flow-chat-row flow-chat-row--bot' +
+      (entries.some(function (e) {
+        return isSelected([{ kind: 'item', index: e.index }], 'item');
+      })
+        ? ' is-selected'
+        : '');
+    wrap.setAttribute('data-flow-sel', selKey({ kind: 'item', path: path }));
+
+    var kb = document.createElement('div');
+    kb.className = 'flow-chat-keyboard flow-canvas-keyboard';
+    var rowEl = document.createElement('div');
+    rowEl.className = 'flow-canvas-button-row flow-chat-keyboard-row';
+
+    appendChipGap(rowEl, firstIndex, rowKey);
+
+    entries.forEach(function (entry) {
+      var item = entry.item;
+      var itemIndex = entry.index;
+      var itemPath = [{ kind: 'item', index: itemIndex }];
+
+      var cell = document.createElement('div');
+      cell.className = 'flow-canvas-button-cell';
+
+      var chip = document.createElement('div');
+      chip.className =
+        'flow-chat-keyboard-btn flow-canvas-keyboard-btn' +
+        (isSelected(itemPath, 'item') ? ' is-selected' : '');
+      chip.setAttribute('role', 'button');
+      chip.setAttribute('tabindex', '0');
+      chip.setAttribute('data-flat-button-index', String(itemIndex));
+      attachDragSource(chip, { kind: 'button', index: itemIndex }, '.flow-canvas-button-cell');
+
+      var label = document.createElement('span');
+      label.className = 'flow-canvas-keyboard-btn-label';
+      label.textContent = (item.text || '').trim() || 'دکمه جدید';
+      chip.appendChild(label);
+      appendButtonChipMeta(chip, item);
+
+      chip.addEventListener('click', function (e) {
+        stopProp(e);
+        toggleSelect(itemPath, 'item');
+      });
+      chip.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleSelect(itemPath, 'item');
+        }
+      });
+
+      cell.appendChild(chip);
+
+      if (item.action && item.action.type === 'buttons') {
+        var sub = document.createElement('div');
+        sub.className = 'flow-canvas-submenu';
+        renderButtonsBlock(item.action, itemPath, sub, true);
+        cell.appendChild(sub);
+      }
+
+      rowEl.appendChild(cell);
+      appendChipGap(rowEl, itemIndex + 1, rowKey);
+    });
+
+    kb.appendChild(rowEl);
+    wrap.appendChild(kb);
+    wrap.addEventListener('click', function (e) {
+      if (e.target.closest('.flow-canvas-button-cell')) return;
       toggleSelect(path, 'item');
     });
     return wrap;
@@ -1161,12 +1804,33 @@
       empty.innerHTML =
         '<i class="bi bi-chat-square-dots"></i>' +
         '<p><strong>منوی /start</strong></p>' +
-        '<p class="flow-canvas-empty-hint">از تب «افزودن» متن یا دکمه اضافه کنید</p>';
+        '<p class="flow-canvas-empty-hint">از تب «افزودن» آیتم بسازید · خود دکمه یا کارت را بکشید و جابه‌جا کنید</p>';
       threadEl.appendChild(empty);
     }
 
-    state.root.items.forEach(function (item, i) {
+    appendDropZone(0);
+
+    var i = 0;
+    while (i < state.root.items.length) {
+      var item = state.root.items[i];
       var t = String(item.type || '');
+      if (t === 'button') {
+        var rowKey = item.row !== undefined && item.row !== null ? item.row : i;
+        var group = [{ item: item, index: i }];
+        var j = i + 1;
+        while (j < state.root.items.length) {
+          var next = state.root.items[j];
+          if (String(next.type || '').toLowerCase() !== 'button') break;
+          var nextRow = next.row !== undefined && next.row !== null ? next.row : j;
+          if (nextRow !== rowKey) break;
+          group.push({ item: next, index: j });
+          j += 1;
+        }
+        threadEl.appendChild(renderButtonItemGroup(group));
+        i = j;
+        appendDropZone(i);
+        continue;
+      }
       if (t === 'text') threadEl.appendChild(renderTextBlock(item, i));
       else if (isMediaType(t)) threadEl.appendChild(renderMediaBlock(item, i));
       else if (t === 'buttons') {
@@ -1176,7 +1840,9 @@
       } else if (isInteractiveType(t)) {
         threadEl.appendChild(renderInteractiveBlock(item, i));
       }
-    });
+      i += 1;
+      appendDropZone(i);
+    }
 
     syncHidden();
     updateItemCountLabel();
@@ -1362,6 +2028,73 @@
     box.appendChild(list);
     renderList();
     return box;
+  }
+
+  function findDiscountCode(id) {
+    var pk = parseInt(id, 10);
+    if (isNaN(pk)) return null;
+    for (var i = 0; i < discountCodes.length; i += 1) {
+      if (discountCodes[i].id === pk) return discountCodes[i];
+    }
+    return null;
+  }
+
+  function applyCouponSelection(action, discountId) {
+    var dc = findDiscountCode(discountId);
+    if (!dc) {
+      action.discount_id = null;
+      action.code = '';
+      return;
+    }
+    action.discount_id = dc.id;
+    action.code = dc.code;
+  }
+
+  function appendCouponPicker(container, action, onChange) {
+    container.appendChild(addFieldLabel('کد تخفیف مینی‌اپ'));
+    if (!discountCodes.length) {
+      var empty = document.createElement('p');
+      empty.className = 'small text-muted';
+      empty.textContent = 'ابتدا از بخش مینی‌اپ یک کد تخفیف بسازید.';
+      container.appendChild(empty);
+      return;
+    }
+    var options = [['', '— انتخاب کنید —']];
+    discountCodes.forEach(function (dc) {
+      options.push([String(dc.id), dc.label || dc.code]);
+    });
+    var selVal = action.discount_id != null ? String(action.discount_id) : '';
+    if (!selVal && action.code) {
+      discountCodes.forEach(function (dc) {
+        if (String(dc.code || '').toUpperCase() === String(action.code || '').toUpperCase()) {
+          selVal = String(dc.id);
+          action.discount_id = dc.id;
+        }
+      });
+    }
+    container.appendChild(
+      addSelect(selVal, options, function (v) {
+        if (v) applyCouponSelection(action, v);
+        else {
+          action.discount_id = null;
+          action.code = '';
+        }
+        onChange();
+      })
+    );
+    if (action.code) {
+      var preview = document.createElement('div');
+      preview.className = 'small text-muted mt-1 mb-2';
+      preview.textContent = 'کد انتخاب‌شده: ' + action.code;
+      container.appendChild(preview);
+    }
+    container.appendChild(addFieldLabel('پیام (اختیاری)'));
+    container.appendChild(
+      addTextarea(action.message || '', 'اگر خالی باشد، متن پیش‌فرض ارسال می‌شود', 500, function (v) {
+        action.message = v;
+        onChange();
+      })
+    );
   }
 
   function renderInteractiveFields(action, container, onChange) {
@@ -1634,14 +2367,7 @@
     }
 
     if (t === 'coupon') {
-      field('کد', action.code, 'WELCOME10', 40, function (v) {
-        action.code = v;
-        onChange();
-      });
-      field('پیام', action.message, '', 500, function (v) {
-        action.message = v;
-        onChange();
-      });
+      appendCouponPicker(container, action, onChange);
       return;
     }
 
@@ -1846,7 +2572,7 @@
         '<div class="bot-inspector-idle">' +
         '<div class="bot-inspector-idle-icon"><i class="bi bi-cursor"></i></div>' +
         '<p class="bot-inspector-idle-title">چیزی انتخاب نشده</p>' +
-        '<p class="bot-inspector-idle-text">روی پیام یا دکمه در پیش‌نمایش کلیک کنید تا تنظیماتش اینجا باز شود.</p>' +
+        '<p class="bot-inspector-idle-text">روی پیام یا دکمه کلیک کنید · برای جابجایی، نوار کنار آیتم را بکشید · حذف و بالا/پایین از همین پنل</p>' +
         '</div>';
       return;
     }
@@ -1870,7 +2596,10 @@
     if (selection.kind === 'item') {
       var item = ref.item;
       var t = String(item.type || '');
-      if (inspectorTitle) inspectorTitle.textContent = t === 'text' ? 'پیام متنی' : t === 'buttons' ? 'بلوک دکمه' : MEDIA_LABELS[t] || 'آیتم';
+      if (inspectorTitle) {
+        inspectorTitle.textContent =
+          t === 'text' ? 'پیام متنی' : t === 'button' ? 'دکمه منو' : t === 'buttons' ? 'زیرمنو' : MEDIA_LABELS[t] || 'آیتم';
+      }
       if (inspectorHint) inspectorHint.textContent = 'آیتم ' + (ref.itemIndex + 1);
 
       if (t === 'text') {
@@ -1893,6 +2622,109 @@
             bump();
           }
         );
+      } else if (t === 'button') {
+        var btnItem = item;
+        inspectorBody.appendChild(addFieldLabel('متن روی دکمه'));
+        inspectorBody.appendChild(
+          addInput(btnItem.text || '', 'مثلاً مشاهده ویترین', 64, function (v) {
+            btnItem.text = v;
+            if (buttonHasCategory(btnItem)) {
+              ensureButtonCategorySlug(btnItem);
+            }
+            bump();
+          })
+        );
+
+        var catWrap = document.createElement('div');
+        catWrap.className = 'flow-inspector-category mt-3';
+        var catToggle = document.createElement('label');
+        catToggle.className = 'flow-inspector-category-toggle';
+        var catCheck = document.createElement('input');
+        catCheck.type = 'checkbox';
+        catCheck.className = 'form-check-input';
+        catCheck.checked = buttonHasCategory(btnItem);
+        var catText = document.createElement('span');
+        catText.innerHTML =
+          '<strong>استفاده به‌عنوان دسته‌بندی</strong><small class="d-block text-muted mt-1">با کلیک کاربر روی این دکمه، در این دسته‌بندی قرار می‌گیرد.</small>';
+        catToggle.appendChild(catCheck);
+        catToggle.appendChild(catText);
+        catWrap.appendChild(catToggle);
+
+        var slugWrap = document.createElement('div');
+        slugWrap.className = 'mt-2';
+        slugWrap.style.display = catCheck.checked ? '' : 'none';
+        slugWrap.appendChild(addFieldLabel('شناسه دسته‌بندی (اختیاری)'));
+        slugWrap.appendChild(
+          addInput(btnItem.category_slug || '', 'خودکار از متن دکمه', 140, function (v) {
+            btnItem.category_slug = String(v || '').trim();
+            bump();
+          })
+        );
+        catCheck.addEventListener('change', function () {
+          if (catCheck.checked) {
+            ensureButtonCategorySlug(btnItem);
+          } else {
+            btnItem.category_slug = '';
+          }
+          slugWrap.style.display = catCheck.checked ? '' : 'none';
+          bump();
+        });
+        catWrap.appendChild(slugWrap);
+        inspectorBody.appendChild(catWrap);
+        inspectorBody.appendChild(renderActionInspector(btnItem, bump));
+
+        var subTools = document.createElement('div');
+        subTools.className = 'flow-inspector-btn-tools mt-3 pt-3 border-top';
+        var addSub = document.createElement('button');
+        addSub.type = 'button';
+        addSub.className = 'btn btn-panel-primary btn-sm';
+        addSub.textContent = '+ زیرمنو';
+        addSub.addEventListener('click', function () {
+          btnItem.action = { type: 'buttons', rows: [[defaultButton()]] };
+          bump();
+        });
+        subTools.appendChild(addSub);
+        inspectorBody.appendChild(subTools);
+
+        var rowTools = document.createElement('div');
+        rowTools.className = 'd-flex flex-wrap gap-2 mt-2';
+        var addSiblingBtn = document.createElement('button');
+        addSiblingBtn.type = 'button';
+        addSiblingBtn.className = 'btn btn-panel-ghost btn-sm';
+        addSiblingBtn.textContent = '+ کنار این دکمه';
+        addSiblingBtn.addEventListener('click', function () {
+          var rowVal =
+            btnItem.row !== undefined && btnItem.row !== null ? btnItem.row : ref.itemIndex;
+          var newBtn = newContentNode('button');
+          newBtn.row = rowVal;
+          var insertAt = ref.itemIndex + 1;
+          state.root.items.splice(insertAt, 0, newBtn);
+          selectPath([{ kind: 'item', index: insertAt }], 'item');
+          bump();
+        });
+        var addRowBtn = document.createElement('button');
+        addRowBtn.type = 'button';
+        addRowBtn.className = 'btn btn-panel-ghost btn-sm';
+        addRowBtn.textContent = '+ ردیف جدید';
+        addRowBtn.addEventListener('click', function () {
+          var rowKey = getButtonRowKey(btnItem, ref.itemIndex);
+          var insertAt = ref.itemIndex + 1;
+          while (insertAt < state.root.items.length) {
+            var next = state.root.items[insertAt];
+            if (String(next.type || '').toLowerCase() !== 'button') break;
+            if (getButtonRowKey(next, insertAt) !== rowKey) break;
+            insertAt += 1;
+          }
+          var newBtn = newContentNode('button');
+          newBtn.row = 9999;
+          state.root.items.splice(insertAt, 0, newBtn);
+          compactButtonRows();
+          selectPath([{ kind: 'item', index: insertAt }], 'item');
+          bump();
+        });
+        rowTools.appendChild(addSiblingBtn);
+        rowTools.appendChild(addRowBtn);
+        inspectorBody.appendChild(rowTools);
       } else if (t === 'buttons') {
         inspectorBody.appendChild(addFieldLabel('مدیریت ردیف‌ها'));
         var hint = document.createElement('p');
@@ -1920,6 +2752,7 @@
         if (inspectorTitle) inspectorTitle.textContent = interactiveLabel;
         renderInteractiveFields(item, inspectorBody, bump);
       }
+      appendInspectorItemActions(inspectorBody, ref.itemIndex);
       return;
     }
 
@@ -2030,6 +2863,59 @@
       btnTools.appendChild(addSubBtn);
       btnTools.appendChild(addSiblingBtn);
       btnTools.appendChild(rmBtn);
+
+      if (isTopLevelButtonSelection(selection.path)) {
+        var moveWrap = document.createElement('div');
+        moveWrap.className = 'd-flex flex-wrap gap-2 mt-2';
+
+        var extractBtn = document.createElement('button');
+        extractBtn.type = 'button';
+        extractBtn.className = 'btn btn-panel-ghost btn-sm';
+        extractBtn.textContent = 'استخراج به بلوک منوی جدید';
+        extractBtn.addEventListener('click', function () {
+          if (extractButtonToNewBlock(ref, selection.path)) bump();
+        });
+        moveWrap.appendChild(extractBtn);
+
+        var actionType = (btn.action && btn.action.type) || '';
+        if (isInteractiveType(actionType) && actionType !== 'buttons') {
+          var standaloneBtn = document.createElement('button');
+          standaloneBtn.type = 'button';
+          standaloneBtn.className = 'btn btn-panel-ghost btn-sm';
+          standaloneBtn.textContent = 'تبدیل به بلوک مستقل';
+          standaloneBtn.addEventListener('click', function () {
+            if (convertButtonToStandaloneBlock(ref, selection.path)) bump();
+          });
+          moveWrap.appendChild(standaloneBtn);
+        }
+
+        var otherBlocks = listTopLevelButtonsBlocks(ref.itemIndex);
+        if (otherBlocks.length) {
+          var moveSelect = document.createElement('select');
+          moveSelect.className = 'form-select form-select-sm panel-input';
+          moveSelect.style.maxWidth = '220px';
+          var opt0 = document.createElement('option');
+          opt0.value = '';
+          opt0.textContent = 'انتقال به بلوک منو…';
+          moveSelect.appendChild(opt0);
+          otherBlocks.forEach(function (b) {
+            var opt = document.createElement('option');
+            opt.value = String(b.index);
+            opt.textContent = b.label;
+            moveSelect.appendChild(opt);
+          });
+          moveSelect.addEventListener('change', function () {
+            var idx = parseInt(moveSelect.value, 10);
+            if (!idx && idx !== 0) return;
+            if (moveButtonToBlock(ref, selection.path, idx)) bump();
+            moveSelect.value = '';
+          });
+          moveWrap.appendChild(moveSelect);
+        }
+
+        btnTools.appendChild(moveWrap);
+      }
+
       inspectorBody.appendChild(btnTools);
     }
   }
@@ -2089,6 +2975,12 @@
     inspectorTitle = $('flow-inspector-title');
     inspectorHint = $('flow-inspector-hint');
 
+    try {
+      discountCodes = JSON.parse(root.getAttribute('data-discount-codes') || '[]');
+    } catch (discountErr) {
+      discountCodes = [];
+    }
+
     state = parseHidden();
 
     renderQuickAdd();
@@ -2116,6 +3008,7 @@
         if (e.target.closest('.flow-canvas-block-actions')) return;
         clearSelection();
       });
+      setupCanvasDragDrop();
     }
 
     document.addEventListener('keydown', function (e) {

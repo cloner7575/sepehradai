@@ -377,15 +377,24 @@ def _apply_bot_template(
             )
             value = int(welcome.get('value') or 0)
             if code and value > 0:
+                defaults: dict[str, Any] = {
+                    'kind': kind,
+                    'value': value,
+                    'is_active': True,
+                }
+                if welcome.get('max_uses') not in (None, ''):
+                    defaults['max_uses'] = int(welcome['max_uses'])
+                if welcome.get('min_order_amount') not in (None, ''):
+                    defaults['min_order_amount'] = int(welcome['min_order_amount'])
+                if welcome.get('max_discount_amount') not in (None, ''):
+                    defaults['max_discount_amount'] = int(welcome['max_discount_amount'])
+                if 'first_purchase_only' in welcome:
+                    defaults['first_purchase_only'] = bool(welcome['first_purchase_only'])
                 _, created = DiscountCode.objects.update_or_create(
                     workspace=workspace,
                     platform=platform,
                     code=code,
-                    defaults={
-                        'kind': kind,
-                        'value': value,
-                        'is_active': True,
-                    },
+                    defaults=defaults,
                 )
                 if created:
                     discount_created = 1

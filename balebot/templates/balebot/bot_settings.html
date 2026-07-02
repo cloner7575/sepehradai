@@ -95,7 +95,7 @@
           <div class="bot-setup-flow-hint-inner">
             <div>
               <strong>مسیر کاربر جدید</strong>
-              <p class="mb-0 small text-muted">اولین بار: دریافت شماره (اختیاری) ← خوش‌آمد ← منوی دکمه‌ها</p>
+              <p class="mb-0 small text-muted">اولین بار: دریافت شماره (اختیاری) ← منوی طراحی‌شده در /start</p>
             </div>
             <a href="{% url 'bot_flow_engine' %}" class="btn-panel-ghost btn-sm">
               <i class="bi bi-diagram-3"></i>طراحی منوی ربات
@@ -115,16 +115,6 @@
             {% include "balebot/_settings_field.html" with field=form.contact_button_label %}
             {% include "balebot/_settings_field.html" with field=form.registration_success_message hint="بلافاصله بعد از ارسال شماره." %}
           </div>
-        </div>
-      </div>
-
-      <div class="panel-card">
-        <header class="panel-card-header">
-          <h2 class="panel-card-title mb-0">پیام خوش‌آمد</h2>
-        </header>
-        <div class="panel-card-body">
-          <p class="panel-card-lead mb-3">وقتی منوی ربات طراحی نشده باشد، این پیام برای /start ارسال می‌شود.</p>
-          {% include "balebot/_settings_field.html" with field=form.start_message_normal %}
         </div>
       </div>
     </section>

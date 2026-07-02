@@ -2,12 +2,13 @@ import json
 
 from django import forms
 
-from balebot.models import CatalogCategory, CatalogItem, CatalogOrder, CatalogSettings
+from balebot.models import CatalogCategory, CatalogItem, CatalogOrder, CatalogSettings, DiscountCode
 from balebot.widgets import PersianClearableFileInput
 from balebot.services.slug_utils import resolve_model_slug
 from balebot.services.catalog_currency import rial_to_toman, toman_to_rial
 from balebot.services.catalog_item_types import ITEM_TYPE_GUIDES, get_item_type_guide
 from balebot.services.catalog_page_layout import get_home_blocks, sanitize_home_blocks
+from balebot.services.discount import apply_coupon_resolution_to_home_blocks
 from balebot.services.checkout_form import default_checkout_form, sanitize_checkout_form
 from balebot.services.jalali_datetime import aware_to_jalali_parts, parse_jalali_date_time
 
@@ -347,7 +348,14 @@ class MiniAppFlowForm(forms.ModelForm):
 
     def clean_page_layout(self):
         raw = self.cleaned_data.get('page_layout')
-        return sanitize_home_blocks(raw)
+        blocks = sanitize_home_blocks(raw)
+        if self.instance and self.instance.workspace_id:
+            return apply_coupon_resolution_to_home_blocks(
+                blocks,
+                self.instance.workspace,
+                self.instance.platform,
+            )
+        return blocks
 
     def save(self, commit=True):
         obj = super().save(commit=False)
@@ -766,3 +774,177 @@ class CatalogOrderUpdateForm(forms.Form):
             'placeholder': 'یادداشت برای خودتان — در مینی‌اپ نمایش داده نمی‌شود.',
         }),
     )
+
+
+class DiscountCodeForm(forms.ModelForm):
+    min_order_amount_toman = forms.IntegerField(
+        required=False,
+        min_value=0,
+        label='حداقل مبلغ خرید (تومان)',
+        widget=forms.NumberInput(attrs={'class': _INPUT, 'placeholder': '۰ = بدون حداقل'}),
+    )
+    max_discount_amount_toman = forms.IntegerField(
+        required=False,
+        min_value=0,
+        label='حداکثر مبلغ تخفیف (تومان)',
+        widget=forms.NumberInput(attrs={
+            'class': _INPUT,
+            'placeholder': 'خالی = بدون سقف (مخصوص درصدی)',
+        }),
+    )
+    amount_value_toman = forms.IntegerField(
+        required=False,
+        min_value=0,
+        label='مبلغ تخفیف (تومان)',
+        widget=forms.NumberInput(attrs={'class': _INPUT}),
+    )
+    jalali_expires_date = forms.CharField(
+        required=False,
+        label='تاریخ انقضا',
+        widget=forms.TextInput(
+            attrs={
+                'class': _INPUT,
+                'placeholder': '۱۴۰۳/۱۲/۲۹',
+                'dir': 'ltr',
+                'autocomplete': 'off',
+                'data-jalali-date': '1',
+            },
+        ),
+    )
+    jalali_expires_time = forms.CharField(
+        required=False,
+        label='ساعت انقضا',
+        widget=forms.TextInput(
+            attrs={
+                'class': _INPUT,
+                'placeholder': '۲۳:۵۹',
+                'dir': 'ltr',
+                'autocomplete': 'off',
+            },
+        ),
+    )
+
+    class Meta:
+        model = DiscountCode
+        fields = [
+            'code',
+            'kind',
+            'value',
+            'max_uses',
+            'first_purchase_only',
+            'is_active',
+        ]
+        widgets = {
+            'code': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'WELCOME15'}),
+            'kind': forms.Select(attrs={'class': _SELECT}),
+            'value': forms.NumberInput(attrs={'class': _INPUT, 'min': 1, 'max': 100}),
+            'max_uses': forms.NumberInput(attrs={'class': _INPUT, 'placeholder': 'خالی = نامحدود'}),
+            'first_purchase_only': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
+        }
+
+    def __init__(self, *args, workspace=None, platform=None, **kwargs):
+        self.workspace = workspace
+        self.platform = platform
+        super().__init__(*args, **kwargs)
+        self.fields['code'].label = 'کد تخفیف'
+        self.fields['kind'].label = 'نوع تخفیف'
+        self.fields['value'].label = 'درصد تخفیف'
+        self.fields['max_uses'].label = 'حداکثر تعداد استفاده'
+        self.fields['first_purchase_only'].label = 'فقط اولین خرید'
+        self.fields['is_active'].label = 'فعال'
+
+        self.fields['code'].help_text = 'حروف انگلیسی و اعداد؛ در پرداخت بدون حساسیت به حروف بزرگ/کوچک است.'
+        self.fields['kind'].help_text = 'درصدی از مبلغ سبد، یا مبلغ ثابت به تومان.'
+        self.fields['value'].help_text = 'برای نوع درصدی: عدد ۱ تا ۱۰۰.'
+        self.fields['max_uses'].help_text = 'خالی بگذارید برای استفاده نامحدود.'
+        self.fields['first_purchase_only'].help_text = 'فقط مشتریانی که هنوز سفارش پرداخت‌شده ندارند.'
+        self.fields['min_order_amount_toman'].help_text = 'حداقل مبلغ سبد (قبل از تخفیف) برای اعمال کد.'
+        self.fields['max_discount_amount_toman'].help_text = 'برای کد درصدی: سقف مبلغ تخفیف به تومان.'
+
+        if self.instance.pk:
+            if self.instance.min_order_amount:
+                self.fields['min_order_amount_toman'].initial = rial_to_toman(
+                    self.instance.min_order_amount,
+                )
+            if self.instance.max_discount_amount:
+                self.fields['max_discount_amount_toman'].initial = rial_to_toman(
+                    self.instance.max_discount_amount,
+                )
+            if self.instance.kind == DiscountCode.Kind.AMOUNT and self.instance.value:
+                self.fields['amount_value_toman'].initial = rial_to_toman(self.instance.value)
+            if self.instance.expires_at:
+                d, t = aware_to_jalali_parts(self.instance.expires_at)
+                self.fields['jalali_expires_date'].initial = d
+                self.fields['jalali_expires_time'].initial = t
+
+        self._sync_kind_fields()
+
+    def _sync_kind_fields(self):
+        kind = (self.data.get('kind') if self.is_bound else None) or (
+            self.instance.kind if self.instance.pk else DiscountCode.Kind.PERCENT
+        )
+        is_percent = kind == DiscountCode.Kind.PERCENT
+        self.fields['value'].required = is_percent
+        self.fields['amount_value_toman'].required = not is_percent
+        if is_percent:
+            self.fields['value'].widget.attrs.setdefault('placeholder', '۱۵')
+        else:
+            self.fields['value'].widget = forms.HiddenInput()
+
+    def clean_code(self):
+        code = (self.cleaned_data.get('code') or '').strip().upper()
+        if not code:
+            raise forms.ValidationError('کد تخفیف را وارد کنید.')
+        if len(code) > 40:
+            raise forms.ValidationError('کد حداکثر ۴۰ کاراکتر است.')
+        qs = DiscountCode.objects.filter(
+            workspace=self.workspace,
+            platform=self.platform,
+            code__iexact=code,
+        )
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError('این کد قبلاً ثبت شده است.')
+        return code
+
+    def clean(self):
+        cleaned = super().clean()
+        kind = cleaned.get('kind') or DiscountCode.Kind.PERCENT
+        if kind == DiscountCode.Kind.PERCENT:
+            pct = cleaned.get('value')
+            if pct is None or int(pct) < 1 or int(pct) > 100:
+                self.add_error('value', 'درصد باید بین ۱ تا ۱۰۰ باشد.')
+        else:
+            amt = cleaned.get('amount_value_toman')
+            if amt is None or int(amt) < 1:
+                self.add_error('amount_value_toman', 'مبلغ تخفیف را وارد کنید.')
+
+        j_date = (cleaned.get('jalali_expires_date') or '').strip()
+        j_time = (cleaned.get('jalali_expires_time') or '').strip()
+        if j_date:
+            try:
+                cleaned['expires_at'] = parse_jalali_date_time(j_date, j_time or '23:59')
+            except ValueError as exc:
+                self.add_error('jalali_expires_date', str(exc))
+        else:
+            cleaned['expires_at'] = None
+        return cleaned
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.workspace = self.workspace
+        obj.platform = self.platform
+        min_toman = self.cleaned_data.get('min_order_amount_toman')
+        obj.min_order_amount = toman_to_rial(int(min_toman)) if min_toman not in (None, '') else 0
+        max_toman = self.cleaned_data.get('max_discount_amount_toman')
+        obj.max_discount_amount = (
+            toman_to_rial(int(max_toman)) if max_toman not in (None, '') else None
+        )
+        if obj.kind == DiscountCode.Kind.AMOUNT:
+            obj.value = toman_to_rial(int(self.cleaned_data['amount_value_toman']))
+        obj.expires_at = self.cleaned_data.get('expires_at')
+        if commit:
+            obj.save()
+        return obj

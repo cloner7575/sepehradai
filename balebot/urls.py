@@ -194,6 +194,18 @@ urlpatterns = [
         views_panel_catalog.CatalogCategoryDeleteView.as_view(),
         name='catalog_category_delete',
     ),
+    path('catalog/discounts/', views_panel_catalog.DiscountCodeListView.as_view(), name='catalog_discount_list'),
+    path('catalog/discounts/new/', views_panel_catalog.DiscountCodeCreateView.as_view(), name='catalog_discount_create'),
+    path(
+        'catalog/discounts/<int:pk>/edit/',
+        views_panel_catalog.DiscountCodeUpdateView.as_view(),
+        name='catalog_discount_edit',
+    ),
+    path(
+        'catalog/discounts/<int:pk>/delete/',
+        views_panel_catalog.DiscountCodeDeleteView.as_view(),
+        name='catalog_discount_delete',
+    ),
     path('catalog/items/', views_panel_catalog.CatalogItemListView.as_view(), name='catalog_item_list'),
     path('catalog/items/new/', views_panel_catalog.CatalogItemCreateView.as_view(), name='catalog_item_create'),
     path('catalog/items/<int:pk>/edit/', views_panel_catalog.CatalogItemUpdateView.as_view(), name='catalog_item_edit'),

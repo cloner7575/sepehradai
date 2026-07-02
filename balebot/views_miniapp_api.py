@@ -406,7 +406,7 @@ def catalog_cart(request, public_id):
         province = (request.GET.get('province') or '').strip()
         discount_code = (request.GET.get('discount_code') or '').strip()
         summary = catalog_payment.compute_cart_summary(
-            catalog, total, province=province, discount_code=discount_code,
+            catalog, total, province=province, discount_code=discount_code, subscriber=sub,
         )
         return JsonResponse({
             'ok': True,
@@ -461,7 +461,7 @@ def catalog_cart(request, public_id):
     province = (body.get('province') or '').strip()
     discount_code = (body.get('discount_code') or '').strip()
     summary = catalog_payment.compute_cart_summary(
-        catalog, total, province=province, discount_code=discount_code,
+        catalog, total, province=province, discount_code=discount_code, subscriber=sub,
     )
     return JsonResponse({
         'ok': True,

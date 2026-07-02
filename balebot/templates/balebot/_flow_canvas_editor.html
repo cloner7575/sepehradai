@@ -8,6 +8,7 @@
   data-platform-label="{{ active_platform_label|default:'بله' }}"
   data-has-miniapp="{% if mini_app_url %}1{% else %}0{% endif %}"
   {% if mini_app_url %}data-mini-app-url="{{ mini_app_url }}"{% endif %}
+  {% if discount_codes_json %}data-discount-codes="{{ discount_codes_json|escape }}"{% endif %}
 >
   <header class="bot-studio-header">
     <div class="bot-studio-header-main">
@@ -59,10 +60,9 @@
         <section class="bot-studio-panel" role="tabpanel" data-dock-panel="welcome" aria-labelledby="flow-tab-welcome" hidden id="flow-welcome-panel">
           <div class="bot-studio-panel-head">
             <h3>پیام‌های قبل از منو</h3>
-            <p>خوش‌آمد، دریافت شماره و متن پیش‌فرض</p>
+            <p>دریافت شماره و متن پیش‌فرض</p>
           </div>
           <div class="bot-editor-welcome-fields">
-            {% include "balebot/_settings_field.html" with field=form.start_message_normal label="پیام خوش‌آمد" hint="بعد از /start برای کاربر ثبت‌شده." %}
             {% include "balebot/_settings_switch.html" with field=form.collect_contact_on_start title="دریافت شماره قبل از منو" desc="فقط برای کاربر بدون شماره" %}
             {% include "balebot/_settings_field.html" with field=form.start_message_contact %}
             {% include "balebot/_settings_field.html" with field=form.contact_button_label %}

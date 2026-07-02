@@ -301,9 +301,19 @@ def _sanitize_block(block: Any) -> dict[str, Any] | None:
         out['accent'] = _sanitize_color(block.get('accent'), '#c2402f')
     elif btype == 'coupon':
         out['title'] = _clip(block.get('title'), 120)
-        out['code'] = _clip(block.get('code'), 40) or 'SALE'
         out['subtitle'] = _clip(block.get('subtitle'), 120)
         out['copy_label'] = _clip(block.get('copy_label'), 32) or 'کپی کد'
+        discount_id = block.get('discount_id')
+        code = _clip(block.get('code'), 40)
+        if discount_id is not None:
+            try:
+                out['discount_id'] = int(discount_id)
+            except (TypeError, ValueError):
+                pass
+        if code:
+            out['code'] = code
+        if not out.get('discount_id') and not out.get('code'):
+            return None
     elif btype == 'product_carousel':
         source = _clip(block.get('source'), 16).lower() or 'featured'
         if source not in _CAROUSEL_SOURCES:

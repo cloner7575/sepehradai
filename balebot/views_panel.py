@@ -1,3 +1,4 @@
+import json
 import uuid
 from pathlib import Path
 import tempfile
@@ -16,6 +17,7 @@ from django.views.generic import DetailView, ListView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 
 from balebot.forms import BotSettingsForm, CampaignForm, FlowEngineForm, TagForm
+from balebot.services.discount import apply_coupon_resolution_to_flow, discount_codes_for_editor
 from balebot.platform import (
     allowed_platforms_for_workspace,
     get_active_platform,
@@ -425,6 +427,12 @@ class FlowEngineView(WorkspaceScopedMixin, PanelAccessMixin, TemplateView):
         if ctx['has_miniapp_access']:
             catalog = CatalogSettings.get_for_platform(scope['workspace'], scope['platform'])
             ctx['mini_app_url'] = catalog.build_mini_app_url(bot)
+            ctx['discount_codes_json'] = json.dumps(
+                discount_codes_for_editor(scope['workspace'], scope['platform']),
+                ensure_ascii=False,
+            )
+        else:
+            ctx['discount_codes_json'] = '[]'
         return ctx
 
     def get_context_data(self, **kwargs):

@@ -77,13 +77,19 @@ def compute_cart_summary(
     *,
     province: str = '',
     discount_code: str = '',
+    subscriber: Subscriber | None = None,
 ) -> dict[str, int | bool]:
     subtotal = max(0, int(subtotal or 0))
     shipping = calculate_shipping(catalog, subtotal, province=province)
     discount_amount = 0
     if discount_code:
         try:
-            dc = validate_discount_code(catalog, discount_code, subtotal=subtotal)
+            dc = validate_discount_code(
+                catalog,
+                discount_code,
+                subtotal=subtotal,
+                subscriber=subscriber,
+            )
             _, discount_amount = apply_discount_to_order(dc, subtotal)
         except DiscountError:
             discount_amount = 0
@@ -115,6 +121,7 @@ def _apply_checkout_totals(
         subtotal,
         province=province,
         discount_code=discount_code,
+        subscriber=order.subscriber,
     )
     order.shipping_cost = int(summary['shipping_cost'])
     order.discount_amount = int(summary['discount_amount'])
@@ -210,7 +217,12 @@ def create_checkout_order(
         return None
     subtotal = sum((ln.price_snapshot * ln.quantity) for ln in order.lines.all())
     if discount_code:
-        validate_discount_code(catalog, discount_code, subtotal=subtotal)
+        validate_discount_code(
+            catalog,
+            discount_code,
+            subtotal=subtotal,
+            subscriber=subscriber,
+        )
     try:
         _apply_checkout_totals(
             order,

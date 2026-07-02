@@ -37,7 +37,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای اطلاع از تخفیف‌ها و کالکشن جدید، شماره‌ت رو با دکمه‌ی پایین به اشتراک بذار 🌸"
         },
         "categories": [
@@ -260,7 +260,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای اطلاع از تخفیف‌ها شماره‌ت رو به اشتراک بذار."
         },
         "categories": [
@@ -482,7 +482,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای دریافت پیشنهادهای متناسب با سن کودکت، شماره‌ت رو به اشتراک بذار 💚"
         },
         "categories": [
@@ -704,7 +704,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای مشاوره و تخفیف‌های اختصاصی، شماره‌ت رو به اشتراک بذار 💜"
         },
         "categories": [
@@ -926,7 +926,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای دریافت پیشنهاد رایحه و تخفیف، شماره‌ت رو به اشتراک بذار."
         },
         "categories": [
@@ -1148,7 +1148,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای دریافت منوی هفتگی و تخفیف‌ها، شماره‌ت رو به اشتراک بذار 🍰"
         },
         "categories": [
@@ -1371,7 +1371,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای یادآوری مناسبت‌ها و تخفیف، شماره‌ت رو ثبت کن 🎂"
         },
         "categories": [
@@ -1594,7 +1594,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای خبر از برشت‌های تازه و تخفیف، شماره‌ت رو ثبت کن ☕"
         },
         "categories": [
@@ -1816,7 +1816,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای خبر از تخفیف‌های مناسبتی، شماره‌ت رو ثبت کن 🥜"
         },
         "categories": [
@@ -2038,7 +2038,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای دریافت نکات نگهداری و تخفیف، شماره‌ت رو ثبت کن 🌿"
         },
         "categories": [
@@ -2260,7 +2260,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای دریافت ایده‌های دکور و تخفیف، شماره‌ت رو ثبت کن 🏡"
         },
         "categories": [
@@ -2482,7 +2482,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای خبر از مدل‌های جدید و تخفیف، شماره‌ت رو ثبت کن ✨"
         },
         "categories": [
@@ -2704,7 +2704,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای خبر از مدل‌ها و حراج، شماره‌ت رو ثبت کن."
         },
         "categories": [
@@ -2926,7 +2926,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای خبر از تخفیف‌های روزانه، شماره‌ت رو ثبت کن."
         },
         "categories": [
@@ -3148,7 +3148,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای دریافت پیشنهاد کتاب و تخفیف، شماره‌ت رو ثبت کن 📚"
         },
         "categories": [
@@ -3370,7 +3370,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای دریافت نکات و تخفیف، شماره‌ت رو ثبت کن 💪"
         },
         "categories": [
@@ -3592,7 +3592,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای پیشنهاد بر اساس سن کودکت، شماره‌ت رو ثبت کن 🧸"
         },
         "categories": [
@@ -3814,7 +3814,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای خبر از کارهای جدید، شماره‌ت رو ثبت کن 🪡"
         },
         "categories": [
@@ -4036,7 +4036,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای خبر از محصولات فصلی و تخفیف، شماره‌ت رو ثبت کن 🍯"
         },
         "categories": [
@@ -4258,7 +4258,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای یادآوری غذا و تخفیف، شماره‌ت رو ثبت کن 🐾"
         },
         "categories": [
@@ -4480,7 +4480,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای رزرو نوبت و یادآوری، شماره‌ت رو به اشتراک بذار ✨"
         },
         "categories": [
@@ -4703,7 +4703,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای دریافت جلسه‌ی نمونه و مشاوره، شماره‌ت رو به اشتراک بذار 🎓"
         },
         "categories": [
@@ -4926,7 +4926,7 @@
           }
         },
         "bot_settings": {
-          "collect_contact_on_start": true,
+          "collect_contact_on_start": false,
           "start_message_contact": "برای دریافت پیشنهاد روزانه و تخفیف، شماره‌ت رو به اشتراک بذار 🍔"
         },
         "categories": [

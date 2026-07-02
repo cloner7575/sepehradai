@@ -18,6 +18,7 @@ from balebot.forms_catalog import (
     CatalogItemForm,
     CatalogOrderUpdateForm,
     CatalogSettingsForm,
+    DiscountCodeForm,
     MiniAppFlowForm,
 )
 from balebot.models import (
@@ -27,6 +28,7 @@ from balebot.models import (
     CatalogItemMedia,
     CatalogOrder,
     CatalogSettings,
+    DiscountCode,
     StoreTemplate,
     Tag,
 )
@@ -38,7 +40,7 @@ from balebot.services.catalog_page_layout import get_home_blocks, sanitize_home_
 from balebot.services.checkout_form import get_checkout_form
 from balebot.services.public_url import resolve_public_base_url
 from balebot.mixins import SuperuserRequiredMixin
-from balebot.services.store_template import apply_template
+from balebot.services.discount import discount_codes_for_editor
 from balebot.services.store_template_io import (
     StoreTemplateImportError,
     build_export_bundle,
@@ -638,6 +640,10 @@ class MiniAppFlowEngineView(MiniAppPanelMixin, TemplateView):
             'catalog_picker_categories_json': json.dumps(picker_cat_json, ensure_ascii=False),
             'catalog_picker_items_json': json.dumps(picker_items_json, ensure_ascii=False),
             'catalog_picker_tags_json': json.dumps(picker_tags_json, ensure_ascii=False),
+            'discount_codes_json': json.dumps(
+                discount_codes_for_editor(scope['workspace'], scope['platform']),
+                ensure_ascii=False,
+            ),
             'home_blocks_json': json.dumps(blocks, ensure_ascii=False),
             'mini_app_url': catalog.build_mini_app_url(bot),
         }
@@ -873,6 +879,70 @@ class CatalogCategoryDeleteView(MiniAppPanelMixin, View):
         category.delete()
         messages.success(request, f'دسته «{name}» حذف شد.')
         return redirect('catalog_category_list')
+
+
+class DiscountCodeListView(MiniAppPanelMixin, ListView):
+    model = DiscountCode
+    template_name = 'balebot/catalog_discount_list.html'
+    context_object_name = 'discount_codes'
+    paginate_by = 50
+
+    def get_queryset(self):
+        return DiscountCode.objects.filter(**self.scope_filter()).order_by('-created_at')
+
+
+class DiscountCodeCreateView(MiniAppPanelMixin, CreateView):
+    model = DiscountCode
+    form_class = DiscountCodeForm
+    template_name = 'balebot/catalog_discount_form.html'
+
+    def get_form_kwargs(self):
+        kw = super().get_form_kwargs()
+        kw['workspace'] = self.get_workspace()
+        kw['platform'] = self.get_active_platform()
+        return kw
+
+    def form_valid(self, form):
+        form.instance.workspace = self.get_workspace()
+        form.instance.platform = self.get_active_platform()
+        messages.success(self.request, 'کد تخفیف ذخیره شد.')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('catalog_discount_list')
+
+
+class DiscountCodeUpdateView(MiniAppPanelMixin, UpdateView):
+    model = DiscountCode
+    form_class = DiscountCodeForm
+    template_name = 'balebot/catalog_discount_form.html'
+
+    def get_queryset(self):
+        return DiscountCode.objects.filter(**self.scope_filter())
+
+    def get_form_kwargs(self):
+        kw = super().get_form_kwargs()
+        kw['workspace'] = self.get_workspace()
+        kw['platform'] = self.get_active_platform()
+        return kw
+
+    def form_valid(self, form):
+        messages.success(self.request, 'کد تخفیف به‌روزرسانی شد.')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('catalog_discount_list')
+
+
+class DiscountCodeDeleteView(MiniAppPanelMixin, View):
+    http_method_names = ['post']
+
+    def post(self, request, pk, *args, **kwargs):
+        dc = get_object_or_404(DiscountCode.objects.filter(**self.scope_filter()), pk=pk)
+        code = dc.code
+        dc.delete()
+        messages.success(request, f'کد «{code}» حذف شد.')
+        return redirect('catalog_discount_list')
 
 
 class CatalogItemListView(MiniAppPanelMixin, ListView):

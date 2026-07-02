@@ -1,0 +1,118 @@
+{% extends "balebot/base.html" %}
+{% block title %}{% if object %}ویرایش کد تخفیف{% else %}کد تخفیف جدید{% endif %}{% endblock %}
+{% block page_title %}{% if object %}ویرایش کد تخفیف{% else %}کد تخفیف جدید{% endif %}{% endblock %}
+{% block page_subtitle %}
+<p class="topbar-meta mb-0 mt-1">
+  {% if object %}
+  ویرایش «{{ object.code }}» · {{ object.used_count }} بار استفاده شده
+  {% else %}
+  کد جدید برای سبد خرید مینی‌اپ
+  {% endif %}
+</p>
+{% endblock %}
+
+{% block content %}
+<div class="catalog-panel">
+  {% include "balebot/_catalog_subnav.html" %}
+
+  <form method="post" class="catalog-discount-form" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger mb-4">
+      {% for err in form.non_field_errors %}{{ err }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="row g-4 align-items-start">
+      <div class="col-lg-8">
+        <div class="panel-card">
+          <header class="panel-card-header">
+            <div>
+              <h2 class="panel-card-title mb-1">اطلاعات کد</h2>
+              <p class="panel-card-lead mb-0">کد در صفحهٔ تسویه مینی‌اپ وارد می‌شود.</p>
+            </div>
+          </header>
+          <div class="panel-card-body">
+            {% include "balebot/_settings_field.html" with field=form.code hint=form.code.help_text %}
+            {% include "balebot/_settings_field.html" with field=form.kind hint=form.kind.help_text %}
+            <div id="discount-percent-fields">
+              {% include "balebot/_settings_field.html" with field=form.value hint=form.value.help_text %}
+              {% include "balebot/_settings_field.html" with field=form.max_discount_amount_toman hint=form.max_discount_amount_toman.help_text %}
+            </div>
+            <div id="discount-amount-fields" class="d-none">
+              {% include "balebot/_settings_field.html" with field=form.amount_value_toman hint="مبلغ ثابت کسرشده از سبد" %}
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <header class="panel-card-header">
+            <div>
+              <h2 class="panel-card-title mb-1">محدودیت‌ها</h2>
+              <p class="panel-card-lead mb-0">شرایط اعمال کد در checkout.</p>
+            </div>
+          </header>
+          <div class="panel-card-body">
+            {% include "balebot/_settings_field.html" with field=form.max_uses hint=form.max_uses.help_text %}
+            {% include "balebot/_settings_field.html" with field=form.min_order_amount_toman hint=form.min_order_amount_toman.help_text %}
+            <div class="row g-3">
+              <div class="col-md-6">
+                {% include "balebot/_settings_field.html" with field=form.jalali_expires_date %}
+              </div>
+              <div class="col-md-6">
+                {% include "balebot/_settings_field.html" with field=form.jalali_expires_time %}
+              </div>
+            </div>
+            <div class="settings-switch-group border-top pt-3 mt-2">
+              {% include "balebot/_settings_switch.html" with field=form.first_purchase_only title=form.first_purchase_only.label desc=form.first_purchase_only.help_text %}
+              {% include "balebot/_settings_switch.html" with field=form.is_active title=form.is_active.label desc="غیرفعال = در checkout پذیرفته نمی‌شود" %}
+            </div>
+          </div>
+        </div>
+
+        <div class="catalog-category-form-actions">
+          <button type="submit" class="btn btn-panel-primary">
+            <i class="bi bi-check-lg me-1"></i>{% if object %}ذخیره تغییرات{% else %}ایجاد کد{% endif %}
+          </button>
+          <a href="{% url 'catalog_discount_list' %}" class="btn btn-panel-ghost">انصراف</a>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="panel-card">
+          <header class="panel-card-header">
+            <h2 class="panel-card-title mb-0"><i class="bi bi-lightbulb me-1"></i>راهنما</h2>
+          </header>
+          <div class="panel-card-body">
+            <ul class="catalog-category-tips list-unstyled mb-0">
+              <li><i class="bi bi-check2-circle"></i>کد را کوتاه و قابل تایپ بنویسید.</li>
+              <li><i class="bi bi-check2-circle"></i>برای جذب مشتری جدید، «فقط اولین خرید» را فعال کنید.</li>
+              <li><i class="bi bi-check2-circle"></i>سقف تخفیف برای کدهای درصدی از هزینهٔ زیاد جلوگیری می‌کند.</li>
+              <li><i class="bi bi-check2-circle"></i>تعداد استفاده پس از پرداخت موفق افزایش می‌یابد.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var kindEl = document.getElementById('id_kind');
+  var percentBox = document.getElementById('discount-percent-fields');
+  var amountBox = document.getElementById('discount-amount-fields');
+  if (!kindEl || !percentBox || !amountBox) return;
+  function sync() {
+    var isPercent = kindEl.value === 'percent';
+    percentBox.classList.toggle('d-none', !isPercent);
+    amountBox.classList.toggle('d-none', isPercent);
+  }
+  kindEl.addEventListener('change', sync);
+  sync();
+})();
+</script>
+{% endblock %}

@@ -84,6 +84,7 @@
   var pickerCategories = [];
   var pickerItems = [];
   var pickerTags = [];
+  var discountCodes = [];
   var state = { blocks: [] };
   var selection = null;
   var globalPanel = null;
@@ -152,7 +153,7 @@
       };
     }
     if (type === 'coupon') {
-      return { id: id, type: 'coupon', title: 'کد تخفیف', code: 'WELCOME10', subtitle: '', copy_label: 'کپی کد' };
+      return { id: id, type: 'coupon', title: 'کد تخفیف', discount_id: null, code: '', subtitle: '', copy_label: 'کپی کد' };
     }
     if (type === 'product_carousel') {
       return { id: id, type: 'product_carousel', title: 'پرفروش‌ترین‌ها', source: 'bestselling', limit: 10 };
@@ -1292,6 +1293,66 @@
     return sel;
   }
 
+  function findDiscountCode(id) {
+    var pk = parseInt(id, 10);
+    if (isNaN(pk)) return null;
+    for (var i = 0; i < discountCodes.length; i += 1) {
+      if (discountCodes[i].id === pk) return discountCodes[i];
+    }
+    return null;
+  }
+
+  function applyCouponSelection(block, discountId) {
+    var dc = findDiscountCode(discountId);
+    if (!dc) {
+      block.discount_id = null;
+      block.code = '';
+      return;
+    }
+    block.discount_id = dc.id;
+    block.code = dc.code;
+  }
+
+  function appendCouponPicker(host, block, bumpFn) {
+    host.appendChild(fieldLabel('کد تخفیف مینی‌اپ'));
+    if (!discountCodes.length) {
+      var empty = document.createElement('p');
+      empty.className = 'small text-muted';
+      empty.textContent = 'ابتدا از بخش «کدهای تخفیف» در مینی‌اپ یک کد بسازید.';
+      host.appendChild(empty);
+      return;
+    }
+    var options = [['', '— انتخاب کنید —']];
+    discountCodes.forEach(function (dc) {
+      options.push([String(dc.id), dc.label || dc.code]);
+    });
+    var selVal = block.discount_id != null ? String(block.discount_id) : '';
+    if (!selVal && block.code) {
+      discountCodes.forEach(function (dc) {
+        if (String(dc.code || '').toUpperCase() === String(block.code || '').toUpperCase()) {
+          selVal = String(dc.id);
+          block.discount_id = dc.id;
+        }
+      });
+    }
+    host.appendChild(
+      selectInput(selVal, options, function (v) {
+        if (v) applyCouponSelection(block, v);
+        else {
+          block.discount_id = null;
+          block.code = '';
+        }
+        bumpFn();
+      })
+    );
+    if (block.code) {
+      var preview = document.createElement('div');
+      preview.className = 'small text-muted mb-2';
+      preview.textContent = 'کد انتخاب‌شده: ' + block.code;
+      host.appendChild(preview);
+    }
+  }
+
   function searchableSelectInput(selectedValue, options, onChange, config) {
     config = config || {};
     var wrap = document.createElement('div');
@@ -1691,8 +1752,7 @@
     if (block.type === 'coupon') {
       host.appendChild(fieldLabel('عنوان'));
       host.appendChild(textInput(block.title, '', 120, function (v) { block.title = v; bump(); }));
-      host.appendChild(fieldLabel('کد'));
-      host.appendChild(textInput(block.code, 'WELCOME10', 40, function (v) { block.code = v; bump(); }));
+      appendCouponPicker(host, block, bump);
       host.appendChild(fieldLabel('زیرعنوان'));
       host.appendChild(textInput(block.subtitle, '', 120, function (v) { block.subtitle = v; bump(); }));
       return;
@@ -2265,6 +2325,11 @@
       pickerTags = JSON.parse(root.getAttribute('data-picker-tags') || '[]');
     } catch (e5) {
       pickerTags = [];
+    }
+    try {
+      discountCodes = JSON.parse(root.getAttribute('data-discount-codes') || '[]');
+    } catch (e6) {
+      discountCodes = [];
     }
 
     state.blocks = parseInitialBlocks();

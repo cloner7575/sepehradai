@@ -1,0 +1,81 @@
+{% extends "balebot/base.html" %}
+{% load jalali_extras %}
+{% block title %}کدهای تخفیف{% endblock %}
+{% block page_title %}کدهای تخفیف{% endblock %}
+{% block page_subtitle %}<p class="topbar-meta mb-0 mt-1">{{ discount_codes|length }} کد</p>{% endblock %}
+{% block content %}
+<div class="catalog-panel">
+  {% include "balebot/_catalog_subnav.html" %}
+
+  <div class="catalog-toolbar">
+    <span class="catalog-toolbar-meta text-muted small">{{ discount_codes|length }} کد</span>
+    <a href="{% url 'catalog_discount_create' %}" class="btn btn-panel-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>کد تخفیف جدید
+    </a>
+  </div>
+
+  {% if discount_codes %}
+  <div class="panel-card">
+    <div class="panel-table-wrap">
+      <table class="table panel-table mb-0 catalog-table">
+        <thead>
+          <tr>
+            <th>کد</th>
+            <th>نوع</th>
+            <th>مقدار</th>
+            <th>استفاده</th>
+            <th>حداقل خرید</th>
+            <th>وضعیت</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for dc in discount_codes %}
+          <tr>
+            <td class="fw-semibold" dir="ltr">{{ dc.code }}</td>
+            <td class="small">{{ dc.get_kind_display }}</td>
+            <td class="small">
+              {% if dc.kind == 'percent' %}
+              {{ dc.value }}٪
+              {% else %}
+              {{ dc.value|floatformat:0 }} ریال
+              {% endif %}
+              {% if dc.first_purchase_only %}
+              <span class="catalog-pill catalog-pill--muted ms-1">اولین خرید</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted">
+              {{ dc.used_count }}{% if dc.max_uses %} / {{ dc.max_uses }}{% else %} / ∞{% endif %}
+            </td>
+            <td class="small text-muted">
+              {% if dc.min_order_amount %}{{ dc.min_order_amount|format_toman }} ت{% else %}—{% endif %}
+            </td>
+            <td>
+              {% if dc.is_active %}
+              <span class="catalog-pill catalog-pill--ok">فعال</span>
+              {% else %}
+              <span class="catalog-pill">غیرفعال</span>
+              {% endif %}
+            </td>
+            <td class="text-end text-nowrap">
+              {% url 'catalog_discount_edit' dc.pk as edit_url %}
+              {% url 'catalog_discount_delete' dc.pk as delete_url %}
+              {% include "balebot/_catalog_row_actions.html" with label=dc.code entity_type="discount" item_count=0 %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="panel-card">
+    <div class="catalog-empty-state">
+      <i class="bi bi-tag"></i>
+      <p>هنوز کد تخفیف ندارید</p>
+      <a href="{% url 'catalog_discount_create' %}" class="btn btn-panel-primary btn-sm">اولین کد تخفیف</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

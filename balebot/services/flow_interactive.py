@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 _GOTO_VISITS = 32
 _PHONE_RE = re.compile(r'^(\+98|0)?9\d{9}$')
-_FLOW_RECHECK_CB = re.compile(r'^fr(n_[a-f0-9]{8})$')
+_FLOW_RECHECK_CB = re.compile(r'^fr(n_[a-zA-Z0-9_]{1,48})$')
 
 
 def encode_flow_recheck_callback(node_id: str) -> str:
@@ -351,8 +351,22 @@ def _execute_node(
         return 'contact_card'
 
     if ntype == 'coupon':
-        code = _clip(node.get('code'), 40)
-        message = _clip(node.get('message'), 500) or f'کد تخفیف: {code}'
+        dc = None
+        code = ''
+        if cfg and cfg.workspace_id:
+            from balebot.services.discount import coupon_display_message, get_discount_code_for_flow
+
+            dc = get_discount_code_for_flow(
+                cfg.workspace,
+                cfg.platform,
+                discount_id=node.get('discount_id'),
+                code=str(node.get('code', '') or ''),
+            )
+            if dc:
+                code = dc.code
+        if not code:
+            code = _clip(node.get('code'), 40)
+        message = coupon_display_message(dc, code, _clip(node.get('message'), 500))
         if code:
             _send_text(cfg, chat_id, f'{message}\n\n🎁 `{code}`')
         return 'coupon'

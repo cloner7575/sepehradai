@@ -4857,11 +4857,13 @@ select.panel-input {
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid var(--fm-border, #e2e8f0);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  pointer-events: none;
 }
 
 .flow-canvas-block:hover .flow-canvas-block-actions,
 .flow-canvas-block.is-selected .flow-canvas-block-actions {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .flow-canvas-block-action {
@@ -4980,6 +4982,162 @@ select.panel-input {
   flex-direction: column;
   align-items: stretch;
   position: relative;
+}
+
+.flow-canvas-block--draggable {
+  position: relative;
+  cursor: grab;
+}
+
+.flow-canvas-block--draggable:active {
+  cursor: grabbing;
+}
+
+.flow-canvas-button-row-block {
+  padding: 0.35rem 0.15rem;
+}
+
+.flow-canvas-button-row {
+  align-items: stretch;
+  gap: 0.35rem;
+}
+
+.flow-canvas-button-cell {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  flex: 1 1 0;
+  min-width: 0;
+  cursor: grab;
+}
+
+.flow-canvas-button-cell:active {
+  cursor: grabbing;
+}
+
+.flow-canvas-button-cell .flow-canvas-keyboard-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.flow-canvas-chip-gap {
+  flex: 0 0 0.55rem;
+  width: 0.55rem;
+  min-width: 0.55rem;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  position: relative;
+  z-index: 3;
+}
+
+.flow-canvas-chip-gap-line {
+  display: block;
+  width: 3px;
+  height: 100%;
+  min-height: 2.5rem;
+  border-radius: 999px;
+  background: transparent;
+  transition: background 0.12s, box-shadow 0.12s, width 0.12s;
+}
+
+.flow-canvas-chip-gap.is-drop-active .flow-canvas-chip-gap-line {
+  width: 4px;
+  background: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
+}
+
+.flow-canvas-drop-zone {
+  position: relative;
+  height: 22px;
+  margin: 0.1rem 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flow-canvas-drop-zone-line {
+  display: block;
+  width: 100%;
+  height: 2px;
+  border-radius: 999px;
+  background: transparent;
+  transition: background 0.12s, height 0.12s;
+}
+
+.flow-canvas-drop-zone-label {
+  position: absolute;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #3b82f6;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+
+.flow-canvas-drop-zone.is-drop-active .flow-canvas-drop-zone-line {
+  height: 4px;
+  background: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.flow-canvas-drop-zone.is-drop-active .flow-canvas-drop-zone-label {
+  opacity: 1;
+}
+
+.flow-messenger-thread.is-canvas-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.flow-messenger-thread.is-canvas-dragging .flow-canvas-chip-gap {
+  flex-basis: 0.85rem;
+  width: 0.85rem;
+  min-width: 0.85rem;
+}
+
+.flow-messenger-thread.is-canvas-dragging .flow-canvas-chip-gap-line {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.flow-messenger-thread--editable.is-canvas-dragging .flow-canvas-drop-zone-line {
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.flow-messenger-thread--editable.is-canvas-dragging .flow-canvas-drop-zone-label {
+  opacity: 0.65;
+}
+
+.flow-canvas-drag-ghost {
+  position: fixed;
+  z-index: 10050;
+  pointer-events: none;
+  opacity: 0.92;
+  transform: rotate(-1deg);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.18);
+}
+
+.flow-canvas-block.is-dragging,
+.flow-canvas-button-cell.is-dragging {
+  opacity: 0.35;
+}
+
+.flow-canvas-keyboard-btn.is-drop-target-left {
+  box-shadow: inset 3px 0 0 #3b82f6, 0 0 0 2px rgba(59, 130, 246, 0.12);
+}
+
+.flow-canvas-keyboard-btn.is-drop-target-right {
+  box-shadow: inset -3px 0 0 #3b82f6, 0 0 0 2px rgba(59, 130, 246, 0.12);
+}
+
+.flow-canvas-keyboard-btn-label {
+  text-align: center;
+  line-height: 1.35;
 }
 
 .flow-chat-keyboard-btn,

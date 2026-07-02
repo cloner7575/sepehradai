@@ -658,13 +658,12 @@ class BotSettings(models.Model):
     )
 
     start_message_normal = models.TextField(
-        default=(
-            'سلام! خوش آمدید.\n'
-            'می‌توانید از منوی زیر استفاده کنید و اطلاعیه‌ها را دریافت کنید.'
-        ),
+        blank=True,
+        default='',
         verbose_name='پیام /start معمولی',
         help_text=(
-            'برای کاربرانی که قبلاً شماره داده‌اند، یا وقتی گزینهٔ «دریافت شماره بعد از /start» خاموش است.'
+            'منسوخ — خوش‌آمد را در طراحی منوی /start قرار دهید. '
+            'فقط وقتی منو خالی است و این فیلد پر باشد ارسال می‌شود.'
         ),
     )
     contact_button_label = models.CharField(
@@ -726,7 +725,7 @@ class BotSettings(models.Model):
     )
 
     collect_contact_on_start = models.BooleanField(
-        default=True,
+        default=False,
         verbose_name='نمایش دکمهٔ ارسال شماره بعد از /start',
     )
     enable_help_command = models.BooleanField(
@@ -1549,6 +1548,15 @@ class DiscountCode(models.Model):
     max_uses = models.IntegerField(null=True, blank=True)
     used_count = models.IntegerField(default=0)
     min_order_amount = models.BigIntegerField(default=0)
+    max_discount_amount = models.BigIntegerField(
+        null=True,
+        blank=True,
+        help_text='سقف مبلغ تخفیف به ریال (برای کدهای درصدی)',
+    )
+    first_purchase_only = models.BooleanField(
+        default=False,
+        help_text='فقط برای مشتری بدون سفارش پرداخت‌شده قبلی',
+    )
     expires_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)

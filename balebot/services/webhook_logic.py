@@ -264,7 +264,7 @@ def handle_message(cfg: BotSettings, msg: dict[str, Any]) -> None:
     if text.startswith('/start'):
         need_contact = cfg.collect_contact_on_start and not sub.is_registered
         if need_contact:
-            body_contact = (cfg.start_message_contact or cfg.start_message_normal or '').strip()
+            body_contact = (cfg.start_message_contact or '').strip()
             messenger_api.send_message(
                 platform,
                 sub.chat_id,

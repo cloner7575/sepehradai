@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from balebot.services.flow_engine import category_slugs_for_button, find_button_by_id, _ButtonRef
+from balebot.services.flow_engine import category_slugs_for_button, find_button_by_id
 from balebot.services.store_template import prepare_start_flow
 
 
@@ -34,11 +34,13 @@ TEMPLATE_FLOW = {
 
 
 class StoreTemplateFlowCategoryTests(TestCase):
-    def test_prepare_start_flow_strips_template_label_slugs(self):
+    def test_prepare_start_flow_flattens_buttons_to_independent_items(self):
         flow = prepare_start_flow(TEMPLATE_FLOW, 'https://example.com/shop/abc/')
 
-        rows = flow['root']['items'][0]['rows'][0]
-        for btn in rows:
+        items = flow['root']['items']
+        button_items = [it for it in items if it.get('type') == 'button']
+        self.assertGreaterEqual(len(button_items), 2)
+        for btn in button_items:
             self.assertNotIn('label_slug', btn)
 
     def test_category_slug_is_used_for_tagging_not_label_slug(self):
@@ -48,16 +50,12 @@ class StoreTemplateFlowCategoryTests(TestCase):
                 'type': 'sequence',
                 'items': [
                     {
-                        'type': 'buttons',
-                        'rows': [[
-                            {
-                                'id': 'n_a1b2c3d4',
-                                'text': 'مانتو',
-                                'category_slug': 'manto',
-                                'label_slug': 'should-be-ignored',
-                                'action': {'type': 'text', 'body': 'لیست مانتوها'},
-                            },
-                        ]],
+                        'type': 'button',
+                        'id': 'n_a1b2c3d4',
+                        'text': 'مانتو',
+                        'category_slug': 'manto',
+                        'label_slug': 'should-be-ignored',
+                        'action': {'type': 'text', 'body': 'لیست مانتوها'},
                     },
                 ],
             },

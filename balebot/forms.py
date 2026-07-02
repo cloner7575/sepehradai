@@ -11,6 +11,7 @@ from balebot.services.slug_utils import resolve_model_slug
 
 # هم‌نام با مقدار سشن در views_panel (آپلود ویدیو)
 _CAMPAIGN_PENDING_MEDIA_SESSION_KEY = 'campaign_pending_media'
+from balebot.services.discount import apply_coupon_resolution_to_flow
 from balebot.services.flow_sanitize import empty_start_flow, sanitize_start_flow
 
 _SETTINGS_INPUT_CLASS = 'form-control panel-input'
@@ -49,7 +50,6 @@ class BotSettingsForm(forms.ModelForm):
             'is_enabled',
             'panel_brand_title',
             'panel_brand_subtitle',
-            'start_message_normal',
             'start_message_contact',
             'contact_button_label',
             'registration_success_message',
@@ -73,13 +73,6 @@ class BotSettingsForm(forms.ModelForm):
             ),
             'panel_brand_subtitle': forms.TextInput(
                 attrs={'class': _SETTINGS_INPUT_CLASS},
-            ),
-            'start_message_normal': forms.Textarea(
-                attrs={
-                    'class': _SETTINGS_INPUT_CLASS,
-                    'rows': 4,
-                    'placeholder': 'کاربر ثبت‌نام‌شده یا بدون اجبار تماس',
-                },
             ),
             'start_message_contact': forms.Textarea(
                 attrs={
@@ -146,8 +139,6 @@ class BotSettingsForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        if not (cleaned.get('start_message_normal') or '').strip():
-            raise forms.ValidationError('پیام /start معمولی را پر کنید.')
         if cleaned.get('collect_contact_on_start') and not (
             cleaned.get('start_message_contact') or ''
         ).strip():
@@ -192,7 +183,6 @@ class FlowEngineForm(BotSettingsForm):
         fields = [
             'start_flow',
             'start_flow_default_text',
-            'start_message_normal',
             'collect_contact_on_start',
             'start_message_contact',
             'contact_button_label',
@@ -228,12 +218,17 @@ class FlowEngineForm(BotSettingsForm):
             data = json.loads(raw) if isinstance(raw, str) else raw
         except json.JSONDecodeError as e:
             raise forms.ValidationError(f'دادهٔ نامعتبر: {e}') from e
-        return sanitize_start_flow(data)
+        flow = sanitize_start_flow(data)
+        if getattr(self.instance, 'workspace_id', None):
+            flow = apply_coupon_resolution_to_flow(
+                flow,
+                self.instance.workspace,
+                self.instance.platform,
+            )
+        return flow
 
     def clean(self):
         cleaned = super(BotSettingsForm, self).clean()
-        if not (cleaned.get('start_message_normal') or '').strip():
-            raise forms.ValidationError('پیام خوش‌آمد را پر کنید.')
         if cleaned.get('collect_contact_on_start') and not (
             cleaned.get('start_message_contact') or ''
         ).strip():

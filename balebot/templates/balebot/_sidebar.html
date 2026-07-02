@@ -86,6 +86,9 @@
           <a href="{% url 'catalog_category_list' %}" class="app-nav-link {% if name == 'catalog_category_list' or name == 'catalog_category_create' or name == 'catalog_category_edit' %}is-active{% endif %}">
             <i class="bi bi-folder app-nav-icon"></i><span>دسته‌ها</span>
           </a>
+          <a href="{% url 'catalog_discount_list' %}" class="app-nav-link {% if name == 'catalog_discount_list' or name == 'catalog_discount_create' or name == 'catalog_discount_edit' %}is-active{% endif %}">
+            <i class="bi bi-tag app-nav-icon"></i><span>کدهای تخفیف</span>
+          </a>
           <a href="{% url 'catalog_flow_engine' %}" class="app-nav-link {% if name == 'catalog_flow_engine' %}is-active{% endif %}">
             <i class="bi bi-palette app-nav-icon"></i><span>طراحی ویترین</span>
           </a>

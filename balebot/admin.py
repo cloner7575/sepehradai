@@ -140,7 +140,10 @@ class CatalogOrderAdmin(admin.ModelAdmin):
 
 @admin.register(DiscountCode)
 class DiscountCodeAdmin(admin.ModelAdmin):
-    list_display = ('code', 'workspace', 'platform', 'kind', 'value', 'used_count', 'is_active')
+    list_display = (
+        'code', 'workspace', 'platform', 'kind', 'value',
+        'used_count', 'max_uses', 'first_purchase_only', 'is_active',
+    )
     list_filter = ('platform', 'kind', 'is_active')
     search_fields = ('code',)
 

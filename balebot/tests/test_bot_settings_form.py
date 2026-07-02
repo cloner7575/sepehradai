@@ -36,7 +36,6 @@ class BotSettingsFormFlowPreservationTests(TestCase):
             'is_enabled': 'on',
             'panel_brand_title': self.cfg.panel_brand_title,
             'panel_brand_subtitle': self.cfg.panel_brand_subtitle,
-            'start_message_normal': self.cfg.start_message_normal,
             'start_message_contact': self.cfg.start_message_contact,
             'contact_button_label': self.cfg.contact_button_label,
             'registration_success_message': self.cfg.registration_success_message,

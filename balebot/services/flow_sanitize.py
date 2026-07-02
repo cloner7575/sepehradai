@@ -10,7 +10,7 @@ from balebot.models import FlowMedia
 
 _MAX_DEPTH = 20
 _SLUG_RE = re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$')
-_NODE_ID_RE = re.compile(r'^n_[a-f0-9]{8}$')
+_NODE_ID_RE = re.compile(r'^n_[a-zA-Z0-9_]{1,48}$')
 _MEDIA_NODE_TYPES = frozenset({'image', 'video', 'voice', 'document'})
 _SEQUENCE_ITEM_TYPES = frozenset({'text', 'image', 'video', 'voice', 'document'})
 _INTERACTIVE_TYPES = frozenset({
@@ -44,7 +44,7 @@ def _slugify_label(raw: str) -> str:
 
 
 def _sanitize_text_node(item: dict[str, Any]) -> dict[str, Any] | None:
-    body = str(item.get('body', '') or '').strip()[:4096]
+    body = str(item.get('body', '') or item.get('text', '') or '').strip()[:4096]
     if not body:
         return None
     return {'type': 'text', 'body': body}
@@ -314,15 +314,25 @@ def _sanitize_interactive_node(node: dict[str, Any], depth: int) -> dict[str, An
         return {'type': 'faq', 'title': str(node.get('title', '') or '').strip()[:120], 'items': items}
 
     if ntype == 'coupon':
+        discount_id = node.get('discount_id')
         code = str(node.get('code', '') or '').strip()[:40]
-        if not code:
+        if discount_id is None and not code:
             return None
-        return {
+        out: dict[str, Any] = {
             'type': 'coupon',
-            'code': code,
             'message': str(node.get('message', '') or '').strip()[:500],
             'once_per_user': bool(node.get('once_per_user')),
         }
+        if discount_id is not None:
+            try:
+                out['discount_id'] = int(discount_id)
+            except (TypeError, ValueError):
+                pass
+        if code:
+            out['code'] = code
+        if not out.get('discount_id') and not out.get('code'):
+            return None
+        return out
 
     if ntype == 'handoff':
         return {
@@ -338,7 +348,7 @@ def _sanitize_action(action: Any, depth: int) -> dict[str, Any] | None:
         return None
     atype = str(action.get('type', '') or '').strip().lower()
     if atype == 'text':
-        body = str(action.get('body', '') or '').strip()[:4096]
+        body = str(action.get('body', '') or action.get('text', '') or '').strip()[:4096]
         if not body:
             return None
         return {'type': 'text', 'body': body}
@@ -364,14 +374,18 @@ def _sanitize_action(action: Any, depth: int) -> dict[str, Any] | None:
 def _sanitize_button(btn: Any, depth: int) -> dict[str, Any] | None:
     if depth > _MAX_DEPTH or not isinstance(btn, dict):
         return None
-    text = str(btn.get('text', '') or '').strip()[:64]
+    text = str(btn.get('text', '') or btn.get('label', '') or '').strip()[:64]
     action_raw = btn.get('action')
     action = _sanitize_action(action_raw, depth) if action_raw else None
     atype = ''
     if isinstance(action_raw, dict):
         atype = str(action_raw.get('type', '') or '').strip().lower()
     if atype == 'text':
-        body = str((action_raw or {}).get('body', '') or '').strip()[:4096]
+        body = str(
+            (action_raw or {}).get('body', '')
+            or (action_raw or {}).get('text', '')
+            or '',
+        ).strip()[:4096]
         if body:
             action = {'type': 'text', 'body': body}
         elif action and action.get('type') == 'text':
@@ -437,11 +451,68 @@ def _sanitize_sequence(node: Any, depth: int) -> dict[str, Any] | None:
             sanitized = _sanitize_media_node(item, itype)
         elif itype == 'buttons':
             sanitized = _sanitize_buttons_node(item, depth)
+        elif itype == 'button':
+            sanitized_btn = _sanitize_button(item, depth)
+            row_val = item.get('row')
+            sanitized = (
+                _button_dict_to_item(
+                    sanitized_btn,
+                    row=int(row_val) if row_val is not None else None,
+                )
+                if sanitized_btn
+                else None
+            )
         elif itype in _INTERACTIVE_TYPES:
             sanitized = _sanitize_interactive_node(item, depth)
         if sanitized:
             items_out.append(sanitized)
+    items_out = _flatten_buttons_to_button_items(items_out)
     return {'type': 'sequence', 'items': items_out}
+
+
+def _button_dict_to_item(btn: dict[str, Any], *, row: int | None = None) -> dict[str, Any]:
+    out: dict[str, Any] = {'type': 'button', 'id': btn['id'], 'text': btn['text']}
+    if btn.get('category_slug'):
+        out['category_slug'] = btn['category_slug']
+    if btn.get('action'):
+        out['action'] = btn['action']
+    if row is not None:
+        out['row'] = int(row)
+    elif btn.get('row') is not None:
+        out['row'] = int(btn['row'])
+    return out
+
+
+def _flatten_buttons_to_button_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """هر دکمه داخل بلوک buttons به آیتم مستقل type=button تبدیل می‌شود."""
+    flat: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        itype = str(item.get('type', '') or '').strip().lower()
+        if itype == 'buttons':
+            for row_idx, row in enumerate(item.get('rows') or []):
+                if not isinstance(row, list):
+                    continue
+                for btn in row:
+                    if not isinstance(btn, dict):
+                        continue
+                    sanitized = _sanitize_button(btn, 0)
+                    if sanitized:
+                        flat.append(_button_dict_to_item(sanitized, row=row_idx))
+        elif itype == 'button':
+            sanitized = _sanitize_button(item, 0)
+            if sanitized:
+                row_val = item.get('row')
+                flat.append(
+                    _button_dict_to_item(
+                        sanitized,
+                        row=int(row_val) if row_val is not None else None,
+                    )
+                )
+        else:
+            flat.append(item)
+    return flat
 
 
 def empty_start_flow() -> dict[str, Any]:
