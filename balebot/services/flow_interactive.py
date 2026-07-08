@@ -24,6 +24,7 @@ from balebot.services import messenger_api
 from balebot.services.flow_engine import (
     _ButtonRef,
     _send_inline_keyboard_message,
+    _send_message_with_inline_markup,
     build_markup_for_buttons_node,
     encode_flow_callback,
     get_flow,
@@ -200,6 +201,21 @@ def _send_text(cfg: BotSettings, chat_id: int, text: str) -> None:
         return
     try:
         messenger_api.send_message(cfg.platform, chat_id, body[:4096], settings=cfg)
+    except messenger_api.MessengerAPIError:
+        pass
+
+
+def _remove_reply_keyboard(cfg: BotSettings, chat_id: int, text: str) -> None:
+    body = (text or '').strip() or ' '
+    markup = {'remove_keyboard': True, 'selective': False}
+    try:
+        messenger_api.send_message(
+            cfg.platform,
+            chat_id,
+            body[:4096],
+            settings=cfg,
+            reply_markup=markup,
+        )
     except messenger_api.MessengerAPIError:
         pass
 
@@ -420,8 +436,15 @@ def _execute_node(
         if invite:
             rows.append([{'text': 'عضویت در کانال', 'url': invite}])
         rows.append([{'text': 'بررسی مجدد', 'callback_data': encode_flow_recheck_callback(gate_id)}])
-        _send_text(cfg, chat_id, prompt)
-        _send_inline_keyboard_message(cfg, chat_id, {'inline_keyboard': rows})
+        sent_with_markup = _send_message_with_inline_markup(
+            cfg,
+            chat_id,
+            prompt,
+            {'inline_keyboard': rows},
+        )
+        if not sent_with_markup:
+            _send_text(cfg, chat_id, prompt)
+            _send_inline_keyboard_message(cfg, chat_id, {'inline_keyboard': rows})
         return 'join_gate'
 
     if ntype == 'request_contact':
@@ -716,14 +739,7 @@ def resume_flow(cfg: BotSettings, sub: Subscriber, msg: dict[str, Any], state: d
         _clear_flow_state(sub)
         if assign_tag:
             _assign_tags(sub, [assign_tag], [])
-        try:
-            messenger_api.send_message(
-                platform, chat_id, (cfg.registration_success_message or 'شماره ثبت شد.'),
-                settings=cfg,
-                reply_markup={'remove_keyboard': True},
-            )
-        except messenger_api.MessengerAPIError:
-            pass
+        _remove_reply_keyboard(cfg, chat_id, cfg.registration_success_message or 'شماره ثبت شد.')
         if isinstance(resume, dict):
             _execute_node(cfg, sub, chat_id, resume)
         return True
@@ -739,14 +755,7 @@ def resume_flow(cfg: BotSettings, sub: Subscriber, msg: dict[str, Any], state: d
         })
         resume = state.get('resume')
         _clear_flow_state(sub)
-        try:
-            messenger_api.send_message(
-                platform, chat_id, 'موقعیت ثبت شد.',
-                settings=cfg,
-                reply_markup={'remove_keyboard': True},
-            )
-        except messenger_api.MessengerAPIError:
-            pass
+        _remove_reply_keyboard(cfg, chat_id, 'موقعیت ثبت شد.')
         if isinstance(resume, dict):
             _execute_node(cfg, sub, chat_id, resume)
         return True

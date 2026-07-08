@@ -710,7 +710,10 @@ def send_sequence_items(
         elif itype in _INTERACTIVE_ACTION_TYPES and sub is not None:
             from balebot.services.flow_interactive import _execute_node
 
-            _execute_node(cfg, sub, chat_id, item)
+            result = _execute_node(cfg, sub, chat_id, item)
+            if result == 'join_gate':
+                # تا وقتی کاربر عضو کانال نشده، آیتم‌های بعدی sequence اجرا نشوند.
+                return pending_markup
         i += 1
 
     return pending_markup
