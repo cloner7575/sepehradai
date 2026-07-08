@@ -47,38 +47,32 @@
           </tr>
         </thead>
         <tbody>
-          {% for row in inbound_list %}
-          {% if row.is_support_request %}
-          {% with ticket=ticket_by_inbound|get_item:row.id %}
-          {% with reply_count=ticket_reply_counts|get_item:ticket.id %}
-          <tr {% if selected_inbound_id == row.id %}class="table-primary"{% endif %}>
-            <td class="small text-muted">{{ row.created_at|jalali_datetime }}</td>
+          {% for row in support_ticket_rows %}
+          <tr {% if row.is_selected %}class="table-primary"{% endif %}>
+            <td class="small text-muted">{{ row.latest_user_message.created_at|jalali_datetime }}</td>
             <td>
-              <div class="fw-semibold small">{{ row.subscriber.phone_number|default:row.subscriber.first_name|default:row.subscriber.messenger_user_id }}</div>
-              <div class="text-muted small">شناسه: {{ row.subscriber.messenger_user_id }}</div>
+              <div class="fw-semibold small">{{ row.ticket.subscriber.phone_number|default:row.ticket.subscriber.first_name|default:row.ticket.subscriber.messenger_user_id }}</div>
+              <div class="text-muted small">شناسه: {{ row.ticket.subscriber.messenger_user_id }}</div>
             </td>
             <td class="small">
-              {% if row.text %}{{ row.text|truncatechars:90 }}{% elif row.file_id %}فایل: {{ row.file_id|truncatechars:50 }}{% else %}—{% endif %}
+              {% if row.latest_user_message.text %}{{ row.latest_user_message.text|truncatechars:90 }}{% elif row.latest_user_message.file_id %}فایل: {{ row.latest_user_message.file_id|truncatechars:50 }}{% else %}—{% endif %}
             </td>
             <td>
-              {% if reply_count %}
-              <span class="badge text-bg-primary">{{ reply_count }} پاسخ</span>
+              {% if row.reply_count %}
+              <span class="badge text-bg-primary">{{ row.reply_count }} پاسخ</span>
               {% else %}
               <span class="badge text-bg-warning">بی‌پاسخ</span>
               {% endif %}
             </td>
             <td>
               <a
-                href="{% url 'subscriber_detail' row.subscriber.pk %}{% if ticket %}?ticket={{ ticket.id }}{% endif %}"
+                href="{% url 'subscriber_detail' row.ticket.subscriber.pk %}?ticket={{ row.ticket.id }}"
                 class="btn btn-panel-primary btn-sm"
               >
                 <i class="bi bi-chat-dots me-1"></i>ورود به گفت‌وگو
               </a>
             </td>
           </tr>
-          {% endwith %}
-          {% endwith %}
-          {% endif %}
           {% empty %}
           <tr><td colspan="5" class="text-center text-muted py-5">هنوز تیکتی ثبت نشده است.</td></tr>
           {% endfor %}

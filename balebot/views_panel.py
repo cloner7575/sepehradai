@@ -1444,32 +1444,75 @@ class InboundListView(WorkspaceScopedMixin, PanelAccessMixin, ListView):
                             row.is_support_read = True
                 sync_support_inbounds_into_tickets(support_rows)
 
-        ticket_by_inbound = {}
-        if inbound_list:
-            for ticket in SupportTicketMessage.objects.filter(
-                inbound_message_id__in=[row.id for row in inbound_list],
-                sender=SupportTicketMessage.Sender.USER,
-            ):
-                ticket_by_inbound[ticket.inbound_message_id] = ticket
-
-        ticket_ids = [ticket.id for ticket in ticket_by_inbound.values()]
-        reply_counts = {}
-        if ticket_ids:
-            grouped = (
-                SupportTicketMessage.objects.filter(
-                    sender=SupportTicketMessage.Sender.ADMIN,
-                    parent_user_message_id__in=ticket_ids,
-                )
-                .values('parent_user_message_id')
-                .annotate(c=Count('id'))
-            )
-            reply_counts = {int(row['parent_user_message_id']): int(row['c']) for row in grouped}
-
         selected_inbound_id_raw = (self.request.GET.get('inbound') or '').strip()
         selected_inbound_id = int(selected_inbound_id_raw) if selected_inbound_id_raw.isdigit() else None
+        support_ticket_rows: list[dict] = []
+        ticket_by_inbound = {}
+        reply_counts = {}
+        if kind in {'support', 'all'}:
+            support_inbound_ids = [row.id for row in inbound_list if row.is_support_request]
+            inbound_to_user_ticket: dict[int, SupportTicketMessage] = {}
+            root_ticket_ids: set[int] = set()
+            if support_inbound_ids:
+                for ticket in SupportTicketMessage.objects.filter(
+                    inbound_message_id__in=support_inbound_ids,
+                    sender=SupportTicketMessage.Sender.USER,
+                ).select_related('subscriber', 'inbound_message'):
+                    inbound_to_user_ticket[int(ticket.inbound_message_id)] = ticket
+                    root_ticket_ids.add(int(ticket.parent_user_message_id or ticket.id))
+                ticket_by_inbound = inbound_to_user_ticket
+
+            if root_ticket_ids:
+                grouped = (
+                    SupportTicketMessage.objects.filter(
+                        sender=SupportTicketMessage.Sender.ADMIN,
+                        parent_user_message_id__in=root_ticket_ids,
+                    )
+                    .values('parent_user_message_id')
+                    .annotate(c=Count('id'))
+                )
+                reply_counts = {int(row['parent_user_message_id']): int(row['c']) for row in grouped}
+
+                roots = {
+                    int(t.id): t
+                    for t in SupportTicketMessage.objects.filter(
+                        id__in=root_ticket_ids,
+                        sender=SupportTicketMessage.Sender.USER,
+                    ).select_related('subscriber', 'inbound_message')
+                }
+                thread_user_messages = (
+                    SupportTicketMessage.objects.filter(
+                        sender=SupportTicketMessage.Sender.USER,
+                    )
+                    .filter(Q(id__in=root_ticket_ids) | Q(parent_user_message_id__in=root_ticket_ids))
+                    .select_related('inbound_message')
+                    .order_by('created_at')
+                )
+                latest_by_root: dict[int, SupportTicketMessage] = {}
+                inbound_ids_by_root: dict[int, set[int]] = {rid: set() for rid in root_ticket_ids}
+                for msg in thread_user_messages:
+                    rid = int(msg.parent_user_message_id or msg.id)
+                    latest_by_root[rid] = msg
+                    if msg.inbound_message_id:
+                        inbound_ids_by_root.setdefault(rid, set()).add(int(msg.inbound_message_id))
+
+                for rid, root in roots.items():
+                    latest = latest_by_root.get(rid) or root
+                    inbound_ids = inbound_ids_by_root.get(rid, set())
+                    support_ticket_rows.append({
+                        'ticket': root,
+                        'latest_user_message': latest,
+                        'reply_count': int(reply_counts.get(rid) or 0),
+                        'is_selected': bool(selected_inbound_id and selected_inbound_id in inbound_ids),
+                    })
+                support_ticket_rows.sort(
+                    key=lambda row: row['latest_user_message'].created_at if row['latest_user_message'] else row['ticket'].created_at,
+                    reverse=True,
+                )
 
         ctx['inbound_list'] = inbound_list
         ctx['ticket_by_inbound'] = ticket_by_inbound
         ctx['ticket_reply_counts'] = reply_counts
+        ctx['support_ticket_rows'] = support_ticket_rows
         ctx['selected_inbound_id'] = selected_inbound_id
         return ctx
