@@ -889,7 +889,7 @@ class CatalogSettings(models.Model):
         max_length=32,
         blank=True,
         default='',
-        verbose_name='شماره کارت فروشنده (بله)',
+        verbose_name='توکن پرداخت بله (provider_token)',
         help_text='به‌عنوان provider_token در sendInvoice استفاده می‌شود.',
     )
     bale_payment_card_holder = models.CharField(
@@ -1057,11 +1057,10 @@ class CatalogSettings(models.Model):
         return payment_card_to_card_ready(self)
 
     def payment_bale_ready(self) -> bool:
-        card = (self.bale_payment_card_number or '').strip()
-        if not self.payment_bale_enabled or not card:
+        token = (self.bale_payment_card_number or '').strip()
+        if not self.payment_bale_enabled or not token:
             return False
-        digits = ''.join(ch for ch in card if ch.isdigit())
-        return len(digits) >= 16
+        return True
 
     def enabled_payment_methods(self) -> list[tuple[str, str]]:
         methods: list[tuple[str, str]] = []

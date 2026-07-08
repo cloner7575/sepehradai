@@ -54,8 +54,7 @@
     var cb = document.getElementById('id_payment_bale_enabled');
     var card = document.getElementById('id_bale_payment_card_number');
     if (!cb || !cb.checked || !card) return false;
-    var digits = String(card.value || '').replace(/\D/g, '');
-    return digits.length >= 16;
+    return String(card.value || '').trim().length > 0;
   }
 
   function readyPaymentMethodIds() {

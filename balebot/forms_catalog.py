@@ -105,7 +105,9 @@ class CatalogSettingsForm(forms.ModelForm):
             'card_to_card_number': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': '6037...'}),
             'card_to_card_sheba': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'IR...'}),
             'card_to_card_holder': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'نام صاحب حساب'}),
-            'bale_payment_card_number': forms.TextInput(attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': '6037...'}),
+            'bale_payment_card_number': forms.TextInput(
+                attrs={'class': _INPUT, 'dir': 'ltr', 'placeholder': 'WALLET-...'},
+            ),
             'bale_payment_card_holder': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'نام دارنده کارت'}),
             'shipping_mode': forms.Select(attrs={'class': _SELECT}),
             'shipping_flat_cost': forms.NumberInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
@@ -148,21 +150,20 @@ class CatalogSettingsForm(forms.ModelForm):
             )
         bale_card = (cleaned.get('bale_payment_card_number') or '').strip()
         if bale_on:
-            digits = ''.join(ch for ch in bale_card if ch.isdigit())
-            if len(digits) < 16:
+            if not bale_card:
                 self.add_error(
                     'bale_payment_card_number',
-                    'برای پرداخت بله، شماره کارت ۱۶ رقمی معتبر وارد کنید.',
+                    'برای پرداخت بله، provider_token کیف‌پول را وارد کنید.',
                 )
 
         has_admin = bool(admin_on and admin_chat)
         has_card = bool(card_on and len(card_digits) >= 16 and validate_sheba(card_sheba) and card_holder)
-        has_bale = bool(bale_on and len(''.join(ch for ch in bale_card if ch.isdigit())) >= 16)
+        has_bale = bool(bale_on and bale_card)
 
         if is_enabled and not has_admin and not has_card and not has_bale:
             raise forms.ValidationError(
                 'برای فعال‌سازی مینی‌اپ، حداقل یک روش پرداخت را کامل تنظیم کنید '
-                '(چت‌آیدی ادمین، کارت به کارت، یا شماره کارت بله).',
+                '(چت‌آیدی ادمین، کارت به کارت، یا provider_token بله).',
             )
 
         require_channel = cleaned.get('require_channel_membership')
@@ -217,7 +218,7 @@ class CatalogSettingsForm(forms.ModelForm):
         self.fields['card_to_card_sheba'].help_text = 'شماره شبا (IR + ۲۴ رقم) — در صفحه پرداخت نمایش داده می‌شود.'
         self.fields['card_to_card_holder'].help_text = 'نام دارنده حساب برای نمایش به مشتری.'
         self.fields['bale_payment_card_number'].help_text = (
-            'شماره کارت فروشنده — در بله به‌عنوان provider_token استفاده می‌شود و پول مستقیم به کارت واریز می‌شود.'
+            'توکن پرداخت کیف‌پول بله از @botfather (مثال تست: WALLET-TEST-1111111111111111).'
         )
         self.fields['bale_payment_card_holder'].help_text = 'برای نمایش به مشتری در توضیحات صورت‌حساب.'
         self.fields['is_enabled'].help_text = (

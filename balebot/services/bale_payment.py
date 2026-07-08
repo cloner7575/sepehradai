@@ -12,8 +12,8 @@ from balebot.services.public_url import resolve_public_base_url
 logger = logging.getLogger(__name__)
 
 
-def _normalize_card_number(card: str) -> str:
-    return ''.join(ch for ch in (card or '') if ch.isdigit())
+def _normalize_provider_token(token: str) -> str:
+    return (token or '').strip()
 
 
 def _line_image_url(order: CatalogOrder, catalog: CatalogSettings, cfg: BotSettings) -> str | None:
@@ -61,7 +61,7 @@ def send_bale_invoice(
 ) -> dict:
     """
     سفارش pending را با sendInvoice به چت مشتری می‌فرستد.
-    provider_token در بله همان شماره کارت فروشنده است.
+    provider_token در بله باید توکن کیف‌پول تولیدشده در @botfather باشد.
     """
     if catalog.platform != Platform.BALE:
         raise ValueError('پرداخت بله فقط برای پلتفرم بله پشتیبانی می‌شود.')
@@ -72,10 +72,12 @@ def send_bale_invoice(
     if not sub:
         raise ValueError('مشترک سفارش یافت نشد.')
 
-    card = _normalize_card_number(catalog.bale_payment_card_number)
+    provider_token = _normalize_provider_token(catalog.bale_payment_card_number)
     prices = build_invoice_prices(order)
     if not prices:
         raise ValueError('سفارش بدون ردیف قیمت است.')
+    if not provider_token:
+        raise ValueError('توکن پرداخت بله (provider_token) تنظیم نشده است.')
 
     photo_url = _line_image_url(order, catalog, cfg)
     holder = (catalog.bale_payment_card_holder or '').strip()
@@ -91,7 +93,7 @@ def send_bale_invoice(
         title=title,
         description=desc,
         payload=f'order:{order.public_token}',
-        provider_token=card,
+        provider_token=provider_token,
         prices=prices,
         settings=cfg,
         photo_url=photo_url,

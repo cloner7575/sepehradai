@@ -393,6 +393,68 @@ def handle_message(cfg: BotSettings, msg: dict[str, Any]) -> None:
     store_inbound_from_message(sub, msg)
 
 
+def handle_pre_checkout_query(cfg: BotSettings, query: dict[str, Any]) -> None:
+    """Validate wallet checkout before final payment confirmation."""
+    query_id = str(query.get('id') or '').strip()
+    if not query_id:
+        return
+    payload = str(query.get('invoice_payload') or '').strip()
+    if not payload.startswith('order:'):
+        messenger_api.answer_pre_checkout_query(
+            cfg.platform,
+            query_id,
+            ok=False,
+            error_message='صورتحساب نامعتبر است. دوباره تلاش کنید.',
+            settings=cfg,
+        )
+        return
+
+    from balebot.models import CatalogOrder
+
+    token = payload.split(':', 1)[1]
+    order = CatalogOrder.objects.filter(
+        public_token=token,
+        workspace=cfg.workspace,
+        platform=cfg.platform,
+    ).first()
+    if not order:
+        messenger_api.answer_pre_checkout_query(
+            cfg.platform,
+            query_id,
+            ok=False,
+            error_message='سفارش پیدا نشد. از مینی‌اپ دوباره خرید را انجام دهید.',
+            settings=cfg,
+        )
+        return
+    if order.status != CatalogOrder.Status.PENDING:
+        messenger_api.answer_pre_checkout_query(
+            cfg.platform,
+            query_id,
+            ok=False,
+            error_message='این سفارش دیگر قابل پرداخت نیست.',
+            settings=cfg,
+        )
+        return
+
+    expected_amount = int(order.total_amount or 0)
+    if int(query.get('total_amount') or 0) != expected_amount:
+        messenger_api.answer_pre_checkout_query(
+            cfg.platform,
+            query_id,
+            ok=False,
+            error_message='مبلغ صورت‌حساب تغییر کرده است. دوباره تلاش کنید.',
+            settings=cfg,
+        )
+        return
+
+    messenger_api.answer_pre_checkout_query(
+        cfg.platform,
+        query_id,
+        ok=True,
+        settings=cfg,
+    )
+
+
 def handle_callback(cfg: BotSettings, cb: dict[str, Any]) -> None:
     platform = cfg.platform
     from_user = cb.get('from') or {}

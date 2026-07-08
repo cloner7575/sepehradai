@@ -18,6 +18,8 @@ def dispatch_webhook_payload(cfg: BotSettings, payload: dict) -> None:
     """Shared handler for sync and async webhook processing."""
     if payload.get('message'):
         webhook_logic.handle_message(cfg, payload['message'])
+    elif payload.get('pre_checkout_query'):
+        webhook_logic.handle_pre_checkout_query(cfg, payload['pre_checkout_query'])
     elif payload.get('callback_query'):
         webhook_logic.handle_callback(cfg, payload['callback_query'])
 
