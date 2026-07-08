@@ -57,9 +57,6 @@
               <i class="bi bi-ticket-detailed app-nav-icon"></i><span>تیکت‌ها</span>
               {% if inbound_open_count %}<em class="app-nav-badge">{{ inbound_open_count }}</em>{% endif %}
             </a>
-            <a href="{% url 'callback_log_list' %}" class="app-nav-link app-nav-link--sub {% if name == 'callback_log_list' %}is-active{% endif %}">
-              <i class="bi bi-chat-dots app-nav-icon"></i><span>گفتگوها</span>
-            </a>
           </nav>
         </div>
       </div>

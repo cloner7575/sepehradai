@@ -60,6 +60,12 @@ from balebot.services.catalog_bulk_import import (
 from balebot.views_panel import PanelAccessMixin, WorkspaceScopedMixin
 
 STORE_TEMPLATE_INDUSTRY_LABELS = {
+    'fashion': 'پوشاک',
+    'digital': 'دیجیتال',
+    'decor': 'دکوراسیون',
+    'service': 'خدمات',
+    'kids': 'کودک',
+    'pet': 'پت‌شاپ',
     'clothing': 'پوشاک',
     'cosmetics': 'آرایشی و بهداشتی',
     'food': 'خوراکی',
@@ -1311,6 +1317,46 @@ class StoreTemplateApplyView(StoreTemplatePanelMixin, View):
             ),
         )
         return redirect('catalog_onboarding')
+
+
+class StoreTemplateUpdateView(SuperuserRequiredMixin, PanelAccessMixin, View):
+    """ویرایش متادیتای الگو (نام، صنف، توضیح، ترتیب، وضعیت)."""
+
+    http_method_names = ['post']
+
+    def post(self, request, slug):
+        template = get_object_or_404(StoreTemplate, slug=slug)
+        name = (request.POST.get('name') or '').strip()
+        industry = (request.POST.get('industry') or '').strip().lower()
+        description = (request.POST.get('description') or '').strip()
+        sort_order_raw = (request.POST.get('sort_order') or '').strip()
+        is_active = (request.POST.get('is_active') or '').strip() == '1'
+        scope = (request.POST.get('scope') or 'miniapp').strip()
+        if scope not in ('bot', 'miniapp'):
+            scope = 'miniapp'
+
+        if not name:
+            messages.error(request, 'نام قالب نمی‌تواند خالی باشد.')
+            return redirect(store_templates_list_url(scope))
+        if not industry:
+            messages.error(request, 'صنف قالب را وارد کنید.')
+            return redirect(store_templates_list_url(scope))
+        sort_order = template.sort_order
+        if sort_order_raw:
+            try:
+                sort_order = int(sort_order_raw)
+            except ValueError:
+                messages.error(request, 'ترتیب باید عدد باشد.')
+                return redirect(store_templates_list_url(scope))
+
+        template.name = name[:120]
+        template.industry = industry[:60]
+        template.description = description[:255]
+        template.sort_order = sort_order
+        template.is_active = is_active
+        template.save(update_fields=['name', 'industry', 'description', 'sort_order', 'is_active', 'updated_at'])
+        messages.success(request, f'قالب «{template.name}» به‌روزرسانی شد.')
+        return redirect(store_templates_list_url(scope))
 
 
 class StoreTemplateExportAllView(SuperuserRequiredMixin, PanelAccessMixin, View):

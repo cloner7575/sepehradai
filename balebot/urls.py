@@ -178,6 +178,11 @@ urlpatterns = [
         views_panel_catalog.StoreTemplateDeleteView.as_view(),
         name='catalog_template_delete',
     ),
+    path(
+        'catalog/templates/<slug:slug>/update/',
+        views_panel_catalog.StoreTemplateUpdateView.as_view(),
+        name='catalog_template_update',
+    ),
     path('catalog/import/', views_panel_catalog.CatalogBulkImportView.as_view(), name='catalog_bulk_import'),
     path(
         'catalog/import/sample.xlsx',

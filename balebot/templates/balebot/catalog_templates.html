@@ -170,6 +170,22 @@
               استفاده از قالب
             </button>
             {% if can_manage_store_templates %}
+            <button
+              type="button"
+              class="btn btn-panel-ghost btn-sm store-template-export-btn"
+              title="ویرایش قالب"
+              aria-label="ویرایش {{ tpl.name }}"
+              data-bs-toggle="modal"
+              data-bs-target="#edit-template-modal"
+              data-template-slug="{{ tpl.slug }}"
+              data-template-name="{{ tpl.name }}"
+              data-template-industry="{{ tpl.industry }}"
+              data-template-description="{{ tpl.description }}"
+              data-template-sort-order="{{ tpl.sort_order }}"
+              data-template-is-active="{% if tpl.is_active %}1{% else %}0{% endif %}"
+            >
+              <i class="bi bi-pencil-square"></i>
+            </button>
             <a href="{% url 'catalog_template_export' tpl.slug %}" class="btn btn-panel-ghost btn-sm store-template-export-btn" title="اکسپورت JSON" aria-label="اکسپورت {{ tpl.name }}">
               <i class="bi bi-download"></i>
             </a>
@@ -257,6 +273,47 @@
 </div>
 
 {% if can_manage_store_templates %}
+<div class="modal fade" id="edit-template-modal" tabindex="-1" aria-labelledby="edit-template-title" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" id="edit-template-form" action="">
+        {% csrf_token %}
+        <input type="hidden" name="scope" value="{{ template_scope }}">
+        <div class="modal-header">
+          <h2 class="modal-title h5" id="edit-template-title">ویرایش قالب</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="بستن"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">نام قالب</label>
+            <input type="text" class="form-control" name="name" id="edit-template-name" maxlength="120" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">صنف (کلید)</label>
+            <input type="text" class="form-control" name="industry" id="edit-template-industry" maxlength="60" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">توضیح کوتاه</label>
+            <textarea class="form-control" name="description" id="edit-template-description" rows="3" maxlength="255"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">ترتیب نمایش</label>
+            <input type="number" class="form-control" name="sort_order" id="edit-template-sort-order">
+          </div>
+          <label class="d-flex gap-2 align-items-center">
+            <input type="checkbox" name="is_active" value="1" id="edit-template-is-active">
+            <span>فعال باشد</span>
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-panel-ghost" data-bs-dismiss="modal">انصراف</button>
+          <button type="submit" class="btn btn-panel-primary">ذخیره تغییرات</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="delete-template-modal" tabindex="-1" aria-labelledby="delete-template-title" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -379,6 +436,23 @@
       var name = btn.getAttribute('data-template-name');
       document.getElementById('delete-template-name').textContent = name || '';
       deleteForm.action = deleteUrlPattern.replace('___SLUG___', slug);
+    });
+  }
+
+  var editModal = document.getElementById('edit-template-modal');
+  var editForm = document.getElementById('edit-template-form');
+  if (editModal && editForm) {
+    var editUrlPattern = "{% url 'catalog_template_update' '___SLUG___' %}";
+    editModal.addEventListener('show.bs.modal', function (e) {
+      var btn = e.relatedTarget;
+      if (!btn) return;
+      var slug = btn.getAttribute('data-template-slug') || '';
+      editForm.action = editUrlPattern.replace('___SLUG___', slug);
+      document.getElementById('edit-template-name').value = btn.getAttribute('data-template-name') || '';
+      document.getElementById('edit-template-industry').value = btn.getAttribute('data-template-industry') || '';
+      document.getElementById('edit-template-description').value = btn.getAttribute('data-template-description') || '';
+      document.getElementById('edit-template-sort-order').value = btn.getAttribute('data-template-sort-order') || '0';
+      document.getElementById('edit-template-is-active').checked = (btn.getAttribute('data-template-is-active') === '1');
     });
   }
 })();

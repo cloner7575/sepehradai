@@ -143,7 +143,6 @@
             <div class="ticket-list-text">
               {% if t.text %}{{ t.text|truncatechars:95 }}{% elif t.file_id %}فایل: {{ t.file_id|truncatechars:60 }}{% else %}—{% endif %}
             </div>
-            <div class="ticket-list-open"><i class="bi bi-chat-left-text me-1"></i>مشاهده مکالمه</div>
           </button>
         </form>
         {% empty %}
