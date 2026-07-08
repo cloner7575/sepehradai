@@ -86,6 +86,7 @@ def send_support_ticket_reply(
     text: str,
     media=None,
     reply_to_message_id: int | None = None,
+    reply_markup: dict | None = None,
 ) -> tuple[str, str, str]:
     """ارسال پاسخ به کاربر؛ خروجی: (kind, text_body, file_id)."""
     platform = subscriber.platform
@@ -100,6 +101,7 @@ def send_support_ticket_reply(
             media,
             msg,
             reply_to_message_id=reply_to_message_id,
+            reply_markup=reply_markup,
         )
 
     messenger_api.send_message(
@@ -108,6 +110,7 @@ def send_support_ticket_reply(
         msg[:4096],
         settings=bot_settings,
         reply_to_message_id=reply_to_message_id,
+        reply_markup=reply_markup,
     )
     return SupportTicketMessage.MessageKind.TEXT, msg[:4096], ''
 
@@ -120,6 +123,7 @@ def _send_media_reply(
     caption_text: str,
     *,
     reply_to_message_id: int | None = None,
+    reply_markup: dict | None = None,
 ) -> tuple[str, str, str]:
     suffix = Path(media.name or '').suffix
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix or '.bin') as tmp:
@@ -138,6 +142,7 @@ def _send_media_reply(
                 photo_path=temp_path,
                 caption=caption,
                 reply_to_message_id=reply_to_message_id,
+                reply_markup=reply_markup,
             )
             return (
                 SupportTicketMessage.MessageKind.PHOTO,
@@ -152,6 +157,7 @@ def _send_media_reply(
                 video_path=temp_path,
                 caption=caption,
                 reply_to_message_id=reply_to_message_id,
+                reply_markup=reply_markup,
             )
             return (
                 SupportTicketMessage.MessageKind.VIDEO,
@@ -166,6 +172,7 @@ def _send_media_reply(
                 voice_path=temp_path,
                 caption=caption,
                 reply_to_message_id=reply_to_message_id,
+                reply_markup=reply_markup,
             )
             return (
                 SupportTicketMessage.MessageKind.VOICE,
@@ -179,6 +186,7 @@ def _send_media_reply(
             document_path=temp_path,
             caption=caption,
             reply_to_message_id=reply_to_message_id,
+            reply_markup=reply_markup,
         )
         return (
             SupportTicketMessage.MessageKind.DOCUMENT,

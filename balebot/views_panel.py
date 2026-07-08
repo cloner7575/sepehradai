@@ -674,6 +674,7 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
             SupportTicketMessage.objects.filter(
                 subscriber=self.object,
                 sender=SupportTicketMessage.Sender.USER,
+                parent_user_message__isnull=True,
             ).order_by('-created_at')[:120]
         )
         ticket_ids = [row.id for row in user_tickets]
@@ -699,12 +700,12 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
 
         chat_messages = []
         if selected_ticket is not None:
-            chat_messages = [selected_ticket] + list(
+            chat_messages = list(
                 SupportTicketMessage.objects.filter(
                     subscriber=self.object,
-                    sender=SupportTicketMessage.Sender.ADMIN,
-                    parent_user_message=selected_ticket,
-                ).order_by('created_at')[:200]
+                ).filter(
+                    Q(id=selected_ticket.id) | Q(parent_user_message=selected_ticket),
+                ).order_by('created_at')[:250]
             )
             inbound = selected_ticket.inbound_message
             if inbound and inbound.is_support_request and not inbound.is_support_read:
@@ -818,6 +819,7 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
         parent_user_message = None
         redirect_url = self.request.path
         reply_to_message_id = None
+        reply_markup = None
         if action == 'reply_ticket':
             ticket_raw = (request.POST.get('ticket_id') or '').strip()
             if not ticket_raw.isdigit():
@@ -832,7 +834,17 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
                 messages.error(request, 'تیکت انتخاب‌شده پیدا نشد.')
                 return HttpResponseRedirect(self.request.path)
             redirect_url = f'{self.request.path}?ticket={parent_user_message.id}'
-            inbound = parent_user_message.inbound_message
+            latest_user_message = (
+                SupportTicketMessage.objects.filter(
+                    subscriber=self.object,
+                    sender=SupportTicketMessage.Sender.USER,
+                )
+                .filter(Q(id=parent_user_message.id) | Q(parent_user_message=parent_user_message))
+                .select_related('inbound_message')
+                .order_by('-created_at')
+                .first()
+            )
+            inbound = latest_user_message.inbound_message if latest_user_message else parent_user_message.inbound_message
             if inbound and inbound.messenger_message_id:
                 reply_to_message_id = int(inbound.messenger_message_id)
             else:
@@ -840,6 +852,16 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
                     request,
                     'شناسهٔ پیام کاربر در سیستم نیست؛ پاسخ بدون ریپلای ارسال می‌شود.',
                 )
+            reply_markup = {
+                'inline_keyboard': [
+                    [
+                        {
+                            'text': 'ادامه گفت‌وگو',
+                            'callback_data': f'stc{parent_user_message.id}',
+                        },
+                    ],
+                ],
+            }
 
         try:
             platform = self.object.platform
@@ -848,6 +870,7 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
                 kind, text_body, file_id = self._send_personal_media(
                     platform, media, msg, bot_settings,
                     reply_to_message_id=reply_to_message_id,
+                    reply_markup=reply_markup,
                 )
             else:
                 messenger_api.send_message(
@@ -856,6 +879,7 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
                     msg[:4096],
                     settings=bot_settings,
                     reply_to_message_id=reply_to_message_id,
+                    reply_markup=reply_markup,
                 )
                 kind = SupportTicketMessage.MessageKind.TEXT
                 text_body = msg[:4096]
@@ -880,7 +904,7 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
 
     def _send_personal_media(
         self, platform: str, media, caption_text: str, bot_settings: BotSettings,
-        *, reply_to_message_id: int | None = None,
+        *, reply_to_message_id: int | None = None, reply_markup: dict | None = None,
     ) -> tuple[str, str, str]:
         suffix = Path(media.name or '').suffix
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix or '.bin') as tmp:
@@ -899,6 +923,7 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
                     photo_path=temp_path,
                     caption=caption,
                     reply_to_message_id=reply_to_message_id,
+                    reply_markup=reply_markup,
                 )
                 return (
                     SupportTicketMessage.MessageKind.PHOTO,
@@ -913,6 +938,7 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
                     video_path=temp_path,
                     caption=caption,
                     reply_to_message_id=reply_to_message_id,
+                    reply_markup=reply_markup,
                 )
                 return (
                     SupportTicketMessage.MessageKind.VIDEO,
@@ -927,6 +953,7 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
                     voice_path=temp_path,
                     caption=caption,
                     reply_to_message_id=reply_to_message_id,
+                    reply_markup=reply_markup,
                 )
                 return (
                     SupportTicketMessage.MessageKind.VOICE,
@@ -940,6 +967,7 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
                 document_path=temp_path,
                 caption=caption,
                 reply_to_message_id=reply_to_message_id,
+                reply_markup=reply_markup,
             )
             return (
                 SupportTicketMessage.MessageKind.DOCUMENT,

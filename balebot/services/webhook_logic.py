@@ -117,6 +117,13 @@ def parse_campaign_callback(data: str, cfg: BotSettings) -> Campaign | None:
     ).first()
 
 
+def parse_support_continue_callback(data: str) -> int | None:
+    m = re.match(r'^stc(\d+)$', (data or '').strip())
+    if not m:
+        return None
+    return int(m.group(1))
+
+
 def store_inbound_from_message(
     sub: Subscriber,
     msg: dict[str, Any],
@@ -309,14 +316,26 @@ def handle_message(cfg: BotSettings, msg: dict[str, Any]) -> None:
         and text
         and text == support_button_label
     ):
+        state = dict(sub.flow_state or {})
+        state.pop('support_ticket_id', None)
+        sub.flow_state = state
         sub.awaiting_support_message = True
-        sub.save(update_fields=['awaiting_support_message', 'updated_at'])
+        sub.save(update_fields=['awaiting_support_message', 'flow_state', 'updated_at'])
         prompt = (cfg.support_start_prompt_message or '').strip()
         if prompt:
             messenger_api.send_message(platform, sub.chat_id, prompt, settings=cfg)
         return
 
     if sub.awaiting_support_message:
+        state = dict(sub.flow_state or {})
+        root_ticket_id = state.get('support_ticket_id')
+        root_ticket = None
+        if root_ticket_id:
+            root_ticket = SupportTicketMessage.objects.filter(
+                id=int(root_ticket_id),
+                subscriber=sub,
+                sender=SupportTicketMessage.Sender.USER,
+            ).first()
         inbound = store_inbound_from_message(sub, msg, is_support_request=True)
         SupportTicketMessage.objects.create(
             subscriber=sub,
@@ -325,9 +344,12 @@ def handle_message(cfg: BotSettings, msg: dict[str, Any]) -> None:
             text=inbound.text,
             file_id=inbound.file_id,
             inbound_message=inbound,
+            parent_user_message=root_ticket,
         )
         sub.awaiting_support_message = False
-        sub.save(update_fields=['awaiting_support_message', 'updated_at'])
+        state.pop('support_ticket_id', None)
+        sub.flow_state = state
+        sub.save(update_fields=['awaiting_support_message', 'flow_state', 'updated_at'])
         wait_msg = (cfg.support_waiting_message or '').strip()
         if wait_msg:
             messenger_api.send_message(platform, sub.chat_id, wait_msg, settings=cfg)
@@ -423,6 +445,54 @@ def handle_callback(cfg: BotSettings, cb: dict[str, Any]) -> None:
             flow_value=fv_store,
         )
 
+        CallbackLog.objects.create(
+            subscriber=sub,
+            callback_query_id=str(cid_raw),
+            data=data,
+            campaign=None,
+        )
+        try:
+            ack = (cfg.callback_ack_message or '').strip()
+            if ack:
+                messenger_api.answer_callback_query(
+                    platform, str(cid_raw), settings=cfg, text=ack[:200],
+                )
+            else:
+                messenger_api.answer_callback_query(platform, str(cid_raw), settings=cfg)
+        except messenger_api.MessengerAPIError:
+            pass
+        return
+
+    support_ticket_id = parse_support_continue_callback(data_stripped)
+    if support_ticket_id is not None:
+        root_ticket = SupportTicketMessage.objects.filter(
+            id=support_ticket_id,
+            subscriber=sub,
+            sender=SupportTicketMessage.Sender.USER,
+        ).first()
+        if root_ticket:
+            state = dict(sub.flow_state or {})
+            state['support_ticket_id'] = root_ticket.id
+            sub.flow_state = state
+            sub.awaiting_support_message = True
+            sub.save(update_fields=['flow_state', 'awaiting_support_message', 'updated_at'])
+            prompt = 'ادامه گفت‌وگو فعال شد. پیام بعدی‌ات در همین تیکت ثبت می‌شود.'
+            try:
+                messenger_api.send_message(platform, chat_id, prompt, settings=cfg)
+            except messenger_api.MessengerAPIError:
+                pass
+            label = 'ادامه گفت‌وگو'
+        else:
+            label = 'ادامه گفت‌وگو نامعتبر'
+
+        _append_menu_flow(
+            sub,
+            kind='support_continue',
+            data=data_stripped,
+            label=label,
+            flow_key='support_ticket',
+            flow_value=str(support_ticket_id),
+        )
         CallbackLog.objects.create(
             subscriber=sub,
             callback_query_id=str(cid_raw),
