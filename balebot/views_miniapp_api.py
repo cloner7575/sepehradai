@@ -183,10 +183,8 @@ def catalog_config(request, public_id):
     public_base_url = request_public_base_url(request) or resolve_public_base_url(cfg).rstrip('/')
     methods = []
     for value, label in catalog.enabled_payment_methods():
-        if value == CatalogSettings.PaymentMethod.BALE:
-            continue
         methods.append({'id': value, 'label': label})
-    can_purchase = catalog.can_accept_orders() and bool(methods)
+    can_purchase = catalog.can_accept_orders()
     theme = catalog.theme_config or {}
     home_blocks = absolutize_home_blocks(get_home_blocks(theme), request, catalog=catalog)
     return JsonResponse({
@@ -204,7 +202,7 @@ def catalog_config(request, public_id):
         'public_base_url': public_base_url,
         'mini_app_url': catalog.build_mini_app_url(cfg),
         'payment_methods': methods if can_purchase else [],
-        'payment_default': (methods[0]['id'] if methods else None),
+        'payment_default': catalog.resolve_payment_method(None) if can_purchase else None,
         'checkout_form': public_checkout_form(catalog.checkout_form),
         'shipping': {
             'mode': catalog.shipping_mode,

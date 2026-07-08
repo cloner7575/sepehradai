@@ -67,6 +67,14 @@ interface CheckoutFormProps {
   embedded?: boolean;
 }
 
+function bringFieldIntoView(target: HTMLElement) {
+  // تا وقتی کیبورد موبایل باز می‌شود، یک اسکرول کوتاهِ تاخیردار UX را بهتر می‌کند.
+  target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+  window.setTimeout(() => {
+    target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+  }, 220);
+}
+
 export function CheckoutForm({
   title,
   fields,
@@ -83,7 +91,7 @@ export function CheckoutForm({
       {title && !embedded && <h2 className="mb-3 text-sm font-bold">{title}</h2>}
       <div className="space-y-3">
         {fields.map((field) => (
-          <div key={field.key}>
+          <div key={field.key} className="checkout-field-group">
             <label className="checkout-field-label" htmlFor={`checkout-${field.key}`}>
               {field.label}
               {field.required && <span className="text-red-500"> *</span>}
@@ -96,6 +104,7 @@ export function CheckoutForm({
                 value={values[field.key] || ''}
                 disabled={disabled}
                 onChange={(e) => onChange(field.key, e.target.value)}
+                onFocus={(e) => bringFieldIntoView(e.currentTarget)}
               />
             ) : (
               <input
@@ -107,6 +116,7 @@ export function CheckoutForm({
                 disabled={disabled}
                 dir={field.type === 'tel' || field.type === 'email' ? 'ltr' : undefined}
                 onChange={(e) => onChange(field.key, e.target.value)}
+                onFocus={(e) => bringFieldIntoView(e.currentTarget)}
               />
             )}
             {errors[field.key] && <p className="mt-1 text-xs text-red-600">{errors[field.key]}</p>}

@@ -2,6 +2,13 @@ import { useState } from 'react';
 import { formatPrice } from '../api';
 import { IconTag } from './Icons';
 
+function bringFieldIntoView(target: HTMLElement) {
+  target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+  window.setTimeout(() => {
+    target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+  }, 220);
+}
+
 export function DiscountCodeField({
   value,
   appliedCode,
@@ -86,6 +93,7 @@ export function DiscountCodeField({
             placeholder="مثلاً WELCOME10"
             disabled={disabled || applying}
             dir="ltr"
+            onFocus={(e) => bringFieldIntoView(e.currentTarget)}
           />
           <button
             type="button"
