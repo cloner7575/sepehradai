@@ -484,7 +484,7 @@
       </div>
       <div class="app-card-body">
         {% for msg in support_tickets_recent|slice:":5" %}
-        <a href="{% url 'inbound_list' %}" class="ticket-widget-item text-decoration-none {% if not msg.is_support_read %}ticket-widget-item--unread{% endif %}">
+        <a href="{% url 'inbound_list' %}?inbound={{ msg.id }}" class="ticket-widget-item text-decoration-none {% if not msg.is_support_read %}ticket-widget-item--unread{% endif %}">
           <div class="ticket-widget-avatar">{{ msg.subscriber.phone_number|default:msg.subscriber.first_name|default:msg.subscriber.messenger_user_id|stringformat:"s"|slice:":2" }}</div>
           <div class="flex-grow-1 min-w-0">
             <div class="ticket-widget-title">{{ msg.text|default:"پیام پشتیبانی"|truncatechars:32 }}</div>

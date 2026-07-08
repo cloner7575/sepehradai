@@ -103,11 +103,22 @@
   </div>
 </div>
 
+<div class="panel-card mb-4">
+  <div class="panel-card-body py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div class="small text-muted">
+      برای پاسخ به تیکت، کافی است یک مورد از ستون سمت راست را انتخاب کنید.
+    </div>
+    <a href="{% url 'inbound_list' %}?kind=support" class="btn btn-panel-ghost btn-sm">
+      <i class="bi bi-list-check me-1"></i>بازگشت به لیست تیکت‌ها
+    </a>
+  </div>
+</div>
+
 <div class="support-workspace mb-4">
   <aside class="support-sidebar panel-card">
     <div class="panel-card-header">
       <h3 class="panel-card-title mb-0">تیکت‌ها</h3>
-      <span class="text-muted small">{{ ticket_list|length }} مورد</span>
+      <span class="text-muted small">{{ ticket_list|length }} گفت‌وگو</span>
     </div>
     <div class="panel-card-body pt-2">
       <div class="ticket-list">
@@ -144,9 +155,9 @@
 
   <section class="support-main panel-card">
     <div class="panel-card-header">
-      <h3 class="panel-card-title mb-0">مکالمه تیکت</h3>
+      <h3 class="panel-card-title mb-0">گفت‌وگوی کاربر</h3>
       {% if selected_ticket %}
-      <span class="text-muted small">{{ selected_ticket.created_at|jalali_datetime }}</span>
+      <span class="text-muted small">شروع گفتگو: {{ selected_ticket.created_at|jalali_datetime }}</span>
       {% else %}
       <span class="text-muted small">تیکت انتخاب نشده</span>
       {% endif %}
@@ -155,6 +166,8 @@
       {% if selected_ticket %}
       <div class="ticket-active-summary">
         <div>
+          <div class="ticket-subsection-title">کاربر</div>
+          <div class="ticket-active-time">{{ object.phone_number|default:object.first_name|default:object.messenger_user_id }}</div>
           <div class="ticket-subsection-title">خلاصه پیام کاربر</div>
           <div class="ticket-active-time">
             {% if selected_ticket.text %}
@@ -207,7 +220,7 @@
           name="personal_message"
           rows="3"
           class="form-control panel-input"
-          placeholder="پاسخ به همین تیکت..."
+          placeholder="پاسخ خودت را بنویس..."
         ></textarea>
         <div class="ticket-reply-actions">
           <input
@@ -218,6 +231,7 @@
           >
           <button type="submit" class="btn btn-panel-primary">ارسال پاسخ تیکت</button>
         </div>
+        <small class="text-muted d-block mt-2">پاسخ به‌صورت ریپلای همان پیام پشتیبانی کاربر در بله/تلگرام ارسال می‌شود.</small>
       </form>
       {% else %}
       <div class="ticket-empty-state">یک تیکت از ستون کناری انتخاب کن تا مکالمه باز شود.</div>

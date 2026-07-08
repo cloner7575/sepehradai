@@ -105,10 +105,13 @@ def send_message(
     *,
     settings: BotSettings | None = None,
     reply_markup: dict[str, Any] | None = None,
+    reply_to_message_id: int | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {'chat_id': chat_id, 'text': text}
     if reply_markup is not None:
         payload['reply_markup'] = reply_markup
+    if reply_to_message_id is not None:
+        payload['reply_to_message_id'] = reply_to_message_id
     return call_method(platform, 'sendMessage', settings=settings, json_body=payload)
 
 
@@ -123,6 +126,7 @@ def send_photo(
     photo_filename: str | None = None,
     caption: str = '',
     reply_markup: dict[str, Any] | None = None,
+    reply_to_message_id: int | None = None,
 ) -> dict[str, Any]:
     cap = (caption or '').strip()
     if photo_file_id:
@@ -134,6 +138,8 @@ def send_photo(
             payload['caption'] = cap
         if reply_markup is not None:
             payload['reply_markup'] = reply_markup
+        if reply_to_message_id is not None:
+            payload['reply_to_message_id'] = reply_to_message_id
         return call_method(platform, 'sendPhoto', settings=settings, json_body=payload)
     if photo_file is not None:
         data: dict[str, Any] = {'chat_id': str(chat_id)}
@@ -141,6 +147,8 @@ def send_photo(
             data['caption'] = cap
         if reply_markup is not None:
             data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
+        if reply_to_message_id is not None:
+            data['reply_to_message_id'] = str(reply_to_message_id)
         fname = photo_filename or getattr(photo_file, 'name', None) or 'photo.jpg'
         if isinstance(fname, str) and '/' in fname:
             fname = Path(fname).name
@@ -153,6 +161,8 @@ def send_photo(
         data['caption'] = cap
     if reply_markup is not None:
         data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
+    if reply_to_message_id is not None:
+        data['reply_to_message_id'] = str(reply_to_message_id)
     with photo_path.open('rb') as f:
         files = {'photo': (photo_path.name, f)}
         return call_method(platform, 'sendPhoto', settings=settings, data=data, files=files)
@@ -169,6 +179,7 @@ def send_video(
     video_filename: str | None = None,
     caption: str = '',
     reply_markup: dict[str, Any] | None = None,
+    reply_to_message_id: int | None = None,
 ) -> dict[str, Any]:
     cap = (caption or '').strip()
     if video_file_id:
@@ -180,6 +191,8 @@ def send_video(
             payload['caption'] = cap
         if reply_markup is not None:
             payload['reply_markup'] = reply_markup
+        if reply_to_message_id is not None:
+            payload['reply_to_message_id'] = reply_to_message_id
         return call_method(platform, 'sendVideo', settings=settings, json_body=payload)
     if video_file is not None:
         data: dict[str, Any] = {'chat_id': str(chat_id)}
@@ -187,6 +200,8 @@ def send_video(
             data['caption'] = cap
         if reply_markup is not None:
             data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
+        if reply_to_message_id is not None:
+            data['reply_to_message_id'] = str(reply_to_message_id)
         fname = video_filename or getattr(video_file, 'name', None) or 'video.mp4'
         if isinstance(fname, str) and '/' in fname:
             fname = Path(fname).name
@@ -199,6 +214,8 @@ def send_video(
         data['caption'] = cap
     if reply_markup is not None:
         data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
+    if reply_to_message_id is not None:
+        data['reply_to_message_id'] = str(reply_to_message_id)
     with video_path.open('rb') as f:
         files = {'video': (video_path.name, f)}
         return call_method(platform, 'sendVideo', settings=settings, data=data, files=files)
@@ -215,6 +232,7 @@ def send_voice(
     voice_filename: str | None = None,
     caption: str = '',
     reply_markup: dict[str, Any] | None = None,
+    reply_to_message_id: int | None = None,
 ) -> dict[str, Any]:
     cap = (caption or '').strip()
     if voice_file_id:
@@ -226,6 +244,8 @@ def send_voice(
             payload['caption'] = cap
         if reply_markup is not None:
             payload['reply_markup'] = reply_markup
+        if reply_to_message_id is not None:
+            payload['reply_to_message_id'] = reply_to_message_id
         return call_method(platform, 'sendVoice', settings=settings, json_body=payload)
     if voice_file is not None:
         data: dict[str, Any] = {'chat_id': str(chat_id)}
@@ -233,6 +253,8 @@ def send_voice(
             data['caption'] = cap
         if reply_markup is not None:
             data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
+        if reply_to_message_id is not None:
+            data['reply_to_message_id'] = str(reply_to_message_id)
         fname = voice_filename or getattr(voice_file, 'name', None) or 'voice.ogg'
         if isinstance(fname, str) and '/' in fname:
             fname = Path(fname).name
@@ -245,6 +267,8 @@ def send_voice(
         data['caption'] = cap
     if reply_markup is not None:
         data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
+    if reply_to_message_id is not None:
+        data['reply_to_message_id'] = str(reply_to_message_id)
     with voice_path.open('rb') as f:
         files = {'voice': (voice_path.name, f)}
         return call_method(platform, 'sendVoice', settings=settings, data=data, files=files)
@@ -261,6 +285,7 @@ def send_document(
     document_filename: str | None = None,
     caption: str = '',
     reply_markup: dict[str, Any] | None = None,
+    reply_to_message_id: int | None = None,
 ) -> dict[str, Any]:
     cap = (caption or '').strip()
     if document_file_id:
@@ -272,6 +297,8 @@ def send_document(
             payload['caption'] = cap
         if reply_markup is not None:
             payload['reply_markup'] = reply_markup
+        if reply_to_message_id is not None:
+            payload['reply_to_message_id'] = reply_to_message_id
         return call_method(platform, 'sendDocument', settings=settings, json_body=payload)
     if document_file is not None:
         data: dict[str, Any] = {'chat_id': str(chat_id)}
@@ -279,6 +306,8 @@ def send_document(
             data['caption'] = cap
         if reply_markup is not None:
             data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
+        if reply_to_message_id is not None:
+            data['reply_to_message_id'] = str(reply_to_message_id)
         fname = document_filename or getattr(document_file, 'name', None) or 'file.bin'
         if isinstance(fname, str) and '/' in fname:
             fname = Path(fname).name
@@ -291,6 +320,8 @@ def send_document(
         data['caption'] = cap
     if reply_markup is not None:
         data['reply_markup'] = json.dumps(reply_markup, ensure_ascii=False)
+    if reply_to_message_id is not None:
+        data['reply_to_message_id'] = str(reply_to_message_id)
     with document_path.open('rb') as f:
         files = {'document': (document_path.name, f)}
         return call_method(platform, 'sendDocument', settings=settings, data=data, files=files)

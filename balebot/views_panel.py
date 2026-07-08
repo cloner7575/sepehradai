@@ -44,6 +44,9 @@ from balebot.services.campaign_runner import (
 )
 from balebot.services.audience import snapshot_campaign_audience
 from balebot.services.workspace_subscription import workspace_block_reason
+from balebot.services.support_ticket_reply import (
+    sync_support_inbounds_into_tickets,
+)
 from balebot.models import (
     BotSettings,
     CallbackLog,
@@ -812,26 +815,9 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
             messages.error(request, 'برای ارسال، متن پیام یا فایل مدیا را وارد کنید.')
             return HttpResponseRedirect(self.request.path)
 
-        try:
-            platform = self.object.platform
-            bot_settings = BotSettings.get_for_platform(self.object.workspace, platform)
-            if media:
-                kind, text_body, file_id = self._send_personal_media(
-                    platform, media, msg, bot_settings,
-                )
-            else:
-                messenger_api.send_message(
-                    platform, self.object.chat_id, msg[:4096], settings=bot_settings,
-                )
-                kind = SupportTicketMessage.MessageKind.TEXT
-                text_body = msg[:4096]
-                file_id = ''
-        except messenger_api.MessengerAPIError as e:
-            messages.error(request, f'ارسال پیام ناموفق بود: {e}')
-            return HttpResponseRedirect(self.request.path)
-
         parent_user_message = None
         redirect_url = self.request.path
+        reply_to_message_id = None
         if action == 'reply_ticket':
             ticket_raw = (request.POST.get('ticket_id') or '').strip()
             if not ticket_raw.isdigit():
@@ -841,11 +827,42 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
                 id=int(ticket_raw),
                 subscriber=self.object,
                 sender=SupportTicketMessage.Sender.USER,
-            ).first()
+            ).select_related('inbound_message').first()
             if parent_user_message is None:
                 messages.error(request, 'تیکت انتخاب‌شده پیدا نشد.')
                 return HttpResponseRedirect(self.request.path)
             redirect_url = f'{self.request.path}?ticket={parent_user_message.id}'
+            inbound = parent_user_message.inbound_message
+            if inbound and inbound.messenger_message_id:
+                reply_to_message_id = int(inbound.messenger_message_id)
+            else:
+                messages.warning(
+                    request,
+                    'شناسهٔ پیام کاربر در سیستم نیست؛ پاسخ بدون ریپلای ارسال می‌شود.',
+                )
+
+        try:
+            platform = self.object.platform
+            bot_settings = BotSettings.get_for_platform(self.object.workspace, platform)
+            if media:
+                kind, text_body, file_id = self._send_personal_media(
+                    platform, media, msg, bot_settings,
+                    reply_to_message_id=reply_to_message_id,
+                )
+            else:
+                messenger_api.send_message(
+                    platform,
+                    self.object.chat_id,
+                    msg[:4096],
+                    settings=bot_settings,
+                    reply_to_message_id=reply_to_message_id,
+                )
+                kind = SupportTicketMessage.MessageKind.TEXT
+                text_body = msg[:4096]
+                file_id = ''
+        except messenger_api.MessengerAPIError as e:
+            messages.error(request, f'ارسال پیام ناموفق بود: {e}')
+            return HttpResponseRedirect(redirect_url if action == 'reply_ticket' else self.request.path)
 
         SupportTicketMessage.objects.create(
             subscriber=self.object,
@@ -863,6 +880,7 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
 
     def _send_personal_media(
         self, platform: str, media, caption_text: str, bot_settings: BotSettings,
+        *, reply_to_message_id: int | None = None,
     ) -> tuple[str, str, str]:
         suffix = Path(media.name or '').suffix
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix or '.bin') as tmp:
@@ -880,6 +898,7 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
                     settings=bot_settings,
                     photo_path=temp_path,
                     caption=caption,
+                    reply_to_message_id=reply_to_message_id,
                 )
                 return (
                     SupportTicketMessage.MessageKind.PHOTO,
@@ -893,6 +912,7 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
                     settings=bot_settings,
                     video_path=temp_path,
                     caption=caption,
+                    reply_to_message_id=reply_to_message_id,
                 )
                 return (
                     SupportTicketMessage.MessageKind.VIDEO,
@@ -906,6 +926,7 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
                     settings=bot_settings,
                     voice_path=temp_path,
                     caption=caption,
+                    reply_to_message_id=reply_to_message_id,
                 )
                 return (
                     SupportTicketMessage.MessageKind.VOICE,
@@ -918,6 +939,7 @@ class SubscriberDetailView(WorkspaceScopedMixin, PanelAccessMixin, DetailView):
                 settings=bot_settings,
                 document_path=temp_path,
                 caption=caption,
+                reply_to_message_id=reply_to_message_id,
             )
             return (
                 SupportTicketMessage.MessageKind.DOCUMENT,
@@ -1351,15 +1373,75 @@ class CallbackLogListView(WorkspaceScopedMixin, PanelAccessMixin, ListView):
 class InboundListView(WorkspaceScopedMixin, PanelAccessMixin, ListView):
     model = InboundMessage
     template_name = 'balebot/inbound_list.html'
-    paginate_by = 50
+    paginate_by = None
 
     def get_queryset(self):
         scope = self.scope_filter()
-        return (
-            InboundMessage.objects.filter(
-                subscriber__workspace=scope['workspace'],
-                subscriber__platform=scope['platform'],
-            )
-            .select_related('subscriber')
-            .order_by('-created_at')
+        kind = (self.request.GET.get('kind') or 'support').strip().lower()
+        qs = InboundMessage.objects.filter(
+            subscriber__workspace=scope['workspace'],
+            subscriber__platform=scope['platform'],
+        ).select_related('subscriber').order_by('-created_at')
+        if kind == 'normal':
+            qs = qs.filter(is_support_request=False)
+        elif kind == 'support':
+            qs = qs.filter(is_support_request=True)
+        return qs[:120]
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        inbound_list = list(ctx['object_list'])
+        kind = (self.request.GET.get('kind') or 'support').strip().lower()
+        if kind not in {'support', 'normal', 'all'}:
+            kind = 'support'
+        ctx['message_kind'] = kind
+
+        scope = self.scope_filter()
+        base_qs = InboundMessage.objects.filter(
+            subscriber__workspace=scope['workspace'],
+            subscriber__platform=scope['platform'],
         )
+        ctx['support_messages_count'] = base_qs.filter(is_support_request=True).count()
+        ctx['normal_messages_count'] = base_qs.filter(is_support_request=False).count()
+        ctx['all_messages_count'] = base_qs.count()
+
+        if kind in {'support', 'all'}:
+            support_rows = [row for row in inbound_list if row.is_support_request]
+            if support_rows:
+                unread_ids = [row.id for row in support_rows if not row.is_support_read]
+                if unread_ids:
+                    InboundMessage.objects.filter(id__in=unread_ids).update(is_support_read=True)
+                    for row in support_rows:
+                        if row.id in unread_ids:
+                            row.is_support_read = True
+                sync_support_inbounds_into_tickets(support_rows)
+
+        ticket_by_inbound = {}
+        if inbound_list:
+            for ticket in SupportTicketMessage.objects.filter(
+                inbound_message_id__in=[row.id for row in inbound_list],
+                sender=SupportTicketMessage.Sender.USER,
+            ):
+                ticket_by_inbound[ticket.inbound_message_id] = ticket
+
+        ticket_ids = [ticket.id for ticket in ticket_by_inbound.values()]
+        reply_counts = {}
+        if ticket_ids:
+            grouped = (
+                SupportTicketMessage.objects.filter(
+                    sender=SupportTicketMessage.Sender.ADMIN,
+                    parent_user_message_id__in=ticket_ids,
+                )
+                .values('parent_user_message_id')
+                .annotate(c=Count('id'))
+            )
+            reply_counts = {int(row['parent_user_message_id']): int(row['c']) for row in grouped}
+
+        selected_inbound_id_raw = (self.request.GET.get('inbound') or '').strip()
+        selected_inbound_id = int(selected_inbound_id_raw) if selected_inbound_id_raw.isdigit() else None
+
+        ctx['inbound_list'] = inbound_list
+        ctx['ticket_by_inbound'] = ticket_by_inbound
+        ctx['ticket_reply_counts'] = reply_counts
+        ctx['selected_inbound_id'] = selected_inbound_id
+        return ctx
