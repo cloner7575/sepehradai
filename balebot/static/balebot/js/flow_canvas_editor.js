@@ -1336,7 +1336,9 @@
       pointerDrag.host.classList.remove('is-dragging', 'is-long-press-drag', 'is-long-press-pending');
       pointerDrag.host.style.pointerEvents = '';
       pointerDrag.host.style.visibility = '';
+      pointerDrag.host.style.userSelect = '';
     }
+    document.body.style.userSelect = '';
     removeDragGhost();
     if (threadEl) threadEl.classList.remove('is-canvas-dragging');
 
@@ -1360,8 +1362,10 @@
       if (pointerDrag.host) {
         pointerDrag.host.classList.add('is-dragging');
         pointerDrag.host.style.pointerEvents = 'none';
+        pointerDrag.host.style.userSelect = 'none';
         pointerDrag.ghost = createDragGhost(pointerDrag.host);
       }
+      document.body.style.userSelect = 'none';
       if (threadEl) threadEl.classList.add('is-canvas-dragging');
     }
 
@@ -1425,14 +1429,23 @@
       dropTarget: null,
       ghost: null,
     };
+    document.body.style.userSelect = 'none';
   }
 
   function attachDragSource(sourceEl, payload, hostSelector, ignoreSelector) {
     if (!sourceEl) return;
 
+    sourceEl.addEventListener('dragstart', function (e) {
+      e.preventDefault();
+    });
+
     sourceEl.addEventListener('mousedown', function (e) {
       if (e.button !== 0) return;
       if (ignoreSelector && e.target && e.target.closest(ignoreSelector)) return;
+      if (window.getSelection) {
+        var sel = window.getSelection();
+        if (sel && sel.removeAllRanges) sel.removeAllRanges();
+      }
       beginPointerDrag(sourceEl, e.clientX, e.clientY, payload, hostSelector, e);
     });
 
@@ -1474,9 +1487,13 @@
     var handle = ensureDragHandle(wrap);
     var payload = { kind: 'block', indices: indices.slice() };
     var ignore =
-      '.flow-canvas-keyboard-btn, .flow-canvas-button-cell, .flow-canvas-drop-zone, .flow-canvas-chip-gap, .flow-canvas-drag-handle, .flow-canvas-submenu, .flow-canvas-block--nested';
+      '.flow-canvas-keyboard-btn, .flow-canvas-button-cell, .flow-canvas-drop-zone, .flow-canvas-chip-gap, .flow-canvas-submenu, .flow-canvas-block--nested, input, textarea, select, a, button';
+    wrap.style.userSelect = 'none';
 
-    attachDragSource(handle, payload, '.flow-canvas-block', ignore);
+    attachDragSource(wrap, payload, '.flow-canvas-block', ignore);
+    if (handle && handle !== wrap) {
+      attachDragSource(handle, payload, '.flow-canvas-block', ignore);
+    }
 
     if (onTap) {
       attachBlockTouchInteraction(wrap, payload, ignore, function () {

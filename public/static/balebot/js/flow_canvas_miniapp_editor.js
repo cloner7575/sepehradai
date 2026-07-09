@@ -572,45 +572,252 @@
     else selectBlock(index);
   }
 
-  function mkBtn(type, icon, title, handler) {
-    var b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'flow-canvas-block-action';
-    b.title = title;
-    b.innerHTML = '<i class="bi bi-' + icon + '"></i>';
-    b.addEventListener('click', function (e) {
-      stopProp(e);
-      handler();
-    });
-    return b;
+  var dragPayload = null;
+  var pointerDrag = null;
+  var pointerDragListenersBound = false;
+
+  function moveBlockToIndex(fromIndex, toIndex) {
+    if (fromIndex < 0 || fromIndex >= state.blocks.length) return fromIndex;
+    if (toIndex < 0) toIndex = 0;
+    if (toIndex > state.blocks.length) toIndex = state.blocks.length;
+    if (fromIndex === toIndex || fromIndex + 1 === toIndex) return fromIndex;
+    var blocks = state.blocks;
+    var item = blocks.splice(fromIndex, 1)[0];
+    var adjusted = toIndex > fromIndex ? toIndex - 1 : toIndex;
+    blocks.splice(adjusted, 0, item);
+    return adjusted;
   }
 
-  function mkBlockActions(index) {
-    var bar = document.createElement('div');
-    bar.className = 'flow-canvas-block-actions';
-    bar.addEventListener('click', stopProp);
+  function clearDropHighlights() {
+    if (!threadEl) return;
+    threadEl.querySelectorAll('.is-drop-active').forEach(function (el) {
+      el.classList.remove('is-drop-active');
+    });
+  }
 
-    if (index > 0) {
-      bar.appendChild(
-        mkBtn('up', 'arrow-up', 'جابجایی بالا', function () {
-          moveBlock(-1);
-        })
-      );
+  function removeDragGhost() {
+    if (!pointerDrag || !pointerDrag.ghost) return;
+    if (pointerDrag.ghost.parentNode) pointerDrag.ghost.parentNode.removeChild(pointerDrag.ghost);
+    pointerDrag.ghost = null;
+  }
+
+  function createDragGhost(host) {
+    if (!host) return null;
+    var ghost = host.cloneNode(true);
+    ghost.className = ghost.className + ' flow-canvas-drag-ghost';
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.style.width = host.offsetWidth + 'px';
+    document.body.appendChild(ghost);
+    return ghost;
+  }
+
+  function positionDragGhost(clientX, clientY) {
+    if (!pointerDrag || !pointerDrag.ghost) return;
+    pointerDrag.ghost.style.left = clientX + 14 + 'px';
+    pointerDrag.ghost.style.top = clientY + 14 + 'px';
+  }
+
+  function elementAtPoint(clientX, clientY) {
+    var hidden = [];
+    if (pointerDrag && pointerDrag.host) {
+      pointerDrag.host.style.visibility = 'hidden';
+      hidden.push(pointerDrag.host);
     }
-    if (index < state.blocks.length - 1) {
-      bar.appendChild(
-        mkBtn('down', 'arrow-down', 'جابجایی پایین', function () {
-          moveBlock(1);
-        })
-      );
+    if (pointerDrag && pointerDrag.ghost) {
+      pointerDrag.ghost.style.visibility = 'hidden';
+      hidden.push(pointerDrag.ghost);
     }
-    bar.appendChild(
-      mkBtn('del', 'trash', 'حذف', function () {
-        state.blocks.splice(index, 1);
-        clearSelection();
-      })
+    var el = document.elementFromPoint(clientX, clientY);
+    hidden.forEach(function (node) {
+      node.style.visibility = '';
+    });
+    return el;
+  }
+
+  function hitDropTarget(clientX, clientY) {
+    if (!pointerDrag || !threadEl) return null;
+    var el = elementAtPoint(clientX, clientY);
+    if (!el || !threadEl.contains(el)) return null;
+    var zone = el.closest('.flow-canvas-drop-zone');
+    if (zone) {
+      var insertIndex = parseInt(zone.getAttribute('data-insert-index'), 10);
+      if (!isNaN(insertIndex)) {
+        return { type: 'line', insertIndex: insertIndex, zone: zone };
+      }
+    }
+    return null;
+  }
+
+  function updateDropHighlights(target) {
+    clearDropHighlights();
+    if (target && target.type === 'line' && target.zone) {
+      target.zone.classList.add('is-drop-active');
+    }
+  }
+
+  function applyPointerDrop(target) {
+    if (!pointerDrag || !pointerDrag.active || !target) return;
+    var payload = pointerDrag.payload;
+    if (target.type === 'line' && payload.kind === 'block') {
+      var fromIndex = payload.indices[0];
+      if (target.insertIndex === fromIndex || target.insertIndex === fromIndex + 1) return;
+      var newIdx = moveBlockToIndex(fromIndex, target.insertIndex);
+      selectBlock(newIdx);
+    }
+  }
+
+  function finishPointerDrag(clientX, clientY) {
+    if (!pointerDrag) return;
+    var wasActive = pointerDrag.active;
+    var target = wasActive ? hitDropTarget(clientX, clientY) : null;
+    if (pointerDrag.host) {
+      pointerDrag.host.classList.remove('is-dragging', 'is-long-press-drag', 'is-long-press-pending');
+      pointerDrag.host.style.pointerEvents = '';
+      pointerDrag.host.style.visibility = '';
+      pointerDrag.host.style.userSelect = '';
+    }
+    document.body.style.userSelect = '';
+    removeDragGhost();
+    if (threadEl) threadEl.classList.remove('is-canvas-dragging');
+    if (wasActive) applyPointerDrop(target);
+    dragPayload = null;
+    pointerDrag = null;
+    clearDropHighlights();
+  }
+
+  function onDocumentPointerMove(e) {
+    if (!pointerDrag) return;
+    var dx = Math.abs(e.clientX - pointerDrag.startX);
+    var dy = Math.abs(e.clientY - pointerDrag.startY);
+    if (!pointerDrag.active) {
+      if (dx < 8 && dy < 8) return;
+      pointerDrag.active = true;
+      dragPayload = pointerDrag.payload;
+      if (pointerDrag.host) {
+        pointerDrag.host.classList.add('is-dragging');
+        pointerDrag.host.style.pointerEvents = 'none';
+        pointerDrag.host.style.userSelect = 'none';
+        pointerDrag.ghost = createDragGhost(pointerDrag.host);
+      }
+      document.body.style.userSelect = 'none';
+      if (threadEl) threadEl.classList.add('is-canvas-dragging');
+    }
+    e.preventDefault();
+    positionDragGhost(e.clientX, e.clientY);
+    pointerDrag.dropTarget = hitDropTarget(e.clientX, e.clientY);
+    updateDropHighlights(pointerDrag.dropTarget);
+  }
+
+  function onDocumentPointerUp(e) {
+    if (!pointerDrag) return;
+    finishPointerDrag(e.clientX, e.clientY);
+  }
+
+  function bindPointerDragListeners() {
+    if (pointerDragListenersBound) return;
+    pointerDragListenersBound = true;
+    document.addEventListener('mousemove', onDocumentPointerMove);
+    document.addEventListener('mouseup', onDocumentPointerUp);
+    document.addEventListener(
+      'touchmove',
+      function (e) {
+        if (!pointerDrag || !e.touches.length) return;
+        onDocumentPointerMove(e.touches[0]);
+      },
+      { passive: false }
     );
-    return bar;
+    document.addEventListener('touchend', function (e) {
+      if (!pointerDrag) return;
+      var t = e.changedTouches && e.changedTouches[0];
+      finishPointerDrag(t ? t.clientX : pointerDrag.startX, t ? t.clientY : pointerDrag.startY);
+    });
+    document.addEventListener('touchcancel', function () {
+      if (!pointerDrag) return;
+      finishPointerDrag(pointerDrag.startX, pointerDrag.startY);
+    });
+  }
+
+  function beginPointerDrag(sourceEl, clientX, clientY, payload, hostSelector, e) {
+    if (e && e.type !== 'touchstart') {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    bindPointerDragListeners();
+    pointerDrag = {
+      payload: payload,
+      handle: sourceEl,
+      host: hostSelector ? sourceEl.closest(hostSelector) : sourceEl,
+      startX: clientX,
+      startY: clientY,
+      active: false,
+      dropTarget: null,
+      ghost: null,
+    };
+    document.body.style.userSelect = 'none';
+  }
+
+  function attachDragSource(sourceEl, payload, hostSelector, ignoreSelector) {
+    if (!sourceEl) return;
+    sourceEl.addEventListener('dragstart', function (e) {
+      e.preventDefault();
+    });
+    sourceEl.addEventListener('mousedown', function (e) {
+      if (e.button !== 0) return;
+      if (ignoreSelector && e.target && e.target.closest(ignoreSelector)) return;
+      if (window.getSelection) {
+        var sel = window.getSelection();
+        if (sel && sel.removeAllRanges) sel.removeAllRanges();
+      }
+      beginPointerDrag(sourceEl, e.clientX, e.clientY, payload, hostSelector, e);
+    });
+    sourceEl.addEventListener(
+      'touchstart',
+      function (e) {
+        if (!e.touches.length) return;
+        var t = e.touches[0];
+        var under = document.elementFromPoint(t.clientX, t.clientY);
+        if (ignoreSelector && under && under.closest(ignoreSelector)) return;
+        beginPointerDrag(sourceEl, t.clientX, t.clientY, payload, hostSelector, e);
+      },
+      { passive: true }
+    );
+  }
+
+  function bindBlockTap(wrap, onTap) {
+    wrap.addEventListener('click', function (e) {
+      stopProp(e);
+      onTap(e);
+    });
+  }
+
+  function decorateBlockDrag(wrap, index, onTap) {
+    if (!wrap || index < 0) return;
+    wrap.classList.add('flow-canvas-block--draggable');
+    var handle = wrap.querySelector('.flow-canvas-block-badge');
+    if (handle) {
+      handle.classList.add('flow-canvas-drag-handle');
+      handle.setAttribute('aria-label', 'جابجایی');
+    }
+    wrap.style.userSelect = 'none';
+    var payload = { kind: 'block', indices: [index] };
+    var ignore = '.flow-canvas-drop-zone, .flow-canvas-block-actions';
+
+    attachDragSource(wrap, payload, '.flow-canvas-block', ignore);
+    if (handle && handle !== wrap) {
+      attachDragSource(handle, payload, '.flow-canvas-block', ignore);
+    }
+    if (onTap) bindBlockTap(wrap, onTap);
+  }
+
+  function appendDropZone(insertIndex) {
+    if (!threadEl) return;
+    var zone = document.createElement('div');
+    zone.className = 'flow-canvas-drop-zone';
+    zone.setAttribute('data-insert-index', String(insertIndex));
+    zone.innerHTML =
+      '<span class="flow-canvas-drop-zone-line" aria-hidden="true"></span>' +
+      '<span class="flow-canvas-drop-zone-label">رها کنید</span>';
+    threadEl.appendChild(zone);
   }
 
   function renderBlockPreview(block, index) {
@@ -963,10 +1170,7 @@
     }
 
     wrap.appendChild(body);
-    wrap.appendChild(mkBlockActions(index));
-    wrap.addEventListener('click', function (e) {
-      if (e.target.closest('.flow-canvas-block-actions')) return;
-      stopProp(e);
+    decorateBlockDrag(wrap, index, function () {
       toggleBlock(index);
     });
     return wrap;
@@ -983,10 +1187,13 @@
       threadEl.innerHTML =
         '<div class="flow-chat-empty flow-canvas-empty">' +
         '<i class="bi bi-layout-text-window-reverse"></i>' +
-        '<p>صفحه خالی است. از پنل چپ یک المان اضافه کنید.</p></div>';
+        '<p>صفحه خالی است. از پنل چپ یک المان اضافه کنید.</p>' +
+        '<p class="flow-canvas-empty-hint">برای جابجایی، المان را بگیرید و بکشید</p></div>';
     } else {
+      appendDropZone(0);
       state.blocks.forEach(function (block, i) {
         threadEl.appendChild(renderBlockPreview(block, i));
+        appendDropZone(i + 1);
       });
     }
     syncHidden();
@@ -2182,7 +2389,46 @@
     }
 
     inspectorBody.appendChild(mkDeselectBtn());
+    appendInspectorBlockActions(inspectorBody, selection);
     renderBlockSettings(block, inspectorBody);
+  }
+
+  function appendInspectorBlockActions(container, blockIndex) {
+    var tools = document.createElement('div');
+    tools.className = 'flow-inspector-item-actions d-flex flex-wrap gap-2 mb-3 pb-3 border-bottom';
+
+    if (blockIndex > 0) {
+      var moveUp = document.createElement('button');
+      moveUp.type = 'button';
+      moveUp.className = 'btn btn-panel-ghost btn-sm';
+      moveUp.innerHTML = '<i class="bi bi-arrow-up"></i> بالا';
+      moveUp.addEventListener('click', function () {
+        moveBlock(-1, blockIndex);
+      });
+      tools.appendChild(moveUp);
+    }
+
+    if (blockIndex < state.blocks.length - 1) {
+      var moveDown = document.createElement('button');
+      moveDown.type = 'button';
+      moveDown.className = 'btn btn-panel-ghost btn-sm';
+      moveDown.innerHTML = '<i class="bi bi-arrow-down"></i> پایین';
+      moveDown.addEventListener('click', function () {
+        moveBlock(1, blockIndex);
+      });
+      tools.appendChild(moveDown);
+    }
+
+    var del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'btn btn-panel-ghost btn-sm text-danger';
+    del.innerHTML = '<i class="bi bi-trash"></i> حذف';
+    del.addEventListener('click', function () {
+      state.blocks.splice(blockIndex, 1);
+      clearSelection();
+    });
+    tools.appendChild(del);
+    container.appendChild(tools);
   }
 
   function bump() {
@@ -2282,10 +2528,12 @@
       });
     }
 
+    bindPointerDragListeners();
+
     if (threadEl) {
       threadEl.addEventListener('click', function (e) {
         if (e.target.closest('.flow-canvas-block')) return;
-        if (e.target.closest('.flow-canvas-block-actions')) return;
+        if (e.target.closest('.flow-canvas-drop-zone')) return;
         if (globalPanel) {
           globalPanel = null;
           renderInspector();

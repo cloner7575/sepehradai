@@ -913,6 +913,222 @@
     e.stopPropagation();
   }
 
+  var dragPayload = null;
+  var pointerDrag = null;
+  var pointerDragListenersBound = false;
+
+  function moveItemToIndex(fromIndex, toIndex) {
+    if (fromIndex < 0 || fromIndex >= state.root.items.length) return fromIndex;
+    if (toIndex < 0) toIndex = 0;
+    if (toIndex > state.root.items.length) toIndex = state.root.items.length;
+    if (fromIndex === toIndex || fromIndex + 1 === toIndex) return fromIndex;
+    var items = state.root.items;
+    var item = items.splice(fromIndex, 1)[0];
+    var adjusted = toIndex > fromIndex ? toIndex - 1 : toIndex;
+    items.splice(adjusted, 0, item);
+    return adjusted;
+  }
+
+  function clearDropHighlights() {
+    if (!threadEl) return;
+    threadEl.querySelectorAll('.is-drop-active').forEach(function (el) {
+      el.classList.remove('is-drop-active');
+    });
+  }
+
+  function removeDragGhost() {
+    if (!pointerDrag || !pointerDrag.ghost) return;
+    if (pointerDrag.ghost.parentNode) pointerDrag.ghost.parentNode.removeChild(pointerDrag.ghost);
+    pointerDrag.ghost = null;
+  }
+
+  function createDragGhost(host) {
+    if (!host) return null;
+    var ghost = host.cloneNode(true);
+    ghost.className = ghost.className + ' flow-canvas-drag-ghost';
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.style.width = host.offsetWidth + 'px';
+    document.body.appendChild(ghost);
+    return ghost;
+  }
+
+  function positionDragGhost(clientX, clientY) {
+    if (!pointerDrag || !pointerDrag.ghost) return;
+    pointerDrag.ghost.style.left = clientX + 14 + 'px';
+    pointerDrag.ghost.style.top = clientY + 14 + 'px';
+  }
+
+  function elementAtPoint(clientX, clientY) {
+    var hidden = [];
+    if (pointerDrag && pointerDrag.host) {
+      pointerDrag.host.style.visibility = 'hidden';
+      hidden.push(pointerDrag.host);
+    }
+    if (pointerDrag && pointerDrag.ghost) {
+      pointerDrag.ghost.style.visibility = 'hidden';
+      hidden.push(pointerDrag.ghost);
+    }
+    var el = document.elementFromPoint(clientX, clientY);
+    hidden.forEach(function (node) {
+      node.style.visibility = '';
+    });
+    return el;
+  }
+
+  function hitDropTarget(clientX, clientY) {
+    if (!pointerDrag || !threadEl) return null;
+    var el = elementAtPoint(clientX, clientY);
+    if (!el || !threadEl.contains(el)) return null;
+    var zone = el.closest('.flow-canvas-drop-zone');
+    if (!zone) return null;
+    var insertIndex = parseInt(zone.getAttribute('data-insert-index'), 10);
+    if (isNaN(insertIndex)) return null;
+    return { insertIndex: insertIndex, zone: zone };
+  }
+
+  function updateDropHighlights(target) {
+    clearDropHighlights();
+    if (target && target.zone) {
+      target.zone.classList.add('is-drop-active');
+    }
+  }
+
+  function finishPointerDrag(clientX, clientY) {
+    if (!pointerDrag) return;
+    var wasActive = pointerDrag.active;
+    var target = wasActive ? hitDropTarget(clientX, clientY) : null;
+    if (pointerDrag.host) {
+      pointerDrag.host.classList.remove('is-dragging');
+      pointerDrag.host.style.pointerEvents = '';
+      pointerDrag.host.style.visibility = '';
+      pointerDrag.host.style.userSelect = '';
+    }
+    document.body.style.userSelect = '';
+    removeDragGhost();
+    if (threadEl) threadEl.classList.remove('is-canvas-dragging');
+    if (wasActive && target && pointerDrag.payload && pointerDrag.payload.kind === 'item') {
+      var fromIndex = pointerDrag.payload.index;
+      if (target.insertIndex !== fromIndex && target.insertIndex !== fromIndex + 1) {
+        var newIdx = moveItemToIndex(fromIndex, target.insertIndex);
+        selectPath([{ kind: 'item', index: newIdx }], 'item');
+      }
+    }
+    dragPayload = null;
+    pointerDrag = null;
+    clearDropHighlights();
+  }
+
+  function onDocumentPointerMove(e) {
+    if (!pointerDrag) return;
+    var dx = Math.abs(e.clientX - pointerDrag.startX);
+    var dy = Math.abs(e.clientY - pointerDrag.startY);
+    if (!pointerDrag.active) {
+      if (dx < 8 && dy < 8) return;
+      pointerDrag.active = true;
+      dragPayload = pointerDrag.payload;
+      if (pointerDrag.host) {
+        pointerDrag.host.classList.add('is-dragging');
+        pointerDrag.host.style.pointerEvents = 'none';
+        pointerDrag.host.style.userSelect = 'none';
+        pointerDrag.ghost = createDragGhost(pointerDrag.host);
+      }
+      document.body.style.userSelect = 'none';
+      if (threadEl) threadEl.classList.add('is-canvas-dragging');
+    }
+    e.preventDefault();
+    positionDragGhost(e.clientX, e.clientY);
+    pointerDrag.dropTarget = hitDropTarget(e.clientX, e.clientY);
+    updateDropHighlights(pointerDrag.dropTarget);
+  }
+
+  function onDocumentPointerUp(e) {
+    if (!pointerDrag) return;
+    finishPointerDrag(e.clientX, e.clientY);
+  }
+
+  function bindPointerDragListeners() {
+    if (pointerDragListenersBound) return;
+    pointerDragListenersBound = true;
+    document.addEventListener('mousemove', onDocumentPointerMove);
+    document.addEventListener('mouseup', onDocumentPointerUp);
+    document.addEventListener(
+      'touchmove',
+      function (e) {
+        if (!pointerDrag || !e.touches.length) return;
+        onDocumentPointerMove(e.touches[0]);
+      },
+      { passive: false }
+    );
+    document.addEventListener('touchend', function (e) {
+      if (!pointerDrag) return;
+      var t = e.changedTouches && e.changedTouches[0];
+      finishPointerDrag(t ? t.clientX : pointerDrag.startX, t ? t.clientY : pointerDrag.startY);
+    });
+    document.addEventListener('touchcancel', function () {
+      if (!pointerDrag) return;
+      finishPointerDrag(pointerDrag.startX, pointerDrag.startY);
+    });
+  }
+
+  function beginPointerDrag(sourceEl, clientX, clientY, payload, hostSelector, e) {
+    if (e && e.type !== 'touchstart') {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    bindPointerDragListeners();
+    pointerDrag = {
+      payload: payload,
+      host: hostSelector ? sourceEl.closest(hostSelector) : sourceEl,
+      startX: clientX,
+      startY: clientY,
+      active: false,
+      dropTarget: null,
+      ghost: null,
+    };
+    document.body.style.userSelect = 'none';
+  }
+
+  function attachDragSource(sourceEl, payload, hostSelector, ignoreSelector) {
+    if (!sourceEl) return;
+    sourceEl.addEventListener('dragstart', function (e) {
+      e.preventDefault();
+    });
+    sourceEl.addEventListener('mousedown', function (e) {
+      if (e.button !== 0) return;
+      if (ignoreSelector && e.target && e.target.closest(ignoreSelector)) return;
+      if (window.getSelection) {
+        var sel = window.getSelection();
+        if (sel && sel.removeAllRanges) sel.removeAllRanges();
+      }
+      beginPointerDrag(sourceEl, e.clientX, e.clientY, payload, hostSelector, e);
+    });
+  }
+
+  function decorateBlockDrag(wrap, itemIndex, onTap) {
+    if (!wrap || itemIndex < 0) return;
+    wrap.classList.add('flow-canvas-block--draggable');
+    wrap.style.userSelect = 'none';
+    var ignore = '.flow-canvas-block-actions, .flow-canvas-keyboard-btn, input, textarea, select, a, button';
+    attachDragSource(wrap, { kind: 'item', index: itemIndex }, '.flow-canvas-block', ignore);
+    if (onTap) {
+      wrap.addEventListener('click', function (e) {
+        stopProp(e);
+        onTap(e);
+      });
+    }
+  }
+
+  function appendDropZone(insertIndex) {
+    if (!threadEl) return;
+    var zone = document.createElement('div');
+    zone.className = 'flow-canvas-drop-zone';
+    zone.setAttribute('data-insert-index', String(insertIndex));
+    zone.innerHTML =
+      '<span class="flow-canvas-drop-zone-line" aria-hidden="true"></span>' +
+      '<span class="flow-canvas-drop-zone-label">رها کنید</span>';
+    threadEl.appendChild(zone);
+  }
+
   function mkBtn(type, icon, title, handler) {
     var b = document.createElement('button');
     b.type = 'button';
@@ -981,7 +1197,7 @@
 
     wrap.appendChild(bubble);
     wrap.appendChild(mkBlockActions(itemIndex));
-    wrap.addEventListener('click', function () {
+    decorateBlockDrag(wrap, itemIndex, function () {
       toggleSelect(path, 'item');
     });
     return wrap;
@@ -1019,7 +1235,7 @@
 
     wrap.appendChild(bubble);
     wrap.appendChild(mkBlockActions(itemIndex));
-    wrap.addEventListener('click', function () {
+    decorateBlockDrag(wrap, itemIndex, function () {
       toggleSelect(path, 'item');
     });
     return wrap;
@@ -1070,6 +1286,7 @@
         toggleSelect(basePath, 'item');
       });
       wrap.appendChild(mkBlockActions(itemIndex));
+      decorateBlockDrag(wrap, itemIndex, null);
     }
 
     var kb = document.createElement('div');
@@ -1140,7 +1357,7 @@
 
     wrap.appendChild(bubble);
     wrap.appendChild(mkBlockActions(itemIndex));
-    wrap.addEventListener('click', function () {
+    decorateBlockDrag(wrap, itemIndex, function () {
       toggleSelect(path, 'item');
     });
     return wrap;
@@ -1165,6 +1382,7 @@
       threadEl.appendChild(empty);
     }
 
+    appendDropZone(0);
     state.root.items.forEach(function (item, i) {
       var t = String(item.type || '');
       if (t === 'text') threadEl.appendChild(renderTextBlock(item, i));
@@ -1176,6 +1394,7 @@
       } else if (isInteractiveType(t)) {
         threadEl.appendChild(renderInteractiveBlock(item, i));
       }
+      appendDropZone(i + 1);
     });
 
     syncHidden();
@@ -2114,9 +2333,12 @@
       threadEl.addEventListener('click', function (e) {
         if (e.target.closest('.flow-canvas-block')) return;
         if (e.target.closest('.flow-canvas-block-actions')) return;
+        if (e.target.closest('.flow-canvas-drop-zone')) return;
         clearSelection();
       });
     }
+
+    bindPointerDragListeners();
 
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && selection) clearSelection();

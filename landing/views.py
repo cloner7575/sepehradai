@@ -18,6 +18,7 @@ def landing_index(request: HttpRequest) -> HttpResponse:
     return render(request, 'landing/index.html', ctx)
 
 
+
 @require_http_methods(['POST'])
 def submit_lead(request: HttpRequest) -> HttpResponse:
     if request.POST.get('website', '').strip():

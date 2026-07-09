@@ -678,7 +678,9 @@
       pointerDrag.host.classList.remove('is-dragging', 'is-long-press-drag', 'is-long-press-pending');
       pointerDrag.host.style.pointerEvents = '';
       pointerDrag.host.style.visibility = '';
+      pointerDrag.host.style.userSelect = '';
     }
+    document.body.style.userSelect = '';
     removeDragGhost();
     if (threadEl) threadEl.classList.remove('is-canvas-dragging');
     if (wasActive) applyPointerDrop(target);
@@ -698,8 +700,10 @@
       if (pointerDrag.host) {
         pointerDrag.host.classList.add('is-dragging');
         pointerDrag.host.style.pointerEvents = 'none';
+        pointerDrag.host.style.userSelect = 'none';
         pointerDrag.ghost = createDragGhost(pointerDrag.host);
       }
+      document.body.style.userSelect = 'none';
       if (threadEl) threadEl.classList.add('is-canvas-dragging');
     }
     e.preventDefault();
@@ -753,13 +757,21 @@
       dropTarget: null,
       ghost: null,
     };
+    document.body.style.userSelect = 'none';
   }
 
   function attachDragSource(sourceEl, payload, hostSelector, ignoreSelector) {
     if (!sourceEl) return;
+    sourceEl.addEventListener('dragstart', function (e) {
+      e.preventDefault();
+    });
     sourceEl.addEventListener('mousedown', function (e) {
       if (e.button !== 0) return;
       if (ignoreSelector && e.target && e.target.closest(ignoreSelector)) return;
+      if (window.getSelection) {
+        var sel = window.getSelection();
+        if (sel && sel.removeAllRanges) sel.removeAllRanges();
+      }
       beginPointerDrag(sourceEl, e.clientX, e.clientY, payload, hostSelector, e);
     });
 
@@ -808,10 +820,14 @@
       handle.classList.add('flow-canvas-drag-handle');
       handle.setAttribute('aria-label', 'جابجایی');
     }
+    wrap.style.userSelect = 'none';
     var payload = { kind: 'block', indices: [index] };
-    var ignore = '.flow-canvas-drop-zone, .flow-canvas-drag-handle';
+    var ignore = '.flow-canvas-drop-zone, .flow-canvas-block-actions';
 
-    attachDragSource(handle || wrap, payload, '.flow-canvas-block', ignore);
+    attachDragSource(wrap, payload, '.flow-canvas-block', ignore);
+    if (handle && handle !== wrap) {
+      attachDragSource(handle, payload, '.flow-canvas-block', ignore);
+    }
 
     if (onTap) {
       attachBlockTouchInteraction(wrap, payload, ignore, function () {
