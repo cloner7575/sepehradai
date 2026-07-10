@@ -2,7 +2,7 @@ from django.conf import settings as django_settings
 from django.core.validators import FileExtensionValidator
 from django.db import models
 
-from landing.constants import MESSENGER_CHOICES
+from landing.constants import MESSENGER_CHOICES, SHOWCASE_BOT_PLATFORM_CHOICES
 
 
 class Lead(models.Model):
@@ -195,3 +195,43 @@ class SubscriptionPlan(models.Model):
         if not isinstance(self.features, list):
             return []
         return [str(item).strip() for item in self.features if str(item).strip()]
+
+
+class ShowcaseBot(models.Model):
+    name = models.CharField(max_length=120, verbose_name='نام ربات')
+    image = models.ImageField(
+        upload_to='showcase_bots/',
+        verbose_name='تصویر',
+        help_text='تصویر نمایشی ربات (مربعی یا افقی).',
+    )
+    description = models.TextField(verbose_name='توضیحات')
+    platform = models.CharField(
+        max_length=20,
+        choices=SHOWCASE_BOT_PLATFORM_CHOICES,
+        verbose_name='پیام‌رسان',
+    )
+    bot_url = models.URLField(max_length=500, verbose_name='لینک ربات')
+    show_on_landing = models.BooleanField(
+        default=False,
+        verbose_name='نمایش در لندینگ',
+        help_text='اگر فعال باشد، در صفحه اصلی نمایش داده می‌شود.',
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='فعال',
+        help_text='غیرفعال = در هیچ صفحه‌ای نمایش داده نمی‌شود.',
+    )
+    sort_order = models.PositiveSmallIntegerField(default=0, verbose_name='ترتیب')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'ربات نمایشی'
+        verbose_name_plural = 'ربات‌های نمایشی'
+        ordering = ['sort_order', 'id']
+
+    def __str__(self) -> str:
+        return self.name
+
+    def get_platform_display_fa(self) -> str:
+        return dict(SHOWCASE_BOT_PLATFORM_CHOICES).get(self.platform, self.platform)

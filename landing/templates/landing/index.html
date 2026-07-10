@@ -22,7 +22,7 @@
   <meta name="twitter:description" content="فروشگاه کامل با سبد خرید و پرداخت مستقیم داخل بله و تلگرام.">
 
   <link href="{% static 'balebot/css/fonts.css' %}" rel="stylesheet">
-  <link href="{% static 'landing/landing.css' %}?v=5" rel="stylesheet">
+  <link href="{% static 'landing/landing.css' %}?v=7" rel="stylesheet">
 
   <script type="application/ld+json">
   {
@@ -66,6 +66,7 @@
           <a href="#features">امکانات</a>
           <a href="#how">نحوه کار</a>
           <a href="#templates">الگوها</a>
+          <a href="#showcase-bots">ربات‌ها</a>
           <a href="#pricing">قیمت</a>
           <a href="#faq">سوالات</a>
           <a href="{% url 'panel_login' %}" class="btn btn-outline">ورود به پنل</a>
@@ -79,6 +80,7 @@
         <a href="#features">امکانات</a>
         <a href="#how">نحوه کار</a>
         <a href="#templates">الگوها</a>
+        <a href="#showcase-bots">ربات‌ها</a>
         <a href="#pricing">قیمت</a>
         <a href="#faq">سوالات</a>
         <a href="{% url 'panel_login' %}" class="btn btn-outline btn-block">ورود به پنل</a>
@@ -306,6 +308,29 @@
         </div>
       </div>
     </section>
+
+    {% if showcase_bots %}
+    <!-- Showcase bots -->
+    <section class="showcase-bots-section" id="showcase-bots">
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-label">نمونه کارها</span>
+          <h2>ربات‌های ساخته‌شده با {{ site_name_full }}</h2>
+          <p>چند نمونه از فروشگاه‌ها و کسب‌وکارهایی که با پنل ما ربات خودشون رو راه‌اندازی کردن.</p>
+        </div>
+        <div class="showcase-bots-grid reveal-stagger">
+          {% for bot in showcase_bots %}
+          {% include "landing/_showcase_bot_card.html" with bot=bot %}
+          {% endfor %}
+        </div>
+        {% if showcase_bots_total > showcase_bots|length %}
+        <div class="showcase-bots-actions reveal">
+          <a href="{% url 'showcase_bots_list' %}" class="btn btn-outline">مشاهده همه ربات‌ها</a>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+    {% endif %}
 
     <!-- Payment spotlight -->
     <section class="payment-spotlight" id="payment">
@@ -595,6 +620,7 @@
           <h4>لینک‌ها</h4>
           <ul>
             <li><a href="#features">امکانات</a></li>
+            <li><a href="{% url 'showcase_bots_list' %}">ربات‌ها</a></li>
             <li><a href="#pricing">قیمت</a></li>
             <li><a href="#cta">تماس و دمو</a></li>
             <li><a href="{% url 'panel_login' %}">ورود به پنل</a></li>

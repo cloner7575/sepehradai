@@ -145,6 +145,26 @@ urlpatterns = [
         landing_views_panel.SuperAdminBrandSettingsView.as_view(),
         name='superadmin_brand_settings',
     ),
+    path(
+        'superadmin/showcase-bots/',
+        landing_views_panel.SuperAdminShowcaseBotListView.as_view(),
+        name='superadmin_showcase_bot_list',
+    ),
+    path(
+        'superadmin/showcase-bots/new/',
+        landing_views_panel.SuperAdminShowcaseBotCreateView.as_view(),
+        name='superadmin_showcase_bot_create',
+    ),
+    path(
+        'superadmin/showcase-bots/<int:pk>/edit/',
+        landing_views_panel.SuperAdminShowcaseBotUpdateView.as_view(),
+        name='superadmin_showcase_bot_edit',
+    ),
+    path(
+        'superadmin/showcase-bots/<int:pk>/delete/',
+        landing_views_panel.SuperAdminShowcaseBotDeleteView.as_view(),
+        name='superadmin_showcase_bot_delete',
+    ),
     path('catalog/', views_panel_catalog.CatalogDashboardView.as_view(), name='catalog_dashboard'),
     path('catalog/onboarding/', views_panel_catalog.CatalogOnboardingView.as_view(), name='catalog_onboarding'),
     path('catalog/templates/', views_panel_catalog.StoreTemplateListView.as_view(), name='catalog_templates'),

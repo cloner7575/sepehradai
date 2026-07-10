@@ -6,7 +6,15 @@ from django.views.decorators.http import require_http_methods
 
 from landing.forms import LeadForm
 from landing.services.notify import notify_lead_via_bale
-from landing.services.public_content import get_public_landing_context
+from landing.services.public_content import get_public_landing_context, get_showcase_bots_context
+
+
+@require_http_methods(['GET'])
+def showcase_bots_list(request: HttpRequest) -> HttpResponse:
+    if request.user.is_authenticated:
+        return redirect('panel_dashboard')
+    ctx = get_showcase_bots_context()
+    return render(request, 'landing/showcase_bots.html', ctx)
 
 
 @require_http_methods(['GET'])

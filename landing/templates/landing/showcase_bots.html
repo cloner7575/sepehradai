@@ -1,0 +1,69 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ربات‌های ساخته‌شده با {{ site_name_full }}</title>
+  <meta name="description" content="نمونه ربات‌های فروشگاهی و خدماتی که با {{ site_name_full }} در بله و تلگرام ساخته شده‌اند.">
+  <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{% url 'showcase_bots_list' %}">
+  {% include "landing/_brand_head.html" %}
+  <link href="{% static 'balebot/css/fonts.css' %}" rel="stylesheet">
+  <link href="{% static 'landing/landing.css' %}?v=7" rel="stylesheet">
+</head>
+<body>
+
+  <header class="site-header is-scrolled" id="site-header">
+    <div class="container">
+      <div class="header-inner">
+        {% include "balebot/_brand_logo.html" with brand_logo_class="logo" brand_logo_href="/" %}
+        <nav class="nav-desktop" aria-label="ناوبری اصلی">
+          <a href="/">صفحه اصلی</a>
+          <a href="{% url 'panel_login' %}" class="btn btn-outline">ورود به پنل</a>
+          <a href="/#cta" class="btn btn-primary">درخواست دمو رایگان</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="showcase-page">
+    <section class="showcase-hero">
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-label">نمونه کارها</span>
+          <h1>ربات‌های ساخته‌شده با {{ site_name_full }}</h1>
+          <p>فروشگاه‌ها و کسب‌وکارهایی که با پنل ما ربات فروشگاهی و خدماتی خودشون رو در بله و تلگرام راه‌اندازی کردن.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="showcase-bots-section">
+      <div class="container">
+        {% if showcase_bots %}
+        <div class="showcase-bots-grid reveal-stagger">
+          {% for bot in showcase_bots %}
+          {% include "landing/_showcase_bot_card.html" with bot=bot %}
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="showcase-empty reveal">
+          <p>فعلاً ربات نمایشی ثبت نشده. به‌زودی نمونه‌های بیشتری اضافه می‌شود.</p>
+          <a href="/#cta" class="btn btn-primary">درخواست دمو رایگان</a>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-bottom">
+        <a href="/">بازگشت به صفحه اصلی</a>
+        <span>© {% now "Y" %} {{ site_name_full }}</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="{% static 'landing/landing.js' %}?v=3" defer></script>
+</body>
+</html>

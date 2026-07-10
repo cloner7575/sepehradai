@@ -1,6 +1,6 @@
 from django import forms
 
-from landing.models import BusinessCategory, LandingSettings, SubscriptionPlan
+from landing.models import BusinessCategory, LandingSettings, ShowcaseBot, SubscriptionPlan
 
 _INPUT = 'form-control panel-input'
 
@@ -136,3 +136,33 @@ class BusinessCategoryForm(forms.ModelForm):
             if qs.exists():
                 raise forms.ValidationError('فقط یک صنف می‌تواند گزینه «سایر» باشد.')
         return cleaned
+
+
+class ShowcaseBotForm(forms.ModelForm):
+    class Meta:
+        model = ShowcaseBot
+        fields = (
+            'name',
+            'image',
+            'description',
+            'platform',
+            'bot_url',
+            'show_on_landing',
+            'is_active',
+            'sort_order',
+        )
+        widgets = {
+            'name': forms.TextInput(attrs={'class': _INPUT}),
+            'description': forms.Textarea(attrs={'class': _INPUT, 'rows': 4}),
+            'platform': forms.Select(attrs={'class': _INPUT}),
+            'bot_url': forms.URLInput(attrs={'class': _INPUT, 'dir': 'ltr'}),
+            'sort_order': forms.NumberInput(attrs={'class': _INPUT}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['image'].required = not (self.instance and self.instance.pk)
+        self.fields['image'].widget.attrs.update({
+            'class': 'form-control panel-input',
+            'accept': 'image/*',
+        })

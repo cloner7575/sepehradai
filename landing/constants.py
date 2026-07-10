@@ -31,3 +31,8 @@ MESSENGER_CHOICES = [
     ('bale', 'بله'),
     ('other', 'سایر'),
 ]
+
+SHOWCASE_BOT_PLATFORM_CHOICES = [
+    ('bale', 'بله'),
+    ('telegram', 'تلگرام'),
+]

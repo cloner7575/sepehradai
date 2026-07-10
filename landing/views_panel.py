@@ -8,8 +8,14 @@ from django.views.generic import DetailView, FormView, ListView, TemplateView, V
 
 from balebot.mixins import SuperuserRequiredMixin
 from balebot.models import Workspace
-from landing.forms_panel import BrandSettingsForm, BusinessCategoryForm, LandingSettingsForm, SubscriptionPlanForm
-from landing.models import BusinessCategory, LandingSettings, Lead, SubscriptionPlan
+from landing.forms_panel import (
+    BrandSettingsForm,
+    BusinessCategoryForm,
+    LandingSettingsForm,
+    ShowcaseBotForm,
+    SubscriptionPlanForm,
+)
+from landing.models import BusinessCategory, LandingSettings, Lead, ShowcaseBot, SubscriptionPlan
 
 User = get_user_model()
 
@@ -307,3 +313,66 @@ class SuperAdminBusinessCategoryDeleteView(SuperuserRequiredMixin, View):
         category.delete()
         messages.success(request, f'صنف «{name}» حذف شد.')
         return redirect('superadmin_business_category_list')
+
+
+class SuperAdminShowcaseBotListView(SuperuserRequiredMixin, ListView):
+    model = ShowcaseBot
+    template_name = 'balebot/superadmin/showcase_bot_list.html'
+    context_object_name = 'bots'
+    paginate_by = 20
+
+    def get_queryset(self):
+        return ShowcaseBot.objects.all()
+
+
+class SuperAdminShowcaseBotCreateView(SuperuserRequiredMixin, FormView):
+    form_class = ShowcaseBotForm
+    template_name = 'balebot/superadmin/showcase_bot_form.html'
+    success_url = reverse_lazy('superadmin_showcase_bot_list')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['form_title'] = 'ربات نمایشی جدید'
+        ctx['is_create'] = True
+        return ctx
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(self.request, f'ربات «{form.instance.name}» ایجاد شد.')
+        return super().form_valid(form)
+
+
+class SuperAdminShowcaseBotUpdateView(SuperuserRequiredMixin, FormView):
+    form_class = ShowcaseBotForm
+    template_name = 'balebot/superadmin/showcase_bot_form.html'
+    success_url = reverse_lazy('superadmin_showcase_bot_list')
+
+    def dispatch(self, request, *args, **kwargs):
+        self.bot = get_object_or_404(ShowcaseBot, pk=kwargs['pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['instance'] = self.bot
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['form_title'] = f'ویرایش ربات «{self.bot.name}»'
+        ctx['is_create'] = False
+        ctx['bot'] = self.bot
+        return ctx
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(self.request, f'ربات «{form.instance.name}» به‌روزرسانی شد.')
+        return super().form_valid(form)
+
+
+class SuperAdminShowcaseBotDeleteView(SuperuserRequiredMixin, View):
+    def post(self, request, pk):
+        bot = get_object_or_404(ShowcaseBot, pk=pk)
+        name = bot.name
+        bot.delete()
+        messages.success(request, f'ربات «{name}» حذف شد.')
+        return redirect('superadmin_showcase_bot_list')
