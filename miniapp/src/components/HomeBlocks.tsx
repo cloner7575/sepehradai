@@ -239,17 +239,18 @@ function CategoriesBlockView({ block }: { block: HomeBlock }) {
 }
 
 function FeaturedBlockView({ block }: { block: HomeBlock }) {
+  const { adapter } = useApp();
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (block.type !== 'featured') return;
     setLoading(true);
-    fetchItems({ featured: true })
+    fetchItems({ featured: true }, adapter.initData || undefined)
       .then((list) => setItems(list.slice(0, block.limit || 6)))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
-  }, [block.type, block.id, block.limit]);
+  }, [block.type, block.id, block.limit, adapter.initData]);
 
   if (block.type !== 'featured') return null;
   if (!loading && !items.length) return null;
@@ -345,6 +346,7 @@ export function HomeBlocks({
   onSearch,
   searchLoading,
 }: HomeBlocksProps) {
+  const { adapter } = useApp();
   const hasProductsBlock = useMemo(
     () => blocks.some((b) => b.type === 'products'),
     [blocks],
@@ -356,10 +358,10 @@ export function HomeBlocks({
     if (!hasProductsBlock) return;
     setProductsLoading(true);
     const params = searchQuery.trim() ? { q: searchQuery.trim() } : undefined;
-    fetchItems(params)
+    fetchItems(params, adapter.initData || undefined)
       .then(setProductItems)
       .finally(() => setProductsLoading(false));
-  }, [hasProductsBlock, searchQuery]);
+  }, [hasProductsBlock, searchQuery, adapter.initData]);
 
   return (
     <>

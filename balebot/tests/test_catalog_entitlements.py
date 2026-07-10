@@ -148,6 +148,25 @@ class CatalogEntitlementTests(TestCase):
             CatalogEntitlement.objects.filter(subscriber=self.sub, item=self.course).exists()
         )
 
+    def test_paid_order_grants_access_without_entitlement_row(self):
+        """دسترسی از روی سفارش پرداخت‌شده حتی بدون رکورد entitlement."""
+        order = CatalogOrder.objects.create(
+            workspace=self.workspace,
+            platform=self.platform,
+            subscriber=self.sub,
+            status=CatalogOrder.Status.PAID,
+            total_amount=1_000_000,
+        )
+        CatalogOrderLine.objects.create(
+            order=order,
+            item=self.course,
+            title_snapshot=self.course.title,
+            price_snapshot=self.course.price,
+        )
+        CatalogEntitlement.objects.filter(subscriber=self.sub).delete()
+        self.assertTrue(subscriber_has_item_access(self.sub, self.course))
+        self.assertTrue(subscriber_has_item_access(self.sub, self.lesson))
+
     def test_media_token_roundtrip(self):
         token = issue_media_token(subscriber_id=self.sub.pk, media_id=42)
         self.assertTrue(verify_media_token(token, subscriber_id=self.sub.pk, media_id=42))

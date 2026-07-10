@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useApp } from '../App';
-import { IconBook, IconCart, IconGrid } from './Icons';
+import { IconCart, IconGrid } from './Icons';
 import { SafeImage } from './SafeImage';
 
 interface AppHeaderProps {
@@ -60,17 +60,12 @@ export function AppHeader({
         )}
       </div>
       {showCart && shopEnabled && (
-        <div className="flex shrink-0 items-center gap-1">
-          <Link to="/library" className="cart-header-btn" aria-label="کتابخانه من">
-            <IconBook className="h-5 w-5" />
-          </Link>
-          <Link to="/cart" className="cart-header-btn" aria-label="سبد خرید">
-            <IconCart className="h-5 w-5" />
-            {cartCount > 0 && (
-              <span className="cart-header-badge">{cartCount > 99 ? '99+' : cartCount}</span>
-            )}
-          </Link>
-        </div>
+        <Link to="/cart" className="cart-header-btn" aria-label="سبد خرید">
+          <IconCart className="h-5 w-5" />
+          {cartCount > 0 && (
+            <span className="cart-header-badge">{cartCount > 99 ? '99+' : cartCount}</span>
+          )}
+        </Link>
       )}
     </header>
   );

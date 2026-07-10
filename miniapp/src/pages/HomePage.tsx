@@ -10,7 +10,7 @@ import { IconSearch } from '../components/Icons';
 import type { CatalogItem, Category } from '../types';
 
 export function HomePage() {
-  const { config } = useApp();
+  const { config, adapter } = useApp();
   const blocks = config?.home_blocks;
   const useBlockLayout = Array.isArray(blocks) && blocks.length > 0;
 
@@ -25,19 +25,19 @@ export function HomePage() {
       setLoading(false);
       return;
     }
-    Promise.all([fetchCategories(), fetchItems()])
+    Promise.all([fetchCategories(), fetchItems(undefined, adapter.initData || undefined)])
       .then(([cats, its]) => {
         setCategories(cats.filter((c) => !c.parent_id));
         setItems(its);
       })
       .finally(() => setLoading(false));
-  }, [useBlockLayout]);
+  }, [useBlockLayout, adapter.initData]);
 
   const search = () => {
     if (useBlockLayout) return;
     setLoading(true);
     const params = q.trim() ? { q: q.trim() } : undefined;
-    fetchItems(params).then(setItems).finally(() => setLoading(false));
+    fetchItems(params, adapter.initData || undefined).then(setItems).finally(() => setLoading(false));
   };
 
   if (useBlockLayout && blocks) {

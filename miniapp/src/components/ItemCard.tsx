@@ -5,10 +5,13 @@ import { ItemThumbnail } from './MediaGallery';
 import { itemTypeLabel, isShowcaseType, isVideoType } from '../utils/itemType';
 
 function ItemCardPrice({ item, showcase }: { item: CatalogItem; showcase: boolean }) {
-  if (item.price != null && item.price > 0 && !showcase) {
+  if (showcase) {
+    return <span className="text-xs font-medium text-muted">معرفی</span>;
+  }
+  if (item.is_buyable) {
     return (
       <div className="flex flex-wrap items-center gap-1.5">
-        {item.compare_at_price && item.compare_at_price > item.price ? (
+        {item.compare_at_price && item.compare_at_price > (item.price || 0) ? (
           <span className="text-[10px] text-muted line-through">{formatPrice(item.compare_at_price)}</span>
         ) : null}
         <span className="price-tag">{formatPrice(item.price)}</span>
@@ -18,9 +21,7 @@ function ItemCardPrice({ item, showcase }: { item: CatalogItem; showcase: boolea
   if (item.is_downloadable) {
     return <span className="text-xs font-semibold text-primary">رایگان</span>;
   }
-  return (
-    <span className="text-xs font-medium text-muted">{showcase ? 'معرفی' : 'تماس بگیرید'}</span>
-  );
+  return <span className="text-xs font-medium text-muted">تماس بگیرید</span>;
 }
 
 export function ItemCard({

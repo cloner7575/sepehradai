@@ -29,7 +29,7 @@ export function ItemPage() {
       try {
         const preview = await fetchItem(slug, adapter.initData || undefined);
         if (cancelled) return;
-        if (adapter.initData && preview.requires_access) {
+        if (adapter.initData && (preview.requires_access || preview.has_access)) {
           try {
             const unlocked = await fetchItemContent(slug, adapter.initData);
             if (!cancelled) setItem(unlocked);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { fetchCategories, fetchItems } from '../api';
+import { useApp } from '../App';
 import { AppHeader } from '../components/AppHeader';
 import { ItemCard } from '../components/ItemCard';
 import { ItemsSection } from '../components/ItemsSection';
@@ -9,19 +10,20 @@ import type { CatalogItem, Category } from '../types';
 
 export function CategoryPage() {
   const { slug } = useParams();
+  const { adapter } = useApp();
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [category, setCategory] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!slug) return;
-    Promise.all([fetchItems({ category: slug }), fetchCategories()])
+    Promise.all([fetchItems({ category: slug }, adapter.initData || undefined), fetchCategories()])
       .then(([its, cats]) => {
         setItems(its);
         setCategory(cats.find((c) => c.slug === slug) || null);
       })
       .finally(() => setLoading(false));
-  }, [slug]);
+  }, [slug, adapter.initData]);
 
   return (
     <div className="pb-6">

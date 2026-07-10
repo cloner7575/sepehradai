@@ -13,10 +13,8 @@ from balebot.models import (
     CatalogItemMember,
     CatalogOrder,
     CatalogOrderLine,
-    CatalogSettings,
 )
 from balebot.services import messenger_api
-from balebot.services.catalog_currency import format_toman_label
 
 logger = logging.getLogger(__name__)
 
@@ -25,11 +23,11 @@ def _grant_item_entitlement(
     *,
     order_line: CatalogOrderLine,
     item: CatalogItem,
-) -> CatalogEntitlement | None:
+) -> tuple[CatalogEntitlement | None, bool]:
     order = order_line.order
     if order.subscriber_id is None:
-        return None
-    entitlement, _created = CatalogEntitlement.objects.get_or_create(
+        return None, False
+    entitlement, created = CatalogEntitlement.objects.get_or_create(
         subscriber_id=order.subscriber_id,
         item=item,
         defaults={
@@ -38,7 +36,7 @@ def _grant_item_entitlement(
             'source_order_line': order_line,
         },
     )
-    return entitlement
+    return entitlement, created
 
 
 def grant_order_entitlements(order: CatalogOrder) -> list[CatalogItem]:
@@ -62,13 +60,16 @@ def grant_order_entitlements(order: CatalogOrder) -> list[CatalogItem]:
                     .order_by('sort_order', 'id')
                 )
                 for member in members:
-                    if _grant_item_entitlement(order_line=line, item=member.child):
+                    _ent, created = _grant_item_entitlement(order_line=line, item=member.child)
+                    if created:
                         granted.append(member.child)
-                if _grant_item_entitlement(order_line=line, item=item):
+                _ent, created = _grant_item_entitlement(order_line=line, item=item)
+                if created:
                     granted.append(item)
             elif item_type in (CatalogItem.ItemType.VIDEO, CatalogItem.ItemType.DOWNLOAD):
                 if item.requires_content_access() or item.is_buyable():
-                    if _grant_item_entitlement(order_line=line, item=item):
+                    _ent, created = _grant_item_entitlement(order_line=line, item=item)
+                    if created:
                         granted.append(item)
 
     if granted:
@@ -78,12 +79,10 @@ def grant_order_entitlements(order: CatalogOrder) -> list[CatalogItem]:
 
 def _notify_content_access(order: CatalogOrder, items: list[CatalogItem]) -> None:
     try:
-        catalog = CatalogSettings.get_for_platform(order.workspace, order.platform)
         cfg = BotSettings.get_for_platform(order.workspace, order.platform)
         sub = order.subscriber
         if not sub:
             return
-        library_url = catalog.build_mini_app_url(cfg).rstrip('/') + '/library'
         titles = '\n'.join(f'• {item.title}' for item in items[:10])
         extra = ''
         if len(items) > 10:
@@ -92,7 +91,7 @@ def _notify_content_access(order: CatalogOrder, items: list[CatalogItem]) -> Non
             f'🎉 دسترسی محتوای شما فعال شد.\n'
             f'شماره سفارش: #{order.pk}\n\n'
             f'{titles}{extra}\n\n'
-            f'📚 مشاهده در کتابخانه:\n{library_url}'
+            f'برای مشاهده، دوباره وارد مینی‌اپ شوید.'
         )
         messenger_api.send_message(
             order.platform,

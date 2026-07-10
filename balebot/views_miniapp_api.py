@@ -419,6 +419,8 @@ def catalog_items(request, public_id):
     catalog, err = _resolve_catalog(public_id)
     if err:
         return err
+    init_data = _init_data_from_request(request)
+    subscriber = _resolve_subscriber(catalog, init_data) if init_data else None
     qs = CatalogItem.objects.filter(
         workspace=catalog.workspace,
         platform=catalog.platform,
@@ -469,7 +471,7 @@ def catalog_items(request, public_id):
         qs = qs[:limit]
     return JsonResponse({
         'ok': True,
-        'items': [_item_dict(i, request, catalog) for i in qs],
+        'items': [_item_dict(i, request, catalog, subscriber=subscriber) for i in qs],
     })
 
 

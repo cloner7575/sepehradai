@@ -49,15 +49,18 @@ export async function fetchCategories() {
   return data.categories;
 }
 
-export async function fetchItems(params?: {
-  category?: string;
-  q?: string;
-  sort?: string;
-  featured?: boolean;
-  source?: string;
-  tag?: string;
-  limit?: number;
-}) {
+export async function fetchItems(
+  params?: {
+    category?: string;
+    q?: string;
+    sort?: string;
+    featured?: boolean;
+    source?: string;
+    tag?: string;
+    limit?: number;
+  },
+  initData?: string,
+) {
   const qs = new URLSearchParams();
   if (params?.category) qs.set('category', params.category);
   if (params?.q) qs.set('q', params.q);
@@ -66,6 +69,7 @@ export async function fetchItems(params?: {
   if (params?.source) qs.set('source', params.source);
   if (params?.tag) qs.set('tag', params.tag);
   if (params?.limit) qs.set('limit', String(params.limit));
+  if (initData) qs.set('initData', initData);
   const suffix = qs.toString() ? `?${qs}` : '';
   const data = await request<{ items: CatalogItem[] }>(`/items/${suffix}`);
   return data.items;

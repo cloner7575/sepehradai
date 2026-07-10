@@ -212,6 +212,7 @@ export function CouponBlockView({ block }: { block: CouponBlock }) {
 }
 
 export function ProductCarouselView({ block }: { block: ProductCarouselBlock }) {
+  const { adapter } = useApp();
   const [items, setItems] = useState<Awaited<ReturnType<typeof fetchItems>>>([]);
   const [loading, setLoading] = useState(true);
 
@@ -223,11 +224,11 @@ export function ProductCarouselView({ block }: { block: ProductCarouselBlock }) 
     };
     if (block.source === 'category' && block.category) params.category = block.category;
     if (block.source === 'tag' && block.tag) params.tag = block.tag;
-    fetchItems(params)
+    fetchItems(params, adapter.initData || undefined)
       .then(setItems)
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
-  }, [block.id, block.source, block.category, block.tag, block.limit]);
+  }, [block.id, block.source, block.category, block.tag, block.limit, adapter.initData]);
 
   if (!loading && !items.length) return null;
 
@@ -430,10 +431,10 @@ export function BundleBlockView({ block }: { block: BundleBlock }) {
   useEffect(() => {
     const slugs = block.item_slugs || [];
     if (!slugs.length) return;
-    fetchItems()
+    fetchItems(undefined, adapter.initData || undefined)
       .then((all) => setItems(all.filter((i) => slugs.includes(i.slug))))
       .catch(() => setItems([]));
-  }, [block.item_slugs]);
+  }, [block.item_slugs, adapter.initData]);
 
   const addAll = async () => {
     if (!adapter?.initData) return;

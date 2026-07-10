@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchItems } from '../api';
+import { useApp } from '../App';
 import { AppHeader } from '../components/AppHeader';
 import { ItemCard } from '../components/ItemCard';
 import { ItemsSection } from '../components/ItemsSection';
@@ -7,15 +8,16 @@ import { IconPackage } from '../components/Icons';
 import type { CatalogItem } from '../types';
 
 export function FlashSalePage() {
+  const { adapter } = useApp();
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchItems({ source: 'flash_sale', limit: 48 })
+    fetchItems({ source: 'flash_sale', limit: 48 }, adapter.initData || undefined)
       .then(setItems)
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [adapter.initData]);
 
   return (
     <div className="pb-6 animate-fade-in">
