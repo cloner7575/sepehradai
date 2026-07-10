@@ -5,6 +5,7 @@ import { useApp } from '../App';
 import { CartQuantityControl } from '../components/CartQuantityControl';
 import { CheckoutForm, useCheckoutForm } from '../components/CheckoutForm';
 import { MediaGallery } from '../components/MediaGallery';
+import { GroupContentList } from '../components/GroupContentList';
 import { IconCart, IconDownload, IconLock, IconPackage } from '../components/Icons';
 import { fileNameFromUrl } from '../utils/media';
 import { itemTypeLabel, isGroupParentType, isShowcaseType } from '../utils/itemType';
@@ -103,7 +104,7 @@ export function ItemPage() {
   const groupParent = item ? isGroupParentType(item.item_type) : false;
   const showBuy =
     item?.is_buyable && !item?.has_access && config?.can_purchase !== false;
-  const showDownload = Boolean(item?.is_downloadable && item.download_url);
+  const showDownload = Boolean(item?.is_downloadable && item.download_url && !groupParent);
   const showLockedDownload = Boolean(
     item?.is_downloadable && item.requires_access && !item.has_access && !item.download_url,
   );
@@ -157,7 +158,7 @@ export function ItemPage() {
           <div className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
             <IconDownload className="h-4 w-4 shrink-0" />
             {groupParent
-              ? 'شما به این دوره دسترسی دارید. قسمت‌ها را از لیست زیر باز کنید.'
+              ? 'محتوای دوره در همین صفحه قابل مشاهده و دانلود است.'
               : 'شما به این محتوا دسترسی دارید.'}
           </div>
         )}
@@ -186,39 +187,10 @@ export function ItemPage() {
         )}
 
         {groupParent && (item.group_members?.length ?? 0) > 0 && (
-          <div className="mt-6">
-            <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">
-              {item.item_type === 'course' ? 'قسمت‌های دوره' : 'فایل‌های پکیج'}
-            </h2>
-            <div className="space-y-2">
-              {item.group_members?.map((member) => (
-                <Link
-                  key={member.id}
-                  to={`/item/${member.slug}`}
-                  className="card flex items-center gap-3 p-3 transition active:scale-[0.98]"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-semibold">{member.title}</div>
-                    {member.short_description && (
-                      <p className="mt-0.5 line-clamp-1 text-xs text-muted">{member.short_description}</p>
-                    )}
-                  </div>
-                  {member.locked ? (
-                    <span className="inline-flex items-center gap-1 text-xs text-muted">
-                      <IconLock className="h-3.5 w-3.5" />
-                      قفل
-                    </span>
-                  ) : member.is_preview ? (
-                    <span className="text-xs font-medium text-primary">پیش‌نمایش</span>
-                  ) : member.has_access ? (
-                    <span className="text-xs font-medium text-emerald-600">باز</span>
-                  ) : member.is_buyable ? (
-                    <span className="text-xs text-muted">{formatPrice(member.price)}</span>
-                  ) : null}
-                </Link>
-              ))}
-            </div>
-          </div>
+          <GroupContentList
+            members={item.group_members || []}
+            parentType={item.item_type === 'package' ? 'package' : 'course'}
+          />
         )}
 
         {showcase && (

@@ -122,6 +122,8 @@ def _group_members_dict(
     request=None,
     catalog=None,
     subscriber: Subscriber | None = None,
+    *,
+    include_content_urls: bool = False,
 ) -> list[dict]:
     if not item.is_group_parent():
         return []
@@ -131,6 +133,29 @@ def _group_members_dict(
         if not child.is_active:
             continue
         has_access = subscriber_has_item_access(subscriber, child) or member.is_preview
+        include_urls = include_content_urls and has_access
+        media_list = [
+            _media_dict(
+                m,
+                request,
+                catalog,
+                item=child,
+                subscriber=subscriber,
+                include_urls=include_urls,
+            )
+            for m in child.media.all()
+        ]
+        download_url = ''
+        if child.is_downloadable() and has_access:
+            download_url = child.resolve_download_url(request, catalog)
+            if (
+                download_url
+                and subscriber
+                and child.download_file
+                and child.requires_content_access()
+            ):
+                token = issue_media_token(subscriber_id=subscriber.pk, media_id=-child.pk)
+                download_url = append_media_token(download_url, token)
         members.append({
             'id': child.pk,
             'slug': child.slug,
@@ -139,10 +164,13 @@ def _group_members_dict(
             'item_type': child.normalized_item_type(),
             'price': child.price,
             'is_buyable': child.is_buyable(),
+            'is_downloadable': child.is_downloadable(),
             'is_preview': member.is_preview,
             'has_access': has_access,
             'locked': child.requires_content_access() and not has_access,
             'image': _first_item_image_url(child, request, catalog),
+            'download_url': download_url,
+            'media': media_list,
         })
     return members
 
@@ -216,7 +244,13 @@ def _item_dict(
         'has_access': has_access,
         'requires_access': item.requires_content_access(),
         'is_group_parent': item.is_group_parent(),
-        'group_members': _group_members_dict(item, request, catalog, subscriber),
+        'group_members': _group_members_dict(
+            item,
+            request,
+            catalog,
+            subscriber,
+            include_content_urls=include_content_urls or has_access,
+        ),
     }
 
 
@@ -483,7 +517,7 @@ def catalog_item_detail(request, public_id, slug):
     init_data = _init_data_from_request(request)
     subscriber = _resolve_subscriber(catalog, init_data) if init_data else None
     item = get_object_or_404(
-        CatalogItem.objects.prefetch_related('media', 'group_members__child'),
+        CatalogItem.objects.prefetch_related('media', 'group_members__child__media'),
         workspace=catalog.workspace,
         platform=catalog.platform,
         slug=slug,
@@ -506,7 +540,7 @@ def catalog_item_content(request, public_id, slug):
     if not subscriber:
         return _json_error('احراز هویت لازم است', 401)
     item = get_object_or_404(
-        CatalogItem.objects.prefetch_related('media', 'group_members__child'),
+        CatalogItem.objects.prefetch_related('media', 'group_members__child__media'),
         workspace=catalog.workspace,
         platform=catalog.platform,
         slug=slug,

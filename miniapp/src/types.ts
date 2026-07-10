@@ -320,10 +320,13 @@ export interface GroupMember {
   item_type: string;
   price: number | null;
   is_buyable: boolean;
+  is_downloadable?: boolean;
   is_preview: boolean;
   has_access: boolean;
   locked: boolean;
   image?: string;
+  download_url?: string;
+  media?: ItemMedia[];
 }
 
 export interface Category {

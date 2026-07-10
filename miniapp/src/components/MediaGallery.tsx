@@ -106,13 +106,11 @@ export function MediaGallery({ item }: { item: CatalogItem }) {
                   </div>
                 </div>
               ) : (
-                <a
+                <button
                   key={file.id}
-                  href={file.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download
-                  className="card flex items-center gap-3 p-3.5 transition active:scale-[0.98]"
+                  type="button"
+                  className="card flex w-full items-center gap-3 p-3.5 text-right transition active:scale-[0.98]"
+                  onClick={() => openExternal(file.url)}
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary-soft)] text-primary">
                     <IconFile className="h-5 w-5" />
@@ -121,7 +119,7 @@ export function MediaGallery({ item }: { item: CatalogItem }) {
                     {file.title || fileNameFromUrl(file.url)}
                   </div>
                   <IconDownload className="h-4 w-4 shrink-0 text-muted" />
-                </a>
+                </button>
               ),
             )}
           </div>
