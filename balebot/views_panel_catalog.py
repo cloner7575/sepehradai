@@ -26,6 +26,7 @@ from balebot.models import (
     CatalogCategory,
     CatalogItem,
     CatalogItemMedia,
+    CatalogItemMember,
     CatalogOrder,
     CatalogSettings,
     DiscountCode,
@@ -1029,6 +1030,25 @@ class CatalogItemUpdateView(MiniAppPanelMixin, UpdateView):
         ctx['item_status'] = _catalog_item_status(self.object, ctx.get('form'))
         ctx['item_type_guides_json'] = json.dumps(ITEM_TYPE_GUIDES, ensure_ascii=False)
         ctx['item_wizard_mode'] = False
+        if self.object.is_group_parent():
+            ctx['group_members'] = (
+                self.object.group_members.select_related('child').order_by('sort_order', 'id')
+            )
+            child_type = (
+                CatalogItem.ItemType.VIDEO
+                if self.object.item_type == CatalogItem.ItemType.COURSE
+                else CatalogItem.ItemType.DOWNLOAD
+            )
+            member_ids = self.object.group_members.values_list('child_id', flat=True)
+            ctx['available_group_children'] = CatalogItem.objects.filter(
+                workspace=self.object.workspace,
+                platform=self.object.platform,
+                item_type=child_type,
+                is_active=True,
+            ).exclude(pk__in=member_ids).exclude(pk=self.object.pk).order_by('title')
+        else:
+            ctx['group_members'] = []
+            ctx['available_group_children'] = []
         return ctx
 
     def form_valid(self, form):
@@ -1046,6 +1066,8 @@ class CatalogItemUpdateView(MiniAppPanelMixin, UpdateView):
         return redirect(self.get_success_url())
 
     def get_success_url(self):
+        if self.object and self.object.pk:
+            return reverse('catalog_item_edit', kwargs={'pk': self.object.pk})
         return reverse('catalog_item_list')
 
 
@@ -1066,6 +1088,165 @@ class CatalogItemMediaDeleteView(MiniAppPanelMixin, View):
         media = get_object_or_404(CatalogItemMedia, pk=media_pk, item=item)
         media.delete()
         messages.success(request, 'رسانه حذف شد.')
+        return redirect('catalog_item_edit', pk=pk)
+
+
+class CatalogItemMemberAddView(MiniAppPanelMixin, View):
+    http_method_names = ['post']
+
+    def post(self, request, pk):
+        item = get_object_or_404(CatalogItem.objects.filter(**self.scope_filter()), pk=pk)
+        if not item.is_group_parent():
+            messages.error(request, 'فقط دوره یا پکیج می‌تواند عضو داشته باشد.')
+            return redirect('catalog_item_edit', pk=pk)
+        child_id = request.POST.get('child_id')
+        if not child_id:
+            messages.error(request, 'یک آیتم برای افزودن انتخاب کنید.')
+            return redirect('catalog_item_edit', pk=pk)
+        child = get_object_or_404(
+            CatalogItem,
+            pk=child_id,
+            workspace=item.workspace,
+            platform=item.platform,
+            is_active=True,
+        )
+        expected_type = (
+            CatalogItem.ItemType.VIDEO
+            if item.item_type == CatalogItem.ItemType.COURSE
+            else CatalogItem.ItemType.DOWNLOAD
+        )
+        if child.normalized_item_type() != expected_type:
+            messages.error(request, f'نوع آیتم انتخاب‌شده باید {expected_type} باشد.')
+            return redirect('catalog_item_edit', pk=pk)
+        sort_order = item.group_members.count()
+        CatalogItemMember.objects.get_or_create(
+            parent=item,
+            child=child,
+            defaults={'sort_order': sort_order},
+        )
+        messages.success(request, f'«{child.title}» اضافه شد.')
+        return redirect('catalog_item_edit', pk=pk)
+
+
+class CatalogItemMemberDeleteView(MiniAppPanelMixin, View):
+    http_method_names = ['post']
+
+    def post(self, request, pk, member_pk):
+        item = get_object_or_404(CatalogItem.objects.filter(**self.scope_filter()), pk=pk)
+        member = get_object_or_404(CatalogItemMember, pk=member_pk, parent=item)
+        member.delete()
+        messages.success(request, 'عضو حذف شد.')
+        return redirect('catalog_item_edit', pk=pk)
+
+
+class CatalogItemExternalMediaCreateView(MiniAppPanelMixin, View):
+    http_method_names = ['post']
+
+    def post(self, request, pk):
+        item = get_object_or_404(CatalogItem.objects.filter(**self.scope_filter()), pk=pk)
+        external_url = (request.POST.get('external_url') or '').strip()
+        title = (request.POST.get('media_title') or '').strip()
+        media_type = (request.POST.get('media_type') or 'video').strip()
+        if not external_url:
+            messages.error(request, 'لینک رسانه را وارد کنید.')
+            return redirect('catalog_item_edit', pk=pk)
+        if media_type not in (
+            CatalogItemMedia.MediaType.VIDEO,
+            CatalogItemMedia.MediaType.FILE,
+            CatalogItemMedia.MediaType.IMAGE,
+        ):
+            media_type = CatalogItemMedia.MediaType.VIDEO
+        sort_order = item.media.count()
+        CatalogItemMedia.objects.create(
+            item=item,
+            external_url=external_url,
+            media_type=media_type,
+            title=title,
+            sort_order=sort_order,
+        )
+        messages.success(request, 'رسانه با لینک خارجی اضافه شد.')
+        return redirect('catalog_item_edit', pk=pk)
+
+
+class CatalogItemMemberCreateWithUploadView(MiniAppPanelMixin, View):
+    http_method_names = ['post']
+
+    def post(self, request, pk):
+        from balebot.services.slug_utils import resolve_model_slug
+
+        parent = get_object_or_404(CatalogItem.objects.filter(**self.scope_filter()), pk=pk)
+        if not parent.is_group_parent():
+            messages.error(request, 'فقط دوره یا پکیج می‌تواند عضو داشته باشد.')
+            return redirect('catalog_item_edit', pk=pk)
+
+        title = (request.POST.get('lesson_title') or '').strip()
+        if not title:
+            messages.error(request, 'عنوان قسمت را وارد کنید.')
+            return redirect('catalog_item_edit', pk=pk)
+
+        external_url = (request.POST.get('lesson_external_url') or '').strip()
+        video_file = request.FILES.get('lesson_video')
+        lesson_file = request.FILES.get('lesson_file')
+
+        if parent.item_type == CatalogItem.ItemType.COURSE:
+            if not video_file and not external_url:
+                messages.error(request, 'فایل ویدیو را آپلود کنید یا لینک مستقیم وارد کنید.')
+                return redirect('catalog_item_edit', pk=pk)
+            child_type = CatalogItem.ItemType.VIDEO
+        else:
+            if not lesson_file and not external_url:
+                messages.error(request, 'فایل را آپلود کنید یا لینک مستقیم وارد کنید.')
+                return redirect('catalog_item_edit', pk=pk)
+            child_type = CatalogItem.ItemType.DOWNLOAD
+
+        slug = resolve_model_slug(
+            CatalogItem,
+            title,
+            workspace=parent.workspace,
+            platform=parent.platform,
+            fallback='lesson',
+            max_length=220,
+        )
+        child = CatalogItem.objects.create(
+            workspace=parent.workspace,
+            platform=parent.platform,
+            title=title,
+            slug=slug,
+            item_type=child_type,
+            sale_mode=CatalogItem.SaleMode.REQUEST_ONLY,
+            is_active=True,
+        )
+
+        if parent.item_type == CatalogItem.ItemType.COURSE:
+            if video_file:
+                CatalogItemMedia.objects.create(
+                    item=child,
+                    file=video_file,
+                    media_type=detect_media_type(video_file.name),
+                    title=title,
+                )
+            elif external_url:
+                CatalogItemMedia.objects.create(
+                    item=child,
+                    external_url=external_url,
+                    media_type=CatalogItemMedia.MediaType.VIDEO,
+                    title=title,
+                )
+        else:
+            if lesson_file:
+                child.download_file = lesson_file
+                child.save(update_fields=['download_file'])
+            elif external_url:
+                child.download_link = external_url
+                child.save(update_fields=['download_link'])
+
+        sort_order = parent.group_members.count()
+        CatalogItemMember.objects.create(
+            parent=parent,
+            child=child,
+            sort_order=sort_order,
+        )
+        messages.success(request, f'«{title}» با موفقیت اضافه شد.')
         return redirect('catalog_item_edit', pk=pk)
 
 

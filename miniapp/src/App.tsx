@@ -11,6 +11,7 @@ import { ItemPage } from './pages/ItemPage';
 import { CartPage } from './pages/CartPage';
 import { CardToCardPaymentPage } from './pages/CardToCardPaymentPage';
 import { FlashSalePage } from './pages/FlashSalePage';
+import { LibraryPage } from './pages/LibraryPage';
 import { ChannelGate } from './components/ChannelGate';
 import { IconAlert } from './components/Icons';
 
@@ -97,6 +98,7 @@ function AppRoutes() {
       <Route path="/category/:slug" element={<CategoryPage />} />
       <Route path="/sale" element={<FlashSalePage />} />
       <Route path="/item/:slug" element={<ItemPage />} />
+      <Route path="/library" element={<LibraryPage />} />
       <Route path="/cart" element={<CartPage />} />
       <Route path="/payment/:orderId" element={<CardToCardPaymentPage />} />
     </Routes>

@@ -1,0 +1,504 @@
+{
+  "version": 1,
+  "kind": "store_templates",
+  "templates": [
+    {
+      "slug": "gifted-school",
+      "name": "آموزشگاه تیزهوشان",
+      "industry": "education",
+      "description": "قالب آماده فروش دوره‌های آمادگی آزمون تیزهوشان — دوره ویدیویی، پکیج فایل، دانلود پولی و درخواست مشاوره",
+      "sort_order": 1,
+      "is_active": true,
+      "data": {
+        "settings": {
+          "hero_title": "آمادگی تیزهوشان؛ مسیر موفقیت دانش‌آموزان",
+          "hero_subtitle": "دوره‌های ویدیویی، آزمون آزمایشی و مشاوره رایگان",
+          "theme": {
+            "primary": "#2563EB",
+            "accent": "#7C3AED",
+            "background": "#F8FAFC",
+            "font": "Vazirmatn",
+            "layout": "grid"
+          },
+          "labels": {
+            "buy": "ثبت‌نام دوره",
+            "add_to_cart": "افزودن به سبد",
+            "request_quote": "مشاوره رایگان",
+            "cart": "سبد خرید",
+            "checkout": "تکمیل ثبت‌نام",
+            "download": "دانلود فایل",
+            "categories": "دوره‌ها"
+          },
+          "checkout_form": {
+            "enabled": true,
+            "title": "اطلاعات تماس",
+            "fields": [
+              {
+                "key": "full_name",
+                "label": "نام و نام خانوادگی",
+                "type": "text",
+                "required": true,
+                "enabled": true
+              },
+              {
+                "key": "phone",
+                "label": "شماره تماس",
+                "type": "tel",
+                "required": true,
+                "enabled": true
+              },
+              {
+                "key": "grade",
+                "label": "پایه تحصیلی",
+                "type": "text",
+                "required": false,
+                "enabled": true
+              },
+              {
+                "key": "note",
+                "label": "توضیحات",
+                "type": "textarea",
+                "required": false,
+                "enabled": true
+              }
+            ]
+          },
+          "home_blocks": [
+            {
+              "id": "b_a1b2c3d4",
+              "type": "announcement_bar",
+              "text": "🎓 ثبت‌نام دوره‌های آمادگی تیزهوشان آغاز شد",
+              "bg": "#2563EB",
+              "color": "#FFFFFF",
+              "dismissible": true
+            },
+            {
+              "id": "b_11223344",
+              "type": "hero",
+              "variant": "banner"
+            },
+            {
+              "id": "b_abcdef12",
+              "type": "categories",
+              "title": "انتخاب پایه تحصیلی",
+              "columns": 2,
+              "limit": 8
+            },
+            {
+              "id": "b_99887766",
+              "type": "featured",
+              "title": "دوره‌های ویژه",
+              "limit": 4,
+              "layout": "grid"
+            },
+            {
+              "id": "b_bundle_courses",
+              "type": "bundle",
+              "title": "پکیج دوره‌های کامل",
+              "badge": "صرفه‌جویی",
+              "item_slugs": ["sixth-complete-course", "ninth-complete-course"],
+              "bundle_price": 17800000
+            },
+            {
+              "id": "b_carousel_video",
+              "type": "product_carousel",
+              "title": "ویدیوهای آموزشی",
+              "source": "category",
+              "category": "iq-class",
+              "limit": 6
+            },
+            {
+              "id": "b_55443322",
+              "type": "video",
+              "title": "نمونه تدریس",
+              "url": "https://example.com/sample-video.mp4",
+              "poster": "https://example.com/poster.jpg"
+            },
+            {
+              "id": "b_aabbccdd",
+              "type": "testimonials",
+              "title": "نظر دانش‌آموزان",
+              "items": [
+                {
+                  "name": "دانش‌آموز پایه ششم",
+                  "text": "دوره‌های هوش و استعداد تحلیلی بسیار کامل و مفید بود.",
+                  "rating": 5
+                }
+              ]
+            },
+            {
+              "id": "b_1234abcd",
+              "type": "faq",
+              "title": "سوالات متداول",
+              "items": [
+                {
+                  "q": "بعد از خرید دوره چطور به ویدیوها دسترسی دارم؟",
+                  "a": "بلافاصله پس از پرداخت موفق، از بخش کتابخانه در مینی‌اپ یا همان صفحه دوره به قسمت‌ها دسترسی پیدا می‌کنید."
+                },
+                {
+                  "q": "آیا دوره‌ها پشتیبانی دارند؟",
+                  "a": "بله، تمامی دوره‌ها دارای پشتیبانی آموزشی و رفع اشکال هستند."
+                }
+              ]
+            },
+            {
+              "id": "b_00112233",
+              "type": "trust_badges",
+              "items": [
+                { "icon": "👨‍🏫", "label": "مدرسین حرفه‌ای" },
+                { "icon": "📝", "label": "آزمون‌های استاندارد" },
+                { "icon": "🎧", "label": "پشتیبانی آموزشی" },
+                { "icon": "📚", "label": "کتابخانه دیجیتال" }
+              ]
+            }
+          ]
+        },
+        "bot_settings": {
+          "collect_contact_on_start": true,
+          "start_message_contact": "برای دریافت مشاوره رایگان و اطلاع از دوره‌های مناسب، شماره تماس خود را ارسال کنید."
+        },
+        "categories": [
+          {
+            "slug": "sixth-grade",
+            "name": "دوره تیزهوشان پایه ششم",
+            "icon": "📘",
+            "sort_order": 1,
+            "parent": null
+          },
+          {
+            "slug": "ninth-grade",
+            "name": "دوره تیزهوشان پایه نهم",
+            "icon": "📗",
+            "sort_order": 2,
+            "parent": null
+          },
+          {
+            "slug": "iq-class",
+            "name": "کلاس هوش و استعداد تحلیلی",
+            "icon": "🧠",
+            "sort_order": 3,
+            "parent": null
+          },
+          {
+            "slug": "mock-exam",
+            "name": "آزمون‌های آزمایشی",
+            "icon": "📝",
+            "sort_order": 4,
+            "parent": null
+          },
+          {
+            "slug": "free-content",
+            "name": "منابع رایگان",
+            "icon": "📚",
+            "sort_order": 5,
+            "parent": null
+          }
+        ],
+        "items": [
+          {
+            "slug": "sixth-lesson-intro",
+            "name": "قسمت ۱ — مقدمه آزمون ششم",
+            "short_description": "آشنایی با ساختار آزمون و برنامه‌ریزی",
+            "category": "sixth-grade",
+            "item_type": "video",
+            "sale_mode": "both",
+            "price": 1200000,
+            "is_featured": true,
+            "description": "ویدیوی مقدمه دوره تیزهوشان پایه ششم — پیش‌نمایش رایگان در دوره کامل",
+            "media": [
+              {
+                "type": "video",
+                "external_url": "https://example.com/sixth-intro.mp4",
+                "title": "ویدیو مقدمه"
+              }
+            ]
+          },
+          {
+            "slug": "sixth-lesson-logic",
+            "name": "قسمت ۲ — استدلال منطقی",
+            "short_description": "حل مسائل استدلال با روش گام‌به‌گام",
+            "category": "sixth-grade",
+            "item_type": "video",
+            "sale_mode": "buyable",
+            "price": 1500000,
+            "description": "آموزش کامل استدلال منطقی برای آزمون تیزهوشان ششم",
+            "media": [
+              {
+                "type": "video",
+                "external_url": "https://example.com/sixth-logic.mp4",
+                "title": "ویدیو استدلال منطقی"
+              }
+            ]
+          },
+          {
+            "slug": "sixth-lesson-analytical",
+            "name": "قسمت ۳ — استعداد تحلیلی",
+            "short_description": "تکنیک‌های حل سریع سوالات تحلیلی",
+            "category": "sixth-grade",
+            "item_type": "video",
+            "sale_mode": "buyable",
+            "price": 1500000,
+            "description": "آموزش استعداد تحلیلی با تمرین‌های هدفمند",
+            "media": [
+              {
+                "type": "video",
+                "external_url": "https://example.com/sixth-analytical.mp4",
+                "title": "ویدیو استعداد تحلیلی"
+              }
+            ]
+          },
+          {
+            "slug": "sixth-complete-course",
+            "name": "دوره جامع تیزهوشان ششم",
+            "short_description": "همه قسمت‌های ویدیویی + پشتیبانی",
+            "category": "sixth-grade",
+            "item_type": "course",
+            "sale_mode": "buyable",
+            "price": 8900000,
+            "compare_at_price": 9900000,
+            "is_featured": true,
+            "description": "دوره کامل آمادگی آزمون تیزهوشان ششم — با خرید دوره به همه قسمت‌ها دسترسی دارید.",
+            "members": [
+              { "child": "sixth-lesson-intro", "is_preview": true },
+              { "child": "sixth-lesson-logic" },
+              { "child": "sixth-lesson-analytical" }
+            ]
+          },
+          {
+            "slug": "ninth-lesson-intro",
+            "name": "قسمت ۱ — مقدمه آزمون نهم",
+            "short_description": "مرور کلی ساختار آزمون نهم",
+            "category": "ninth-grade",
+            "item_type": "video",
+            "sale_mode": "both",
+            "price": 1400000,
+            "description": "ویدیوی مقدمه دوره نهم",
+            "media": [
+              {
+                "type": "video",
+                "external_url": "https://example.com/ninth-intro.mp4",
+                "title": "ویدیو مقدمه نهم"
+              }
+            ]
+          },
+          {
+            "slug": "ninth-lesson-math",
+            "name": "قسمت ۲ — ریاضی و هوش",
+            "short_description": "حل سوالات ترکیبی ریاضی",
+            "category": "ninth-grade",
+            "item_type": "video",
+            "sale_mode": "buyable",
+            "price": 1800000,
+            "description": "آموزش ریاضی و هوش برای آزمون تیزهوشان نهم",
+            "media": [
+              {
+                "type": "video",
+                "external_url": "https://example.com/ninth-math.mp4",
+                "title": "ویدیو ریاضی"
+              }
+            ]
+          },
+          {
+            "slug": "ninth-complete-course",
+            "name": "دوره جامع تیزهوشان نهم",
+            "short_description": "پکیج کامل ویدیوهای پایه نهم",
+            "category": "ninth-grade",
+            "item_type": "course",
+            "sale_mode": "buyable",
+            "price": 9900000,
+            "is_featured": true,
+            "description": "دوره کامل آمادگی آزمون تیزهوشان نهم",
+            "members": [
+              { "child": "ninth-lesson-intro", "is_preview": true },
+              { "child": "ninth-lesson-math" }
+            ]
+          },
+          {
+            "slug": "mock-exam-booklet",
+            "name": "دفترچه آزمون آزمایشی ۱",
+            "short_description": "PDF سوالات استاندارد",
+            "category": "mock-exam",
+            "item_type": "download",
+            "sale_mode": "buyable",
+            "price": 800000,
+            "description": "دفترچه سوالات آزمون آزمایشی با کلید تشریحی",
+            "download_link": "https://example.com/mock-exam-1.pdf"
+          },
+          {
+            "slug": "mock-exam-answer",
+            "name": "پاسخنامه تشریحی آزمون ۱",
+            "short_description": "PDF پاسخنامه کامل",
+            "category": "mock-exam",
+            "item_type": "download",
+            "sale_mode": "buyable",
+            "price": 700000,
+            "description": "پاسخنامه تشریحی گام‌به‌گام",
+            "download_link": "https://example.com/mock-answer-1.pdf"
+          },
+          {
+            "slug": "mock-test-package",
+            "name": "پکیج آزمون‌های آزمایشی",
+            "short_description": "دفترچه + پاسخنامه با تخفیف",
+            "category": "mock-exam",
+            "item_type": "package",
+            "sale_mode": "buyable",
+            "price": 1500000,
+            "compare_at_price": 1800000,
+            "is_featured": false,
+            "description": "پکیج کامل آزمون آزمایشی — با یک خرید به همه فایل‌ها دسترسی دارید.",
+            "members": [
+              { "child": "mock-exam-booklet" },
+              { "child": "mock-exam-answer" }
+            ]
+          },
+          {
+            "slug": "free-study-guide",
+            "name": "راهنمای مطالعه رایگان",
+            "short_description": "PDF برنامه‌ریزی هفتگی",
+            "category": "free-content",
+            "item_type": "download",
+            "sale_mode": "request_only",
+            "description": "فایل رایگان برنامه‌ریزی مطالعه برای آزمون تیزهوشان",
+            "download_link": "https://example.com/free-study-guide.pdf"
+          },
+          {
+            "slug": "free-iq-test",
+            "name": "آزمون تعیین سطح رایگان",
+            "short_description": "ثبت‌نام و مشاوره",
+            "category": "free-content",
+            "item_type": "showcase",
+            "sale_mode": "request_only",
+            "description": "برای شرکت در آزمون تعیین سطح رایگان و دریافت مشاوره، درخواست ثبت کنید."
+          }
+        ],
+        "start_flow": {
+          "version": 2,
+          "root": {
+            "type": "sequence",
+            "items": [
+              {
+                "type": "text",
+                "text": "سلام 👋\nبه آموزشگاه تیزهوشان خوش آمدید.\nبا کمک ما می‌توانید بهترین مسیر آمادگی آزمون را انتخاب کنید."
+              },
+              {
+                "type": "buttons",
+                "rows": [
+                  [
+                    {
+                      "id": "n_course_selection",
+                      "label": "🎓 انتخاب دوره",
+                      "action": {
+                        "type": "webapp",
+                        "label": "انتخاب دوره",
+                        "target": {
+                          "kind": "home",
+                          "value": ""
+                        }
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_placement_test",
+                      "label": "📝 آزمون تعیین سطح",
+                      "action": {
+                        "type": "webapp",
+                        "label": "آزمون تعیین سطح",
+                        "target": {
+                          "kind": "item",
+                          "value": "free-iq-test"
+                        }
+                      }
+                    },
+                    {
+                      "id": "n_free_consultation",
+                      "label": "👨‍🏫 مشاوره رایگان",
+                      "action": {
+                        "type": "request_contact",
+                        "prompt": "برای دریافت مشاوره رایگان، شماره تماس خود را ارسال کنید.",
+                        "assign_tag": "consultation_request"
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_sample_video",
+                      "label": "🎥 نمونه تدریس",
+                      "action": {
+                        "type": "webapp",
+                        "label": "نمونه تدریس",
+                        "target": {
+                          "kind": "item",
+                          "value": "sixth-lesson-intro"
+                        }
+                      }
+                    },
+                    {
+                      "id": "n_library",
+                      "label": "📚 کتابخانه من",
+                      "action": {
+                        "type": "webapp",
+                        "label": "کتابخانه",
+                        "target": {
+                          "kind": "url",
+                          "value": "{shop_url}library"
+                        }
+                      }
+                    }
+                  ],
+                  [
+                    {
+                      "id": "n_faq",
+                      "label": "❓ سوالات متداول",
+                      "action": {
+                        "type": "faq",
+                        "title": "سوالات پرتکرار",
+                        "items": [
+                          {
+                            "q": "بعد از خرید چطور ویدیو ببینم؟",
+                            "a": "از منوی مینی‌اپ وارد کتابخانه شوید یا صفحه دوره را باز کنید."
+                          },
+                          {
+                            "q": "آیا امکان پرداخت اقساطی وجود دارد؟",
+                            "a": "برای اطلاع از شرایط اقساط با پشتیبانی در ارتباط باشید."
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        "marketing": {
+          "welcome_discount": {
+            "code": "SMART10",
+            "kind": "percent",
+            "value": 10
+          },
+          "campaigns": [
+            {
+              "title": "خوش آمدگویی دانش‌آموز جدید",
+              "trigger": "welcome",
+              "content_type": "text",
+              "body": "🎁 برای شروع مسیر آمادگی تیزهوشان، کد تخفیف SMART10 فعال شد."
+            },
+            {
+              "title": "یادآوری ثبت‌نام",
+              "trigger": "abandoned_cart",
+              "content_type": "text",
+              "body": "هنوز ثبت‌نام دوره را کامل نکرده‌اید. مشاوران ما آماده راهنمایی شما هستند."
+            },
+            {
+              "title": "دسترسی به کتابخانه",
+              "trigger": "seasonal",
+              "content_type": "text",
+              "body": "دوره‌های خریداری‌شده در بخش کتابخانه مینی‌اپ در دسترس شماست."
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

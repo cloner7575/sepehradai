@@ -1,17 +1,33 @@
 import { useState } from 'react';
 import type { CatalogItem } from '../types';
 import { getItemFiles, getItemImages, getItemVideos } from '../utils/media';
-import { IconDownload, IconFile, IconPackage, IconPlay } from './Icons';
+import { IconDownload, IconFile, IconLock, IconPackage, IconPlay } from './Icons';
 import { fileNameFromUrl } from '../utils/media';
 import { SafeImage } from './SafeImage';
+import { useApp } from '../App';
+
+function LockedOverlay({ label }: { label: string }) {
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/55 text-white">
+      <IconLock className="h-8 w-8" />
+      <span className="text-xs font-medium">{label}</span>
+    </div>
+  );
+}
 
 export function MediaGallery({ item }: { item: CatalogItem }) {
+  const { adapter } = useApp();
   const images = getItemImages(item);
   const videos = getItemVideos(item);
   const files = getItemFiles(item);
   const [imgIdx, setImgIdx] = useState(0);
 
   const hasVisual = images.length > 0 || videos.length > 0;
+  const lockedLabel = item.requires_access && !item.has_access ? 'پس از خرید قابل مشاهده' : '';
+
+  const openExternal = (url: string) => {
+    if (url) adapter.openLink(url);
+  };
 
   return (
     <div className="space-y-4">
@@ -45,17 +61,33 @@ export function MediaGallery({ item }: { item: CatalogItem }) {
       )}
 
       {videos.map((video) => (
-        <div key={video.id} className="overflow-hidden rounded-2xl border border-border bg-black">
-          <video
-            src={video.url}
-            controls
-            playsInline
-            preload="metadata"
-            className="aspect-video w-full"
-            poster={images[0]}
-          >
-            مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
-          </video>
+        <div key={video.id} className="relative overflow-hidden rounded-2xl border border-border bg-black">
+          {video.locked || !video.url ? (
+            <div className="relative aspect-video w-full bg-neutral-900">
+              <LockedOverlay label={lockedLabel || 'ویدیو قفل است'} />
+            </div>
+          ) : video.url.includes('youtube.com') || video.url.includes('youtu.be') || video.url.includes('vimeo.com') ? (
+            <button
+              type="button"
+              className="flex aspect-video w-full items-center justify-center gap-2 bg-neutral-900 text-white"
+              onClick={() => openExternal(video.url)}
+            >
+              <IconPlay className="h-10 w-10" />
+              <span className="text-sm font-medium">پخش در مرورگر</span>
+            </button>
+          ) : (
+            <video
+              src={video.url}
+              controls
+              playsInline
+              preload="metadata"
+              className="aspect-video w-full"
+              poster={images[0]}
+            >
+              مرورگر شما از پخش ویدیو پشتیبانی نمی‌کند.
+            </video>
+          )}
+          {video.title && <div className="bg-[var(--color-bg)] px-3 py-2 text-sm font-medium">{video.title}</div>}
         </div>
       ))}
 
@@ -63,24 +95,35 @@ export function MediaGallery({ item }: { item: CatalogItem }) {
         <div>
           <div className="section-title mb-3">فایل‌های قابل دانلود</div>
           <div className="space-y-2">
-            {files.map((file) => (
-              <a
-                key={file.id}
-                href={file.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                download
-                className="card flex items-center gap-3 p-3.5 transition active:scale-[0.98]"
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary-soft)] text-primary">
-                  <IconFile className="h-5 w-5" />
+            {files.map((file) =>
+              file.locked || !file.url ? (
+                <div key={file.id} className="card flex items-center gap-3 p-3.5 opacity-80">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-muted">
+                    <IconLock className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1 truncate text-sm font-semibold text-muted">
+                    {file.title || 'فایل قفل‌شده'}
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1 truncate text-sm font-semibold">
-                  {file.title || fileNameFromUrl(file.url)}
-                </div>
-                <IconDownload className="h-4 w-4 shrink-0 text-muted" />
-              </a>
-            ))}
+              ) : (
+                <a
+                  key={file.id}
+                  href={file.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  className="card flex items-center gap-3 p-3.5 transition active:scale-[0.98]"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary-soft)] text-primary">
+                    <IconFile className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1 truncate text-sm font-semibold">
+                    {file.title || fileNameFromUrl(file.url)}
+                  </div>
+                  <IconDownload className="h-4 w-4 shrink-0 text-muted" />
+                </a>
+              ),
+            )}
           </div>
         </div>
       )}
@@ -126,6 +169,11 @@ export function ItemThumbnail({ item }: { item: CatalogItem }) {
         <div className="flex h-full items-center justify-center text-white/80">
           <IconPlay className="h-9 w-9" />
         </div>
+        {item.requires_access && !item.has_access && (
+          <div className="absolute bottom-1 left-1 rounded-md bg-black/60 p-1 text-white">
+            <IconLock className="h-3.5 w-3.5" />
+          </div>
+        )}
       </div>
     );
   }

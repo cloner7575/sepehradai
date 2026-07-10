@@ -17,12 +17,23 @@ from balebot.models import (
     CatalogCategory,
     CatalogItem,
     CatalogItemMedia,
+    CatalogItemMember,
     CatalogOrder,
     CatalogSettings,
     Platform,
     Subscriber,
 )
 from balebot.services import catalog_payment, miniapp_auth
+from balebot.services.catalog_access import (
+    media_is_locked,
+    subscriber_entitled_item_ids,
+    subscriber_has_item_access,
+)
+from balebot.services.catalog_access_tokens import (
+    append_media_token,
+    issue_media_token,
+    verify_media_token,
+)
 from balebot.services.checkout_form import public_checkout_form, validate_customer_data
 from balebot.services.catalog_media import (
     absolute_media_url,
@@ -64,27 +75,116 @@ def _json_error(message: str, status: int = 400) -> JsonResponse:
     return JsonResponse({'ok': False, 'error': message}, status=status)
 
 
-def _media_dict(media: CatalogItemMedia, request=None, catalog=None) -> dict:
-    url = media.file.url if media.file else ''
-    if request:
-        url = absolute_media_url(request, url, catalog=catalog)
+def _init_data_from_request(request) -> str:
+    if request.method == 'GET':
+        return (request.GET.get('initData') or request.GET.get('init_data') or '').strip()
+    body = _parse_body(request) if request.body else {}
+    return (body.get('initData') or body.get('init_data') or '').strip()
+
+
+def _media_dict(
+    media: CatalogItemMedia,
+    request=None,
+    catalog=None,
+    *,
+    item: CatalogItem | None = None,
+    subscriber: Subscriber | None = None,
+    include_urls: bool = True,
+) -> dict:
+    locked = False
+    url = ''
+    external = (media.external_url or '').strip()
+    if item is not None:
+        locked = media_is_locked(item, media, subscriber)
+    if include_urls and not locked:
+        if media.file:
+            url = absolute_media_url(request, media.file.url, catalog=catalog)
+            if subscriber and media.media_type in (
+                CatalogItemMedia.MediaType.VIDEO,
+                CatalogItemMedia.MediaType.FILE,
+            ):
+                token = issue_media_token(subscriber_id=subscriber.pk, media_id=media.pk)
+                url = append_media_token(url, token)
+        elif external:
+            url = external
     return {
         'id': media.pk,
         'type': media.media_type,
         'url': url,
+        'external_url': external if not locked else '',
         'title': media.title or '',
+        'locked': locked,
     }
 
 
-def _item_dict(item: CatalogItem, request=None, catalog=None) -> dict:
-    media_list = [_media_dict(m, request, catalog) for m in item.media.all()]
-    images = [m['url'] for m in media_list if m['type'] == CatalogItemMedia.MediaType.IMAGE]
+def _group_members_dict(
+    item: CatalogItem,
+    request=None,
+    catalog=None,
+    subscriber: Subscriber | None = None,
+) -> list[dict]:
+    if not item.is_group_parent():
+        return []
+    members = []
+    for member in item.group_members.select_related('child').order_by('sort_order', 'id'):
+        child = member.child
+        if not child.is_active:
+            continue
+        has_access = subscriber_has_item_access(subscriber, child) or member.is_preview
+        members.append({
+            'id': child.pk,
+            'slug': child.slug,
+            'title': child.title,
+            'short_description': child.short_description,
+            'item_type': child.normalized_item_type(),
+            'price': child.price,
+            'is_buyable': child.is_buyable(),
+            'is_preview': member.is_preview,
+            'has_access': has_access,
+            'locked': child.requires_content_access() and not has_access,
+            'image': _first_item_image_url(child, request, catalog),
+        })
+    return members
+
+
+def _item_dict(
+    item: CatalogItem,
+    request=None,
+    catalog=None,
+    *,
+    subscriber: Subscriber | None = None,
+    include_content_urls: bool = False,
+) -> dict:
+    has_access = subscriber_has_item_access(subscriber, item)
+    media_list = [
+        _media_dict(
+            m,
+            request,
+            catalog,
+            item=item,
+            subscriber=subscriber,
+            include_urls=include_content_urls or has_access,
+        )
+        for m in item.media.all()
+    ]
+    images = [m['url'] for m in media_list if m['type'] == CatalogItemMedia.MediaType.IMAGE and m['url']]
     cover_url = ''
     if item.cover:
         cover_url = absolute_media_url(request, item.cover.url, catalog=catalog)
         if cover_url and cover_url not in images:
             images.insert(0, cover_url)
-    download_url = item.resolve_download_url(request, catalog) if item.is_downloadable() else ''
+    download_url = ''
+    if item.is_downloadable():
+        if has_access or item.is_free_content():
+            download_url = item.resolve_download_url(request, catalog)
+            if (
+                download_url
+                and subscriber
+                and item.download_file
+                and item.requires_content_access()
+            ):
+                token = issue_media_token(subscriber_id=subscriber.pk, media_id=-item.pk)
+                download_url = append_media_token(download_url, token)
     flash_active = item.is_flash_sale_active()
     return {
         'id': item.pk,
@@ -113,6 +213,10 @@ def _item_dict(item: CatalogItem, request=None, catalog=None) -> dict:
         'download_url': download_url,
         'category_id': item.category_id,
         'category_slug': item.category.slug if item.category else None,
+        'has_access': has_access,
+        'requires_access': item.requires_content_access(),
+        'is_group_parent': item.is_group_parent(),
+        'group_members': _group_members_dict(item, request, catalog, subscriber),
     }
 
 
@@ -226,11 +330,62 @@ def catalog_media_file(request, public_id, file_path):
     full = resolve_media_file(file_path)
     if full is None:
         raise Http404('فایل یافت نشد')
+
+    rel = file_path.replace('\\', '/').lstrip('/')
+    if rel.startswith('catalog/items/covers/'):
+        pass
+    else:
+        access_token = (request.GET.get('access_token') or '').strip()
+        media = (
+            CatalogItemMedia.objects.filter(file=rel)
+            .select_related('item')
+            .first()
+        )
+        if media is None:
+            media = CatalogItemMedia.objects.filter(file__endswith=rel).select_related('item').first()
+        if media and media.media_type in (
+            CatalogItemMedia.MediaType.VIDEO,
+            CatalogItemMedia.MediaType.FILE,
+        ):
+            if media.item.requires_content_access():
+                sub_id = _token_subscriber_id(access_token, media_id=media.pk)
+                if sub_id is None or not subscriber_has_item_access(
+                    Subscriber.objects.filter(pk=sub_id).first(),
+                    media.item,
+                ):
+                    return _json_error('دسترسی به این فایل مجاز نیست', 403)
+        else:
+            item = CatalogItem.objects.filter(download_file=rel).first()
+            if item is None:
+                item = CatalogItem.objects.filter(download_file__endswith=rel).first()
+            if item and item.requires_content_access():
+                sub_id = _token_subscriber_id(access_token, media_id=-item.pk)
+                if sub_id is None or not subscriber_has_item_access(
+                    Subscriber.objects.filter(pk=sub_id).first(),
+                    item,
+                ):
+                    return _json_error('دسترسی به این فایل مجاز نیست', 403)
+
     response = FileResponse(full.open('rb'), content_type=guess_content_type(full))
     response['Access-Control-Allow-Origin'] = '*'
     response['Cross-Origin-Resource-Policy'] = 'cross-origin'
-    response['Cache-Control'] = 'public, max-age=86400'
+    response['Cache-Control'] = 'private, max-age=3600'
     return response
+
+
+def _token_subscriber_id(token: str, *, media_id: int) -> int | None:
+    if not token:
+        return None
+    parts = token.split(':')
+    if len(parts) != 4:
+        return None
+    try:
+        sub_id = int(parts[0])
+    except ValueError:
+        return None
+    if verify_media_token(token, subscriber_id=sub_id, media_id=media_id):
+        return sub_id
+    return None
 
 
 @require_http_methods(['GET'])
@@ -323,14 +478,79 @@ def catalog_item_detail(request, public_id, slug):
     catalog, err = _resolve_catalog(public_id)
     if err:
         return err
+    init_data = _init_data_from_request(request)
+    subscriber = _resolve_subscriber(catalog, init_data) if init_data else None
     item = get_object_or_404(
-        CatalogItem.objects.prefetch_related('media'),
+        CatalogItem.objects.prefetch_related('media', 'group_members__child'),
         workspace=catalog.workspace,
         platform=catalog.platform,
         slug=slug,
         is_active=True,
     )
-    return JsonResponse({'ok': True, 'item': _item_dict(item, request, catalog)})
+    return JsonResponse({
+        'ok': True,
+        'item': _item_dict(item, request, catalog, subscriber=subscriber),
+    })
+
+
+@csrf_exempt
+@require_http_methods(['GET', 'POST'])
+def catalog_item_content(request, public_id, slug):
+    catalog, err = _resolve_catalog(public_id)
+    if err:
+        return err
+    init_data = _init_data_from_request(request)
+    subscriber = _resolve_subscriber(catalog, init_data)
+    if not subscriber:
+        return _json_error('احراز هویت لازم است', 401)
+    item = get_object_or_404(
+        CatalogItem.objects.prefetch_related('media', 'group_members__child'),
+        workspace=catalog.workspace,
+        platform=catalog.platform,
+        slug=slug,
+        is_active=True,
+    )
+    return JsonResponse({
+        'ok': True,
+        'item': _item_dict(
+            item,
+            request,
+            catalog,
+            subscriber=subscriber,
+            include_content_urls=True,
+        ),
+    })
+
+
+@csrf_exempt
+@require_http_methods(['GET', 'POST'])
+def catalog_library(request, public_id):
+    catalog, err = _resolve_catalog(public_id)
+    if err:
+        return err
+    init_data = _init_data_from_request(request)
+    subscriber = _resolve_subscriber(catalog, init_data)
+    if not subscriber:
+        return _json_error('احراز هویت لازم است', 401)
+    entitled_ids = subscriber_entitled_item_ids(subscriber)
+    if not entitled_ids:
+        return JsonResponse({'ok': True, 'items': []})
+    qs = (
+        CatalogItem.objects.filter(
+            workspace=catalog.workspace,
+            platform=catalog.platform,
+            is_active=True,
+            pk__in=entitled_ids,
+        )
+        .exclude(item_type__in=[CatalogItem.ItemType.COURSE, CatalogItem.ItemType.PACKAGE])
+        .prefetch_related('media')
+        .order_by('-updated_at')
+    )
+    items = [
+        _item_dict(i, request, catalog, subscriber=subscriber, include_content_urls=True)
+        for i in qs
+    ]
+    return JsonResponse({'ok': True, 'items': items})
 
 
 @csrf_exempt
@@ -672,6 +892,11 @@ def catalog_request(request, public_id):
     )
     if not order:
         return _json_error('ثبت درخواست ناموفق')
+    try:
+        cfg = BotSettings.get_for_platform(catalog.workspace, catalog.platform)
+        catalog_payment.submit_request_order(order, catalog, cfg, sub)
+    except Exception:
+        logger.exception('Failed to process request notifications for order %s', order.pk)
     return JsonResponse({'ok': True, 'order_id': order.pk, 'status': 'request'})
 
 

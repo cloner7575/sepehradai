@@ -224,6 +224,26 @@ urlpatterns = [
         views_panel_catalog.CatalogItemMediaDeleteView.as_view(),
         name='catalog_item_media_delete',
     ),
+    path(
+        'catalog/items/<int:pk>/media/external/',
+        views_panel_catalog.CatalogItemExternalMediaCreateView.as_view(),
+        name='catalog_item_external_media',
+    ),
+    path(
+        'catalog/items/<int:pk>/members/add/',
+        views_panel_catalog.CatalogItemMemberAddView.as_view(),
+        name='catalog_item_member_add',
+    ),
+    path(
+        'catalog/items/<int:pk>/members/<int:member_pk>/delete/',
+        views_panel_catalog.CatalogItemMemberDeleteView.as_view(),
+        name='catalog_item_member_delete',
+    ),
+    path(
+        'catalog/items/<int:pk>/members/upload/',
+        views_panel_catalog.CatalogItemMemberCreateWithUploadView.as_view(),
+        name='catalog_item_member_upload',
+    ),
     path('catalog/orders/', views_panel_catalog.CatalogOrderListView.as_view(), name='catalog_order_list'),
     path('catalog/orders/<int:pk>/', views_panel_catalog.CatalogOrderDetailView.as_view(), name='catalog_order_detail'),
     path(
@@ -245,6 +265,12 @@ urlpatterns = [
     path('api/shop/<uuid:public_id>/categories/', views_miniapp_api.catalog_categories, name='api_catalog_categories'),
     path('api/shop/<uuid:public_id>/items/', views_miniapp_api.catalog_items, name='api_catalog_items'),
     path('api/shop/<uuid:public_id>/items/<slug:slug>/', views_miniapp_api.catalog_item_detail, name='api_catalog_item_detail'),
+    path(
+        'api/shop/<uuid:public_id>/items/<slug:slug>/content/',
+        views_miniapp_api.catalog_item_content,
+        name='api_catalog_item_content',
+    ),
+    path('api/shop/<uuid:public_id>/library/', views_miniapp_api.catalog_library, name='api_catalog_library'),
     path('api/shop/<uuid:public_id>/auth/validate/', views_miniapp_api.catalog_auth_validate, name='api_catalog_auth'),
     path('api/shop/<uuid:public_id>/cart/', views_miniapp_api.catalog_cart, name='api_catalog_cart'),
     path('api/shop/<uuid:public_id>/checkout/', views_miniapp_api.catalog_checkout, name='api_catalog_checkout'),

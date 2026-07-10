@@ -43,13 +43,19 @@
     var guide = TYPE_GUIDES[type] || TYPE_GUIDES.product;
     if (guide && Object.keys(guide).length) return guide;
     if (type === 'download') {
-      return { label: 'فایل دانلود', show_commerce: false, show_download_block: true, default_sale_mode: 'request_only' };
+      return { label: 'فایل دانلود', show_commerce: true, show_download_block: true, default_sale_mode: 'both' };
     }
     if (type === 'showcase') {
       return { label: 'معرفی و نمونه\u200cکار', show_commerce: false, show_download_block: false, default_sale_mode: 'request_only' };
     }
     if (type === 'video') {
-      return { label: 'ویدیو و آموزش', show_commerce: true, show_download_block: false, default_sale_mode: 'request_only' };
+      return { label: 'ویدیو و آموزش', show_commerce: true, show_download_block: false, default_sale_mode: 'both' };
+    }
+    if (type === 'course') {
+      return { label: 'دوره آموزشی', show_commerce: true, show_download_block: false, default_sale_mode: 'buyable' };
+    }
+    if (type === 'package') {
+      return { label: 'پکیج فایل', show_commerce: true, show_download_block: false, default_sale_mode: 'buyable' };
     }
     return { label: 'محصول', show_commerce: true, show_download_block: false, default_sale_mode: 'both' };
   }
@@ -205,6 +211,7 @@
     setBlockVisible(document.getElementById('commerce-download-hint'), type === 'download');
     setBlockVisible(document.getElementById('commerce-showcase-hint'), type === 'showcase');
     setBlockVisible(document.getElementById('commerce-video-hint'), type === 'video');
+    setBlockVisible(document.getElementById('group-members-block'), type === 'course' || type === 'package');
 
     if (commercePanel) {
       commercePanel.classList.toggle('settings-block-hidden', !showCommerce && type !== 'video');

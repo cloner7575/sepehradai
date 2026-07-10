@@ -1139,6 +1139,8 @@ class CatalogItem(models.Model):
         PRODUCT = 'product', 'محصول'
         DOWNLOAD = 'download', 'فایل دانلود'
         VIDEO = 'video', 'ویدیو و آموزش'
+        COURSE = 'course', 'دوره آموزشی'
+        PACKAGE = 'package', 'پکیج فایل'
         SHOWCASE = 'showcase', 'معرفی و نمونه‌کار'
 
     class SaleMode(models.TextChoices):
@@ -1266,9 +1268,33 @@ class CatalogItem(models.Model):
             return absolute_media_url(request, self.download_file.url, catalog=catalog)
         return (self.download_link or '').strip()
 
+    def is_free_content(self) -> bool:
+        """محتوای دیجیتال بدون نیاز به خرید در دسترس است."""
+        item_type = self.normalized_item_type()
+        if item_type == self.ItemType.SHOWCASE:
+            return True
+        if item_type in (self.ItemType.COURSE, self.ItemType.PACKAGE):
+            return not (self.price and self.price > 0)
+        if item_type in (self.ItemType.DOWNLOAD, self.ItemType.VIDEO):
+            return not (self.price and self.price > 0)
+        return False
+
+    def requires_content_access(self) -> bool:
+        item_type = self.normalized_item_type()
+        if item_type in (self.ItemType.COURSE, self.ItemType.PACKAGE):
+            return bool(self.price and self.price > 0)
+        if item_type == self.ItemType.DOWNLOAD:
+            return self.is_downloadable() and bool(self.price and self.price > 0)
+        if item_type == self.ItemType.VIDEO:
+            return bool(self.price and self.price > 0)
+        return False
+
+    def is_group_parent(self) -> bool:
+        return self.normalized_item_type() in (self.ItemType.COURSE, self.ItemType.PACKAGE)
+
     def is_buyable(self) -> bool:
         item_type = self.normalized_item_type()
-        if item_type in (self.ItemType.DOWNLOAD, self.ItemType.SHOWCASE):
+        if item_type == self.ItemType.SHOWCASE:
             return False
         if self.sale_mode == self.SaleMode.REQUEST_ONLY:
             return False
@@ -1310,7 +1336,13 @@ class CatalogItemMedia(models.Model):
         on_delete=models.CASCADE,
         related_name='media',
     )
-    file = models.FileField(upload_to='catalog/items/%Y/%m/')
+    file = models.FileField(upload_to='catalog/items/%Y/%m/', blank=True, null=True)
+    external_url = models.URLField(
+        max_length=500,
+        blank=True,
+        default='',
+        help_text='لینک مستقیم ویدیو یا فایل (جایگزین آپلود)',
+    )
     media_type = models.CharField(
         max_length=8,
         choices=MediaType.choices,
@@ -1327,6 +1359,100 @@ class CatalogItemMedia(models.Model):
 
     def __str__(self):
         return f'{self.item_id} — {self.media_type} — {self.sort_order}'
+
+    def resolve_source_url(self, request=None, catalog=None) -> str:
+        if self.file:
+            from balebot.services.catalog_media import absolute_media_url
+
+            return absolute_media_url(request, self.file.url, catalog=catalog)
+        return (self.external_url or '').strip()
+
+    def has_source(self) -> bool:
+        return bool(self.file) or bool((self.external_url or '').strip())
+
+
+class CatalogItemMember(models.Model):
+    """عضویت آیتم در دوره یا پکیج."""
+
+    parent = models.ForeignKey(
+        CatalogItem,
+        on_delete=models.CASCADE,
+        related_name='group_members',
+    )
+    child = models.ForeignKey(
+        CatalogItem,
+        on_delete=models.CASCADE,
+        related_name='member_of_groups',
+    )
+    sort_order = models.PositiveIntegerField(default=0)
+    is_preview = models.BooleanField(
+        default=False,
+        help_text='پیش‌نمایش رایگان حتی بدون خرید',
+    )
+
+    class Meta:
+        ordering = ['sort_order', 'id']
+        verbose_name = 'عضو دوره/پکیج'
+        verbose_name_plural = 'اعضای دوره/پکیج'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['parent', 'child'],
+                name='unique_catalog_item_member',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.parent_id} → {self.child_id}'
+
+
+class CatalogEntitlement(models.Model):
+    """دسترسی کاربر به محتوای دیجیتال پس از خرید."""
+
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name='catalog_entitlements',
+        db_index=True,
+    )
+    platform = models.CharField(
+        max_length=16,
+        choices=Platform.choices,
+        default=Platform.BALE,
+        db_index=True,
+    )
+    subscriber = models.ForeignKey(
+        'Subscriber',
+        on_delete=models.CASCADE,
+        related_name='catalog_entitlements',
+    )
+    item = models.ForeignKey(
+        CatalogItem,
+        on_delete=models.CASCADE,
+        related_name='entitlements',
+    )
+    source_order_line = models.ForeignKey(
+        'CatalogOrderLine',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='entitlements',
+    )
+    granted_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-granted_at']
+        verbose_name = 'دسترسی محتوا'
+        verbose_name_plural = 'دسترسی‌های محتوا'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['subscriber', 'item'],
+                name='unique_catalog_entitlement_per_subscriber_item',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.subscriber_id} → {self.item_id}'
 
 
 def _order_public_token() -> str:

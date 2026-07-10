@@ -14,6 +14,8 @@ from balebot.models import (
     Campaign,
     CatalogCategory,
     CatalogItem,
+    CatalogItemMedia,
+    CatalogItemMember,
     CatalogSettings,
     DiscountCode,
     StoreTemplate,
@@ -135,9 +137,15 @@ def _map_item_type(raw: str) -> str:
     return CatalogItem.ItemType.PRODUCT
 
 
-def _map_sale_mode(raw: str, item_type: str) -> str:
+def _map_sale_mode(raw: str, item_type: str, *, price: int | None = None) -> str:
     value = (raw or '').strip().lower()
+    if item_type in (CatalogItem.ItemType.COURSE, CatalogItem.ItemType.PACKAGE):
+        return CatalogItem.SaleMode.BUYABLE
     if item_type == CatalogItem.ItemType.SHOWCASE:
+        return CatalogItem.SaleMode.REQUEST_ONLY
+    if value == 'download':
+        if item_type == CatalogItem.ItemType.DOWNLOAD and price and price > 0:
+            return CatalogItem.SaleMode.BUYABLE
         return CatalogItem.SaleMode.REQUEST_ONLY
     if value in ('quote', 'request', 'request_only'):
         return CatalogItem.SaleMode.REQUEST_ONLY
@@ -225,7 +233,12 @@ def _apply_miniapp_template(
         )
     catalog.theme_config = {**(catalog.theme_config or {}), **theme_patch}
     catalog.labels = {**(catalog.labels or {}), **_map_labels(settings_data.get('labels') or {})}
-    catalog.save(update_fields=['hero_title', 'hero_subtitle', 'theme_config', 'labels', 'updated_at'])
+    checkout_raw = settings_data.get('checkout_form')
+    if checkout_raw is not None:
+        from balebot.services.checkout_form import sanitize_checkout_form
+
+        catalog.checkout_form = sanitize_checkout_form(checkout_raw)
+    catalog.save(update_fields=['hero_title', 'hero_subtitle', 'theme_config', 'labels', 'checkout_form', 'updated_at'])
 
     category_by_slug: dict[str, CatalogCategory] = {}
     categories_created = 0
@@ -272,9 +285,11 @@ def _apply_miniapp_template(
             categories_created += 1
 
     items_created = 0
-    for row in data.get('items') or []:
-        if not isinstance(row, dict):
-            continue
+    pending_members: list[tuple[str, list[dict[str, Any]]]] = []
+    pending_media: list[tuple[str, list[dict[str, Any]]]] = []
+    item_rows = [row for row in (data.get('items') or []) if isinstance(row, dict)]
+
+    for row in item_rows:
         slug = resolve_model_slug(
             CatalogItem,
             row.get('name') or row.get('title') or '',
@@ -293,19 +308,20 @@ def _apply_miniapp_template(
                 workspace=workspace, platform=platform, slug=cat_slug,
             ).first()
         item_type = _map_item_type(row.get('item_type') or 'product')
-        sale_mode = _map_sale_mode(row.get('sale_mode') or 'buy', item_type)
         price_raw = row.get('price')
         price = int(price_raw) if price_raw not in (None, '') else None
+        sale_mode = _map_sale_mode(row.get('sale_mode') or 'buy', item_type, price=price)
         if item_type == CatalogItem.ItemType.SHOWCASE and sale_mode == CatalogItem.SaleMode.REQUEST_ONLY:
             price = price if price and price > 0 else None
         stock = row.get('stock')
         stock_val = int(stock) if stock is not None else None
-        CatalogItem.objects.create(
+        item = CatalogItem.objects.create(
             workspace=workspace,
             platform=platform,
             category=category,
             title=(row.get('name') or slug)[:200],
             slug=slug,
+            short_description=(row.get('short_description') or '')[:300],
             description=(row.get('description') or '')[:5000],
             item_type=item_type,
             sale_mode=sale_mode,
@@ -313,10 +329,64 @@ def _apply_miniapp_template(
             compare_at_price=int(row['compare_at_price']) if row.get('compare_at_price') not in (None, '') else None,
             sales_count=max(0, int(row.get('sales_count') or 0)),
             stock=stock_val,
+            download_link=(row.get('download_link') or '')[:500],
             is_featured=bool(row.get('is_featured')),
             is_active=True,
         )
         items_created += 1
+        members_raw = row.get('members') or []
+        if members_raw:
+            pending_members.append((slug, members_raw))
+        media_raw = row.get('media') or []
+        if media_raw:
+            pending_media.append((slug, media_raw))
+
+    item_by_slug = {
+        i.slug: i
+        for i in CatalogItem.objects.filter(workspace=workspace, platform=platform)
+    }
+    for parent_slug, members_raw in pending_members:
+        parent = item_by_slug.get(parent_slug)
+        if not parent:
+            continue
+        for idx, member_row in enumerate(members_raw):
+            if isinstance(member_row, str):
+                child_slug = member_row
+                is_preview = False
+            elif isinstance(member_row, dict):
+                child_slug = (member_row.get('child') or member_row.get('slug') or '').strip()
+                is_preview = bool(member_row.get('is_preview'))
+            else:
+                continue
+            child = item_by_slug.get(child_slug)
+            if not child or child.pk == parent.pk:
+                continue
+            CatalogItemMember.objects.get_or_create(
+                parent=parent,
+                child=child,
+                defaults={'sort_order': idx, 'is_preview': is_preview},
+            )
+
+    for item_slug, media_rows in pending_media:
+        item = item_by_slug.get(item_slug)
+        if not item:
+            continue
+        for idx, media_row in enumerate(media_rows):
+            if not isinstance(media_row, dict):
+                continue
+            media_type = (media_row.get('type') or 'video').strip().lower()
+            if media_type not in dict(CatalogItemMedia.MediaType.choices):
+                media_type = CatalogItemMedia.MediaType.VIDEO
+            external_url = (media_row.get('external_url') or media_row.get('url') or '').strip()
+            if not external_url:
+                continue
+            CatalogItemMedia.objects.create(
+                item=item,
+                media_type=media_type,
+                external_url=external_url[:500],
+                title=(media_row.get('title') or '')[:200],
+                sort_order=int(media_row.get('sort_order') or idx),
+            )
 
     return {
         'categories_created': categories_created,

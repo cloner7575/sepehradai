@@ -649,8 +649,14 @@ class CatalogItemForm(forms.ModelForm):
                 raise forms.ValidationError(
                     'برای نوع «فایل دانلود»، فایل را آپلود کنید یا لینک مستقیم دانلود را وارد کنید.',
                 )
-            cleaned['sale_mode'] = CatalogItem.SaleMode.REQUEST_ONLY
-            cleaned['price'] = None
+            if cleaned.get('sale_mode') == CatalogItem.SaleMode.REQUEST_ONLY:
+                cleaned['price'] = None
+            elif not cleaned.get('price'):
+                self.add_error('price', 'برای فروش فایل، قیمت را وارد کنید.')
+        elif item_type in (CatalogItem.ItemType.COURSE, CatalogItem.ItemType.PACKAGE):
+            cleaned['sale_mode'] = CatalogItem.SaleMode.BUYABLE
+            if not cleaned.get('price'):
+                self.add_error('price', 'برای فروش دوره/پکیج، قیمت را وارد کنید.')
         elif item_type == CatalogItem.ItemType.SHOWCASE:
             cleaned['sale_mode'] = CatalogItem.SaleMode.REQUEST_ONLY
             cleaned['price'] = None

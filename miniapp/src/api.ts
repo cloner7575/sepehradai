@@ -71,9 +71,26 @@ export async function fetchItems(params?: {
   return data.items;
 }
 
-export async function fetchItem(slug: string) {
-  const data = await request<{ item: CatalogItem }>(`/items/${slug}/`);
+export async function fetchItem(slug: string, initData?: string) {
+  const qs = initData ? `?initData=${encodeURIComponent(initData)}` : '';
+  const data = await request<{ item: CatalogItem }>(`/items/${slug}${qs}`);
   return data.item;
+}
+
+export async function fetchItemContent(slug: string, initData: string) {
+  const data = await request<{ item: CatalogItem }>(`/items/${slug}/content/`, {
+    method: 'POST',
+    body: JSON.stringify({ initData }),
+  });
+  return data.item;
+}
+
+export async function fetchLibrary(initData: string) {
+  const data = await request<{ items: CatalogItem[] }>('/library/', {
+    method: 'POST',
+    body: JSON.stringify({ initData }),
+  });
+  return data.items;
 }
 
 export async function fetchCart(

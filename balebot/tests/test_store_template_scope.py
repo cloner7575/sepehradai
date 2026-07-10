@@ -77,6 +77,36 @@ class ApplyTemplateScopeTests(TestCase):
         self.assertEqual(bot.start_flow, {})
         self.assertFalse(Campaign.objects.filter(workspace=self.workspace, title='کمپین نمونه').exists())
 
+    def test_miniapp_applies_course_members_and_media(self):
+        data = {
+            'settings': {'hero_title': 'آموزش'},
+            'categories': [],
+            'items': [
+                {
+                    'slug': 'lesson-1',
+                    'name': 'درس ۱',
+                    'item_type': 'video',
+                    'price': 1000,
+                    'media': [{'type': 'video', 'external_url': 'https://example.com/a.mp4'}],
+                },
+                {
+                    'slug': 'course-1',
+                    'name': 'دوره ۱',
+                    'item_type': 'course',
+                    'price': 5000,
+                    'members': [{'child': 'lesson-1', 'is_preview': True}],
+                },
+            ],
+        }
+        tpl = StoreTemplate.objects.create(slug='course-tpl', name='Course', industry='education', data=data)
+        stats = apply_template(tpl, self.workspace, self.platform, mode='replace', scope='miniapp')
+        self.assertEqual(stats['items_created'], 2)
+        course = CatalogItem.objects.get(slug='course-1')
+        lesson = CatalogItem.objects.get(slug='lesson-1')
+        self.assertEqual(course.item_type, CatalogItem.ItemType.COURSE)
+        self.assertTrue(course.group_members.filter(child=lesson, is_preview=True).exists())
+        self.assertTrue(lesson.media.filter(external_url__contains='example.com').exists())
+
     def test_bot_scope_applies_bot_not_catalog(self):
         CatalogCategory.objects.create(
             workspace=self.workspace,

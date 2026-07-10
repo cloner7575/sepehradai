@@ -19,6 +19,7 @@ from balebot.models import (
     DiscountCode,
     Subscriber,
 )
+from balebot.services.catalog_entitlements import grant_order_entitlements
 from balebot.services import messenger_api
 from balebot.services.card_to_card import build_card_to_card_payload
 from balebot.services.catalog_currency import format_toman_label
@@ -317,6 +318,11 @@ def mark_order_paid(order: CatalogOrder) -> CatalogOrder:
     except messenger_api.MessengerAPIError:
         logger.exception('Failed to notify after order payment')
 
+    try:
+        grant_order_entitlements(order)
+    except Exception:
+        logger.exception('Failed to grant entitlements for order %s', order.pk)
+
     if order.subscriber_id:
         clear_subscriber_cart(
             workspace=order.workspace,
@@ -370,6 +376,54 @@ def submit_admin_cart_order(
         platform=catalog.platform,
         subscriber=subscriber,
     )
+
+
+def submit_request_order(
+    order: CatalogOrder,
+    catalog: CatalogSettings,
+    cfg: BotSettings,
+    subscriber: Subscriber,
+) -> None:
+    """اعلان درخواست تماس/مشاوره به ادمین و تأیید به کاربر."""
+    user_label = subscriber.first_name or subscriber.username or str(subscriber.messenger_user_id)
+    phone = subscriber.phone_number or '—'
+    customer_block = format_customer_data_for_message(catalog.checkout_form, order.customer_data or {})
+    note = (order.note or '').strip()
+    lines_text = _format_order_lines(order)
+
+    text = (
+        f'📩 درخواست جدید #{order.pk}\n'
+        f'کاربر: {user_label}\n'
+        f'شماره: {phone}\n'
+        f'شناسه کاربر: {subscriber.messenger_user_id}\n'
+    )
+    if note:
+        text += f'\n📝 یادداشت: {note}\n'
+    if customer_block:
+        text += f'\n📋 اطلاعات تماس:\n{customer_block}\n'
+    if lines_text and lines_text != '—':
+        text += f'\n📦 آیتم:\n{lines_text}\n'
+
+    if catalog.admin_notify_chat_id:
+        try:
+            messenger_api.send_message(
+                cfg.platform,
+                catalog.admin_notify_chat_id,
+                text,
+                settings=cfg,
+            )
+        except messenger_api.MessengerAPIError:
+            logger.exception('Failed to notify admin about request order %s', order.pk)
+
+    ack = (
+        f'✅ درخواست شما ثبت شد.\n'
+        f'شماره پیگیری: #{order.pk}\n'
+        f'به‌زودی با شما تماس گرفته می‌شود.'
+    )
+    try:
+        messenger_api.send_message(cfg.platform, subscriber.chat_id, ack, settings=cfg)
+    except messenger_api.MessengerAPIError:
+        logger.exception('Failed to ack request order %s to subscriber', order.pk)
 
 
 def start_card_to_card_checkout(
@@ -490,11 +544,11 @@ def handle_web_app_data(cfg: BotSettings, msg: dict[str, Any]) -> None:
         note=note,
     )
     if order:
-        ack = 'درخواست شما ثبت شد. شماره پیگیری: #%s' % order.pk
         try:
-            messenger_api.send_message(cfg.platform, sub.chat_id, ack, settings=cfg)
-        except messenger_api.MessengerAPIError:
-            pass
+            catalog = CatalogSettings.get_for_platform(cfg.workspace, cfg.platform)
+            submit_request_order(order, catalog, cfg, sub)
+        except Exception:
+            logger.exception('Failed to process web_app request order %s', order.pk)
 
 
 def get_or_create_cart(workspace, platform: str, subscriber: Subscriber) -> CatalogCart:

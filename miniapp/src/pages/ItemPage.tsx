@@ -1,27 +1,53 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { fetchItem, formatPrice, submitRequest, updateCart } from '../api';
+import { fetchItem, fetchItemContent, formatPrice, submitRequest, updateCart } from '../api';
 import { useApp } from '../App';
 import { CartQuantityControl } from '../components/CartQuantityControl';
+import { CheckoutForm, useCheckoutForm } from '../components/CheckoutForm';
 import { MediaGallery } from '../components/MediaGallery';
-import { IconCart, IconDownload, IconPackage } from '../components/Icons';
+import { IconCart, IconDownload, IconLock, IconPackage } from '../components/Icons';
 import { fileNameFromUrl } from '../utils/media';
-import { itemTypeLabel, isShowcaseType } from '../utils/itemType';
+import { itemTypeLabel, isGroupParentType, isShowcaseType } from '../utils/itemType';
+import type { CatalogItem } from '../types';
 
 export function ItemPage() {
   const { slug } = useParams();
   const { config, adapter, refreshCart, cartItems } = useApp();
-  const [item, setItem] = useState<Awaited<ReturnType<typeof fetchItem>> | null>(null);
+  const [item, setItem] = useState<CatalogItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [requestError, setRequestError] = useState('');
+  const [requestDone, setRequestDone] = useState(false);
   const labels = config?.labels || {};
+  const requestForm = useCheckoutForm(config?.checkout_form);
 
   useEffect(() => {
     if (!slug) return;
-    fetchItem(slug)
-      .then(setItem)
-      .finally(() => setLoading(false));
-  }, [slug]);
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      try {
+        const preview = await fetchItem(slug, adapter.initData || undefined);
+        if (cancelled) return;
+        if (adapter.initData && preview.requires_access) {
+          try {
+            const unlocked = await fetchItemContent(slug, adapter.initData);
+            if (!cancelled) setItem(unlocked);
+            return;
+          } catch {
+            if (!cancelled) setItem(preview);
+            return;
+          }
+        }
+        if (!cancelled) setItem(preview);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, adapter.initData]);
 
   useEffect(() => {
     refreshCart();
@@ -44,14 +70,25 @@ export function ItemPage() {
 
   const requestItem = async () => {
     if (!item) return;
+    if (!adapter.initData) {
+      setRequestError('برای ثبت درخواست باید از داخل بله/تلگرام وارد شوید.');
+      return;
+    }
+    if (requestForm.hasForm && !requestForm.validate()) {
+      setRequestError('لطفاً اطلاعات تماس را کامل کنید.');
+      return;
+    }
     setBusy(true);
+    setRequestError('');
     try {
-      if (adapter.initData) {
-        await submitRequest(adapter.initData, { item_id: item.id, note: 'درخواست از صفحه آیتم' });
-      } else {
-        adapter.sendData(JSON.stringify({ item_id: item.id, note: 'درخواست' }));
-      }
-      alert('درخواست شما ثبت شد');
+      await submitRequest(adapter.initData, {
+        item_id: item.id,
+        note: 'درخواست از صفحه آیتم',
+        customer_data: requestForm.customerData,
+      });
+      setRequestDone(true);
+    } catch (e: unknown) {
+      setRequestError(e instanceof Error ? e.message : 'ثبت درخواست ناموفق بود');
     } finally {
       setBusy(false);
     }
@@ -63,8 +100,12 @@ export function ItemPage() {
   };
 
   const showcase = item ? isShowcaseType(item.item_type) : false;
+  const groupParent = item ? isGroupParentType(item.item_type) : false;
   const showBuy = item?.is_buyable && config?.can_purchase !== false;
-  const showDownload = item?.is_downloadable && item.download_url;
+  const showDownload = Boolean(item?.is_downloadable && item.download_url);
+  const showLockedDownload = Boolean(
+    item?.is_downloadable && item.requires_access && !item.has_access && !item.download_url,
+  );
   const showRequest = item?.is_requestable && config?.is_enabled !== false;
   const lineTotal = item?.price != null && cartQty > 0 ? item.price * cartQty : null;
 
@@ -104,6 +145,13 @@ export function ItemPage() {
         </div>
         <h1 className="mt-2 text-xl font-bold leading-snug tracking-tight">{item.title}</h1>
 
+        {item.requires_access && !item.has_access && !groupParent && (
+          <div className="mt-3 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <IconLock className="h-4 w-4 shrink-0" />
+            برای دسترسی به محتوا، ابتدا خرید کنید.
+          </div>
+        )}
+
         {!showcase && (
           <div className="item-detail-price-row mt-4">
             {item.is_downloadable && item.download_url ? (
@@ -122,8 +170,44 @@ export function ItemPage() {
                 )}
               </>
             ) : (
-              <span className="text-sm font-medium text-muted">تماس بگیرید</span>
+              <span className="text-sm font-medium text-muted">رایگان</span>
             )}
+          </div>
+        )}
+
+        {groupParent && (item.group_members?.length ?? 0) > 0 && (
+          <div className="mt-6">
+            <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">
+              {item.item_type === 'course' ? 'قسمت‌های دوره' : 'فایل‌های پکیج'}
+            </h2>
+            <div className="space-y-2">
+              {item.group_members?.map((member) => (
+                <Link
+                  key={member.id}
+                  to={`/item/${member.slug}`}
+                  className="card flex items-center gap-3 p-3 transition active:scale-[0.98]"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold">{member.title}</div>
+                    {member.short_description && (
+                      <p className="mt-0.5 line-clamp-1 text-xs text-muted">{member.short_description}</p>
+                    )}
+                  </div>
+                  {member.locked ? (
+                    <span className="inline-flex items-center gap-1 text-xs text-muted">
+                      <IconLock className="h-3.5 w-3.5" />
+                      قفل
+                    </span>
+                  ) : member.is_preview ? (
+                    <span className="text-xs font-medium text-primary">پیش‌نمایش</span>
+                  ) : member.has_access ? (
+                    <span className="text-xs font-medium text-emerald-600">باز</span>
+                  ) : member.is_buyable ? (
+                    <span className="text-xs text-muted">{formatPrice(member.price)}</span>
+                  ) : null}
+                </Link>
+              ))}
+            </div>
           </div>
         )}
 
@@ -158,6 +242,31 @@ export function ItemPage() {
               </div>
             ))}
           </dl>
+        )}
+
+        {showRequest && requestForm.hasForm && !requestDone && (
+          <div className="mt-6">
+            <CheckoutForm
+              title={requestForm.title || 'اطلاعات تماس'}
+              fields={requestForm.fields}
+              values={requestForm.values}
+              errors={requestForm.errors}
+              onChange={requestForm.setValue}
+              disabled={busy}
+            />
+          </div>
+        )}
+
+        {requestError && (
+          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            {requestError}
+          </p>
+        )}
+
+        {requestDone && (
+          <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            درخواست شما ثبت شد. به‌زودی با شما تماس گرفته می‌شود.
+          </p>
         )}
       </div>
 
@@ -194,7 +303,15 @@ export function ItemPage() {
             </span>
           </button>
         )}
-        {showRequest && (
+        {showLockedDownload && showBuy && (
+          <button type="button" className="btn-secondary" disabled>
+            <span className="inline-flex items-center justify-center gap-2">
+              <IconLock className="h-4 w-4" />
+              دانلود پس از خرید
+            </span>
+          </button>
+        )}
+        {showRequest && !requestDone && (
           <button
             type="button"
             className={showBuy || showDownload ? 'btn-secondary' : 'btn-primary'}

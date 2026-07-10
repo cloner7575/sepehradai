@@ -307,7 +307,23 @@ export interface ItemMedia {
   id: number;
   type: MediaType;
   url: string;
+  external_url?: string;
   title: string;
+  locked?: boolean;
+}
+
+export interface GroupMember {
+  id: number;
+  slug: string;
+  title: string;
+  short_description: string;
+  item_type: string;
+  price: number | null;
+  is_buyable: boolean;
+  is_preview: boolean;
+  has_access: boolean;
+  locked: boolean;
+  image?: string;
 }
 
 export interface Category {
@@ -344,6 +360,10 @@ export interface CatalogItem {
   download_url: string;
   category_id: number | null;
   category_slug: string | null;
+  has_access?: boolean;
+  requires_access?: boolean;
+  is_group_parent?: boolean;
+  group_members?: GroupMember[];
 }
 
 export interface CartLine {
