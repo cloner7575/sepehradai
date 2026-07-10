@@ -1371,15 +1371,13 @@ class CatalogOrderUpdateView(MiniAppPanelMixin, View):
             ],
         )
 
-        if (
-            order.status == CatalogOrder.Status.PAID
-            and old_status != CatalogOrder.Status.PAID
-        ):
+        if order.status == CatalogOrder.Status.PAID:
             from balebot.services.catalog_payment import mark_order_paid
 
             mark_order_paid(order)
-            if form.cleaned_data['fulfillment_status'] != CatalogOrder.FulfillmentStatus.PAID:
-                order.fulfillment_status = form.cleaned_data['fulfillment_status']
+            desired_fulfillment = form.cleaned_data['fulfillment_status']
+            if order.fulfillment_status != desired_fulfillment:
+                order.fulfillment_status = desired_fulfillment
                 order.save(update_fields=['fulfillment_status', 'updated_at'])
 
         from balebot.services.order_fulfillment import notify_fulfillment_status_change

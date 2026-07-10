@@ -246,89 +246,89 @@ def _format_order_lines(order: CatalogOrder) -> str:
 
 
 def mark_order_paid(order: CatalogOrder) -> CatalogOrder:
-    """پس از پرداخت موفق: وضعیت، موجودی، اعلان‌ها."""
-    if order.status == CatalogOrder.Status.PAID:
-        return order
+    """پس از پرداخت موفق: وضعیت، موجودی، اعلان‌ها و دسترسی محتوا."""
+    already_paid = order.status == CatalogOrder.Status.PAID
 
-    from balebot.models import CatalogItem
+    if not already_paid:
+        from balebot.models import CatalogItem
 
-    with transaction.atomic():
-        order.status = CatalogOrder.Status.PAID
-        order.fulfillment_status = CatalogOrder.FulfillmentStatus.PAID
-        order.save(update_fields=['status', 'fulfillment_status', 'updated_at'])
+        with transaction.atomic():
+            order.status = CatalogOrder.Status.PAID
+            order.fulfillment_status = CatalogOrder.FulfillmentStatus.PAID
+            order.save(update_fields=['status', 'fulfillment_status', 'updated_at'])
 
-        if order.discount_code:
-            DiscountCode.objects.filter(
+            if order.discount_code:
+                DiscountCode.objects.filter(
+                    workspace=order.workspace,
+                    platform=order.platform,
+                    code__iexact=order.discount_code,
+                ).update(used_count=F('used_count') + 1)
+
+            for line in order.lines.select_related('item').all():
+                item = line.item
+                if item is None:
+                    continue
+                if item.stock is not None:
+                    CatalogItem.objects.filter(pk=item.pk, stock__gte=line.quantity).update(
+                        stock=F('stock') - line.quantity,
+                    )
+                CatalogItem.objects.filter(pk=item.pk).update(
+                    sales_count=F('sales_count') + line.quantity,
+                )
+
+        try:
+            catalog = CatalogSettings.get_for_platform(order.workspace, order.platform)
+            cfg = BotSettings.get_for_platform(order.workspace, order.platform)
+            sub = order.subscriber
+            if sub:
+                if order.payment_method == CatalogSettings.PaymentMethod.CARD_TO_CARD:
+                    customer_text = (
+                        f'✅ سفارش شما تأیید شد.\n'
+                        f'شماره سفارش: #{order.pk}\n'
+                        f'مبلغ: {format_toman_label(order.total_amount)}'
+                    )
+                else:
+                    customer_text = (
+                        f'✅ پرداخت شما با موفقیت انجام شد.\n'
+                        f'شماره سفارش: #{order.pk}\n'
+                        f'مبلغ: {format_toman_label(order.total_amount)}'
+                    )
+                messenger_api.send_message(
+                    order.platform,
+                    sub.chat_id,
+                    customer_text,
+                    settings=cfg,
+                )
+            if catalog.admin_notify_chat_id:
+                user_label = '—'
+                if sub:
+                    user_label = sub.first_name or sub.username or str(sub.messenger_user_id)
+                text = (
+                    f'💰 سفارش جدید پرداخت‌شده #{order.pk}\n'
+                    f'کاربر: {user_label}\n'
+                    f'مبلغ: {format_toman_label(order.total_amount)}\n\n'
+                    f'{_format_order_lines(order)}'
+                )
+                messenger_api.send_message(
+                    order.platform,
+                    catalog.admin_notify_chat_id,
+                    text,
+                    settings=cfg,
+                )
+        except messenger_api.MessengerAPIError:
+            logger.exception('Failed to notify after order payment')
+
+        if order.subscriber_id:
+            clear_subscriber_cart(
                 workspace=order.workspace,
                 platform=order.platform,
-                code__iexact=order.discount_code,
-            ).update(used_count=F('used_count') + 1)
-
-        for line in order.lines.select_related('item').all():
-            item = line.item
-            if item is None:
-                continue
-            if item.stock is not None:
-                CatalogItem.objects.filter(pk=item.pk, stock__gte=line.quantity).update(
-                    stock=F('stock') - line.quantity,
-                )
-            CatalogItem.objects.filter(pk=item.pk).update(
-                sales_count=F('sales_count') + line.quantity,
+                subscriber_id=order.subscriber_id,
             )
-
-    try:
-        catalog = CatalogSettings.get_for_platform(order.workspace, order.platform)
-        cfg = BotSettings.get_for_platform(order.workspace, order.platform)
-        sub = order.subscriber
-        if sub:
-            if order.payment_method == CatalogSettings.PaymentMethod.CARD_TO_CARD:
-                customer_text = (
-                    f'✅ سفارش شما تأیید شد.\n'
-                    f'شماره سفارش: #{order.pk}\n'
-                    f'مبلغ: {format_toman_label(order.total_amount)}'
-                )
-            else:
-                customer_text = (
-                    f'✅ پرداخت شما با موفقیت انجام شد.\n'
-                    f'شماره سفارش: #{order.pk}\n'
-                    f'مبلغ: {format_toman_label(order.total_amount)}'
-                )
-            messenger_api.send_message(
-                order.platform,
-                sub.chat_id,
-                customer_text,
-                settings=cfg,
-            )
-        if catalog.admin_notify_chat_id:
-            user_label = '—'
-            if sub:
-                user_label = sub.first_name or sub.username or str(sub.messenger_user_id)
-            text = (
-                f'💰 سفارش جدید پرداخت‌شده #{order.pk}\n'
-                f'کاربر: {user_label}\n'
-                f'مبلغ: {format_toman_label(order.total_amount)}\n\n'
-                f'{_format_order_lines(order)}'
-            )
-            messenger_api.send_message(
-                order.platform,
-                catalog.admin_notify_chat_id,
-                text,
-                settings=cfg,
-            )
-    except messenger_api.MessengerAPIError:
-        logger.exception('Failed to notify after order payment')
 
     try:
         grant_order_entitlements(order)
     except Exception:
         logger.exception('Failed to grant entitlements for order %s', order.pk)
-
-    if order.subscriber_id:
-        clear_subscriber_cart(
-            workspace=order.workspace,
-            platform=order.platform,
-            subscriber_id=order.subscriber_id,
-        )
 
     return order
 

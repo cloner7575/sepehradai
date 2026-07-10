@@ -4,6 +4,25 @@ import { formatPrice } from '../api';
 import { ItemThumbnail } from './MediaGallery';
 import { itemTypeLabel, isShowcaseType, isVideoType } from '../utils/itemType';
 
+function ItemCardPrice({ item, showcase }: { item: CatalogItem; showcase: boolean }) {
+  if (item.price != null && item.price > 0 && !showcase) {
+    return (
+      <div className="flex flex-wrap items-center gap-1.5">
+        {item.compare_at_price && item.compare_at_price > item.price ? (
+          <span className="text-[10px] text-muted line-through">{formatPrice(item.compare_at_price)}</span>
+        ) : null}
+        <span className="price-tag">{formatPrice(item.price)}</span>
+      </div>
+    );
+  }
+  if (item.is_downloadable) {
+    return <span className="text-xs font-semibold text-primary">رایگان</span>;
+  }
+  return (
+    <span className="text-xs font-medium text-muted">{showcase ? 'معرفی' : 'تماس بگیرید'}</span>
+  );
+}
+
 export function ItemCard({
   item,
   compact = false,
@@ -30,18 +49,7 @@ export function ItemCard({
           <span className="item-type-chip">{typeLabel}</span>
           <h3 className="mt-1 text-sm font-bold leading-snug line-clamp-2">{item.title}</h3>
           <div className="mt-1">
-            {item.is_downloadable ? (
-              <span className="text-xs font-semibold text-primary">رایگان</span>
-            ) : item.price && !showcase ? (
-              <div className="flex items-center gap-1.5">
-                {item.compare_at_price && item.compare_at_price > (item.price || 0) ? (
-                  <span className="text-[10px] text-muted line-through">{formatPrice(item.compare_at_price)}</span>
-                ) : null}
-                <span className="price-tag">{formatPrice(item.price)}</span>
-              </div>
-            ) : (
-              <span className="text-xs font-medium text-muted">{showcase ? 'معرفی' : 'تماس بگیرید'}</span>
-            )}
+            <ItemCardPrice item={item} showcase={showcase} />
           </div>
         </div>
       </Link>
@@ -71,18 +79,7 @@ export function ItemCard({
           <p className="product-card-desc">{item.short_description}</p>
         )}
         <div className="product-card-footer">
-          {item.is_downloadable ? (
-            <span className="text-xs font-semibold text-primary">رایگان</span>
-          ) : item.price && !showcase ? (
-            <div className="flex flex-wrap items-center gap-1.5">
-              {item.compare_at_price && item.compare_at_price > (item.price || 0) ? (
-                <span className="text-[10px] text-muted line-through">{formatPrice(item.compare_at_price)}</span>
-              ) : null}
-              <span className="price-tag">{formatPrice(item.price)}</span>
-            </div>
-          ) : (
-            <span className="text-xs font-medium text-muted">{showcase ? 'معرفی' : 'تماس بگیرید'}</span>
-          )}
+          <ItemCardPrice item={item} showcase={showcase} />
           {!compact && <span className="product-card-cta">مشاهده</span>}
         </div>
       </div>

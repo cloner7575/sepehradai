@@ -101,7 +101,8 @@ export function ItemPage() {
 
   const showcase = item ? isShowcaseType(item.item_type) : false;
   const groupParent = item ? isGroupParentType(item.item_type) : false;
-  const showBuy = item?.is_buyable && config?.can_purchase !== false;
+  const showBuy =
+    item?.is_buyable && !item?.has_access && config?.can_purchase !== false;
   const showDownload = Boolean(item?.is_downloadable && item.download_url);
   const showLockedDownload = Boolean(
     item?.is_downloadable && item.requires_access && !item.has_access && !item.download_url,
@@ -149,6 +150,15 @@ export function ItemPage() {
           <div className="mt-3 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
             <IconLock className="h-4 w-4 shrink-0" />
             برای دسترسی به محتوا، ابتدا خرید کنید.
+          </div>
+        )}
+
+        {item.has_access && item.requires_access && (
+          <div className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+            <IconDownload className="h-4 w-4 shrink-0" />
+            {groupParent
+              ? 'شما به این دوره دسترسی دارید. قسمت‌ها را از لیست زیر باز کنید.'
+              : 'شما به این محتوا دسترسی دارید.'}
           </div>
         )}
 

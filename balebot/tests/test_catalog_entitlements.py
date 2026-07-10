@@ -126,6 +126,28 @@ class CatalogEntitlementTests(TestCase):
         mark_order_paid(order)
         self.assertTrue(subscriber_has_item_access(self.sub, self.lesson))
 
+    def test_mark_order_paid_grants_when_order_already_paid(self):
+        """شبیه‌سازی تأیید از پنل: وضعیت قبل از mark_order_paid روی paid ذخیره شده."""
+        order = CatalogOrder.objects.create(
+            workspace=self.workspace,
+            platform=self.platform,
+            subscriber=self.sub,
+            status=CatalogOrder.Status.PAID,
+            total_amount=1_000_000,
+        )
+        CatalogOrderLine.objects.create(
+            order=order,
+            item=self.course,
+            title_snapshot=self.course.title,
+            price_snapshot=self.course.price,
+        )
+        mark_order_paid(order)
+        self.assertTrue(subscriber_has_item_access(self.sub, self.course))
+        self.assertTrue(subscriber_has_item_access(self.sub, self.lesson))
+        self.assertTrue(
+            CatalogEntitlement.objects.filter(subscriber=self.sub, item=self.course).exists()
+        )
+
     def test_media_token_roundtrip(self):
         token = issue_media_token(subscriber_id=self.sub.pk, media_id=42)
         self.assertTrue(verify_media_token(token, subscriber_id=self.sub.pk, media_id=42))
