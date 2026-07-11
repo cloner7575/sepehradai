@@ -1314,6 +1314,12 @@ class CatalogItem(models.Model):
                 return media
         return None
 
+    def primary_video_media(self):
+        for media in self.media.all():
+            if media.media_type == 'video':
+                return media
+        return None
+
     def is_flash_sale_active(self, at=None) -> bool:
         if not self.is_flash_sale:
             return False

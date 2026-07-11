@@ -108,7 +108,10 @@ export function ItemPage() {
   const showLockedDownload = Boolean(
     item?.is_downloadable && item.requires_access && !item.has_access && !item.download_url,
   );
-  const showRequest = item?.is_requestable && config?.is_enabled !== false;
+  const showRequest =
+    item?.is_requestable &&
+    config?.is_enabled !== false &&
+    (showcase || !item?.has_access);
   const lineTotal = item?.price != null && cartQty > 0 ? item.price * cartQty : null;
 
   if (loading) {

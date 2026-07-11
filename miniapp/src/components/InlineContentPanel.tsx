@@ -1,5 +1,6 @@
 import type { CatalogItem, GroupMember, ItemMedia } from '../types';
 import { getItemFiles, getItemVideos, fileNameFromUrl } from '../utils/media';
+import { isEmbeddableVideo, isExternalVideoPage } from '../utils/videoEmbed';
 import { IconDownload, IconFile, IconLock, IconPlay } from './Icons';
 import { useApp } from '../App';
 
@@ -7,10 +8,6 @@ type ContentSource = Pick<
   CatalogItem,
   'media' | 'download_url' | 'is_downloadable' | 'has_access' | 'requires_access'
 > | GroupMember;
-
-function isExternalVideo(url: string) {
-  return url.includes('youtube.com') || url.includes('youtu.be') || url.includes('vimeo.com');
-}
 
 function VideoBlock({ video, poster }: { video: ItemMedia; poster?: string }) {
   const { adapter } = useApp();
@@ -26,7 +23,19 @@ function VideoBlock({ video, poster }: { video: ItemMedia; poster?: string }) {
     );
   }
 
-  if (isExternalVideo(video.url)) {
+  if (isEmbeddableVideo(video)) {
+    return (
+      <iframe
+        src={video.embed_url}
+        title={video.title || 'ویدیو'}
+        className="aspect-video w-full rounded-xl bg-black"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+      />
+    );
+  }
+
+  if (isExternalVideoPage(video.url)) {
     return (
       <button
         type="button"

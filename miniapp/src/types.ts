@@ -307,6 +307,7 @@ export interface ItemMedia {
   id: number;
   type: MediaType;
   url: string;
+  embed_url?: string;
   external_url?: string;
   title: string;
   locked?: boolean;

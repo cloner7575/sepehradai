@@ -4,14 +4,45 @@ from __future__ import annotations
 
 import mimetypes
 import os
+import re
 from pathlib import Path
 from urllib.parse import urlparse
 
 from django.conf import settings
 
+_YOUTUBE_RE = re.compile(
+    r'(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([\w-]{11})',
+)
+_APARAT_RE = re.compile(r'aparat\.com/v/([\w-]+)')
+_VIMEO_RE = re.compile(r'vimeo\.com/(?:video/)?(\d+)')
+
 IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.avif'}
 VIDEO_EXTENSIONS = {'.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v', '.ogv'}
 _ALLOWED_MEDIA_PREFIXES = ('catalog/', 'flow_media/', 'campaigns/', 'inbound/')
+
+
+def video_url_to_embed(url: str) -> str:
+    """تبدیل لینک صفحه ویدیو (یوتیوب، اپارات، …) به URL قابل embed در iframe."""
+    url = (url or '').strip()
+    if not url:
+        return ''
+
+    if 'youtube.com/embed/' in url or 'aparat.com/video/video/embed' in url:
+        return url
+
+    yt = _YOUTUBE_RE.search(url)
+    if yt:
+        return f'https://www.youtube.com/embed/{yt.group(1)}?rel=0'
+
+    ap = _APARAT_RE.search(url)
+    if ap:
+        return f'https://www.aparat.com/video/video/embed/videohash/{ap.group(1)}/vt/frame'
+
+    vm = _VIMEO_RE.search(url)
+    if vm:
+        return f'https://player.vimeo.com/video/{vm.group(1)}'
+
+    return ''
 
 
 def detect_media_type(filename: str) -> str:

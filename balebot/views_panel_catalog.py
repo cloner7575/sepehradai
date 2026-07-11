@@ -1032,7 +1032,9 @@ class CatalogItemUpdateView(MiniAppPanelMixin, UpdateView):
         ctx['item_wizard_mode'] = False
         if self.object.is_group_parent():
             ctx['group_members'] = (
-                self.object.group_members.select_related('child').order_by('sort_order', 'id')
+                self.object.group_members.select_related('child')
+                .prefetch_related('child__media')
+                .order_by('sort_order', 'id')
             )
             child_type = (
                 CatalogItem.ItemType.VIDEO
@@ -1080,6 +1082,69 @@ class CatalogItemDeleteView(MiniAppPanelMixin, View):
         item.delete()
         messages.success(request, f'آیتم «{title}» حذف شد.')
         return redirect('catalog_item_list')
+
+
+def _maybe_delete_orphan_group_child(child: CatalogItem) -> None:
+    """اگر آیتم فقط برای یک دوره/پکیج ساخته شده و دیگر عضوی ندارد، حذفش کن."""
+    if child.member_of_groups.exists():
+        return
+    if child.item_type not in (
+        CatalogItem.ItemType.VIDEO,
+        CatalogItem.ItemType.DOWNLOAD,
+    ):
+        return
+    if child.sale_mode != CatalogItem.SaleMode.REQUEST_ONLY:
+        return
+    child.delete()
+
+
+def _update_child_video_media(child: CatalogItem, *, title: str, video_file=None, external_url: str = '') -> None:
+    media = child.media.filter(media_type=CatalogItemMedia.MediaType.VIDEO).first()
+    if video_file:
+        if media:
+            if media.file:
+                media.file.delete(save=False)
+            media.file = video_file
+            media.external_url = ''
+            media.title = title or media.title
+            media.save()
+        else:
+            CatalogItemMedia.objects.create(
+                item=child,
+                file=video_file,
+                media_type=detect_media_type(video_file.name),
+                title=title,
+            )
+    elif external_url:
+        if media:
+            if media.file:
+                media.file.delete(save=False)
+            media.file = None
+            media.external_url = external_url
+            media.title = title or media.title
+            media.save()
+        else:
+            CatalogItemMedia.objects.create(
+                item=child,
+                external_url=external_url,
+                media_type=CatalogItemMedia.MediaType.VIDEO,
+                title=title,
+            )
+
+
+def _update_child_download_media(child: CatalogItem, *, lesson_file=None, external_url: str = '') -> None:
+    if lesson_file:
+        if child.download_file:
+            child.download_file.delete(save=False)
+        child.download_file = lesson_file
+        child.download_link = ''
+        child.save(update_fields=['download_file', 'download_link'])
+    elif external_url:
+        if child.download_file:
+            child.download_file.delete(save=False)
+        child.download_file = None
+        child.download_link = external_url
+        child.save(update_fields=['download_file', 'download_link'])
 
 
 class CatalogItemMediaDeleteView(MiniAppPanelMixin, View):
@@ -1134,8 +1199,45 @@ class CatalogItemMemberDeleteView(MiniAppPanelMixin, View):
     def post(self, request, pk, member_pk):
         item = get_object_or_404(CatalogItem.objects.filter(**self.scope_filter()), pk=pk)
         member = get_object_or_404(CatalogItemMember, pk=member_pk, parent=item)
+        child = member.child
         member.delete()
+        _maybe_delete_orphan_group_child(child)
         messages.success(request, 'عضو حذف شد.')
+        return redirect('catalog_item_edit', pk=pk)
+
+
+class CatalogItemMemberUpdateView(MiniAppPanelMixin, View):
+    http_method_names = ['post']
+
+    def post(self, request, pk, member_pk):
+        parent = get_object_or_404(CatalogItem.objects.filter(**self.scope_filter()), pk=pk)
+        member = get_object_or_404(CatalogItemMember, pk=member_pk, parent=parent)
+        child = member.child
+
+        title = (request.POST.get('lesson_title') or '').strip()
+        if title:
+            child.title = title
+            child.save(update_fields=['title'])
+
+        member.is_preview = request.POST.get('is_preview') == 'on'
+        member.save(update_fields=['is_preview'])
+
+        external_url = (request.POST.get('lesson_external_url') or '').strip()
+        video_file = request.FILES.get('lesson_video')
+        lesson_file = request.FILES.get('lesson_file')
+
+        if parent.item_type == CatalogItem.ItemType.COURSE:
+            if video_file or external_url:
+                _update_child_video_media(
+                    child,
+                    title=title or child.title,
+                    video_file=video_file,
+                    external_url=external_url,
+                )
+        elif lesson_file or external_url:
+            _update_child_download_media(child, lesson_file=lesson_file, external_url=external_url)
+
+        messages.success(request, f'«{child.title}» به‌روزرسانی شد.')
         return redirect('catalog_item_edit', pk=pk)
 
 
@@ -1190,7 +1292,7 @@ class CatalogItemMemberCreateWithUploadView(MiniAppPanelMixin, View):
 
         if parent.item_type == CatalogItem.ItemType.COURSE:
             if not video_file and not external_url:
-                messages.error(request, 'فایل ویدیو را آپلود کنید یا لینک مستقیم وارد کنید.')
+                messages.error(request, 'فایل ویدیو را آپلود کنید یا لینک ویدیو (مستقیم یا اپارات) وارد کنید.')
                 return redirect('catalog_item_edit', pk=pk)
             child_type = CatalogItem.ItemType.VIDEO
         else:
@@ -1241,10 +1343,12 @@ class CatalogItemMemberCreateWithUploadView(MiniAppPanelMixin, View):
                 child.save(update_fields=['download_link'])
 
         sort_order = parent.group_members.count()
+        is_preview = request.POST.get('is_preview') == 'on'
         CatalogItemMember.objects.create(
             parent=parent,
             child=child,
             sort_order=sort_order,
+            is_preview=is_preview,
         )
         messages.success(request, f'«{title}» با موفقیت اضافه شد.')
         return redirect('catalog_item_edit', pk=pk)

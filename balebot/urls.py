@@ -260,6 +260,11 @@ urlpatterns = [
         name='catalog_item_member_delete',
     ),
     path(
+        'catalog/items/<int:pk>/members/<int:member_pk>/edit/',
+        views_panel_catalog.CatalogItemMemberUpdateView.as_view(),
+        name='catalog_item_member_edit',
+    ),
+    path(
         'catalog/items/<int:pk>/members/upload/',
         views_panel_catalog.CatalogItemMemberCreateWithUploadView.as_view(),
         name='catalog_item_member_upload',

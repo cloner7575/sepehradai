@@ -41,6 +41,7 @@ from balebot.services.catalog_media import (
     guess_content_type,
     request_public_base_url,
     resolve_media_file,
+    video_url_to_embed,
 )
 from balebot.services.catalog_page_layout import get_home_blocks
 from balebot.services.public_url import resolve_public_base_url
@@ -107,10 +108,14 @@ def _media_dict(
                 url = append_media_token(url, token)
         elif external:
             url = external
+    embed_url = ''
+    if include_urls and not locked and external:
+        embed_url = video_url_to_embed(external)
     return {
         'id': media.pk,
         'type': media.media_type,
         'url': url,
+        'embed_url': embed_url,
         'external_url': external if not locked else '',
         'title': media.title or '',
         'locked': locked,
@@ -133,7 +138,7 @@ def _group_members_dict(
         if not child.is_active:
             continue
         has_access = subscriber_has_item_access(subscriber, child) or member.is_preview
-        include_urls = include_content_urls and has_access
+        include_urls = has_access and (include_content_urls or member.is_preview)
         media_list = [
             _media_dict(
                 m,

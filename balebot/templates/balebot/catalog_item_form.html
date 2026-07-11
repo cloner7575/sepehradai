@@ -204,11 +204,11 @@
           <div class="panel-card-body">
             <label class="form-label settings-field-label" for="id_media_files">افزودن رسانه</label>
             <input type="file" name="media" id="id_media_files" class="form-control panel-input" multiple accept="image/*,video/*,.pdf,.doc,.docx,.zip,.rar,.txt,.xls,.xlsx,.ppt,.pptx">
-            <p id="media-upload-hint" class="settings-field-hint mb-0 mt-2">می‌توانید چند فایل را هم‌زمان انتخاب کنید یا لینک مستقیم ویدیو اضافه کنید.</p>
+            <p id="media-upload-hint" class="settings-field-hint mb-0 mt-2">می‌توانید چند فایل را هم‌زمان انتخاب کنید یا لینک ویدیو (مستقیم، یوتیوب، اپارات) اضافه کنید.</p>
             {% if object %}
             <div class="mt-3 catalog-external-media-fields">
-              <label class="form-label settings-field-label" for="id_external_url">لینک مستقیم ویدیو/فایل</label>
-              <input type="url" name="external_url" id="id_external_url" form="catalog-external-media-form" class="form-control panel-input" dir="ltr" placeholder="https://cdn.example.com/video.mp4">
+              <label class="form-label settings-field-label" for="id_external_url">لینک ویدیو/فایل</label>
+              <input type="url" name="external_url" id="id_external_url" form="catalog-external-media-form" class="form-control panel-input" dir="ltr" placeholder="https://www.aparat.com/v/... یا لینک مستقیم mp4">
               <input type="hidden" name="media_type" value="video" form="catalog-external-media-form">
               <input type="text" name="media_title" form="catalog-external-media-form" class="form-control panel-input mt-2" placeholder="عنوان (اختیاری)">
               <button type="submit" form="catalog-external-media-form" class="btn-panel-ghost btn-sm mt-2"><i class="bi bi-link-45deg"></i>افزودن لینک</button>
@@ -236,13 +236,21 @@
               {% if object.item_type == 'course' %}
               <label class="form-label settings-field-label" for="id_lesson_video">فایل ویدیو</label>
               <input type="file" name="lesson_video" id="id_lesson_video" form="catalog-member-upload-form" class="form-control panel-input mb-2" accept="video/*,.mp4,.webm,.mov,.m4v">
-              <p class="settings-field-hint mb-3">یا لینک مستقیم ویدیو:</p>
-              <input type="url" name="lesson_external_url" form="catalog-member-upload-form" class="form-control panel-input" dir="ltr" placeholder="https://...">
+              <p class="settings-field-hint mb-3">یا لینک ویدیو (مستقیم، یوتیوب، اپارات):</p>
+              <input type="url" name="lesson_external_url" form="catalog-member-upload-form" class="form-control panel-input" dir="ltr" placeholder="https://www.aparat.com/v/...">
+              <div class="form-check mt-3">
+                <input type="checkbox" name="is_preview" id="id_lesson_is_preview" form="catalog-member-upload-form" class="form-check-input" value="on">
+                <label class="form-check-label" for="id_lesson_is_preview">نمونه تدریس رایگان (پیش‌نمایش)</label>
+              </div>
               {% else %}
               <label class="form-label settings-field-label" for="id_lesson_file">فایل</label>
               <input type="file" name="lesson_file" id="id_lesson_file" form="catalog-member-upload-form" class="form-control panel-input mb-2">
               <p class="settings-field-hint mb-3">یا لینک مستقیم دانلود:</p>
               <input type="url" name="lesson_external_url" form="catalog-member-upload-form" class="form-control panel-input" dir="ltr" placeholder="https://...">
+              <div class="form-check mt-3">
+                <input type="checkbox" name="is_preview" id="id_lesson_is_preview_pkg" form="catalog-member-upload-form" class="form-check-input" value="on">
+                <label class="form-check-label" for="id_lesson_is_preview_pkg">پیش‌نمایش رایگان</label>
+              </div>
               {% endif %}
               <button type="submit" form="catalog-member-upload-form" class="btn-panel-primary btn-sm mt-3">
                 <i class="bi bi-cloud-upload"></i>
@@ -252,14 +260,56 @@
 
             {% if group_members %}
             {% for member in group_members %}
-            <div class="catalog-media-row">
-              <div class="flex-grow-1">
-                <div class="fw-semibold">{{ member.child.title }}</div>
-                <div class="small text-muted">{{ member.child.get_item_type_display }}</div>
+            <details class="catalog-media-row catalog-member-row mb-2">
+              <summary class="d-flex align-items-center gap-2 cursor-pointer">
+                <div class="flex-grow-1">
+                  <div class="fw-semibold">{{ member.child.title }}</div>
+                  <div class="small text-muted">
+                    {{ member.child.get_item_type_display }}
+                    {% if member.is_preview %} · <span class="text-primary">پیش‌نمایش رایگان</span>{% endif %}
+                  </div>
+                </div>
+                <button type="button" class="btn-panel-ghost btn-sm" onclick="event.preventDefault(); this.closest('details').open = !this.closest('details').open">
+                  <i class="bi bi-pencil"></i>ویرایش
+                </button>
+                <button type="submit" form="catalog-member-delete-{{ member.pk }}" class="btn-panel-ghost btn-sm text-danger" onclick="event.stopPropagation();">
+                  <i class="bi bi-trash"></i>حذف
+                </button>
+              </summary>
+              <div class="mt-3 rounded-2xl border border-border p-3">
+                <label class="form-label settings-field-label">عنوان</label>
+                <input type="text" name="lesson_title" form="catalog-member-edit-{{ member.pk }}" class="form-control panel-input mb-3" value="{{ member.child.title }}">
+                <div class="form-check mb-3">
+                  <input type="checkbox" name="is_preview" form="catalog-member-edit-{{ member.pk }}" class="form-check-input" id="member-preview-{{ member.pk }}" {% if member.is_preview %}checked{% endif %}>
+                  <label class="form-check-label" for="member-preview-{{ member.pk }}">نمونه تدریس رایگان (پیش‌نمایش)</label>
+                </div>
+                {% if object.item_type == 'course' %}
+                  {% with video=member.child.primary_video_media %}
+                  {% if video %}
+                  <p class="settings-field-hint mb-2">ویدیوی فعلی:
+                    {% if video.external_url %}<code dir="ltr">{{ video.external_url|truncatechars:50 }}</code>
+                    {% elif video.file %}<code dir="ltr">{{ video.file.name }}</code>{% endif %}
+                  </p>
+                  {% endif %}
+                  <label class="form-label settings-field-label">{% if video %}جایگزینی ویدیو (اختیاری){% else %}افزودن ویدیو{% endif %}</label>
+                  <input type="file" name="lesson_video" form="catalog-member-edit-{{ member.pk }}" class="form-control panel-input mb-2" accept="video/*,.mp4,.webm,.mov,.m4v">
+                  <input type="url" name="lesson_external_url" form="catalog-member-edit-{{ member.pk }}" class="form-control panel-input" dir="ltr" placeholder="https://www.aparat.com/v/..." value="{% if video.external_url %}{{ video.external_url }}{% endif %}">
+                  {% endwith %}
+                {% else %}
+                  {% if member.child.download_file %}
+                  <p class="settings-field-hint mb-2">فایل فعلی: <code dir="ltr">{{ member.child.download_file.name }}</code></p>
+                  {% elif member.child.download_link %}
+                  <p class="settings-field-hint mb-2">لینک فعلی: <code dir="ltr">{{ member.child.download_link|truncatechars:50 }}</code></p>
+                  {% endif %}
+                  <label class="form-label settings-field-label">جایگزینی فایل (اختیاری)</label>
+                  <input type="file" name="lesson_file" form="catalog-member-edit-{{ member.pk }}" class="form-control panel-input mb-2">
+                  <input type="url" name="lesson_external_url" form="catalog-member-edit-{{ member.pk }}" class="form-control panel-input" dir="ltr" placeholder="https://..." value="{{ member.child.download_link|default:'' }}">
+                {% endif %}
+                <button type="submit" form="catalog-member-edit-{{ member.pk }}" class="btn-panel-primary btn-sm mt-3">
+                  <i class="bi bi-check-lg"></i>ذخیره تغییرات
+                </button>
               </div>
-              <form method="post" action="{% url 'catalog_item_member_delete' object.pk member.pk %}" id="catalog-member-delete-{{ member.pk }}" class="d-none">{% csrf_token %}</form>
-              <button type="submit" form="catalog-member-delete-{{ member.pk }}" class="btn-panel-ghost btn-sm text-danger"><i class="bi bi-trash"></i>حذف</button>
-            </div>
+            </details>
             {% endfor %}
             {% else %}
             <p class="small text-muted mb-3">هنوز عضوی اضافه نشده است.</p>
@@ -304,7 +354,6 @@
                 {% if m.title %} — {{ m.title }}{% endif %}
                 {% if m.external_url %}<div class="text-muted" dir="ltr">{{ m.external_url|truncatechars:60 }}</div>{% endif %}
               </div>
-              <form method="post" action="{% url 'catalog_item_media_delete' object.pk m.pk %}" id="catalog-media-delete-{{ m.pk }}" class="d-none">{% csrf_token %}</form>
               <button type="submit" form="catalog-media-delete-{{ m.pk }}" class="btn-panel-ghost btn-sm text-danger"><i class="bi bi-trash"></i>حذف</button>
             </div>
             {% endfor %}
@@ -388,7 +437,14 @@
   <form id="catalog-member-add-form" method="post" action="{% url 'catalog_item_member_add' object.pk %}" class="d-none">{% csrf_token %}</form>
   {% if object.is_group_parent %}
   <form id="catalog-member-upload-form" method="post" enctype="multipart/form-data" action="{% url 'catalog_item_member_upload' object.pk %}" class="d-none">{% csrf_token %}</form>
+  {% for member in group_members %}
+  <form id="catalog-member-delete-{{ member.pk }}" method="post" action="{% url 'catalog_item_member_delete' object.pk member.pk %}" class="d-none">{% csrf_token %}</form>
+  <form id="catalog-member-edit-{{ member.pk }}" method="post" enctype="multipart/form-data" action="{% url 'catalog_item_member_edit' object.pk member.pk %}" class="d-none">{% csrf_token %}</form>
+  {% endfor %}
   {% endif %}
+  {% for m in item_media %}
+  <form id="catalog-media-delete-{{ m.pk }}" method="post" action="{% url 'catalog_item_media_delete' object.pk m.pk %}" class="d-none">{% csrf_token %}</form>
+  {% endfor %}
   {% endif %}
 </div>
 {% endblock %}

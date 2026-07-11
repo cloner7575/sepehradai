@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { CatalogItem } from '../types';
 import { getItemFiles, getItemImages, getItemVideos } from '../utils/media';
+import { isEmbeddableVideo, isExternalVideoPage } from '../utils/videoEmbed';
 import { IconDownload, IconFile, IconLock, IconPackage, IconPlay } from './Icons';
 import { fileNameFromUrl } from '../utils/media';
 import { SafeImage } from './SafeImage';
@@ -66,7 +67,15 @@ export function MediaGallery({ item }: { item: CatalogItem }) {
             <div className="relative aspect-video w-full bg-neutral-900">
               <LockedOverlay label={lockedLabel || 'ویدیو قفل است'} />
             </div>
-          ) : video.url.includes('youtube.com') || video.url.includes('youtu.be') || video.url.includes('vimeo.com') ? (
+          ) : isEmbeddableVideo(video) ? (
+            <iframe
+              src={video.embed_url}
+              title={video.title || 'ویدیو'}
+              className="aspect-video w-full bg-black"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          ) : isExternalVideoPage(video.url) ? (
             <button
               type="button"
               className="flex aspect-video w-full items-center justify-center gap-2 bg-neutral-900 text-white"
