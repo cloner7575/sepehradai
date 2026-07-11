@@ -8,6 +8,7 @@ from django.utils import timezone
 from balebot.models import (
     CatalogEntitlement,
     CatalogItem,
+    CatalogItemMedia,
     CatalogItemMember,
     CatalogOrder,
     CatalogOrderLine,
@@ -89,7 +90,7 @@ def subscriber_entitled_item_ids(subscriber: Subscriber) -> set[int]:
 
 
 def media_is_locked(item: CatalogItem, media, subscriber: Subscriber | None) -> bool:
-    if media.media_type == CatalogItem.MediaType.IMAGE:
+    if media.media_type == CatalogItemMedia.MediaType.IMAGE:
         return False
     if not item.requires_content_access():
         return False
