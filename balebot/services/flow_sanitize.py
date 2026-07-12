@@ -103,13 +103,10 @@ def _sanitize_target(raw: Any) -> dict[str, str] | None:
     if not isinstance(raw, dict):
         return None
     kind = str(raw.get('kind', '') or '').strip().lower()[:16]
-    value = str(raw.get('value', '') or '').strip()[:512]
     if kind == 'home':
         return {'kind': 'home', 'value': ''}
-    if kind in ('flash_sale', 'sale', 'library', 'cart'):
-        return {'kind': kind, 'value': ''}
-    if kind in ('category', 'item', 'tag', 'url', 'path') and value:
-        return {'kind': kind, 'value': value}
+    if kind == 'library':
+        return {'kind': 'library', 'value': ''}
     return None
 
 

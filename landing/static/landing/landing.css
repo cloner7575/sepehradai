@@ -1710,6 +1710,11 @@ section.surface {
   text-align: center;
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.45);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ── Animations ── */
@@ -1739,4 +1744,85 @@ section.surface {
   .card:hover, .step:hover, .showcase-bot-card:hover { transform: none; }
   .showcase-bot-card:hover .showcase-bot-media img { transform: none; }
   .announce-dot { animation: none; }
+}
+
+/* ── Legal / Terms page ── */
+.legal-page {
+  padding-top: 5.5rem;
+  padding-bottom: 3rem;
+}
+
+.legal-hero {
+  padding: 2.5rem 0 1.5rem;
+}
+
+.legal-hero h1 {
+  margin-bottom: 0.75rem;
+}
+
+.legal-updated {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.legal-content-section {
+  padding-bottom: 3rem;
+}
+
+.legal-content {
+  max-width: 760px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 1.25rem;
+  padding: 2rem 1.75rem;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.06);
+}
+
+.legal-content h2 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 2rem 0 0.85rem;
+}
+
+.legal-content h2:first-child {
+  margin-top: 0;
+}
+
+.legal-content p,
+.legal-content li {
+  color: #334155;
+  line-height: 1.9;
+  font-size: 0.95rem;
+}
+
+.legal-content p {
+  margin: 0 0 1rem;
+}
+
+.legal-content ul {
+  margin: 0 0 1rem;
+  padding-right: 1.25rem;
+}
+
+.legal-content li {
+  margin-bottom: 0.5rem;
+}
+
+.legal-preview-body h2 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.legal-preview-body h2:first-child {
+  margin-top: 0;
+}
+
+.legal-preview-body p,
+.legal-preview-body li {
+  margin-bottom: 0.5rem;
+  line-height: 1.7;
 }

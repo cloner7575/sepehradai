@@ -3779,3 +3779,35 @@ code, kbd, pre, .panel-code {
     display: none;
   }
 }
+
+/* Terms editor (superadmin) */
+textarea.terms-editor-textarea {
+  white-space: pre-wrap !important;
+  line-height: 1.75;
+  min-height: 28rem;
+}
+
+.legal-preview-body h2,
+.legal-preview-body h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 1.25rem 0 0.5rem;
+  color: var(--app-text, #e2e8f0);
+}
+
+.legal-preview-body h2:first-child,
+.legal-preview-body h3:first-child {
+  margin-top: 0;
+}
+
+.legal-preview-body p,
+.legal-preview-body li {
+  margin-bottom: 0.65rem;
+  line-height: 1.8;
+}
+
+.legal-preview-body ul {
+  margin: 0 0 0.75rem;
+  padding-right: 1.1rem;
+}
+

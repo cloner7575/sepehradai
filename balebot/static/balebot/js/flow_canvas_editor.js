@@ -93,46 +93,14 @@
   function sanitizeWebappTarget(raw) {
     if (!raw || typeof raw !== 'object') return { kind: 'home', value: '' };
     var kind = String(raw.kind || 'home').trim().toLowerCase();
-    var value = String(raw.value || '').trim().slice(0, 512);
-    if (kind === 'home') return { kind: 'home', value: '' };
-    if (kind === 'sale') kind = 'flash_sale';
-    if (kind === 'flash_sale' || kind === 'library' || kind === 'cart') {
-      return { kind: kind, value: '' };
-    }
-    if (kind === 'category' || kind === 'item' || kind === 'tag' || kind === 'url' || kind === 'path') {
-      return value ? { kind: kind, value: value } : { kind: kind, value: '' };
-    }
+    if (kind === 'library') return { kind: 'library', value: '' };
     return { kind: 'home', value: '' };
   }
 
   function webappTargetSummary(target) {
     var safe = sanitizeWebappTarget(target);
-    if (!safe || safe.kind === 'home') return 'صفحه اصلی';
-    var labels = {
-      category: 'دسته',
-      item: 'محصول',
-      tag: 'برچسب',
-      flash_sale: 'حراج',
-      library: 'کتابخانه',
-      cart: 'سبد',
-      path: 'مسیر',
-      url: 'لینک',
-    };
-    var prefix = labels[safe.kind] || safe.kind;
-    if (!safe.value) return prefix + ' (انتخاب نشده)';
-    if (safe.kind === 'category') {
-      var cat = categoryPickerOptions().find(function (pair) { return pair[0] === safe.value; });
-      return prefix + ': ' + (cat ? cat[1] : safe.value);
-    }
-    if (safe.kind === 'item') {
-      var it = itemPickerOptions().find(function (pair) { return pair[0] === safe.value; });
-      return prefix + ': ' + (it ? it[1] : safe.value);
-    }
-    if (safe.kind === 'tag') {
-      var tg = tagPickerOptions().find(function (pair) { return pair[0] === safe.value; });
-      return prefix + ': ' + (tg ? tg[1] : safe.value);
-    }
-    return prefix + ': ' + safe.value;
+    if (safe.kind === 'library') return 'کتابخانه من';
+    return 'صفحه اصلی';
   }
 
   function normalizeInteractiveAction(action) {
@@ -147,6 +115,8 @@
       };
       if (target.kind === 'home' && !target.value) {
         delete out.target;
+      } else if (target.kind === 'library') {
+        out.target = { kind: 'library', value: '' };
       }
       return out;
     }
@@ -248,14 +218,7 @@
 
   var WEBAPP_TARGET_OPTIONS = [
     ['home', 'صفحه اصلی'],
-    ['category', 'دسته‌بندی'],
-    ['item', 'محصول'],
-    ['tag', 'برچسب'],
-    ['flash_sale', 'صفحه حراج'],
     ['library', 'کتابخانه من'],
-    ['cart', 'سبد خرید'],
-    ['path', 'مسیر دلخواه مینی‌اپ'],
-    ['url', 'لینک خارجی'],
   ];
 
   var PALETTE_FILTER_OPTIONS = [
@@ -2181,59 +2144,10 @@
 
   function appendWebappTargetValueField(parent, target, onChange) {
     if (!target || !target.kind || target.kind === 'home') return;
-    if (target.kind === 'flash_sale' || target.kind === 'library' || target.kind === 'cart') {
-      var hints = {
-        flash_sale: 'کاربر مستقیم به صفحه حراج ویژه مینی‌اپ می‌رود.',
-        library: 'فقط برای کاربرانی که دوره یا پکیج فایل خریده‌اند نمایش داده می‌شود.',
-        cart: 'کاربر مستقیم به سبد خرید مینی‌اپ می‌رود.',
-      };
-      parent.appendChild(addFieldHint(hints[target.kind] || ''));
-      return;
-    }
-
-    function setTargetValue(v) {
-      target.value = String(v || '').trim();
-      onChange();
-      renderInspector();
-    }
-
-    if (target.kind === 'category') {
-      appendCategoryPickerField(parent, target.value || '', setTargetValue);
-      if (!target.value) {
-        parent.appendChild(addFieldHint('یک دسته از لیست انتخاب کنید؛ بدون انتخاب، لینک به صفحه اصلی می‌رود.'));
-      }
-      return;
-    }
-    if (target.kind === 'item') {
-      appendItemPickerField(parent, target.value || '', setTargetValue);
-      if (!target.value) {
-        parent.appendChild(addFieldHint('یک محصول از لیست انتخاب کنید؛ بدون انتخاب، لینک به صفحه اصلی می‌رود.'));
-      }
-      return;
-    }
-    if (target.kind === 'tag') {
-      appendTagPickerField(parent, target.value || '', setTargetValue);
-      if (!target.value) {
-        parent.appendChild(addFieldHint('یک برچسب از لیست انتخاب کنید.'));
-      }
-      return;
-    }
-    if (target.kind === 'path') {
-      parent.appendChild(addFieldLabel('مسیر داخل مینی‌اپ'));
+    if (target.kind === 'library') {
       parent.appendChild(
-        addInput(target.value || '', '/sale یا /category/slug', 256, setTargetValue)
+        addFieldHint('کاربر به صفحه کتابخانه می‌رود. دکمه کتابخانه در مینی‌اپ فقط برای کسانی که دوره یا پکیج دارند نمایش داده می‌شود.')
       );
-      parent.appendChild(
-        addFieldHint('مثال: /library ، /cart ، /category/نام-دسته ، /item/نام-محصول')
-      );
-      return;
-    }
-    if (target.kind === 'url') {
-      parent.appendChild(addFieldLabel('آدرس لینک'));
-      parent.appendChild(
-        addInput(target.value || '', 'https://example.com', 512, setTargetValue, 'url')
-      );
-      parent.appendChild(addFieldHint('لینک کامل خارج از مینی‌اپ یا هر آدرسی که می‌خواهید باز شود.'));
     }
   }
 

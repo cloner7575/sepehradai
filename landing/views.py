@@ -6,7 +6,15 @@ from django.views.decorators.http import require_http_methods
 
 from landing.forms import LeadForm
 from landing.services.notify import notify_lead_via_bale
-from landing.services.public_content import get_public_landing_context, get_showcase_bots_context
+from landing.services.public_content import get_public_landing_context, get_showcase_bots_context, get_terms_page_context
+
+
+@require_http_methods(['GET'])
+def terms_page(request: HttpRequest) -> HttpResponse:
+    if request.user.is_authenticated:
+        return redirect('panel_dashboard')
+    ctx = get_terms_page_context()
+    return render(request, 'landing/terms.html', ctx)
 
 
 @require_http_methods(['GET'])

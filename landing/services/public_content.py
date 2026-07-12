@@ -30,6 +30,17 @@ def get_showcase_bots_context() -> dict:
     }
 
 
+def get_terms_page_context() -> dict:
+    settings_obj = LandingSettings.get_solo()
+    return {
+        'landing_settings': settings_obj,
+        'LANDING_DEMO_BOT_URL': settings_obj.resolved_demo_bot_url(),
+        'terms_page_title': settings_obj.resolved_terms_page_title(),
+        'terms_page_content': settings_obj.resolved_terms_page_content(),
+        'terms_updated_at': settings_obj.updated_at,
+    }
+
+
 def default_demo_bot_url() -> str:
     try:
         return LandingSettings.get_solo().resolved_demo_bot_url()

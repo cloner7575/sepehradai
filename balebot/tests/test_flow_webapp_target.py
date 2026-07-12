@@ -17,7 +17,36 @@ class FlowWebappTargetTests(TestCase):
         self.bot = BotSettings.get_for_platform(self.workspace, self.platform)
         self.catalog = CatalogSettings.get_for_platform(self.workspace, self.platform)
 
-    def test_sanitize_preserves_webapp_category_target(self):
+    def test_sanitize_preserves_webapp_library_target(self):
+        flow = sanitize_start_flow({
+            'version': 2,
+            'root': {
+                'type': 'sequence',
+                'items': [{
+                    'type': 'button',
+                    'id': 'n_library',
+                    'text': 'کتابخانه',
+                    'action': {
+                        'type': 'webapp',
+                        'label': 'کتابخانه من',
+                        'target': {'kind': 'library', 'value': ''},
+                    },
+                }],
+            },
+        })
+        action = flow['root']['items'][0]['action']
+        self.assertEqual(action['type'], 'webapp')
+        self.assertEqual(action['target'], {'kind': 'library', 'value': ''})
+
+    def test_build_webapp_url_for_library(self):
+        url = _build_webapp_url(self.bot, {'kind': 'library', 'value': ''})
+        self.assertTrue(url.endswith('/library'))
+
+    def test_build_webapp_url_defaults_to_home(self):
+        url = _build_webapp_url(self.bot, {'kind': 'home', 'value': ''})
+        self.assertTrue(url.endswith('/'))
+
+    def test_sanitize_drops_legacy_category_target(self):
         flow = sanitize_start_flow({
             'version': 2,
             'root': {
@@ -30,62 +59,6 @@ class FlowWebappTargetTests(TestCase):
                         'type': 'webapp',
                         'label': 'ورود',
                         'target': {'kind': 'category', 'value': 'electronics'},
-                    },
-                }],
-            },
-        })
-        action = flow['root']['items'][0]['action']
-        self.assertEqual(action['type'], 'webapp')
-        self.assertEqual(action['target'], {'kind': 'category', 'value': 'electronics'})
-
-    def test_build_webapp_url_for_category(self):
-        url = _build_webapp_url(
-            self.bot,
-            {'kind': 'category', 'value': 'electronics'},
-        )
-        self.assertIn('/category/electronics', url)
-        self.assertTrue(url.startswith('http'))
-
-    def test_build_webapp_url_for_item(self):
-        url = _build_webapp_url(
-            self.bot,
-            {'kind': 'item', 'value': 'my-course'},
-        )
-        self.assertIn('/item/my-course', url)
-
-    def test_sanitize_preserves_webapp_item_target(self):
-        flow = sanitize_start_flow({
-            'version': 2,
-            'root': {
-                'type': 'sequence',
-                'items': [{
-                    'type': 'button',
-                    'id': 'n_item',
-                    'text': 'دوره',
-                    'action': {
-                        'type': 'webapp',
-                        'label': 'مشاهده',
-                        'target': {'kind': 'item', 'value': 'my-course'},
-                    },
-                }],
-            },
-        })
-        action = flow['root']['items'][0]['action']
-        self.assertEqual(action['target'], {'kind': 'item', 'value': 'my-course'})
-
-    def test_sanitize_drops_category_target_without_value(self):
-        flow = sanitize_start_flow({
-            'version': 2,
-            'root': {
-                'type': 'sequence',
-                'items': [{
-                    'type': 'button',
-                    'id': 'n_shop',
-                    'text': 'فروشگاه',
-                    'action': {
-                        'type': 'webapp',
-                        'label': 'ورود',
-                        'target': {'kind': 'category', 'value': ''},
                     },
                 }],
             },

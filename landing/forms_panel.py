@@ -1,6 +1,7 @@
 from django import forms
 
 from landing.models import BusinessCategory, LandingSettings, ShowcaseBot, SubscriptionPlan
+from landing.services.legal_text import normalize_legal_text
 
 _INPUT = 'form-control panel-input'
 
@@ -26,6 +27,27 @@ class LandingSettingsForm(forms.ModelForm):
             'stat_setup_minutes': forms.TextInput(attrs={'class': _INPUT}),
             'pricing_note': forms.Textarea(attrs={'class': _INPUT, 'rows': 2}),
         }
+
+
+class TermsSettingsForm(forms.ModelForm):
+    class Meta:
+        model = LandingSettings
+        fields = (
+            'terms_page_title',
+            'terms_page_content',
+        )
+        widgets = {
+            'terms_page_title': forms.TextInput(attrs={'class': _INPUT}),
+            'terms_page_content': forms.Textarea(attrs={
+                'class': f'{_INPUT} terms-editor-textarea',
+                'rows': 28,
+                'dir': 'rtl',
+                'spellcheck': 'true',
+            }),
+        }
+
+    def clean_terms_page_content(self):
+        return normalize_legal_text(self.cleaned_data.get('terms_page_content'))
 
 
 class BrandSettingsForm(forms.ModelForm):

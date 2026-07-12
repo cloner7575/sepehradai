@@ -146,6 +146,11 @@ urlpatterns = [
         name='superadmin_brand_settings',
     ),
     path(
+        'superadmin/terms-settings/',
+        landing_views_panel.SuperAdminTermsSettingsView.as_view(),
+        name='superadmin_terms_settings',
+    ),
+    path(
         'superadmin/showcase-bots/',
         landing_views_panel.SuperAdminShowcaseBotListView.as_view(),
         name='superadmin_showcase_bot_list',

@@ -127,25 +127,6 @@
               {% include "balebot/_settings_field.html" with field=form.compare_at_price hint=form.compare_at_price.help_text %}
               {% include "balebot/_settings_field.html" with field=form.stock hint=form.stock.help_text %}
             </div>
-            <div id="flash-sale-block" class="panel-card mt-4 border border-dashed">
-              <div class="panel-card-body">
-                {% include "balebot/_settings_field.html" with field=form.is_flash_sale hint=form.is_flash_sale.help_text %}
-                <div id="flash-sale-dates" class="row g-3 settings-block-hidden" aria-hidden="true">
-                  <div class="col-md-6">
-                    {% include "balebot/_settings_field.html" with field=form.jalali_flash_sale_start_date %}
-                  </div>
-                  <div class="col-md-6">
-                    {% include "balebot/_settings_field.html" with field=form.jalali_flash_sale_start_time %}
-                  </div>
-                  <div class="col-md-6">
-                    {% include "balebot/_settings_field.html" with field=form.jalali_flash_sale_end_date %}
-                  </div>
-                  <div class="col-md-6">
-                    {% include "balebot/_settings_field.html" with field=form.jalali_flash_sale_end_time %}
-                  </div>
-                </div>
-              </div>
-            </div>
             <div id="commerce-download-hint" class="alert alert-info small mb-3 settings-block-hidden" aria-hidden="true">
               <i class="bi bi-info-circle me-1"></i>برای «فایل دانلود» قیمت‌گذاری اعمال نمی‌شود.
             </div>
@@ -369,12 +350,28 @@
           <header class="panel-card-header">
             <div>
               {% if item_wizard_mode %}<p class="campaign-wizard-step-kicker mb-1">مرحله ۴ از ۴</p>{% endif %}
-              <h2 class="panel-card-title mb-0">وضعیت نمایش</h2>
+              <h2 class="panel-card-title mb-1">وضعیت نمایش</h2>
+              <p class="panel-card-lead mb-0">ویترین، فروش ویژه و حراج را برای این آیتم تنظیم کنید.</p>
             </div>
           </header>
           <div class="panel-card-body">
             {% include "balebot/_settings_switch.html" with field=form.is_active title=form.is_active.label desc=form.is_active.help_text %}
             {% include "balebot/_settings_switch.html" with field=form.is_featured title=form.is_featured.label desc=form.is_featured.help_text %}
+            {% include "balebot/_settings_switch.html" with field=form.is_flash_sale title=form.is_flash_sale.label desc=form.is_flash_sale.help_text %}
+            <div id="flash-sale-dates" class="row g-3 settings-block-hidden mb-3" aria-hidden="true">
+              <div class="col-md-6">
+                {% include "balebot/_settings_field.html" with field=form.jalali_flash_sale_start_date %}
+              </div>
+              <div class="col-md-6">
+                {% include "balebot/_settings_field.html" with field=form.jalali_flash_sale_start_time %}
+              </div>
+              <div class="col-md-6">
+                {% include "balebot/_settings_field.html" with field=form.jalali_flash_sale_end_date %}
+              </div>
+              <div class="col-md-6">
+                {% include "balebot/_settings_field.html" with field=form.jalali_flash_sale_end_time %}
+              </div>
+            </div>
             {% include "balebot/_settings_field.html" with field=form.sort_order hint=form.sort_order.help_text %}
           </div>
         </div>
@@ -453,5 +450,5 @@
 <script id="item-type-guides-data" type="application/json">{{ item_type_guides_json|safe }}</script>
 <script src="{% static 'balebot/js/jalali_date_picker.js' %}?v=1"></script>
 <script src="{% static 'balebot/js/catalog_item_metadata.js' %}?v=1"></script>
-<script src="{% static 'balebot/js/catalog_item_form.js' %}?v=7"></script>
+<script src="{% static 'balebot/js/catalog_item_form.js' %}?v=8"></script>
 {% endblock %}

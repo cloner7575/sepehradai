@@ -1,0 +1,61 @@
+{% extends "balebot/base.html" %}
+{% load landing_extras %}
+{% block title %}ویرایش قوانین{% endblock %}
+{% block page_title %}قوانین و مقررات{% endblock %}
+{% block page_subtitle %}
+<p class="app-page-subtitle mb-0 mt-1">متن صفحه عمومی قوانین سایت — قابل مشاهده در <code>/terms/</code></p>
+{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'terms_page' %}" class="btn btn-panel-ghost flex-shrink-0" target="_blank" rel="noopener">
+  <i class="bi bi-box-arrow-up-left me-2"></i>پیش‌نمایش صفحه
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger mb-4">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="panel-card mb-4">
+        <div class="panel-card-header">
+          <h2 class="panel-card-title mb-0">محتوای صفحه قوانین</h2>
+        </div>
+        <div class="panel-card-body">
+          {% include "balebot/_settings_field.html" with field=form.terms_page_title %}
+          {% include "balebot/_settings_field.html" with field=form.terms_page_content hint="هر خط جدا نمایش داده می‌شود. عنوان بخش‌ها با ## شروع کنید. فهرست با - یا •. خط خالی بین بخش‌ها اختیاری است." %}
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-panel-primary">ذخیره قوانین</button>
+    </form>
+  </div>
+  <div class="col-lg-4">
+    <div class="panel-card mb-4">
+      <div class="panel-card-header">
+        <h2 class="panel-card-title mb-0">پیش‌نمایش</h2>
+      </div>
+      <div class="panel-card-body legal-preview">
+        <h3 class="h5 mb-3">{{ terms_preview_title }}</h3>
+        <div class="legal-preview-body small text-muted">
+          {{ terms_preview_content|format_legal_text }}
+        </div>
+      </div>
+    </div>
+    <div class="panel-card">
+      <div class="panel-card-header">
+        <h2 class="panel-card-title mb-0">راهنما</h2>
+      </div>
+      <div class="panel-card-body small text-muted">
+        <p>این متن در صفحه عمومی <a href="{% url 'terms_page' %}" target="_blank" rel="noopener">قوانین</a> نمایش داده می‌شود.</p>
+        <p>لینک صفحه در فوتر سایت اضافه شده است.</p>
+        <p class="mb-0">آخرین به‌روزرسانی: {{ settings_obj.updated_at|date:"Y/m/d H:i" }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

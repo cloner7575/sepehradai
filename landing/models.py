@@ -3,6 +3,7 @@ from django.core.validators import FileExtensionValidator
 from django.db import models
 
 from landing.constants import MESSENGER_CHOICES, SHOWCASE_BOT_PLATFORM_CHOICES
+from landing.terms_default import DEFAULT_TERMS_PAGE_CONTENT, DEFAULT_TERMS_PAGE_TITLE
 
 
 class Lead(models.Model):
@@ -130,6 +131,16 @@ class LandingSettings(models.Model):
         blank=True,
         verbose_name='متن وردمارک (بخش دوم)',
     )
+    terms_page_title = models.CharField(
+        max_length=120,
+        default=DEFAULT_TERMS_PAGE_TITLE,
+        verbose_name='عنوان صفحه قوانین',
+    )
+    terms_page_content = models.TextField(
+        default=DEFAULT_TERMS_PAGE_CONTENT,
+        verbose_name='متن صفحه قوانین',
+        help_text='هر خط جدا نمایش داده می‌شود. عنوان بخش‌ها با ##. فهرست با - یا •.',
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -149,6 +160,14 @@ class LandingSettings(models.Model):
         if url:
             return url
         return getattr(django_settings, 'LANDING_DEMO_BOT_URL', '').strip()
+
+    def resolved_terms_page_title(self) -> str:
+        title = (self.terms_page_title or '').strip()
+        return title or DEFAULT_TERMS_PAGE_TITLE
+
+    def resolved_terms_page_content(self) -> str:
+        content = (self.terms_page_content or '').strip()
+        return content or DEFAULT_TERMS_PAGE_CONTENT
 
 
 class SubscriptionPlan(models.Model):

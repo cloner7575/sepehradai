@@ -1,0 +1,63 @@
+{% load static landing_extras %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ terms_page_title }} | {{ site_name_full }}</title>
+  <meta name="description" content="{{ terms_page_title }} — {{ site_name_full }}">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{% url 'terms_page' %}">
+  {% include "landing/_brand_head.html" %}
+  <link href="{% static 'balebot/css/fonts.css' %}" rel="stylesheet">
+  <link href="{% static 'landing/landing.css' %}?v=8" rel="stylesheet">
+</head>
+<body>
+
+  <header class="site-header is-scrolled" id="site-header">
+    <div class="container">
+      <div class="header-inner">
+        {% include "balebot/_brand_logo.html" with brand_logo_class="logo" brand_logo_href="/" %}
+        <nav class="nav-desktop" aria-label="ناوبری اصلی">
+          <a href="/">صفحه اصلی</a>
+          <a href="{% url 'panel_login' %}" class="btn btn-outline">ورود به پنل</a>
+          <a href="/#cta" class="btn btn-primary">درخواست دمو رایگان</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="legal-page">
+    <section class="legal-hero">
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="section-label">قوانین</span>
+          <h1>{{ terms_page_title }}</h1>
+          {% if terms_updated_at %}
+          <p class="legal-updated">آخرین به‌روزرسانی: {{ terms_updated_at|date:"j F Y" }}</p>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <section class="legal-content-section">
+      <div class="container">
+        <article class="legal-content reveal">
+          {{ terms_page_content|format_legal_text }}
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-bottom">
+        <a href="/">بازگشت به صفحه اصلی</a>
+        <span>© {% now "Y" %} {{ site_name_full }}</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="{% static 'landing/landing.js' %}?v=3" defer></script>
+</body>
+</html>

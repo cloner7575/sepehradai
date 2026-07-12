@@ -14,6 +14,7 @@ from landing.forms_panel import (
     LandingSettingsForm,
     ShowcaseBotForm,
     SubscriptionPlanForm,
+    TermsSettingsForm,
 )
 from landing.models import BusinessCategory, LandingSettings, Lead, ShowcaseBot, SubscriptionPlan
 
@@ -220,6 +221,33 @@ class SuperAdminLandingSettingsView(SuperuserRequiredMixin, FormView):
         ctx = super().get_context_data(**kwargs)
         ctx['settings_obj'] = self.get_object()
         ctx['active_plans'] = SubscriptionPlan.objects.filter(is_active=True).count()
+        return ctx
+
+
+class SuperAdminTermsSettingsView(SuperuserRequiredMixin, FormView):
+    form_class = TermsSettingsForm
+    template_name = 'balebot/superadmin/terms_settings.html'
+    success_url = reverse_lazy('superadmin_terms_settings')
+
+    def get_object(self):
+        return LandingSettings.get_solo()
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['instance'] = self.get_object()
+        return kwargs
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(self.request, 'متن قوانین ذخیره شد.')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        settings_obj = self.get_object()
+        ctx['settings_obj'] = settings_obj
+        ctx['terms_preview_title'] = settings_obj.resolved_terms_page_title()
+        ctx['terms_preview_content'] = settings_obj.resolved_terms_page_content()
         return ctx
 
 
