@@ -324,6 +324,8 @@ export interface GroupMember {
   is_downloadable?: boolean;
   is_preview: boolean;
   has_access: boolean;
+  is_free?: boolean;
+  is_owned?: boolean;
   locked: boolean;
   image?: string;
   download_url?: string;

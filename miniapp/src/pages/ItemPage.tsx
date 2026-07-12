@@ -9,6 +9,7 @@ import { GroupContentList } from '../components/GroupContentList';
 import { IconCart, IconDownload, IconLock, IconPackage } from '../components/Icons';
 import { fileNameFromUrl } from '../utils/media';
 import { itemTypeLabel, isGroupParentType, isShowcaseType } from '../utils/itemType';
+import { canAddItemToCart, userOwnsCatalogItem } from '../utils/itemAccess';
 import type { CatalogItem } from '../types';
 
 export function ItemPage() {
@@ -30,7 +31,15 @@ export function ItemPage() {
       try {
         const preview = await fetchItem(slug, adapter.initData || undefined);
         if (cancelled) return;
-        if (adapter.initData && (preview.requires_access || preview.has_access)) {
+        const shouldLoadContent = Boolean(
+          adapter.initData
+            && (
+              preview.is_group_parent
+              || preview.requires_access
+              || preview.has_access
+            ),
+        );
+        if (shouldLoadContent) {
           try {
             const unlocked = await fetchItemContent(slug, adapter.initData);
             if (!cancelled) setItem(unlocked);
@@ -102,7 +111,8 @@ export function ItemPage() {
 
   const showcase = item ? isShowcaseType(item.item_type) : false;
   const groupParent = item ? isGroupParentType(item.item_type) : false;
-  const showBuy = item?.is_buyable && config?.can_purchase !== false;
+  const ownsItem = item ? userOwnsCatalogItem(item) : false;
+  const showBuy = item ? canAddItemToCart(item, config?.can_purchase !== false) : false;
   const showDownload = Boolean(item?.is_downloadable && item.download_url && !groupParent);
   const showLockedDownload = Boolean(
     item?.is_downloadable && item.requires_access && !item.has_access && !item.download_url,
@@ -110,7 +120,7 @@ export function ItemPage() {
   const showRequest =
     item?.is_requestable &&
     config?.is_enabled !== false &&
-    (showcase || !item?.has_access);
+    (showcase || !ownsItem);
   const lineTotal = item?.price != null && cartQty > 0 ? item.price * cartQty : null;
 
   if (loading) {
@@ -140,7 +150,7 @@ export function ItemPage() {
       <div className="item-detail-panel mx-4">
         <div className="flex items-start justify-between gap-3">
           <span className="item-detail-badge">{itemTypeLabel(item.item_type)}</span>
-          {cartQty > 0 && !item.has_access && (
+          {cartQty > 0 && !ownsItem && (
             <span className="inline-flex items-center gap-1 rounded-xl bg-[var(--color-primary-soft)] px-2.5 py-1 text-xs font-semibold text-primary">
               <IconCart className="h-3.5 w-3.5" />
               {cartQty} در سبد
@@ -149,14 +159,14 @@ export function ItemPage() {
         </div>
         <h1 className="mt-2 text-xl font-bold leading-snug tracking-tight">{item.title}</h1>
 
-        {item.requires_access && !item.has_access && !groupParent && (
+        {item.requires_access && !ownsItem && !groupParent && (
           <div className="mt-3 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
             <IconLock className="h-4 w-4 shrink-0" />
             برای دسترسی به محتوا، ابتدا خرید کنید.
           </div>
         )}
 
-        {item.has_access && item.requires_access && (
+        {ownsItem && item.requires_access && (
           <div className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
             <IconDownload className="h-4 w-4 shrink-0" />
             {groupParent
@@ -165,7 +175,7 @@ export function ItemPage() {
           </div>
         )}
 
-        {!showcase && (
+        {!showcase && !ownsItem && (
           <div className="item-detail-price-row mt-4">
             {item.is_downloadable && item.download_url ? (
               <p className="truncate text-sm text-muted" dir="ltr">

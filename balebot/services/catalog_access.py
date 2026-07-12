@@ -60,6 +60,33 @@ def subscriber_has_item_access(subscriber: Subscriber | None, item: CatalogItem)
     return item.pk in _subscriber_paid_item_ids(subscriber)
 
 
+def _paid_group_children(item: CatalogItem) -> list[CatalogItem]:
+    if not item.is_group_parent():
+        return []
+    children: list[CatalogItem] = []
+    for member in item.group_members.select_related('child').order_by('sort_order', 'id'):
+        child = member.child
+        if not child.is_active or member.is_preview:
+            continue
+        if child.requires_content_access():
+            children.append(child)
+    return children
+
+
+def subscriber_has_group_access(subscriber: Subscriber | None, item: CatalogItem) -> bool:
+    """دسترسی به دوره/پکیج: خرید خود آیتم یا باز بودن همه قسمت‌های پولی."""
+    if not item.is_group_parent():
+        return subscriber_has_item_access(subscriber, item)
+    if subscriber_has_item_access(subscriber, item):
+        return True
+    if subscriber is None:
+        return False
+    required = _paid_group_children(item)
+    if not required:
+        return False
+    return all(subscriber_has_item_access(subscriber, child) for child in required)
+
+
 def subscriber_entitled_item_ids(subscriber: Subscriber) -> set[int]:
     now = timezone.now()
     direct = set(

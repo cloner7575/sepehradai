@@ -68,7 +68,9 @@ export function GroupContentList({
                     </span>
                   ) : member.is_preview ? (
                     <span className="text-xs font-medium text-primary">پیش‌نمایش</span>
-                  ) : member.has_access ? (
+                  ) : member.is_free ? (
+                    <span className="text-xs font-medium text-muted">رایگان</span>
+                  ) : member.is_owned || member.has_access ? (
                     <span className="text-xs font-medium text-emerald-600">آماده</span>
                   ) : member.is_buyable ? (
                     <span className="text-xs text-muted">{formatPrice(member.price)}</span>

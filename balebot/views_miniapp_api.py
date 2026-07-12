@@ -27,6 +27,7 @@ from balebot.services import catalog_payment, miniapp_auth
 from balebot.services.catalog_access import (
     media_is_locked,
     subscriber_entitled_item_ids,
+    subscriber_has_group_access,
     subscriber_has_item_access,
 )
 from balebot.services.catalog_access_tokens import (
@@ -173,6 +174,13 @@ def _group_members_dict(
             'is_downloadable': child.is_downloadable(),
             'is_preview': member.is_preview,
             'has_access': has_access,
+            'is_free': child.is_free_content(),
+            'is_owned': (
+                subscriber is not None
+                and not member.is_preview
+                and not child.is_free_content()
+                and subscriber_has_item_access(subscriber, child)
+            ),
             'locked': child.requires_content_access() and not has_access,
             'image': _first_item_image_url(child, request, catalog),
             'download_url': download_url,
@@ -189,7 +197,11 @@ def _item_dict(
     subscriber: Subscriber | None = None,
     include_content_urls: bool = False,
 ) -> dict:
-    has_access = subscriber_has_item_access(subscriber, item)
+    has_access = (
+        subscriber_has_group_access(subscriber, item)
+        if item.is_group_parent()
+        else subscriber_has_item_access(subscriber, item)
+    )
     can_buy = item.is_buyable() and not has_access
     media_list = [
         _media_dict(

@@ -148,7 +148,7 @@ class CatalogEntitlementTests(TestCase):
             CatalogEntitlement.objects.filter(subscriber=self.sub, item=self.course).exists()
         )
 
-    def test_paid_course_hides_buy_action_in_api(self):
+    def test_group_access_when_all_paid_episodes_unlocked(self):
         order = CatalogOrder.objects.create(
             workspace=self.workspace,
             platform=self.platform,
@@ -162,8 +162,10 @@ class CatalogEntitlementTests(TestCase):
             title_snapshot=self.course.title,
             price_snapshot=self.course.price,
         )
+        from balebot.services.catalog_access import subscriber_has_group_access
         from balebot.views_miniapp_api import _item_dict
 
+        self.assertTrue(subscriber_has_group_access(self.sub, self.course))
         data = _item_dict(self.course, catalog=self.catalog, subscriber=self.sub)
         self.assertTrue(data['has_access'])
         self.assertFalse(data['is_buyable'])
