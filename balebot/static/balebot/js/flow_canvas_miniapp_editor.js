@@ -84,6 +84,14 @@
   var pickerCategories = [];
   var pickerItems = [];
   var pickerTags = [];
+  var PICKER_ITEM_TYPE_LABELS = {
+    product: 'محصول',
+    course: 'دوره',
+    package: 'پکیج',
+    video: 'ویدیو',
+    download: 'دانلود',
+    showcase: 'ویترین',
+  };
   var discountCodes = [];
   var state = { blocks: [] };
   var selection = null;
@@ -1345,17 +1353,20 @@
   }
 
   function itemPickerOptions() {
-    var opts = [['', '— یک محصول انتخاب کنید —']];
+    var opts = [];
     itemPickerSource().forEach(function (it) {
       var slug = (it.slug || '').trim();
       var label = (it.title || slug).trim();
+      if (it.item_type && PICKER_ITEM_TYPE_LABELS[it.item_type]) {
+        label += ' · ' + PICKER_ITEM_TYPE_LABELS[it.item_type];
+      }
       if (slug && label) opts.push([slug, label]);
     });
     return opts;
   }
 
   function categoryPickerOptions() {
-    var opts = [['', '— یک دسته انتخاب کنید —']];
+    var opts = [];
     categoryPickerSource().forEach(function (c) {
       var slug = (c.slug || '').trim();
       var label = (c.name || slug).trim();
@@ -1365,7 +1376,7 @@
   }
 
   function tagPickerOptions() {
-    var opts = [['', '— یک برچسب انتخاب کنید —']];
+    var opts = [];
     pickerTags.forEach(function (t) {
       var slug = (t.slug || '').trim();
       var label = (t.name || slug).trim();
@@ -1376,20 +1387,28 @@
 
   function appendItemPickerField(parent, value, onChange, label) {
     parent.appendChild(fieldLabel(label || 'انتخاب محصول'));
+    if (!itemPickerOptions().length) {
+      parent.appendChild(fieldHint('محصولی در فروشگاه تعریف نشده است — slug را دستی وارد کنید.'));
+      parent.appendChild(textInput(value || '', 'slug محصول', 120, onChange));
+      return;
+    }
     parent.appendChild(
       searchableSelectInput(value || '', itemPickerOptions(), onChange, {
         searchPlaceholder: 'جستجوی نام محصول…',
-        listSize: 6,
       })
     );
   }
 
   function appendCategoryPickerField(parent, value, onChange, label) {
     parent.appendChild(fieldLabel(label || 'انتخاب دسته‌بندی'));
+    if (!categoryPickerOptions().length) {
+      parent.appendChild(fieldHint('دسته‌ای در فروشگاه تعریف نشده است — slug را دستی وارد کنید.'));
+      parent.appendChild(textInput(value || '', 'slug دسته', 120, onChange));
+      return;
+    }
     parent.appendChild(
       searchableSelectInput(value || '', categoryPickerOptions(), onChange, {
         searchPlaceholder: 'جستجوی نام دسته…',
-        listSize: 6,
       })
     );
   }
@@ -1404,7 +1423,6 @@
     parent.appendChild(
       searchableSelectInput(value || '', tagPickerOptions(), onChange, {
         searchPlaceholder: 'جستجوی برچسب…',
-        listSize: 6,
       })
     );
   }
@@ -1630,15 +1648,18 @@
     var wrap = document.createElement('div');
     wrap.className = 'miniapp-searchable-select mb-2';
 
+    var selectedBadge = document.createElement('div');
+    selectedBadge.className = 'miniapp-picker-selected small mb-2';
+
     var searchInp = document.createElement('input');
     searchInp.type = 'search';
     searchInp.className = 'form-control panel-input miniapp-searchable-select__search';
     searchInp.placeholder = config.searchPlaceholder || 'جستجوی نام…';
     searchInp.setAttribute('autocomplete', 'off');
 
-    var sel = document.createElement('select');
-    sel.className = 'form-select panel-input miniapp-searchable-select__list';
-    sel.size = config.listSize || 6;
+    var list = document.createElement('div');
+    list.className = 'miniapp-searchable-select__options';
+    list.setAttribute('role', 'listbox');
 
     function norm(s) {
       return String(s || '').trim().toLowerCase();
@@ -1651,60 +1672,70 @@
       return '';
     }
 
+    function updateSelectedBadge() {
+      if (!selectedValue) {
+        selectedBadge.textContent = 'هنوز انتخاب نشده — روی یک مورد در لیست کلیک کنید.';
+        selectedBadge.classList.add('text-muted');
+        selectedBadge.classList.remove('text-success');
+      } else {
+        selectedBadge.textContent = 'انتخاب‌شده: ' + (labelForValue(selectedValue) || selectedValue);
+        selectedBadge.classList.remove('text-muted');
+        selectedBadge.classList.add('text-success');
+      }
+    }
+
+    function commitSelection(val) {
+      if (!val || val === selectedValue) return;
+      selectedValue = val;
+      onChange(selectedValue);
+      searchInp.value = '';
+      renderList('');
+      updateSelectedBadge();
+    }
+
     function matchesQuery(val, label, q) {
       if (!q) return true;
       return norm(label).indexOf(q) !== -1 || norm(val).indexOf(q) !== -1;
     }
 
-    function fillOptions(query) {
+    function renderList(query) {
       var q = norm(query);
-      sel.innerHTML = '';
+      list.innerHTML = '';
       var count = 0;
       options.forEach(function (pair) {
         var val = pair[0];
         var label = pair[1];
-        if (val === '' && q) return;
-        if (val !== '' && !matchesQuery(val, label, q)) return;
-        var opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = label;
-        sel.appendChild(opt);
+        if (!val) return;
+        if (!matchesQuery(val, label, q)) return;
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'miniapp-picker-option' + (val === selectedValue ? ' is-selected' : '');
+        btn.textContent = label;
+        btn.setAttribute('role', 'option');
+        btn.addEventListener('click', function () {
+          commitSelection(val);
+        });
+        list.appendChild(btn);
         count++;
       });
       if (!count) {
-        var none = document.createElement('option');
-        none.value = '';
-        none.textContent = 'نتیجه‌ای یافت نشد';
-        none.disabled = true;
-        sel.appendChild(none);
-      } else if (selectedValue) {
-        for (var j = 0; j < sel.options.length; j++) {
-          if (sel.options[j].value === selectedValue) {
-            sel.value = selectedValue;
-            break;
-          }
-        }
+        var empty = document.createElement('div');
+        empty.className = 'miniapp-picker-empty small text-muted';
+        empty.textContent = 'نتیجه‌ای یافت نشد';
+        list.appendChild(empty);
       }
     }
 
     searchInp.addEventListener('input', function () {
-      fillOptions(searchInp.value);
+      renderList(searchInp.value);
     });
 
-    sel.addEventListener('change', function () {
-      selectedValue = sel.value;
-      onChange(selectedValue);
-      searchInp.value = selectedValue ? labelForValue(selectedValue) : '';
-    });
+    renderList('');
+    updateSelectedBadge();
 
-    fillOptions('');
-    if (selectedValue) {
-      searchInp.value = labelForValue(selectedValue);
-      sel.value = selectedValue;
-    }
-
+    wrap.appendChild(selectedBadge);
     wrap.appendChild(searchInp);
-    wrap.appendChild(sel);
+    wrap.appendChild(list);
     return wrap;
   }
 

@@ -32,6 +32,7 @@ def catalog_picker_json(scope: dict) -> dict[str, list[dict[str, str]]]:
             {
                 'title': i.title,
                 'slug': i.slug,
+                'item_type': i.normalized_item_type(),
             }
             for i in picker_items
         ],

@@ -6671,6 +6671,46 @@ select.panel-input {
   padding: 0.35rem 0.5rem;
 }
 
+.miniapp-picker-selected {
+  padding: 0.45rem 0.65rem;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+}
+
+.miniapp-searchable-select__options {
+  max-height: 11rem;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.miniapp-picker-option {
+  display: block;
+  width: 100%;
+  text-align: right;
+  padding: 0.45rem 0.65rem;
+  border: 0;
+  border-bottom: 1px solid #f1f5f9;
+  background: transparent;
+  cursor: pointer;
+}
+
+.miniapp-picker-option.is-selected {
+  background: #ecfdf5;
+  color: #047857;
+  font-weight: 600;
+}
+
+.miniapp-picker-option:hover {
+  background: #f8fafc;
+}
+
+.miniapp-picker-empty {
+  padding: 0.65rem;
+}
+
 .miniapp-multi-product-picker__selected {
   display: flex;
   flex-wrap: wrap;

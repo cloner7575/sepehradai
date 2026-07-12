@@ -7,6 +7,7 @@ import logging
 import re
 import uuid
 from typing import Any
+from urllib.parse import quote
 
 from django.db import IntegrityError
 
@@ -145,6 +146,10 @@ def find_flow_node_by_id(cfg: BotSettings, node_id: str) -> dict[str, Any] | Non
     return walk(root)
 
 
+def _webapp_path_segment(value: str) -> str:
+    return quote((value or '').strip(), safe='-._~')
+
+
 def _evaluate_condition(cfg: BotSettings, sub: Subscriber, cond: dict[str, Any]) -> bool:
     kind = _clip(cond.get('kind'), 32).lower()
     if kind == 'has_tag':
@@ -174,9 +179,9 @@ def _build_webapp_url(cfg: BotSettings, target: dict[str, Any] | None) -> str:
     kind = _clip(target.get('kind'), 16).lower()
     value = _clip(target.get('value'), 512)
     if kind == 'category' and value:
-        return f'{base}/category/{value}'
+        return f'{base}/category/{_webapp_path_segment(value)}'
     if kind == 'item' and value:
-        return f'{base}/item/{value}'
+        return f'{base}/item/{_webapp_path_segment(value)}'
     if kind in ('flash_sale', 'sale'):
         return f'{base}/sale'
     if kind == 'library':
@@ -184,7 +189,7 @@ def _build_webapp_url(cfg: BotSettings, target: dict[str, Any] | None) -> str:
     if kind == 'cart':
         return f'{base}/cart'
     if kind == 'tag' and value:
-        return f'{base}/?tag={value}'
+        return f'{base}/?tag={_webapp_path_segment(value)}'
     if kind == 'path' and value:
         path = value if value.startswith('/') else f'/{value}'
         return f'{base}{path}'
