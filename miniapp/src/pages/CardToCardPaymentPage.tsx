@@ -68,7 +68,7 @@ function PaymentSkeleton() {
 export function CardToCardPaymentPage() {
   const { orderId } = useParams();
   const navigate = useNavigate();
-  const { adapter, refreshCart } = useApp();
+  const { adapter, refreshCart, refreshSubscriber } = useApp();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -126,6 +126,7 @@ export function CardToCardPaymentPage() {
       setReceiptUploaded(true);
       setDone(true);
       await refreshCart();
+      await refreshSubscriber();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'آپلود ناموفق');
     } finally {
@@ -136,8 +137,9 @@ export function CardToCardPaymentPage() {
   useEffect(() => {
     if (paid) {
       refreshCart();
+      refreshSubscriber();
     }
-  }, [paid, refreshCart]);
+  }, [paid, refreshCart, refreshSubscriber]);
 
   if (loading) {
     return (

@@ -662,7 +662,7 @@ def _cart_line_dict(entry, request=None, catalog=None) -> dict:
 @csrf_exempt
 @require_http_methods(['GET', 'POST'])
 def catalog_cart(request, public_id):
-    catalog, err = _resolve_catalog(public_id, require_enabled=True)
+    catalog, err = _resolve_catalog(public_id, require_enabled=request.method != 'GET')
     if err:
         return err
     if request.method == 'GET':
@@ -696,6 +696,7 @@ def catalog_cart(request, public_id):
             'discount_amount': summary['discount_amount'],
             'total': summary['total'],
             'free_shipping': summary['free_shipping'],
+            'has_library': subscriber_has_library(sub),
         })
 
     body = _parse_body(request)

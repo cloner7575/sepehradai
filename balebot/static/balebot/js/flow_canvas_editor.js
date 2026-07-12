@@ -2100,7 +2100,15 @@
 
   function appendWebappTargetValueField(parent, target, onChange) {
     if (!target || !target.kind || target.kind === 'home') return;
-    if (target.kind === 'flash_sale' || target.kind === 'library' || target.kind === 'cart') return;
+    if (target.kind === 'flash_sale' || target.kind === 'library' || target.kind === 'cart') {
+      var hints = {
+        flash_sale: 'کاربر مستقیم به صفحه حراج ویژه مینی‌اپ می‌رود.',
+        library: 'فقط برای کاربرانی که دوره یا پکیج فایل خریده‌اند نمایش داده می‌شود.',
+        cart: 'کاربر مستقیم به سبد خرید مینی‌اپ می‌رود.',
+      };
+      parent.appendChild(addFieldHint(hints[target.kind] || ''));
+      return;
+    }
 
     if (target.kind === 'category') {
       appendCategoryPickerField(parent, target.value || '', function (v) {
@@ -2410,6 +2418,7 @@
           action.target.kind = v;
           action.target.value = '';
           onChange();
+          renderInspector();
         })
       );
       appendWebappTargetValueField(container, action.target, onChange);

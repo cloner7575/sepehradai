@@ -13,10 +13,10 @@ export function HeaderActions({
   showCart = true,
   showLibrary = true,
 }: HeaderActionsProps) {
-  const { config, cartItems, adapter, auth } = useApp();
+  const { config, cartItems, adapter, hasLibrary } = useApp();
   const cartCount = cartItems.reduce((s, l) => s + l.quantity, 0);
   const shopEnabled = config?.is_enabled !== false;
-  const canShowLibrary = showLibrary && Boolean(adapter.initData) && Boolean(auth?.has_library);
+  const canShowLibrary = showLibrary && Boolean(adapter.initData) && hasLibrary;
   const canShowCart = showCart && shopEnabled;
 
   if (!canShowLibrary && !canShowCart) return null;

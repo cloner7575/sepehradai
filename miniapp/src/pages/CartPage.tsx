@@ -17,6 +17,7 @@ export function CartPage() {
   const {
     adapter,
     refreshCart,
+    refreshSubscriber,
     cartTotal,
     cartSubtotal,
     cartShipping,
@@ -49,8 +50,9 @@ export function CartPage() {
   useEffect(() => {
     if (paid || submitted || baleInvoice) {
       refreshCart();
+      refreshSubscriber();
     }
-  }, [paid, submitted, baleInvoice, refreshCart]);
+  }, [paid, submitted, baleInvoice, refreshCart, refreshSubscriber]);
 
   const applyDiscount = async () => {
     const code = discountCode.trim();

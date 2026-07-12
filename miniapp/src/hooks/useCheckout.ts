@@ -12,7 +12,7 @@ function resolveDefaultMethod(
 }
 
 export function useCheckout() {
-  const { adapter, refreshCart, config } = useApp();
+  const { adapter, refreshCart, refreshSubscriber, config } = useApp();
   const methods = config?.payment_methods || [];
   const [paymentMethod, setPaymentMethod] = useState(() =>
     resolveDefaultMethod(methods, config?.payment_default),
@@ -44,10 +44,13 @@ export function useCheckout() {
       });
       if (result.payment_method === 'card_to_card' || result.method === 'card_to_card') {
         await refreshCart();
+        await refreshSubscriber();
       } else if (result.payment_method === 'admin_cart') {
         await refreshCart();
+        await refreshSubscriber();
       } else if (result.payment_method === 'bale' || result.method === 'bale_invoice') {
         await refreshCart();
+        await refreshSubscriber();
         if (adapter.kind === 'bale') {
           adapter.close();
         }

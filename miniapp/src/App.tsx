@@ -1,7 +1,7 @@
 import { Component, createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { fetchCart, fetchConfig, getPublicIdValue, validateAuth } from './api';
+import { fetchCart, fetchConfig, fetchLibrary, getPublicIdValue, validateAuth } from './api';
 import { applyTheme, createWebAppAdapter, type WebAppAdapter } from './platform';
 import { setMediaBaseUrl } from './utils/url';
 import type { AuthValidateResult, CartLine, CatalogConfig } from './types';
@@ -19,6 +19,7 @@ interface AppContextValue {
   config: CatalogConfig | null;
   adapter: WebAppAdapter;
   auth: AuthValidateResult | null;
+  hasLibrary: boolean;
   cartItems: CartLine[];
   cartTotal: number;
   cartSubtotal: number;
@@ -26,6 +27,7 @@ interface AppContextValue {
   cartDiscount: number;
   freeShipping: boolean;
   refreshCart: (opts?: { province?: string; discount_code?: string }) => Promise<void>;
+  refreshSubscriber: (initDataOverride?: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -134,9 +136,47 @@ export default function App() {
   const [cartDiscount, setCartDiscount] = useState(0);
   const [freeShipping, setFreeShipping] = useState(false);
   const [auth, setAuth] = useState<AuthValidateResult | null>(null);
+  const [hasLibrary, setHasLibrary] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [unsupported, setUnsupported] = useState(false);
+
+  const refreshSubscriber = useCallback(async (initDataOverride?: string) => {
+    const initData = (initDataOverride ?? adapter.initData ?? '').trim();
+    if (!initData) {
+      setHasLibrary(false);
+      return;
+    }
+    let library = false;
+    try {
+      const authResult = await validateAuth(initData);
+      setAuth(authResult);
+      library = library || Boolean(authResult.has_library);
+    } catch {
+      /* احراز هویت ناموفق */
+    }
+    try {
+      const cartData = await fetchCart(initData);
+      library = library || Boolean(cartData.has_library);
+      setCartItems(cartData.items);
+      setCartSubtotal(cartData.subtotal ?? cartData.total);
+      setCartShipping(cartData.shipping_cost ?? 0);
+      setCartDiscount(cartData.discount_amount ?? 0);
+      setFreeShipping(Boolean(cartData.free_shipping));
+      setCartTotal(cartData.total);
+    } catch {
+      /* سبد در دسترس نیست */
+    }
+    if (!library) {
+      try {
+        const items = await fetchLibrary(initData);
+        library = items.length > 0;
+      } catch {
+        /* کتابخانه در دسترس نیست */
+      }
+    }
+    setHasLibrary(library);
+  }, [adapter.initData]);
 
   const refreshCart = useCallback(async (opts?: { province?: string; discount_code?: string }) => {
     if (!adapter.initData) return;
@@ -148,6 +188,7 @@ export default function App() {
       setCartDiscount(data.discount_amount ?? 0);
       setFreeShipping(Boolean(data.free_shipping));
       setCartTotal(data.total);
+      if (data.has_library) setHasLibrary(true);
     } catch {
       setCartItems([]);
       setCartSubtotal(0);
@@ -177,25 +218,7 @@ export default function App() {
         platformAdapter.expand();
 
         if (platformAdapter.initData) {
-          try {
-            const authResult = await validateAuth(platformAdapter.initData);
-            setAuth(authResult);
-          } catch {
-            /* بدون initData معتبر، فقط مشاهده محدود */
-          }
-        }
-
-        if (cfg.is_enabled && platformAdapter.initData) {
-          fetchCart(platformAdapter.initData)
-            .then((d) => {
-              setCartItems(d.items);
-              setCartSubtotal(d.subtotal ?? d.total);
-              setCartShipping(d.shipping_cost ?? 0);
-              setCartDiscount(d.discount_amount ?? 0);
-              setFreeShipping(Boolean(d.free_shipping));
-              setCartTotal(d.total);
-            })
-            .catch(() => {});
+          void refreshSubscriber(platformAdapter.initData);
         }
       })
       .catch((e: unknown) => {
@@ -212,6 +235,7 @@ export default function App() {
       config,
       adapter,
       auth,
+      hasLibrary,
       cartItems,
       cartTotal,
       cartSubtotal,
@@ -219,8 +243,9 @@ export default function App() {
       cartDiscount,
       freeShipping,
       refreshCart,
+      refreshSubscriber,
     }),
-    [config, adapter, auth, cartItems, cartTotal, cartSubtotal, cartShipping, cartDiscount, freeShipping, refreshCart],
+    [config, adapter, auth, hasLibrary, cartItems, cartTotal, cartSubtotal, cartShipping, cartDiscount, freeShipping, refreshCart, refreshSubscriber],
   );
 
   if (loading) {
@@ -250,7 +275,11 @@ export default function App() {
           <ChannelGate
             adapter={adapter}
             auth={auth}
-            onUnlocked={(result) => setAuth(result)}
+            onUnlocked={(result) => {
+              setAuth(result);
+              if (result.has_library) setHasLibrary(true);
+              void refreshSubscriber();
+            }}
           />
         </AppContext.Provider>
       </AppErrorBoundary>

@@ -259,6 +259,7 @@ export interface CartSummary {
   discount_amount: number;
   total: number;
   free_shipping: boolean;
+  has_library?: boolean;
 }
 
 export interface AuthValidateResult {
