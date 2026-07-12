@@ -172,11 +172,26 @@ def _build_webapp_url(cfg: BotSettings, target: dict[str, Any] | None) -> str:
     if not isinstance(target, dict):
         return base + '/'
     kind = _clip(target.get('kind'), 16).lower()
-    value = _clip(target.get('value'), 256)
+    value = _clip(target.get('value'), 512)
     if kind == 'category' and value:
         return f'{base}/category/{value}'
     if kind == 'item' and value:
         return f'{base}/item/{value}'
+    if kind in ('flash_sale', 'sale'):
+        return f'{base}/sale'
+    if kind == 'library':
+        return f'{base}/library'
+    if kind == 'cart':
+        return f'{base}/cart'
+    if kind == 'tag' and value:
+        return f'{base}/?tag={value}'
+    if kind == 'path' and value:
+        path = value if value.startswith('/') else f'/{value}'
+        return f'{base}{path}'
+    if kind == 'url' and value:
+        if value.startswith('http://') or value.startswith('https://'):
+            return value
+        return f'{base}/{value.lstrip("/")}'
     return base + '/'
 
 

@@ -10,7 +10,8 @@ import type {
   SliderHomeBlock,
 } from '../types';
 import { CategoryCard } from './CategoryCard';
-import { IconCart, IconGrid, IconSearch } from './Icons';
+import { HeaderActions } from './HeaderActions';
+import { IconGrid, IconSearch } from './Icons';
 import { ItemCard } from './ItemCard';
 import { ItemsSection } from './ItemsSection';
 import { SafeImage } from './SafeImage';
@@ -27,9 +28,7 @@ interface HomeBlocksProps {
 }
 
 function HeroBlockView({ block }: { block: HomeBlock }) {
-  const { config, cartItems } = useApp();
-  const cartCount = cartItems.reduce((s, l) => s + l.quantity, 0);
-  const shopEnabled = config?.is_enabled !== false;
+  const { config } = useApp();
   const variant = block.type === 'hero' ? block.variant || 'banner' : 'banner';
   const primary = config?.theme?.primary_color || '#334155';
   const heroBackground = resolveMediaUrl(config?.hero_background_url || '');
@@ -62,14 +61,7 @@ function HeroBlockView({ block }: { block: HomeBlock }) {
             )}
           </div>
         </div>
-        {shopEnabled && (
-          <Link to="/cart" className="cart-header-btn" aria-label="سبد خرید">
-            <IconCart className="h-5 w-5" />
-            {cartCount > 0 && (
-              <span className="cart-header-badge">{cartCount > 99 ? '99+' : cartCount}</span>
-            )}
-          </Link>
-        )}
+        <HeaderActions />
       </header>
     );
   }
@@ -113,18 +105,7 @@ function HeroBlockView({ block }: { block: HomeBlock }) {
             )}
           </div>
         </div>
-        {shopEnabled && (
-          <Link
-            to="/cart"
-            className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20"
-            aria-label="سبد خرید"
-          >
-            <IconCart className="h-5 w-5" />
-            {cartCount > 0 && (
-              <span className="cart-header-badge">{cartCount > 99 ? '99+' : cartCount}</span>
-            )}
-          </Link>
-        )}
+        <HeaderActions variant="hero" />
       </div>
     </section>
   );

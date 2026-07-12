@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom';
 import { useApp } from '../App';
-import { IconCart, IconGrid } from './Icons';
+import { IconGrid } from './Icons';
+import { HeaderActions } from './HeaderActions';
 import { SafeImage } from './SafeImage';
 
 interface AppHeaderProps {
@@ -8,6 +8,7 @@ interface AppHeaderProps {
   subtitle?: string;
   showBrand?: boolean;
   showCart?: boolean;
+  showLibrary?: boolean;
 }
 
 export function AppHeader({
@@ -15,10 +16,9 @@ export function AppHeader({
   subtitle,
   showBrand = false,
   showCart = true,
+  showLibrary = true,
 }: AppHeaderProps) {
-  const { config, cartItems } = useApp();
-  const cartCount = cartItems.reduce((s, l) => s + l.quantity, 0);
-  const shopEnabled = config?.is_enabled !== false;
+  const { config } = useApp();
 
   return (
     <header className="app-header">
@@ -59,14 +59,7 @@ export function AppHeader({
           </div>
         )}
       </div>
-      {showCart && shopEnabled && (
-        <Link to="/cart" className="cart-header-btn" aria-label="سبد خرید">
-          <IconCart className="h-5 w-5" />
-          {cartCount > 0 && (
-            <span className="cart-header-badge">{cartCount > 99 ? '99+' : cartCount}</span>
-          )}
-        </Link>
-      )}
+      <HeaderActions showCart={showCart} showLibrary={showLibrary} />
     </header>
   );
 }

@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchItemContent, fetchLibrary } from '../api';
+import { fetchLibrary } from '../api';
 import { useApp } from '../App';
 import { AppHeader } from '../components/AppHeader';
-import { IconBook, IconDownload, IconLock, IconPackage, IconPlay } from '../components/Icons';
+import { IconBook, IconLock, IconPackage, IconPlay } from '../components/Icons';
 import { SafeImage } from '../components/SafeImage';
 import { itemTypeLabel } from '../utils/itemType';
 import type { CatalogItem } from '../types';
 
 function LibraryItemCard({ item }: { item: CatalogItem }) {
   const image = item.images[0] || item.cover_url;
-  const isVideo = item.item_type === 'video';
+  const isCourse = item.item_type === 'course';
+  const isPackage = item.item_type === 'package';
+  const FallbackIcon = isCourse ? IconBook : isPackage ? IconPackage : IconPlay;
   return (
     <Link to={`/item/${item.slug}`} className="card flex gap-3 p-3.5 transition active:scale-[0.98]">
       <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[var(--color-primary-soft)]">
@@ -18,7 +20,7 @@ function LibraryItemCard({ item }: { item: CatalogItem }) {
           <SafeImage src={image} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center text-primary/40">
-            {isVideo ? <IconPlay className="h-7 w-7" /> : <IconDownload className="h-7 w-7" />}
+            <FallbackIcon className="h-7 w-7" />
           </div>
         )}
       </div>
@@ -53,7 +55,7 @@ export function LibraryPage() {
 
   return (
     <div className="pb-8">
-      <AppHeader title="کتابخانه من" showBrand={false} showCart />
+      <AppHeader title="کتابخانه من" showBrand={false} showCart showLibrary={false} />
       {loading && (
         <div className="space-y-3 p-4">
           <div className="skeleton h-20 rounded-2xl" />
@@ -69,7 +71,7 @@ export function LibraryPage() {
       {!loading && !error && items.length === 0 && (
         <div className="empty-state mx-4 mt-8">
           <IconBook className="h-8 w-8 text-muted/40" />
-          <p className="text-sm text-muted">هنوز محتوایی خریداری نکرده‌اید.</p>
+          <p className="text-sm text-muted">هنوز دوره یا پکیجی در کتابخانه شما نیست.</p>
         </div>
       )}
       {!loading && !error && items.length > 0 && (

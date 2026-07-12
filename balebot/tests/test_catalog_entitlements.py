@@ -12,7 +12,12 @@ from balebot.models import (
     Platform,
     Subscriber,
 )
-from balebot.services.catalog_access import subscriber_has_item_access
+from balebot.services.catalog_access import (
+    subscriber_has_group_access,
+    subscriber_has_item_access,
+    subscriber_has_library,
+    subscriber_library_item_ids,
+)
 from balebot.services.catalog_access_tokens import issue_media_token, verify_media_token
 from balebot.services.catalog_payment import mark_order_paid
 from balebot.workspace import create_panel_user
@@ -162,7 +167,6 @@ class CatalogEntitlementTests(TestCase):
             title_snapshot=self.course.title,
             price_snapshot=self.course.price,
         )
-        from balebot.services.catalog_access import subscriber_has_group_access
         from balebot.views_miniapp_api import _item_dict
 
         self.assertTrue(subscriber_has_group_access(self.sub, self.course))
@@ -240,3 +244,43 @@ class CatalogEntitlementTests(TestCase):
             content_type='application/json',
         )
         self.assertIn(res.status_code, (400, 401))
+
+    def test_library_hidden_without_course_or_package_access(self):
+        self.assertFalse(subscriber_has_library(self.sub))
+        self.assertEqual(subscriber_library_item_ids(self.sub), set())
+
+    def test_library_includes_purchased_course(self):
+        order = CatalogOrder.objects.create(
+            workspace=self.workspace,
+            platform=self.platform,
+            subscriber=self.sub,
+            status=CatalogOrder.Status.PAID,
+            total_amount=1_000_000,
+        )
+        CatalogOrderLine.objects.create(
+            order=order,
+            item=self.course,
+            title_snapshot=self.course.title,
+            price_snapshot=self.course.price,
+        )
+        mark_order_paid(order)
+        self.assertTrue(subscriber_has_library(self.sub))
+        self.assertEqual(subscriber_library_item_ids(self.sub), {self.course.pk})
+
+    def test_library_excludes_standalone_video_purchase(self):
+        order = CatalogOrder.objects.create(
+            workspace=self.workspace,
+            platform=self.platform,
+            subscriber=self.sub,
+            status=CatalogOrder.Status.PAID,
+            total_amount=500_000,
+        )
+        CatalogOrderLine.objects.create(
+            order=order,
+            item=self.video,
+            title_snapshot=self.video.title,
+            price_snapshot=self.video.price,
+        )
+        mark_order_paid(order)
+        self.assertFalse(subscriber_has_library(self.sub))
+        self.assertEqual(subscriber_library_item_ids(self.sub), set())

@@ -175,6 +175,21 @@
   var dockTabsEl = null;
   var selection = null;
   var discountCodes = [];
+  var pickerCategories = [];
+  var pickerItems = [];
+  var pickerTags = [];
+
+  var WEBAPP_TARGET_OPTIONS = [
+    ['home', 'صفحه اصلی'],
+    ['category', 'دسته‌بندی'],
+    ['item', 'محصول'],
+    ['tag', 'برچسب'],
+    ['flash_sale', 'صفحه حراج'],
+    ['library', 'کتابخانه من'],
+    ['cart', 'سبد خرید'],
+    ['path', 'مسیر دلخواه مینی‌اپ'],
+    ['url', 'لینک خارجی'],
+  ];
 
   var PALETTE_FILTER_OPTIONS = [
     ['all', 'همه'],
@@ -1918,6 +1933,221 @@
     return lbl;
   }
 
+  function addFieldHint(text) {
+    var p = document.createElement('p');
+    p.className = 'miniapp-field-hint mb-2';
+    p.textContent = text;
+    return p;
+  }
+
+  function categoryPickerOptions() {
+    var opts = [['', '— یک دسته انتخاب کنید —']];
+    pickerCategories.forEach(function (c) {
+      var slug = (c.slug || '').trim();
+      var label = (c.name || slug).trim();
+      if (slug && label) opts.push([slug, label]);
+    });
+    return opts;
+  }
+
+  function itemPickerOptions() {
+    var opts = [['', '— یک محصول انتخاب کنید —']];
+    pickerItems.forEach(function (it) {
+      var slug = (it.slug || '').trim();
+      var label = (it.title || slug).trim();
+      if (slug && label) opts.push([slug, label]);
+    });
+    return opts;
+  }
+
+  function tagPickerOptions() {
+    var opts = [['', '— یک برچسب انتخاب کنید —']];
+    pickerTags.forEach(function (t) {
+      var slug = (t.slug || '').trim();
+      var label = (t.name || slug).trim();
+      if (slug && label) opts.push([slug, label]);
+    });
+    return opts;
+  }
+
+  function searchableSelectInput(selectedValue, options, onChange, config) {
+    config = config || {};
+    var wrap = document.createElement('div');
+    wrap.className = 'miniapp-searchable-select mb-2';
+
+    var searchInp = document.createElement('input');
+    searchInp.type = 'search';
+    searchInp.className = 'form-control panel-input miniapp-searchable-select__search';
+    searchInp.placeholder = config.searchPlaceholder || 'جستجو…';
+    searchInp.setAttribute('autocomplete', 'off');
+
+    var sel = document.createElement('select');
+    sel.className = 'form-select panel-input miniapp-searchable-select__list';
+    sel.size = config.listSize || 6;
+
+    function norm(s) {
+      return String(s || '').trim().toLowerCase();
+    }
+
+    function labelForValue(val) {
+      for (var i = 0; i < options.length; i++) {
+        if (options[i][0] === val) return options[i][1];
+      }
+      return '';
+    }
+
+    function matchesQuery(val, label, q) {
+      if (!q) return true;
+      return norm(label).indexOf(q) !== -1 || norm(val).indexOf(q) !== -1;
+    }
+
+    function fillOptions(query) {
+      var q = norm(query);
+      sel.innerHTML = '';
+      var count = 0;
+      options.forEach(function (pair) {
+        var val = pair[0];
+        var label = pair[1];
+        if (val === '' && q) return;
+        if (val !== '' && !matchesQuery(val, label, q)) return;
+        var opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label;
+        sel.appendChild(opt);
+        count++;
+      });
+      if (!count) {
+        var none = document.createElement('option');
+        none.value = '';
+        none.textContent = 'نتیجه‌ای یافت نشد';
+        none.disabled = true;
+        sel.appendChild(none);
+      } else if (selectedValue) {
+        for (var j = 0; j < sel.options.length; j++) {
+          if (sel.options[j].value === selectedValue) {
+            sel.value = selectedValue;
+            break;
+          }
+        }
+      }
+    }
+
+    searchInp.addEventListener('input', function () {
+      fillOptions(searchInp.value);
+    });
+
+    sel.addEventListener('change', function () {
+      selectedValue = sel.value;
+      onChange(selectedValue);
+      searchInp.value = selectedValue ? labelForValue(selectedValue) : '';
+    });
+
+    fillOptions('');
+    if (selectedValue) {
+      searchInp.value = labelForValue(selectedValue);
+      sel.value = selectedValue;
+    }
+
+    wrap.appendChild(searchInp);
+    wrap.appendChild(sel);
+    return wrap;
+  }
+
+  function appendCategoryPickerField(parent, value, onChange, label) {
+    parent.appendChild(addFieldLabel(label || 'انتخاب دسته‌بندی'));
+    if (!pickerCategories.length) {
+      parent.appendChild(addFieldHint('دسته‌ای در فروشگاه تعریف نشده است.'));
+      parent.appendChild(addInput(value || '', 'slug دسته', 120, onChange));
+      return;
+    }
+    parent.appendChild(
+      searchableSelectInput(value || '', categoryPickerOptions(), onChange, {
+        searchPlaceholder: 'جستجوی نام دسته…',
+        listSize: 6,
+      })
+    );
+  }
+
+  function appendItemPickerField(parent, value, onChange, label) {
+    parent.appendChild(addFieldLabel(label || 'انتخاب محصول'));
+    if (!pickerItems.length) {
+      parent.appendChild(addFieldHint('محصولی در فروشگاه تعریف نشده است.'));
+      parent.appendChild(addInput(value || '', 'slug محصول', 120, onChange));
+      return;
+    }
+    parent.appendChild(
+      searchableSelectInput(value || '', itemPickerOptions(), onChange, {
+        searchPlaceholder: 'جستجوی نام محصول…',
+        listSize: 6,
+      })
+    );
+  }
+
+  function appendTagPickerField(parent, value, onChange) {
+    parent.appendChild(addFieldLabel('انتخاب برچسب'));
+    if (!pickerTags.length) {
+      parent.appendChild(addFieldHint('برچسبی تعریف نشده است.'));
+      parent.appendChild(addInput(value || '', 'slug برچسب', 120, onChange));
+      return;
+    }
+    parent.appendChild(
+      searchableSelectInput(value || '', tagPickerOptions(), onChange, {
+        searchPlaceholder: 'جستجوی برچسب…',
+        listSize: 6,
+      })
+    );
+  }
+
+  function appendWebappTargetValueField(parent, target, onChange) {
+    if (!target || !target.kind || target.kind === 'home') return;
+    if (target.kind === 'flash_sale' || target.kind === 'library' || target.kind === 'cart') return;
+
+    if (target.kind === 'category') {
+      appendCategoryPickerField(parent, target.value || '', function (v) {
+        target.value = v;
+        onChange();
+      });
+      return;
+    }
+    if (target.kind === 'item') {
+      appendItemPickerField(parent, target.value || '', function (v) {
+        target.value = v;
+        onChange();
+      });
+      return;
+    }
+    if (target.kind === 'tag') {
+      appendTagPickerField(parent, target.value || '', function (v) {
+        target.value = v;
+        onChange();
+      });
+      return;
+    }
+    if (target.kind === 'path') {
+      parent.appendChild(addFieldLabel('مسیر داخل مینی‌اپ'));
+      parent.appendChild(
+        addInput(target.value || '', '/sale یا /category/slug', 256, function (v) {
+          target.value = v;
+          onChange();
+        })
+      );
+      parent.appendChild(
+        addFieldHint('مثال: /library ، /cart ، /category/نام-دسته ، /item/نام-محصول')
+      );
+      return;
+    }
+    if (target.kind === 'url') {
+      parent.appendChild(addFieldLabel('آدرس لینک'));
+      parent.appendChild(
+        addInput(target.value || '', 'https://example.com', 512, function (v) {
+          target.value = v;
+          onChange();
+        }, 'url')
+      );
+      parent.appendChild(addFieldHint('لینک کامل خارج از مینی‌اپ یا هر آدرسی که می‌خواهید باز شود.'));
+    }
+  }
+
   function addTextarea(value, placeholder, maxLen, onInput) {
     var ta = document.createElement('textarea');
     ta.className = 'form-control panel-input';
@@ -2176,21 +2406,13 @@
       });
       container.appendChild(addFieldLabel('مقصد'));
       container.appendChild(
-        addSelect(action.target.kind || 'home', [
-          ['home', 'صفحه اصلی'],
-          ['category', 'دسته'],
-          ['item', 'محصول'],
-        ], function (v) {
+        addSelect(action.target.kind || 'home', WEBAPP_TARGET_OPTIONS, function (v) {
           action.target.kind = v;
+          action.target.value = '';
           onChange();
         })
       );
-      if (action.target.kind !== 'home') {
-        field('شناسه (slug)', action.target.value, '', 120, function (v) {
-          action.target.value = v;
-          onChange();
-        });
-      }
+      appendWebappTargetValueField(container, action.target, onChange);
       return;
     }
 
@@ -3043,6 +3265,21 @@
       discountCodes = JSON.parse(root.getAttribute('data-discount-codes') || '[]');
     } catch (discountErr) {
       discountCodes = [];
+    }
+    try {
+      pickerCategories = JSON.parse(root.getAttribute('data-picker-categories') || '[]');
+    } catch (pickerCatErr) {
+      pickerCategories = [];
+    }
+    try {
+      pickerItems = JSON.parse(root.getAttribute('data-picker-items') || '[]');
+    } catch (pickerItemErr) {
+      pickerItems = [];
+    }
+    try {
+      pickerTags = JSON.parse(root.getAttribute('data-picker-tags') || '[]');
+    } catch (pickerTagErr) {
+      pickerTags = [];
     }
 
     state = parseHidden();

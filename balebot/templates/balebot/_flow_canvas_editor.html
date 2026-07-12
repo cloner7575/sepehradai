@@ -9,6 +9,9 @@
   data-has-miniapp="{% if mini_app_url %}1{% else %}0{% endif %}"
   {% if mini_app_url %}data-mini-app-url="{{ mini_app_url }}"{% endif %}
   {% if discount_codes_json %}data-discount-codes="{{ discount_codes_json|escape }}"{% endif %}
+  {% if catalog_picker_categories_json %}data-picker-categories="{{ catalog_picker_categories_json|escape }}"{% endif %}
+  {% if catalog_picker_items_json %}data-picker-items="{{ catalog_picker_items_json|escape }}"{% endif %}
+  {% if catalog_picker_tags_json %}data-picker-tags="{{ catalog_picker_tags_json|escape }}"{% endif %}
 >
   <header class="bot-studio-header">
     <div class="bot-studio-header-main">

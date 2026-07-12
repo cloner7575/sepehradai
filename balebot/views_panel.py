@@ -17,6 +17,7 @@ from django.views.generic import DetailView, ListView, TemplateView
 from django.views.generic.edit import CreateView, UpdateView
 
 from balebot.forms import BotSettingsForm, CampaignForm, FlowEngineForm, TagForm
+from balebot.services.catalog_picker import catalog_picker_json
 from balebot.services.discount import apply_coupon_resolution_to_flow, discount_codes_for_editor
 from balebot.platform import (
     allowed_platforms_for_workspace,
@@ -448,8 +449,21 @@ class FlowEngineView(WorkspaceScopedMixin, PanelAccessMixin, TemplateView):
                 discount_codes_for_editor(scope['workspace'], scope['platform']),
                 ensure_ascii=False,
             )
+            picker = catalog_picker_json(scope)
+            ctx['catalog_picker_categories_json'] = json.dumps(
+                picker['categories'], ensure_ascii=False,
+            )
+            ctx['catalog_picker_items_json'] = json.dumps(
+                picker['items'], ensure_ascii=False,
+            )
+            ctx['catalog_picker_tags_json'] = json.dumps(
+                picker['tags'], ensure_ascii=False,
+            )
         else:
             ctx['discount_codes_json'] = '[]'
+            ctx['catalog_picker_categories_json'] = '[]'
+            ctx['catalog_picker_items_json'] = '[]'
+            ctx['catalog_picker_tags_json'] = '[]'
         return ctx
 
     def get_context_data(self, **kwargs):

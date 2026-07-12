@@ -272,6 +272,7 @@ export interface AuthValidateResult {
   is_channel_member: boolean;
   channel_message: string;
   channel_invite_link: string;
+  has_library?: boolean;
 }
 
 export interface CheckoutResult {

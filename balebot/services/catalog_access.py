@@ -116,6 +116,26 @@ def subscriber_entitled_item_ids(subscriber: Subscriber) -> set[int]:
     return direct | child_ids | preview_ids | free_paid_content | paid_order_ids
 
 
+def subscriber_library_item_ids(subscriber: Subscriber) -> set[int]:
+    """دوره‌ها و پکیج‌های فایلی که کاربر به آن‌ها دسترسی دارد."""
+    parents = CatalogItem.objects.filter(
+        workspace=subscriber.workspace,
+        platform=subscriber.platform,
+        is_active=True,
+        item_type__in=[CatalogItem.ItemType.COURSE, CatalogItem.ItemType.PACKAGE],
+    )
+    return {
+        item.pk for item in parents
+        if subscriber_has_group_access(subscriber, item)
+    }
+
+
+def subscriber_has_library(subscriber: Subscriber | None) -> bool:
+    if subscriber is None:
+        return False
+    return bool(subscriber_library_item_ids(subscriber))
+
+
 def media_is_locked(item: CatalogItem, media, subscriber: Subscriber | None) -> bool:
     if media.media_type == CatalogItemMedia.MediaType.IMAGE:
         return False

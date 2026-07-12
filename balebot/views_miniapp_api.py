@@ -29,6 +29,8 @@ from balebot.services.catalog_access import (
     subscriber_entitled_item_ids,
     subscriber_has_group_access,
     subscriber_has_item_access,
+    subscriber_has_library,
+    subscriber_library_item_ids,
 )
 from balebot.services.catalog_access_tokens import (
     append_media_token,
@@ -587,17 +589,16 @@ def catalog_library(request, public_id):
     subscriber = _resolve_subscriber(catalog, init_data)
     if not subscriber:
         return _json_error('احراز هویت لازم است', 401)
-    entitled_ids = subscriber_entitled_item_ids(subscriber)
-    if not entitled_ids:
+    library_ids = subscriber_library_item_ids(subscriber)
+    if not library_ids:
         return JsonResponse({'ok': True, 'items': []})
     qs = (
         CatalogItem.objects.filter(
             workspace=catalog.workspace,
             platform=catalog.platform,
             is_active=True,
-            pk__in=entitled_ids,
+            pk__in=library_ids,
         )
-        .exclude(item_type__in=[CatalogItem.ItemType.COURSE, CatalogItem.ItemType.PACKAGE])
         .prefetch_related('media')
         .order_by('-updated_at')
     )
@@ -632,6 +633,7 @@ def catalog_auth_validate(request, public_id):
             'first_name': sub.first_name,
             'username': sub.username,
         },
+        'has_library': subscriber_has_library(sub),
         **channel,
     })
 
