@@ -31,12 +31,20 @@ from balebot.services.webhook_logic import get_or_create_subscriber
 logger = logging.getLogger(__name__)
 
 
-def _line_items_from_cart(cart: CatalogCart) -> list[tuple[CatalogItem, int]]:
+def _line_items_from_cart(
+    cart: CatalogCart,
+    subscriber: Subscriber | None = None,
+) -> list[tuple[CatalogItem, int]]:
+    from balebot.services.catalog_access import subscriber_has_item_access
+
     rows: list[tuple[CatalogItem, int]] = []
     for entry in cart.items.select_related('catalog_item').all():
         item = entry.catalog_item
-        if item.is_active and item.is_buyable():
-            rows.append((item, entry.quantity))
+        if not item.is_active or not item.is_buyable():
+            continue
+        if subscriber and subscriber_has_item_access(subscriber, item):
+            continue
+        rows.append((item, entry.quantity))
     return rows
 
 
@@ -196,7 +204,7 @@ def create_checkout_order(
     recipient_extra: dict | None = None,
 ) -> CatalogOrder | None:
     if cart:
-        lines = _line_items_from_cart(cart)
+        lines = _line_items_from_cart(cart, subscriber=subscriber)
     elif item:
         lines = _line_items_from_single(item, quantity)
     else:
@@ -458,7 +466,10 @@ def submit_payment_receipt(
 
     order.payment_receipt = receipt_file
     order.receipt_uploaded_at = timezone.now()
-    order.save(update_fields=['payment_receipt', 'receipt_uploaded_at', 'updated_at'])
+    order.status = CatalogOrder.Status.C2C_PENDING
+    order.save(
+        update_fields=['payment_receipt', 'receipt_uploaded_at', 'status', 'updated_at'],
+    )
 
     sub = order.subscriber
     if sub:

@@ -142,6 +142,7 @@ def _order_status_counts(scope: dict) -> dict[str, int]:
         'all': qs.count(),
         'paid': by_status.get(CatalogOrder.Status.PAID, 0),
         'pending': by_status.get(CatalogOrder.Status.PENDING, 0),
+        'c2c_pending': by_status.get(CatalogOrder.Status.C2C_PENDING, 0),
         'request': by_status.get(CatalogOrder.Status.REQUEST, 0),
         'failed': by_status.get(CatalogOrder.Status.FAILED, 0),
         'cancelled': by_status.get(CatalogOrder.Status.CANCELLED, 0),
@@ -704,6 +705,10 @@ class CatalogDashboardView(MiniAppPanelMixin, TemplateView):
         category_count = CatalogCategory.objects.filter(**scope, is_active=True).count()
         order_count = CatalogOrder.objects.filter(**scope).count()
         order_pending = CatalogOrder.objects.filter(**scope, status=CatalogOrder.Status.PENDING).count()
+        order_c2c_pending = CatalogOrder.objects.filter(
+            **scope,
+            status=CatalogOrder.Status.C2C_PENDING,
+        ).count()
 
         setup_steps = [
             {
@@ -762,6 +767,7 @@ class CatalogDashboardView(MiniAppPanelMixin, TemplateView):
             'category_count': category_count,
             'order_count': order_count,
             'order_pending': order_pending,
+            'order_c2c_pending': order_c2c_pending,
             'payment_methods': payment_methods,
             'has_payment': catalog.is_payment_ready(),
             'setup_steps': setup_steps,

@@ -214,6 +214,7 @@ def _dashboard_alerts(
     bot_health: dict,
     inbound_open: int,
     catalog_order_pending: int,
+    catalog_order_c2c_pending: int,
     has_miniapp: bool,
     catalog_enabled: bool,
 ) -> list[dict]:
@@ -253,6 +254,15 @@ def _dashboard_alerts(
             'text': 'کاربران منتظر پاسخ شما هستند.',
             'url_name': 'inbound_list',
             'action': 'مشاهده تیکت‌ها',
+        })
+    if has_miniapp and catalog_order_c2c_pending:
+        alerts.append({
+            'level': 'warning',
+            'icon': 'bi-credit-card',
+            'title': f'{catalog_order_c2c_pending} سفارش در انتظار تأیید کارت به کارت',
+            'text': 'رسید واریز آپلود شده — پرداخت را در پنل بررسی و تأیید کنید.',
+            'url_name': 'catalog_order_list',
+            'action': 'بررسی سفارش‌ها',
         })
     if has_miniapp and catalog_order_pending:
         alerts.append({
@@ -320,6 +330,7 @@ class DashboardView(WorkspaceScopedMixin, PanelAccessMixin, TemplateView):
         has_miniapp = has_miniapp_access_for_request(self.request, scope['workspace'])
         catalog_enabled = False
         catalog_order_pending = 0
+        catalog_order_c2c_pending = 0
 
         sparkline = _subscriber_sparkline(scope)
 
@@ -376,12 +387,14 @@ class DashboardView(WorkspaceScopedMixin, PanelAccessMixin, TemplateView):
             catalog_enabled = catalog.is_enabled
             sales = build_sales_dashboard_stats(scope)
             catalog_order_pending = sales['order_pending']
+            catalog_order_c2c_pending = sales['order_c2c_pending']
             ctx.update({
                 'catalog': catalog,
                 'catalog_theme': catalog.theme_config or {},
                 'catalog_item_count': CatalogItem.objects.filter(**scope).count(),
                 'catalog_item_active_count': CatalogItem.objects.filter(**scope, is_active=True).count(),
                 'catalog_order_pending': catalog_order_pending,
+                'catalog_order_c2c_pending': catalog_order_c2c_pending,
                 'catalog_order_paid_week': sales['order_paid_week'],
                 'catalog_order_total': sales['order_total'],
                 'catalog_order_paid_total': sales['order_paid_total'],
@@ -408,6 +421,7 @@ class DashboardView(WorkspaceScopedMixin, PanelAccessMixin, TemplateView):
             bot_health=bot_health,
             inbound_open=inbound_open,
             catalog_order_pending=catalog_order_pending,
+            catalog_order_c2c_pending=catalog_order_c2c_pending,
             has_miniapp=has_miniapp,
             catalog_enabled=catalog_enabled,
         )

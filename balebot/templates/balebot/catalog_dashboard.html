@@ -53,7 +53,9 @@
       <span class="catalog-metric-body">
         <span class="catalog-metric-value">{{ order_count }}</span>
         <span class="catalog-metric-label">سفارش‌ها</span>
-        <span class="catalog-metric-meta">{{ order_pending }} در انتظار</span>
+        <span class="catalog-metric-meta">
+          {% if order_c2c_pending %}{{ order_c2c_pending }} کارت به کارت{% elif order_pending %}{{ order_pending }} در انتظار{% else %}بدون انتظار{% endif %}
+        </span>
       </span>
     </a>
     <a href="{% url 'catalog_settings' %}" class="catalog-metric">

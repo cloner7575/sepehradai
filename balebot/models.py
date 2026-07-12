@@ -1468,6 +1468,7 @@ def _order_public_token() -> str:
 class CatalogOrder(models.Model):
     class Status(models.TextChoices):
         PENDING = 'pending', 'در انتظار پرداخت'
+        C2C_PENDING = 'c2c_pending', 'در انتظار تأیید کارت به کارت'
         PAID = 'paid', 'پرداخت‌شده'
         FAILED = 'failed', 'ناموفق'
         CANCELLED = 'cancelled', 'لغوشده'

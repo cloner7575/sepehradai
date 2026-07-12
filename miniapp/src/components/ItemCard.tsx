@@ -8,6 +8,9 @@ function ItemCardPrice({ item, showcase }: { item: CatalogItem; showcase: boolea
   if (showcase) {
     return <span className="text-xs font-medium text-muted">معرفی</span>;
   }
+  if (item.has_access) {
+    return <span className="text-xs font-semibold text-emerald-600">دسترسی دارید</span>;
+  }
   if (item.is_buyable) {
     return (
       <div className="flex flex-wrap items-center gap-1.5">

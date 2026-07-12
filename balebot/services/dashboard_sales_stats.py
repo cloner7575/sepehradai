@@ -39,6 +39,7 @@ def build_sales_dashboard_stats(scope: dict, *, days: int = 30) -> dict:
     paid_count = paid_qs.count()
     paid_week = paid_qs.filter(updated_at__gte=week_ago).count()
     pending_count = orders_qs.filter(status=CatalogOrder.Status.PENDING).count()
+    c2c_pending_count = orders_qs.filter(status=CatalogOrder.Status.C2C_PENDING).count()
     order_total = orders_qs.count()
     order_week = orders_qs.filter(created_at__gte=week_ago).count()
 
@@ -134,6 +135,7 @@ def build_sales_dashboard_stats(scope: dict, *, days: int = 30) -> dict:
         'order_paid_total': paid_count,
         'order_paid_week': paid_week,
         'order_pending': pending_count,
+        'order_c2c_pending': c2c_pending_count,
         'order_aov_toman': aov_toman,
         'miniapp_visitors': miniapp_visitors,
         'conversion_rate_pct': conversion_rate_pct,

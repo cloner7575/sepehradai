@@ -91,8 +91,11 @@ export function CardToCardPaymentPage() {
       .then((data) => {
         setAmount(data.amount);
         setCard(data.card);
-        setReceiptUploaded(data.receipt_uploaded);
+        setReceiptUploaded(data.receipt_uploaded || data.status === 'c2c_pending');
         setPaid(data.status === 'paid');
+        if (data.receipt_uploaded || data.status === 'c2c_pending') {
+          setDone(true);
+        }
         if (data.receipt_url) setReceiptPreview(data.receipt_url);
       })
       .catch((e: unknown) => {

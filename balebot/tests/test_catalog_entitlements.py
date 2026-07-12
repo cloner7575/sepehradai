@@ -148,6 +148,26 @@ class CatalogEntitlementTests(TestCase):
             CatalogEntitlement.objects.filter(subscriber=self.sub, item=self.course).exists()
         )
 
+    def test_paid_course_hides_buy_action_in_api(self):
+        order = CatalogOrder.objects.create(
+            workspace=self.workspace,
+            platform=self.platform,
+            subscriber=self.sub,
+            status=CatalogOrder.Status.PAID,
+            total_amount=1_000_000,
+        )
+        CatalogOrderLine.objects.create(
+            order=order,
+            item=self.course,
+            title_snapshot=self.course.title,
+            price_snapshot=self.course.price,
+        )
+        from balebot.views_miniapp_api import _item_dict
+
+        data = _item_dict(self.course, catalog=self.catalog, subscriber=self.sub)
+        self.assertTrue(data['has_access'])
+        self.assertFalse(data['is_buyable'])
+
     def test_paid_order_grants_access_without_entitlement_row(self):
         """دسترسی از روی سفارش پرداخت‌شده حتی بدون رکورد entitlement."""
         order = CatalogOrder.objects.create(

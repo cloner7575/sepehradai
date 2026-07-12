@@ -411,7 +411,7 @@ export function BundleBlockView({ block }: { block: BundleBlock }) {
     setBusy(true);
     try {
       for (const item of items) {
-        if (item.is_buyable) {
+        if (item.is_buyable && !item.has_access) {
           await updateCart(adapter.initData, { item_id: item.id, quantity: 1 });
         }
       }

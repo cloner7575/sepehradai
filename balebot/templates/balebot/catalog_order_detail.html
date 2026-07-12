@@ -168,7 +168,7 @@
         <div class="panel-card-body">
           <form method="post" action="{% url 'catalog_order_update' order.pk %}">
             {% csrf_token %}
-            {% if order.payment_method == 'card_to_card' and order.payment_receipt and order.status == 'pending' %}
+            {% if order.payment_method == 'card_to_card' and order.payment_receipt and order.status == 'c2c_pending' %}
             <div class="alert alert-info small mb-3">
               رسید واریز دریافت شده — با تأیید پرداخت، پیام تأیید برای مشتری ارسال می‌شود.
             </div>

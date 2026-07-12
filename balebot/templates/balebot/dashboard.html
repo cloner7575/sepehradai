@@ -71,7 +71,7 @@
 <div class="catalog-action-row mb-4">
   {% if has_miniapp_access %}
   <a href="{% url 'catalog_order_list' %}" class="catalog-action-chip">
-    <i class="bi bi-bag-check"></i><span>سفارش‌ها{% if catalog_order_pending %}<span class="dash-chip-badge">{{ catalog_order_pending }}</span>{% endif %}</span>
+    <i class="bi bi-bag-check"></i><span>سفارش‌ها{% if catalog_order_c2c_pending or catalog_order_pending %}<span class="dash-chip-badge">{% with c2c=catalog_order_c2c_pending|default:0 pending=catalog_order_pending|default:0 %}{{ c2c|add:pending }}{% endwith %}</span>{% endif %}</span>
   </a>
   <a href="{% url 'catalog_item_create' %}" class="catalog-action-chip">
     <i class="bi bi-plus-circle"></i><span>آیتم جدید</span>
@@ -165,6 +165,15 @@
             <span class="app-metric-label">سفارش‌ها</span>
             <span class="app-metric-value">{{ catalog_order_total }}</span>
             <span class="app-metric-hint">+{{ catalog_order_week }} این هفته</span>
+          </div>
+        </a>
+      </div>
+      <div class="col-6 col-md-4">
+        <a href="{% url 'catalog_order_list' %}?status=c2c_pending" class="app-metric app-metric-link d-flex align-items-start gap-3">
+          <span class="app-metric-icon app-metric-icon--{% if catalog_order_c2c_pending %}warn{% else %}info{% endif %} mb-0"><i class="bi bi-credit-card"></i></span>
+          <div class="min-w-0 flex-grow-1">
+            <span class="app-metric-label">تأیید کارت به کارت</span>
+            <span class="app-metric-value">{{ catalog_order_c2c_pending|default:0 }}</span>
           </div>
         </a>
       </div>
@@ -555,7 +564,9 @@
       <h3>سفارش‌ها</h3>
       <p>پیگیری پرداخت و ارسال</p>
       <div class="app-hub-card-meta">
-        <span class="app-hub-stat {% if catalog_order_pending %}text-warning{% endif %}"><strong>{{ catalog_order_pending|default:0 }}</strong> در انتظار</span>
+        <span class="app-hub-stat {% if catalog_order_c2c_pending %}text-warning{% elif catalog_order_pending %}text-warning{% endif %}">
+          {% if catalog_order_c2c_pending %}<strong>{{ catalog_order_c2c_pending }}</strong> کارت به کارت{% elif catalog_order_pending %}<strong>{{ catalog_order_pending|default:0 }}</strong> در انتظار{% else %}<strong>0</strong> در انتظار{% endif %}
+        </span>
       </div>
     </a>
     <a href="{% url 'catalog_flow_engine' %}" class="app-hub-card">

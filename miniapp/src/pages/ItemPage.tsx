@@ -102,8 +102,7 @@ export function ItemPage() {
 
   const showcase = item ? isShowcaseType(item.item_type) : false;
   const groupParent = item ? isGroupParentType(item.item_type) : false;
-  const showBuy =
-    item?.is_buyable && !item?.has_access && config?.can_purchase !== false;
+  const showBuy = item?.is_buyable && config?.can_purchase !== false;
   const showDownload = Boolean(item?.is_downloadable && item.download_url && !groupParent);
   const showLockedDownload = Boolean(
     item?.is_downloadable && item.requires_access && !item.has_access && !item.download_url,
@@ -141,7 +140,7 @@ export function ItemPage() {
       <div className="item-detail-panel mx-4">
         <div className="flex items-start justify-between gap-3">
           <span className="item-detail-badge">{itemTypeLabel(item.item_type)}</span>
-          {cartQty > 0 && (
+          {cartQty > 0 && !item.has_access && (
             <span className="inline-flex items-center gap-1 rounded-xl bg-[var(--color-primary-soft)] px-2.5 py-1 text-xs font-semibold text-primary">
               <IconCart className="h-3.5 w-3.5" />
               {cartQty} در سبد

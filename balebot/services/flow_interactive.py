@@ -183,6 +183,7 @@ def _build_webapp_url(cfg: BotSettings, target: dict[str, Any] | None) -> str:
 def _fulfillment_label(status: str) -> str:
     labels = {
         'pending': 'در انتظار پرداخت',
+        'c2c_pending': 'در انتظار تأیید کارت به کارت',
         'paid': 'پرداخت‌شده',
         'preparing': 'در حال آماده‌سازی',
         'shipped': 'ارسال‌شده',
@@ -647,7 +648,10 @@ def resume_flow(cfg: BotSettings, sub: Subscriber, msg: dict[str, Any], state: d
         if not order:
             _send_text(cfg, chat_id, 'سفارشی با این شماره پیدا نشد.')
             return True
-        status = _fulfillment_label(order.fulfillment_status or order.status)
+        if order.status == CatalogOrder.Status.PAID:
+            status = _fulfillment_label(order.fulfillment_status or order.status)
+        else:
+            status = _fulfillment_label(order.status)
         track = f'\nکد رهگیری: {order.tracking_code}' if order.tracking_code else ''
         _send_text(cfg, chat_id, f'سفارش #{order.pk}\nوضعیت: {status}{track}')
         return True

@@ -23,25 +23,34 @@
       </div>
       <div class="col-6 col-xl-3">
         <div class="app-metric d-flex align-items-start gap-3">
-          <span class="app-metric-icon app-metric-icon--success mb-0"><i class="bi bi-check2-circle"></i></span>
-          <div>
-            <span class="app-metric-label">پرداخت‌شده</span>
-            <span class="app-metric-value">{{ order_counts.paid }}</span>
-          </div>
-        </div>
-      </div>
-      <div class="col-6 col-xl-3">
-        <div class="app-metric d-flex align-items-start gap-3">
           <span class="app-metric-icon app-metric-icon--warn mb-0"><i class="bi bi-hourglass-split"></i></span>
           <div>
-            <span class="app-metric-label">در انتظار / درخواست</span>
-            <span class="app-metric-value">{{ order_counts.pending|add:order_counts.request }}</span>
+            <span class="app-metric-label">در انتظار پرداخت</span>
+            <span class="app-metric-value">{{ order_counts.pending }}</span>
           </div>
         </div>
       </div>
       <div class="col-6 col-xl-3">
         <div class="app-metric d-flex align-items-start gap-3">
-          <span class="app-metric-icon app-metric-icon--neutral mb-0"><i class="bi bi-cash-stack"></i></span>
+          <span class="app-metric-icon app-metric-icon--info mb-0"><i class="bi bi-credit-card"></i></span>
+          <div>
+            <span class="app-metric-label">تأیید کارت به کارت</span>
+            <span class="app-metric-value">{{ order_counts.c2c_pending }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-xl-3">
+        <div class="app-metric d-flex align-items-start gap-3">
+          <span class="app-metric-icon app-metric-icon--neutral mb-0"><i class="bi bi-chat-dots"></i></span>
+          <div>
+            <span class="app-metric-label">درخواست</span>
+            <span class="app-metric-value">{{ order_counts.request }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-xl-3">
+        <div class="app-metric d-flex align-items-start gap-3">
+          <span class="app-metric-icon app-metric-icon--success mb-0"><i class="bi bi-cash-stack"></i></span>
           <div>
             <span class="app-metric-label">درآمد پرداخت‌شده</span>
             <span class="app-metric-value catalog-order-revenue">{{ order_revenue|format_toman }}<small class="catalog-order-revenue-unit">تومان</small></span>
@@ -72,7 +81,10 @@
       پرداخت‌شده <span class="catalog-filter-count">{{ order_counts.paid }}</span>
     </a>
     <a href="?status=pending{% if request.GET.q %}&amp;q={{ request.GET.q|urlencode }}{% endif %}" class="catalog-filter-tab{% if current_status == 'pending' %} is-active{% endif %}">
-      در انتظار <span class="catalog-filter-count">{{ order_counts.pending }}</span>
+      در انتظار پرداخت <span class="catalog-filter-count">{{ order_counts.pending }}</span>
+    </a>
+    <a href="?status=c2c_pending{% if request.GET.q %}&amp;q={{ request.GET.q|urlencode }}{% endif %}" class="catalog-filter-tab{% if current_status == 'c2c_pending' %} is-active{% endif %}">
+      تأیید کارت به کارت <span class="catalog-filter-count">{{ order_counts.c2c_pending }}</span>
     </a>
     <a href="?status=request{% if request.GET.q %}&amp;q={{ request.GET.q|urlencode }}{% endif %}" class="catalog-filter-tab{% if current_status == 'request' %} is-active{% endif %}">
       درخواست <span class="catalog-filter-count">{{ order_counts.request }}</span>

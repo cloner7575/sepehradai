@@ -138,6 +138,7 @@ def _group_members_dict(
         if not child.is_active:
             continue
         has_access = subscriber_has_item_access(subscriber, child) or member.is_preview
+        child_can_buy = child.is_buyable() and not has_access
         include_urls = has_access and (include_content_urls or member.is_preview)
         media_list = [
             _media_dict(
@@ -168,7 +169,7 @@ def _group_members_dict(
             'short_description': child.short_description,
             'item_type': child.normalized_item_type(),
             'price': child.price,
-            'is_buyable': child.is_buyable(),
+            'is_buyable': child_can_buy,
             'is_downloadable': child.is_downloadable(),
             'is_preview': member.is_preview,
             'has_access': has_access,
@@ -189,6 +190,7 @@ def _item_dict(
     include_content_urls: bool = False,
 ) -> dict:
     has_access = subscriber_has_item_access(subscriber, item)
+    can_buy = item.is_buyable() and not has_access
     media_list = [
         _media_dict(
             m,
@@ -230,7 +232,7 @@ def _item_dict(
         'compare_at_price': item.compare_at_price,
         'sales_count': item.sales_count or 0,
         'sale_mode': item.sale_mode,
-        'is_buyable': item.is_buyable(),
+        'is_buyable': can_buy,
         'is_requestable': item.is_requestable(),
         'is_downloadable': item.is_downloadable(),
         'is_featured': item.is_featured,
@@ -661,6 +663,9 @@ def catalog_cart(request, public_id):
             item = entry.catalog_item
             if not item.is_active:
                 continue
+            if subscriber_has_item_access(sub, item):
+                entry.delete()
+                continue
             line = _cart_line_dict(entry, request, catalog)
             total += line['line_total']
             items.append(line)
@@ -703,6 +708,8 @@ def catalog_cart(request, public_id):
         platform=catalog.platform,
         is_active=True,
     )
+    if quantity > 0 and subscriber_has_item_access(sub, item):
+        return _json_error('شما قبلاً به این محصول دسترسی دارید')
     from balebot.models import CatalogCartItem
     if quantity <= 0:
         CatalogCartItem.objects.filter(cart=cart, catalog_item=item).delete()
@@ -715,6 +722,9 @@ def catalog_cart(request, public_id):
     for entry in cart.items.select_related('catalog_item').prefetch_related('catalog_item__media').all():
         ci = entry.catalog_item
         if not ci.is_active:
+            continue
+        if subscriber_has_item_access(sub, ci):
+            entry.delete()
             continue
         line = _cart_line_dict(entry, request, catalog)
         total += line['line_total']
@@ -783,6 +793,8 @@ def catalog_checkout(request, public_id):
                 platform=catalog.platform,
                 is_active=True,
             )
+            if subscriber_has_item_access(sub, item):
+                return _json_error('شما قبلاً به این محصول دسترسی دارید')
             order = catalog_payment.create_checkout_order(
                 catalog=catalog,
                 subscriber=sub,
@@ -1013,6 +1025,6 @@ def catalog_order_receipt(request, public_id, order_id):
     return JsonResponse({
         'ok': True,
         'order_id': order.pk,
-        'status': 'receipt_submitted',
+        'status': order.status,
         'message': 'رسید شما دریافت شد. پس از بررسی، نتیجه اطلاع داده می‌شود.',
     })
