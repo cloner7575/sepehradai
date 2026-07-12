@@ -174,7 +174,7 @@ def _build_webapp_url(cfg: BotSettings, target: dict[str, Any] | None) -> str:
     kind = _clip(target.get('kind'), 16).lower()
     value = _clip(target.get('value'), 256)
     if kind == 'category' and value:
-        return f'{base}/?category={value}'
+        return f'{base}/category/{value}'
     if kind == 'item' and value:
         return f'{base}/item/{value}'
     return base + '/'

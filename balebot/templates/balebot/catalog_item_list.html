@@ -53,6 +53,7 @@
             {% if current_type %}<input type="hidden" name="type" value="{{ current_type }}">{% endif %}
             {% if current_status %}<input type="hidden" name="status" value="{{ current_status }}">{% endif %}
             {% if current_featured %}<input type="hidden" name="featured" value="1">{% endif %}
+            {% if current_flash_sale %}<input type="hidden" name="flash_sale" value="1">{% endif %}
             {% if current_category %}<input type="hidden" name="category" value="{{ current_category }}">{% endif %}
           </form>
           <a href="{% url 'catalog_item_create' %}" class="btn btn-panel-primary catalog-shop-add-btn">
@@ -82,6 +83,11 @@
               <i class="bi bi-star{% if featured_filter.is_active %}-fill{% endif %}"></i>
               <span>ویژه</span>
               <em>{{ featured_filter.count }}</em>
+            </a>
+            <a href="{% if flash_sale_filter.is_active %}{{ flash_sale_filter.url_off }}{% else %}{{ flash_sale_filter.url_on }}{% endif %}" class="catalog-shop-featured-btn catalog-shop-flash-btn{% if flash_sale_filter.is_active %} is-active{% endif %}" title="فقط آیتم‌های حراج">
+              <i class="bi bi-lightning{% if flash_sale_filter.is_active %}-fill{% endif %}"></i>
+              <span>حراج</span>
+              <em>{{ flash_sale_filter.count }}</em>
             </a>
           </div>
           <p class="catalog-shop-result">
@@ -125,6 +131,7 @@
                   <span class="catalog-pill">غیرفعال</span>
                   {% endif %}
                   {% if item.is_featured %}<span class="catalog-pill catalog-pill--warn">ویژه</span>{% endif %}
+                  {% if item.is_flash_sale %}<span class="catalog-pill catalog-pill--danger">حراج</span>{% endif %}
                   {% if item.stock is not None and item.stock == 0 %}
                   <span class="catalog-pill catalog-pill--danger">ناموجود</span>
                   {% elif item.stock is not None and item.stock <= 5 %}

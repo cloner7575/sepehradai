@@ -205,13 +205,15 @@ def _apply_item_filters(qs, request, *, skip: set[str] | None = None):
 
     item_type = (request.GET.get('type') or '').strip()
     valid_types = {choice[0] for choice in CatalogItem.ItemType.choices}
-    if 'type' not in skip and 'featured' not in skip:
+    if 'type' not in skip and 'featured' not in skip and 'flash_sale' not in skip:
         if item_type in valid_types:
             qs = qs.filter(item_type=item_type)
         elif item_type == 'showcase':
             qs = qs.filter(item_type__in=[CatalogItem.ItemType.SHOWCASE, 'portfolio'])
         elif (request.GET.get('featured') or '').strip() == '1':
             qs = qs.filter(is_featured=True)
+        elif (request.GET.get('flash_sale') or '').strip() == '1':
+            qs = qs.filter(is_flash_sale=True)
 
     status = (request.GET.get('status') or '').strip()
     if status == 'active' and 'status' not in skip:
@@ -240,10 +242,11 @@ def _item_filter_context(request, scope: dict) -> dict:
     current_type = (request.GET.get('type') or '').strip()
     current_status = (request.GET.get('status') or '').strip()
     current_featured = (request.GET.get('featured') or '').strip() == '1'
+    current_flash_sale = (request.GET.get('flash_sale') or '').strip() == '1'
     current_category = (request.GET.get('category') or '').strip()
     current_q = (request.GET.get('q') or '').strip()
 
-    type_base_qs = _apply_item_filters(CatalogItem.objects.filter(**scope), request, skip={'type', 'featured'})
+    type_base_qs = _apply_item_filters(CatalogItem.objects.filter(**scope), request, skip={'type', 'featured', 'flash_sale'})
     type_count_map = {
         row['item_type']: row['c']
         for row in type_base_qs.values('item_type').annotate(c=Count('id'))
@@ -299,6 +302,14 @@ def _item_filter_context(request, scope: dict) -> dict:
         'url_on': _build_item_filter_url(request, featured='1'),
         'url_off': _build_item_filter_url(request, featured=None),
         'is_active': current_featured,
+    }
+
+    flash_sale_filter = {
+        'label': 'حراج',
+        'count': type_base_qs.filter(is_flash_sale=True).count(),
+        'url_on': _build_item_filter_url(request, flash_sale='1'),
+        'url_off': _build_item_filter_url(request, flash_sale=None),
+        'is_active': current_flash_sale,
     }
 
     status_base_qs = _apply_item_filters(CatalogItem.objects.filter(**scope), request, skip={'status'})
@@ -375,6 +386,11 @@ def _item_filter_context(request, scope: dict) -> dict:
             'label': 'ویژه',
             'url': _build_item_filter_url(request, featured=None),
         })
+    if current_flash_sale:
+        active_filters.append({
+            'label': 'حراج',
+            'url': _build_item_filter_url(request, flash_sale=None),
+        })
     if current_status == 'active':
         active_filters.append({'label': 'فعال', 'url': _build_item_filter_url(request, status=None)})
     elif current_status == 'inactive':
@@ -396,6 +412,7 @@ def _item_filter_context(request, scope: dict) -> dict:
     return {
         'type_filters': type_filters,
         'featured_filter': featured_filter,
+        'flash_sale_filter': flash_sale_filter,
         'status_filters': status_filters,
         'category_filters': category_filters,
         'active_filters': active_filters,
@@ -404,6 +421,7 @@ def _item_filter_context(request, scope: dict) -> dict:
         'current_type': current_type,
         'current_status': current_status,
         'current_featured': current_featured,
+        'current_flash_sale': current_flash_sale,
         'current_category': current_category,
         'list_qs': _item_list_querystring(request),
     }

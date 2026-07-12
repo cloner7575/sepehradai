@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchItems, formatPrice, updateCart } from '../api';
 import { useApp } from '../App';
@@ -23,6 +23,7 @@ import { CopyButton } from './CopyButton';
 import { ItemsSection } from './ItemsSection';
 import { SafeImage } from './SafeImage';
 import { resolveMediaUrl } from '../utils/url';
+import { CountdownBanner } from './CountdownBanner';
 import { StoryViewer, resolveStorySlides } from './StoryViewer';
 
 function useBlockTargetNav() {
@@ -122,30 +123,12 @@ export function StoryBarView({
   );
 }
 
-function CountdownUnit({ value, label }: { value: number; label: string }) {
-  return (
-    <div className="flex min-w-[3rem] flex-col items-center rounded-xl bg-white/15 px-2 py-1.5">
-      <span className="text-lg font-bold tabular-nums">{String(value).padStart(2, '0')}</span>
-      <span className="text-[10px] opacity-80">{label}</span>
-    </div>
-  );
-}
-
 export function CountdownView({ block }: { block: CountdownBlock }) {
   const go = useBlockTargetNav();
   const { config } = useApp();
   const accent = block.accent || config?.theme?.accent_color || '#c2402f';
-  const endsAt = useMemo(() => new Date(block.ends_at || '').getTime(), [block.ends_at]);
-  const [now, setNow] = useState(Date.now());
-  const invalidDate = !block.ends_at || Number.isNaN(endsAt);
 
-  useEffect(() => {
-    if (invalidDate) return;
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, [invalidDate]);
-
-  if (invalidDate) {
+  if (!block.ends_at) {
     return (
       <section className="mx-4 mt-4 rounded-2xl border border-dashed border-border bg-surface p-4 text-center text-sm text-muted">
         {block.title || 'شمارش معکوس'} — تاریخ پایان را در پنل تنظیم کنید
@@ -153,43 +136,14 @@ export function CountdownView({ block }: { block: CountdownBlock }) {
     );
   }
 
-  const diff = endsAt - now;
-  if (diff <= 0) {
-    return (
-      <section className="mx-4 mt-4 rounded-2xl bg-surface p-4 text-center text-sm text-muted">
-        فروش ویژه به پایان رسید
-      </section>
-    );
-  }
-
-  const days = Math.floor(diff / 86400000);
-  const hours = Math.floor((diff % 86400000) / 3600000);
-  const mins = Math.floor((diff % 3600000) / 60000);
-  const secs = Math.floor((diff % 60000) / 1000);
-
   return (
-    <section
-      className="mx-4 mt-4 rounded-2xl p-4 text-white"
-      style={{ background: `linear-gradient(135deg, ${accent}, color-mix(in srgb, ${accent} 70%, #000))` }}
-    >
-      {block.title && <h2 className="mb-3 text-center text-sm font-bold">{block.title}</h2>}
-      <div className="flex justify-center gap-2">
-        {days > 0 && <CountdownUnit value={days} label="روز" />}
-        <CountdownUnit value={hours} label="ساعت" />
-        <CountdownUnit value={mins} label="دقیقه" />
-        <CountdownUnit value={secs} label="ثانیه" />
-      </div>
-      {block.cta_label && (
-        <button
-          type="button"
-          className="btn-primary mt-4 w-full bg-white text-sm font-bold"
-          style={{ color: accent }}
-          onClick={() => go(block.cta_target)}
-        >
-          {block.cta_label}
-        </button>
-      )}
-    </section>
+    <CountdownBanner
+      title={block.title}
+      endsAt={block.ends_at}
+      accent={accent}
+      ctaLabel={block.cta_label}
+      onCtaClick={block.cta_label ? () => go(block.cta_target) : undefined}
+    />
   );
 }
 
@@ -213,8 +167,10 @@ export function CouponBlockView({ block }: { block: CouponBlock }) {
 
 export function ProductCarouselView({ block }: { block: ProductCarouselBlock }) {
   const { adapter } = useApp();
+  const navigate = useNavigate();
   const [items, setItems] = useState<Awaited<ReturnType<typeof fetchItems>>>([]);
   const [loading, setLoading] = useState(true);
+  const isFlashSale = block.source === 'flash_sale';
 
   useEffect(() => {
     setLoading(true);
@@ -233,7 +189,21 @@ export function ProductCarouselView({ block }: { block: ProductCarouselBlock }) 
   if (!loading && !items.length) return null;
 
   return (
-    <ItemsSection title={block.title || 'محصولات'} count={loading ? undefined : items.length}>
+    <ItemsSection
+      title={block.title || 'محصولات'}
+      count={loading ? undefined : items.length}
+      action={
+        isFlashSale ? (
+          <button
+            type="button"
+            className="text-xs font-semibold text-primary"
+            onClick={() => navigate('/sale')}
+          >
+            مشاهده همه
+          </button>
+        ) : undefined
+      }
+    >
       {loading ? (
         <div className="flex gap-3 overflow-x-auto">
           {[1, 2, 3].map((i) => (

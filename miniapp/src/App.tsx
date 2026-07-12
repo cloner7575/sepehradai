@@ -1,7 +1,7 @@
 import { Component, createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
-import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { fetchCart, fetchConfig, validateAuth } from './api';
+import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { fetchCart, fetchConfig, getPublicIdValue, validateAuth } from './api';
 import { applyTheme, createWebAppAdapter, type WebAppAdapter } from './platform';
 import { setMediaBaseUrl } from './utils/url';
 import type { AuthValidateResult, CartLine, CatalogConfig } from './types';
@@ -91,19 +91,38 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
+function LegacyCategoryRedirect() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const category = new URLSearchParams(location.search).get('category');
+    if (category && location.pathname === '/') {
+      navigate(`/category/${encodeURIComponent(category)}`, { replace: true });
+    }
+  }, [location.pathname, location.search, navigate]);
+
+  return null;
+}
+
 function AppRoutes() {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/category/:slug" element={<CategoryPage />} />
-      <Route path="/sale" element={<FlashSalePage />} />
-      <Route path="/item/:slug" element={<ItemPage />} />
-      <Route path="/library" element={<LibraryPage />} />
-      <Route path="/cart" element={<CartPage />} />
-      <Route path="/payment/:orderId" element={<CardToCardPaymentPage />} />
-    </Routes>
+    <>
+      <LegacyCategoryRedirect />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/category/:slug" element={<CategoryPage />} />
+        <Route path="/sale" element={<FlashSalePage />} />
+        <Route path="/item/:slug" element={<ItemPage />} />
+        <Route path="/library" element={<LibraryPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/payment/:orderId" element={<CardToCardPaymentPage />} />
+      </Routes>
+    </>
   );
 }
+
+const SHOP_BASENAME = `/shop/${getPublicIdValue()}`;
 
 export default function App() {
   const [config, setConfig] = useState<CatalogConfig | null>(null);
@@ -256,11 +275,11 @@ export default function App() {
             لطفاً اپلیکیشن بله/تلگرام را به‌روزرسانی کنید.
           </Banner>
         )}
-        <MemoryRouter>
+        <BrowserRouter basename={SHOP_BASENAME}>
           <Shell>
             <AppRoutes />
           </Shell>
-        </MemoryRouter>
+        </BrowserRouter>
       </AppContext.Provider>
     </AppErrorBoundary>
   );
