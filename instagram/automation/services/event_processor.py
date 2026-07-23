@@ -40,9 +40,10 @@ def process_webhook_event(event_id: int) -> None:
 
     try:
         _handle(event)
-        event.processing_status = InstagramWebhookEvent.ProcessingStatus.PROCESSED
+        if event.processing_status != InstagramWebhookEvent.ProcessingStatus.SKIPPED:
+            event.processing_status = InstagramWebhookEvent.ProcessingStatus.PROCESSED
+            event.last_error_sanitized = ''
         event.processed_at = timezone.now()
-        event.last_error_sanitized = ''
         event.save(update_fields=['processing_status', 'processed_at', 'last_error_sanitized'])
     except Exception as exc:
         logger.exception('IG event %s failed cid=%s', event_id, event.correlation_id)
@@ -68,15 +69,20 @@ def process_webhook_event(event_id: int) -> None:
 def _handle(event: InstagramWebhookEvent) -> None:
     conn = event.connection
     if not conn or not conn.is_connected:
-        event.processing_status = InstagramWebhookEvent.ProcessingStatus.SKIPPED
+        _skip_event(event, 'connection_unavailable')
         return
 
     if not feature_enabled(conn.workspace, 'instagram_module'):
         return
 
+    payload, skip_reason = _hydrate_message_edit(conn, event, event.payload_redacted or {})
+    if skip_reason:
+        _skip_event(event, skip_reason)
+        return
+
     normalized = normalize_webhook_event(
         event_type=event.event_type,
-        payload=event.payload_redacted or {},
+        payload=payload,
         connection_id=conn.id,
         workspace_id=conn.workspace_id,
         correlation_id=event.correlation_id,
@@ -84,11 +90,25 @@ def _handle(event: InstagramWebhookEvent) -> None:
     )
 
     if normalized.is_echo:
+        _skip_event(event, 'message_echo')
         return
 
-    if normalized.event_type.startswith('message.') or normalized.event_type in (
+    if (
+        normalized.event_type in ('message.received', 'message.edited', 'message.unknown')
+        and not normalized.text
+        and not normalized.media_url
+    ):
+        _skip_event(event, 'message_content_unavailable')
+        return
+
+    if normalized.event_type in (
+        'message.received',
+        'message.edited',
+        'message.attachment',
         'story_reply',
-        'postback', 'referral', 'reaction',
+        'postback',
+        'referral',
+        'reaction',
     ):
         _handle_inbound_message(conn, event, normalized)
     elif normalized.event_type.startswith('comment'):
@@ -96,6 +116,49 @@ def _handle(event: InstagramWebhookEvent) -> None:
 
         handle_comment_event(conn, event, normalized)
     # سایر رویدادها فعلاً فقط ثبت می‌شوند
+
+
+def _skip_event(event: InstagramWebhookEvent, reason: str) -> None:
+    event.processing_status = InstagramWebhookEvent.ProcessingStatus.SKIPPED
+    event.last_error_sanitized = reason[:512]
+
+
+def _hydrate_message_edit(conn: InstagramConnection, event: InstagramWebhookEvent, payload: dict):
+    """Fetch message text/direction when Meta sends only message_edit metadata."""
+    message_edit = payload.get('message_edit') or {}
+    if not isinstance(message_edit, dict) or not message_edit:
+        return payload, ''
+
+    mid = str(message_edit.get('mid') or '')
+    if not mid:
+        return payload, 'message_edit_missing_mid'
+
+    from instagram.automation.services.oauth import client_for_connection
+
+    detail = client_for_connection(conn).get(
+        mid,
+        params={'fields': 'id,message,from,to,created_time'},
+        correlation_id=event.correlation_id,
+    )
+    detail_sender_id = str((detail.get('from') or {}).get('id') or '')
+    own_ids = {
+        str(conn.instagram_account_id or ''),
+        str(conn.facebook_page_id or ''),
+    }
+    own_ids.discard('')
+    if detail_sender_id and detail_sender_id in own_ids:
+        return payload, 'message_echo'
+
+    text = str(detail.get('message') or message_edit.get('text') or '')
+    if not text:
+        return payload, 'message_edit_missing_text'
+
+    hydrated = dict(payload)
+    hydrated['message'] = {
+        'mid': mid,
+        'text': text,
+    }
+    return hydrated, ''
 
 
 def _handle_inbound_message(conn, event, normalized) -> None:
@@ -133,6 +196,10 @@ def _handle_inbound_message(conn, event, normalized) -> None:
             },
         )
         if not created:
+            if normalized.event_type == 'message.edited' and normalized.text and msg.text != normalized.text:
+                msg.text = normalized.text
+                msg.raw_event = event
+                msg.save(update_fields=['text', 'raw_event'])
             return
         conversation.last_message_at = conversation.last_customer_message_at = timezone.now()
         conversation.unread_count = (conversation.unread_count or 0) + 1

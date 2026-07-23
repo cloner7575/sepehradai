@@ -28,7 +28,7 @@ class InstagramWebhookEvent(models.Model):
         blank=True,
         db_index=True,
     )
-    external_event_id = models.CharField(max_length=128, blank=True, default='', db_index=True)
+    external_event_id = models.CharField(max_length=512, blank=True, default='', db_index=True)
     event_type = models.CharField(max_length=64, db_index=True)
     fingerprint = models.CharField(max_length=128, db_index=True)
     payload_redacted = models.JSONField(default=dict, blank=True)

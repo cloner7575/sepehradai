@@ -80,7 +80,8 @@ def _normalize_message(**kwargs) -> NormalizedEvent:
     payload = kwargs['payload']
     sender = str((payload.get('sender') or {}).get('id') or '')
     recipient = str((payload.get('recipient') or {}).get('id') or '')
-    message = payload.get('message') or {}
+    message_edit = payload.get('message_edit') or {}
+    message = payload.get('message') or message_edit
     postback = payload.get('postback') or {}
     referral = payload.get('referral') or postback.get('referral') or {}
     reaction = payload.get('reaction') or {}
@@ -95,6 +96,12 @@ def _normalize_message(**kwargs) -> NormalizedEvent:
         media_url = str((att.get('payload') or {}).get('url') or '')
     is_echo = bool(message.get('is_echo'))
     event_type = kwargs['event_type']
+    if message_edit:
+        try:
+            edit_number = int(message_edit.get('num_edit') or 0)
+        except (TypeError, ValueError):
+            edit_number = 0
+        event_type = 'message.edited' if edit_number > 0 else 'message.received'
     story = (message.get('reply_to') or {}).get('story') or {}
     if story:
         event_type = 'story_reply'
@@ -130,6 +137,7 @@ def _normalize_message(**kwargs) -> NormalizedEvent:
             'postback': postback,
             'reaction': reaction,
             'read': payload.get('read') or {},
+            'message_edit': message_edit,
         },
     )
 

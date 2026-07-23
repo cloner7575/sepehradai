@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from django.conf import settings
 from django.utils import timezone
 
 from balebot.models import CatalogItem, CatalogSettings
@@ -65,8 +66,9 @@ def shop_public_url(workspace) -> str:
         cfg = CatalogSettings.objects.filter(workspace=workspace).order_by('-updated_at').first()
     if not cfg:
         return ''
-    # مسیر نسبی فروشگاه — دامنه در پیام/لینک کوتاه کامل می‌شود
-    return f'/shop/{cfg.public_id}/'
+    path = f'/shop/{cfg.public_id}/'
+    base_url = str(getattr(settings, 'BASE_URL', '') or '').strip().rstrip('/')
+    return f'{base_url}{path}' if base_url else path
 
 
 def build_simple_flow_definition(

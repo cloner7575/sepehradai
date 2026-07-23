@@ -207,14 +207,14 @@ class InstagramMessage(models.Model):
         on_delete=models.CASCADE,
         related_name='messages',
     )
-    external_message_id = models.CharField(max_length=128, blank=True, default='', db_index=True)
+    external_message_id = models.CharField(max_length=512, blank=True, default='', db_index=True)
     direction = models.CharField(max_length=16, choices=Direction.choices)
     sender_type = models.CharField(max_length=16, choices=SenderType.choices)
     message_type = models.CharField(max_length=32, default='text')
     text = models.TextField(blank=True, default='')
     media_url = models.URLField(max_length=1024, blank=True, default='')
     media_storage_key = models.CharField(max_length=512, blank=True, default='')
-    reply_to_external_message_id = models.CharField(max_length=128, blank=True, default='')
+    reply_to_external_message_id = models.CharField(max_length=512, blank=True, default='')
     delivery_status = models.CharField(
         max_length=16,
         choices=DeliveryStatus.choices,

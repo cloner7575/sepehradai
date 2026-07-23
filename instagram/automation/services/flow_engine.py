@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import timedelta
 from typing import Any
 
@@ -30,6 +31,15 @@ SUPPORTED_NODE_TYPES = {
     'pause_automation',
     'stop',
 }
+
+_PUBLIC_PATH_RE = re.compile(r'(?<![A-Za-z0-9_:/])(/(?:shop|instagram/r)/[^\s<]*)')
+
+
+def _absolute_public_urls(text: str) -> str:
+    base_url = str(getattr(settings, 'BASE_URL', '') or '').strip().rstrip('/')
+    if not base_url or not text:
+        return text
+    return _PUBLIC_PATH_RE.sub(lambda match: f'{base_url}{match.group(1)}', text)
 
 
 def validate_flow(flow: InstagramFlow) -> list[str]:
@@ -226,7 +236,7 @@ def _run_node(
         if not is_messaging_window_open(conversation):
             raise MessagingWindowClosed('Meta messaging window is closed')
     if node_type == 'send_text':
-        text = str(config.get('text') or '')
+        text = _absolute_public_urls(str(config.get('text') or ''))
         if execution.is_test_mode:
             log_entry['test'] = True
             log_entry['text'] = text[:100]
@@ -270,7 +280,9 @@ def _run_node(
                 item = None
         if not item or not storefront or not storefront.catalog_id or item.stock == 0:
             log_entry['error'] = 'product_unavailable'
-            alt = config.get('fallback_text') or 'این محصول در حال حاضر در دسترس نیست.'
+            alt = _absolute_public_urls(
+                str(config.get('fallback_text') or 'این محصول در حال حاضر در دسترس نیست.')
+            )
             if not execution.is_test_mode and conversation:
                 client = client_for_connection(connection)
                 result = client.send_text_message(
@@ -305,14 +317,17 @@ def _run_node(
             source_media_id=execution.variables.get('source_media_id'),
         )
         tracked_path = reverse('instagram:tracked_link', kwargs={'code': tracked.short_code})
-        checkout_url = f"{str(settings.BASE_URL).rstrip('/')}{tracked_path}" if settings.BASE_URL else tracked_path
+        base_url = str(getattr(settings, 'BASE_URL', '') or '').strip().rstrip('/')
+        checkout_url = f'{base_url}{tracked_path}' if base_url else tracked_path
+        store_url = f'{base_url}{target}' if base_url else target
         template = str(config.get('template') or config.get('intro') or (
             '{{ product.title }}\nقیمت: {{ product.price }} ریال\nوضعیت: {{ product.stock_status }}\n{{ checkout_url }}'
         ))
         text = render_template(
             template,
-            product_template_context(item, checkout_url=checkout_url, store_url=target),
+            product_template_context(item, checkout_url=checkout_url, store_url=store_url),
         )
+        text = _absolute_public_urls(text)
         if execution.is_test_mode:
             log_entry['product_id'] = item.pk
             log_entry['checkout_url'] = checkout_url

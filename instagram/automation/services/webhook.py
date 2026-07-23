@@ -73,7 +73,11 @@ def ingest_webhook_payload(payload: dict) -> list[InstagramWebhookEvent]:
                 fingerprint=fp,
                 payload=msg,
                 correlation_id=correlation_id,
-                external_id=str((msg.get('message') or {}).get('mid') or ''),
+                external_id=str(
+                    (msg.get('message') or {}).get('mid')
+                    or (msg.get('message_edit') or {}).get('mid')
+                    or ''
+                ),
             )
             if ev:
                 created.append(ev)
@@ -120,6 +124,13 @@ def _infer_messaging_type(msg: dict) -> str:
         if (m.get('reply_to') or {}).get('story'):
             return 'message.story_reply'
         return 'message.received'
+    if msg.get('message_edit'):
+        edit = msg['message_edit'] or {}
+        try:
+            edit_number = int(edit.get('num_edit') or 0)
+        except (TypeError, ValueError):
+            edit_number = 0
+        return 'message.edited' if edit_number > 0 else 'message.received'
     if msg.get('postback'):
         return 'message.postback'
     if msg.get('referral'):
