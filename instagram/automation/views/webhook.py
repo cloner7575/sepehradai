@@ -15,6 +15,28 @@ from instagram.automation.tasks import process_instagram_webhook
 logger = logging.getLogger(__name__)
 
 
+def _should_use_celery() -> bool:
+    return bool(
+        getattr(settings, 'WEBHOOK_USE_CELERY', False)
+        and getattr(settings, 'CELERY_BROKER_URL', '')
+    )
+
+
+def _enqueue_or_process_event(event_id: int) -> None:
+    if _should_use_celery():
+        try:
+            process_instagram_webhook.delay(event_id)
+            return
+        except Exception:
+            logger.exception('Failed to enqueue IG event %s; falling back to sync', event_id)
+    from instagram.automation.services.event_processor import process_webhook_event
+
+    try:
+        process_webhook_event(event_id)
+    except Exception:
+        logger.exception('Sync process failed for %s', event_id)
+
+
 @csrf_exempt
 @require_http_methods(['GET', 'POST'])
 def meta_webhook(request):
@@ -42,15 +64,6 @@ def meta_webhook(request):
 
     events = ingest_webhook_payload(payload)
     for ev in events:
-        try:
-            process_instagram_webhook.delay(ev.id)
-        except Exception:
-            logger.exception('Failed to enqueue IG event %s', ev.id)
-            from instagram.automation.services.event_processor import process_webhook_event
-
-            try:
-                process_webhook_event(ev.id)
-            except Exception:
-                logger.exception('Sync process failed for %s', ev.id)
+        _enqueue_or_process_event(ev.id)
 
     return JsonResponse({'ok': True})

@@ -154,6 +154,39 @@ class InstagramAutomationIntegrationTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(InstagramContact.objects.filter(instagram_scoped_user_id='u1').exists())
 
+    @override_settings(WEBHOOK_USE_CELERY=False, CELERY_TASK_ALWAYS_EAGER=False)
+    def test_webhook_processes_synchronously_when_worker_is_disabled(self):
+        import hashlib
+        import hmac
+        import json
+        from unittest.mock import patch
+
+        payload = {
+            'object': 'instagram',
+            'entry': [{
+                'id': 'page-1',
+                'messaging': [{
+                    'sender': {'id': 'sync-user'},
+                    'recipient': {'id': 'ig-1'},
+                    'message': {'mid': 'sync-mid', 'text': 'سلام'},
+                }],
+            }],
+        }
+        body = json.dumps(payload).encode()
+        sig = 'sha256=' + hmac.new(b'test-secret', body, hashlib.sha256).hexdigest()
+        with patch('instagram.automation.views.webhook.process_instagram_webhook.delay') as delay:
+            response = self.client.post(
+                '/instagram/webhook/',
+                data=body,
+                content_type='application/json',
+                HTTP_X_HUB_SIGNATURE_256=sig,
+            )
+        self.assertEqual(response.status_code, 200)
+        delay.assert_not_called()
+        self.assertTrue(
+            InstagramContact.objects.filter(instagram_scoped_user_id='sync-user').exists()
+        )
+
     def test_duplicate_fingerprint(self):
         payload = {
             'object': 'instagram',
