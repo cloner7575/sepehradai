@@ -1,0 +1,141 @@
+{% extends "balebot/base.html" %}
+{% load static %}
+{% block title %}{% if rule %}ویرایش پاسخ{% else %}پاسخ جدید{% endif %}{% endblock %}
+{% block page_title %}{% if rule %}ویرایش پاسخ خودکار{% else %}پاسخ خودکار جدید{% endif %}{% endblock %}
+{% block page_subtitle %}مثل دکمهٔ ربات: مشتری این کلمات را بگوید، این متن را بگیرد.{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'instagram/css/extractor.css' %}">
+<link rel="stylesheet" href="{% static 'instagram/css/automation.css' %}">
+{% endblock %}
+{% block content %}
+<div class="ig-panel">
+  {% include "instagram/_instagram_subnav.html" %}
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <form method="post" class="panel-card p-3">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label">نام (برای خودت)</label>
+          <input class="form-control" name="name" value="{{ rule.name|default:'' }}" placeholder="مثلاً پاسخ قیمت">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">ورودی قانون</label>
+          <select class="form-select" name="trigger_type">
+            <option value="keyword" {% if trigger_type == 'keyword' %}selected{% endif %}>دایرکت با کلمه کلیدی</option>
+            <option value="message_received" {% if trigger_type == 'message_received' %}selected{% endif %}>هر دایرکت</option>
+            <option value="story_reply" {% if trigger_type == 'story_reply' %}selected{% endif %}>ریپلای استوری</option>
+            <option value="story_mention" {% if trigger_type == 'story_mention' %}selected{% endif %}>منشن استوری</option>
+            <option value="referral" {% if trigger_type == 'referral' %}selected{% endif %}>postback یا referral</option>
+            <option value="fallback" {% if trigger_type == 'fallback' %}selected{% endif %}>fallback</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">عبارت‌های تطبیق</label>
+          <input class="form-control" name="keywords" value="{{ keywords }}" placeholder="قیمت، چنده، هزینه">
+          <div class="form-text">برای «هر دایرکت»، منشن یا fallback می‌تواند خالی باشد.</div>
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-md-6"><label class="form-label">نوع تطبیق</label>
+            <select class="form-select" name="match_operator">
+              <option value="any_of" {% if match_operator == 'any_of' %}selected{% endif %}>هرکدام از عبارت‌ها</option>
+              <option value="all_of" {% if match_operator == 'all_of' %}selected{% endif %}>همه عبارت‌ها</option>
+              <option value="eq" {% if match_operator == 'eq' %}selected{% endif %}>متن دقیق</option>
+              <option value="contains" {% if match_operator == 'contains' %}selected{% endif %}>شامل</option>
+              <option value="starts_with" {% if match_operator == 'starts_with' %}selected{% endif %}>شروع با</option>
+              <option value="ends_with" {% if match_operator == 'ends_with' %}selected{% endif %}>پایان با</option>
+            </select>
+          </div>
+          <div class="col-md-6"><label class="form-label">استثناها</label>
+            <input class="form-control" name="exclude_keywords" value="{{ exclude_keywords }}" placeholder="رایگان، تست">
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">این متن را بفرست</label>
+          <textarea class="form-control" name="reply_text" rows="4" required placeholder="سلام! برای دیدن قیمت به‌روز از فروشگاه سفارش دهید.">{{ reply_text }}</textarea>
+          <div class="form-text">متغیرهای مجاز: product.title، product.price، product.stock_status، checkout_url و store_url</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">محصول از کاتالوگ مینی‌اپ (اختیاری)</label>
+          <select class="form-select" name="product_id">
+            <option value="">— بدون محصول —</option>
+            {% for item in products %}
+            <option value="{{ item.id }}" {% if product_id|stringformat:"s" == item.id|stringformat:"s" %}selected{% endif %}>{{ item.title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">محدوده محتوا</label>
+            <select class="form-select" name="content_scope">
+              <option value="all" {% if content_scope == 'all' %}selected{% endif %}>همه محتواها</option>
+              <option value="selected" {% if content_scope == 'selected' %}selected{% endif %}>رسانه‌های انتخابی</option>
+              <option value="product_bound" {% if content_scope == 'product_bound' %}selected{% endif %}>محتوای متصل به محصول</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">شناسه رسانه‌های انتخابی</label>
+            <input class="form-control" name="selected_media_ids" value="{{ selected_media_ids }}" placeholder="شناسه‌ها با ویرگول">
+          </div>
+        </div>
+        <label class="form-check mb-2">
+          <input type="checkbox" class="form-check-input" name="include_store_link" value="1" {% if include_store_link %}checked{% endif %}>
+          لینک فروشگاه مینی‌اپ را هم بفرست
+          {% if shop_url %}<span class="form-text d-block">{{ shop_url }}</span>{% endif %}
+        </label>
+        <label class="form-check mb-2">
+          <input type="checkbox" class="form-check-input" name="handoff" value="1" {% if handoff %}checked{% endif %}>
+          بعد از پاسخ، گفتگو را به کارشناس بسپار (اتوماسیون متوقف شود)
+        </label>
+        <label class="form-check mb-3">
+          <input type="checkbox" class="form-check-input" name="is_active" value="1" {% if rule.is_active or not rule %}checked{% endif %}>
+          همین الان فعال باشد
+        </label>
+
+        <details class="mb-3">
+          <summary class="small text-muted">تنظیمات بیشتر</summary>
+          <div class="mt-2">
+            <label class="form-label">حساب اینستاگرام</label>
+            <select class="form-select mb-2" name="connection_id">
+              <option value="">همه حساب‌های متصل</option>
+              {% for c in connections %}
+              <option value="{{ c.id }}" {% if rule.connection_id == c.id %}selected{% endif %}>@{{ c.username }}</option>
+              {% endfor %}
+            </select>
+            <label class="form-label">اولویت (عدد کمتر = زودتر)</label>
+            <input type="number" class="form-control mb-2" name="priority" value="{{ rule.priority|default:50 }}">
+            <label class="form-label">فاصله بین دو پاسخ تکراری (ثانیه)</label>
+            <input type="number" class="form-control" name="cooldown_seconds" value="{{ rule.cooldown_seconds|default:120 }}">
+          </div>
+        </details>
+
+        <button class="btn-panel-primary" type="submit">ذخیره پاسخ</button>
+        <a href="{% url 'instagram:rules' %}" class="btn-panel-ghost">انصراف</a>
+      </form>
+    </div>
+    <div class="col-lg-5">
+      <div class="panel-card p-3 ig-dm-preview">
+        <div class="small text-muted mb-2">پیش‌نمایش گفتگو</div>
+        <div class="ig-bubble ig-bubble--inbound">
+          <div class="small text-muted">مشتری</div>
+          <div>{% if keywords %}…{{ keywords|truncatechars:40 }}…{% else %}قیمت؟{% endif %}</div>
+        </div>
+        <div class="ig-bubble ig-bubble--outbound">
+          <div class="small text-muted">پاسخ خودکار</div>
+          <div id="preview-reply">{{ reply_text|default:"متن پاسخ اینجا دیده می‌شود" }}</div>
+        </div>
+        <p class="small text-muted mb-0 mt-2">این همان الگوی ربات است: پیام ورودی → پاسخ آماده. برای کارهای پیچیده از منوی «پیشرفته» استفاده کنید.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function(){
+  const ta = document.querySelector('[name=reply_text]');
+  const out = document.getElementById('preview-reply');
+  if (!ta || !out) return;
+  ta.addEventListener('input', function(){ out.textContent = ta.value || 'متن پاسخ اینجا دیده می‌شود'; });
+})();
+</script>
+{% endblock %}

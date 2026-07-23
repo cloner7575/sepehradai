@@ -17,34 +17,25 @@ run_collectstatic() {
   fi
 }
 
-shutdown() {
-  echo "Shutting down services..."
-  [ -n "${CELERY_WORKER_PID:-}" ] && kill "${CELERY_WORKER_PID}" 2>/dev/null || true
-  [ -n "${CELERY_BEAT_PID:-}" ] && kill "${CELERY_BEAT_PID}" 2>/dev/null || true
-  [ -n "${GUNICORN_PID:-}" ] && kill "${GUNICORN_PID}" 2>/dev/null || true
-  wait 2>/dev/null || true
-}
+PROCESS_TYPE="${PROCESS_TYPE:-web}"
 
-trap shutdown TERM INT
-
-run_migrate
-run_collectstatic
-
-CELERY_CONCURRENCY="${CELERY_CONCURRENCY:-8}"
-
-echo "Starting Celery worker..."
-celery -A core worker \
-  --loglevel=info \
-  --concurrency="${CELERY_CONCURRENCY}" \
-  -Q webhooks,campaigns &
-CELERY_WORKER_PID=$!
-
-echo "Starting Celery beat..."
-celery -A core beat --loglevel=info &
-CELERY_BEAT_PID=$!
-
-echo "Starting Gunicorn..."
-gunicorn core.wsgi:application -c gunicorn.conf.py &
-GUNICORN_PID=$!
-
-wait "${GUNICORN_PID}"
+case "${PROCESS_TYPE}" in
+  web)
+    run_migrate
+    run_collectstatic
+    echo "Starting Gunicorn..."
+    exec gunicorn core.wsgi:application -c gunicorn.conf.py
+    ;;
+  worker)
+    echo "Starting Celery worker..."
+    exec celery -A core worker --loglevel=info --concurrency="${CELERY_CONCURRENCY:-8}" -Q webhooks,campaigns,instagram
+    ;;
+  beat)
+    echo "Starting Celery beat..."
+    exec celery -A core beat --loglevel=info
+    ;;
+  *)
+    echo "Unknown PROCESS_TYPE=${PROCESS_TYPE}" >&2
+    exit 2
+    ;;
+esac

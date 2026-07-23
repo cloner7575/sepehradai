@@ -48,6 +48,9 @@ def get_or_create_subscriber(
             'username': (from_user.get('username') or '')[:255],
         },
     )
+    if not sub.customer_id:
+        from balebot.services.customers import ensure_customer_for_subscriber
+        ensure_customer_for_subscriber(sub)
     return sub
 
 
@@ -143,7 +146,12 @@ def store_inbound_from_message(
         )
         sub.phone_number = ph[:32]
         sub.is_registered = True
-        sub.save(update_fields=['phone_number', 'is_registered', 'updated_at'])
+        contact_user_id = c.get('user_id')
+        if contact_user_id and str(contact_user_id) == str(sub.messenger_user_id):
+            sub.phone_verified_at = timezone.now()
+        sub.save(update_fields=['phone_number', 'phone_verified_at', 'is_registered', 'updated_at'])
+        from balebot.services.customers import ensure_customer_for_subscriber
+        ensure_customer_for_subscriber(sub)
         return rec
 
     if msg.get('text'):
@@ -267,6 +275,27 @@ def handle_message(cfg: BotSettings, msg: dict[str, Any]) -> None:
     sub = get_or_create_subscriber(cfg, from_user, chat)
     text = (msg.get('text') or '').strip()
     platform = cfg.platform
+
+    if text.startswith('/start igd_'):
+        raw_token = text.partition('igd_')[2].split()[0][:64]
+        try:
+            from balebot.services.instagram_delivery import consume_delivery_token
+
+            granted = consume_delivery_token(raw_token, sub)
+            messenger_api.send_message(
+                platform,
+                sub.chat_id,
+                'خرید تأیید شد و دسترسی محصول برای شما فعال شد.',
+                settings=cfg,
+            )
+        except ValueError:
+            messenger_api.send_message(
+                platform,
+                sub.chat_id,
+                'این لینک تحویل نامعتبر، منقضی یا قبلاً استفاده شده است.',
+                settings=cfg,
+            )
+        return
 
     if text.startswith('/start'):
         need_contact = cfg.collect_contact_on_start and not sub.is_registered

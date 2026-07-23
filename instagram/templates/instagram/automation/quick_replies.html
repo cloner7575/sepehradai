@@ -1,0 +1,26 @@
+{% extends "balebot/base.html" %}
+{% load static %}
+{% block title %}پاسخ‌های سریع{% endblock %}
+{% block page_title %}پاسخ‌های سریع{% endblock %}
+{% block page_subtitle %}پاسخ سریع توسط کارشناس انتخاب می‌شود؛ با قانون خودکار متفاوت است.{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'instagram/css/extractor.css' %}">{% endblock %}
+{% block content %}
+<div class="ig-panel">
+  {% include "instagram/_instagram_subnav.html" %}
+  <form method="post" class="panel-card p-3 mb-3">
+    {% csrf_token %}
+    <div class="row g-2">
+      <div class="col-md-3"><input class="form-control" name="title" placeholder="عنوان" required></div>
+      <div class="col-md-2"><input class="form-control" name="shortcut" placeholder="shortcut"></div>
+      <div class="col-md-2"><input class="form-control" name="category" placeholder="دسته"></div>
+      <div class="col-md-5"><input class="form-control" name="text" placeholder="متن" required></div>
+    </div>
+    <button class="btn-panel-primary mt-2" type="submit">افزودن</button>
+  </form>
+  <ul class="list-group panel-card">
+    {% for i in items %}
+    <li class="list-group-item"><strong>{{ i.title }}</strong> <code>{{ i.shortcut }}</code><div class="small">{{ i.text }}</div></li>
+    {% empty %}<li class="list-group-item text-muted">موردی نیست.</li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import secrets
 
 from django.db.models import Q
 from django.http import FileResponse, Http404, JsonResponse
@@ -301,6 +302,53 @@ def _resolve_subscriber(catalog: CatalogSettings, init_data: str) -> Subscriber 
     chat = {'id': chat_id, 'type': 'private'}
     return get_or_create_subscriber(cfg, from_user, chat)
 
+def _instagram_checkout_link(request, catalog: CatalogSettings):
+    from instagram.automation.models import InstagramTrackedLink
+    from instagram.automation.services.link_tracking import _session_digest
+
+    principal = request.session.get('instagram_checkout_session') or {}
+    link_id = principal.get('link_id')
+    if not link_id or principal.get('workspace_id') != catalog.workspace_id:
+        return None
+    link = InstagramTrackedLink.objects.select_related('contact__customer').filter(
+        pk=link_id,
+        workspace_id=catalog.workspace_id,
+        revoked_at__isnull=True,
+    ).first()
+    if not link or (link.expires_at and link.expires_at <= timezone.now()):
+        return None
+    session_key = request.session.session_key or ''
+    expected = _session_digest(session_key, link.pk)
+    supplied = str(principal.get('session_hash') or '')
+    if not supplied or not secrets.compare_digest(supplied, expected):
+        return None
+    if not link.claimed_session_hash or not secrets.compare_digest(link.claimed_session_hash, expected):
+        return None
+    try:
+        storefront = catalog.workspace.instagram_storefront
+    except Exception:
+        return None
+    if not storefront.is_enabled or storefront.catalog_id != catalog.pk:
+        return None
+    return link
+
+
+def _instagram_cart_key(catalog: CatalogSettings) -> str:
+    return f'instagram_cart_{catalog.pk}'
+
+
+def _instagram_cart_lines(request, catalog: CatalogSettings) -> list[tuple[CatalogItem, int]]:
+    raw = request.session.get(_instagram_cart_key(catalog)) or {}
+    ids = [int(value) for value in raw.keys() if str(value).isdigit()]
+    items = CatalogItem.objects.filter(
+        pk__in=ids,
+        workspace=catalog.workspace,
+        platform=catalog.platform,
+        is_active=True,
+    ).prefetch_related('media')
+    by_id = {item.pk: item for item in items}
+    return [(by_id[item_id], max(1, min(int(raw[str(item_id)]), 99))) for item_id in ids if item_id in by_id]
+
 
 def _mark_miniapp_seen(sub: Subscriber) -> None:
     if sub.miniapp_first_seen_at:
@@ -340,9 +388,14 @@ def catalog_config(request, public_id):
     if catalog.hero_background:
         hero_background_url = absolute_media_url(request, catalog.hero_background.url, catalog=catalog)
     public_base_url = request_public_base_url(request) or resolve_public_base_url(cfg).rstrip('/')
+    instagram_link = _instagram_checkout_link(request, catalog)
     methods = []
-    for value, label in catalog.enabled_payment_methods():
-        methods.append({'id': value, 'label': label})
+    if instagram_link:
+        if catalog.payment_card_to_card_ready():
+            methods = [{'id': CatalogSettings.PaymentMethod.CARD_TO_CARD, 'label': 'کارت به کارت'}]
+    else:
+        for value, label in catalog.enabled_payment_methods():
+            methods.append({'id': value, 'label': label})
     can_purchase = catalog.can_accept_orders()
     theme = catalog.theme_config or {}
     home_blocks = absolutize_home_blocks(get_home_blocks(theme), request, catalog=catalog)
@@ -350,7 +403,9 @@ def catalog_config(request, public_id):
         'ok': True,
         'is_enabled': catalog.is_enabled,
         'can_purchase': can_purchase,
-        'platform': catalog.platform,
+        'platform': 'instagram' if instagram_link else catalog.platform,
+        'auth_mode': 'instagram_checkout_session' if instagram_link else 'messenger_init_data',
+        'source_channel': 'instagram' if instagram_link else catalog.platform,
         'hero_title': catalog.hero_title,
         'hero_subtitle': catalog.hero_subtitle,
         'theme': theme,
@@ -361,7 +416,11 @@ def catalog_config(request, public_id):
         'public_base_url': public_base_url,
         'mini_app_url': catalog.build_mini_app_url(cfg),
         'payment_methods': methods if can_purchase else [],
-        'payment_default': catalog.resolve_payment_method(None) if can_purchase else None,
+        'payment_default': (
+            CatalogSettings.PaymentMethod.CARD_TO_CARD
+            if instagram_link and can_purchase
+            else catalog.resolve_payment_method(None) if can_purchase else None
+        ),
         'checkout_form': public_checkout_form(catalog.checkout_form),
         'shipping': {
             'mode': catalog.shipping_mode,
@@ -622,7 +681,24 @@ def catalog_auth_validate(request, public_id):
     init_data = (body.get('initData') or body.get('init_data') or '').strip()
     sub = _resolve_subscriber(catalog, init_data)
     if not sub:
-        return _json_error('احراز هویت ناموفق', 401)
+        link = _instagram_checkout_link(request, catalog)
+        if not link:
+            return _json_error('احراز هویت ناموفق', 401)
+        contact = link.contact
+        return JsonResponse({
+            'ok': True,
+            'subscriber_id': None,
+            'auth_mode': 'instagram_checkout_session',
+            'source_channel': 'instagram',
+            'user': {
+                'id': None,
+                'first_name': (contact.display_name or contact.username) if contact else '',
+                'username': contact.username if contact else '',
+            },
+            'has_library': False,
+            'channel_required': False,
+            'is_channel_member': True,
+        })
     _mark_miniapp_seen(sub)
     channel = _channel_auth_payload(catalog, sub.messenger_user_id)
     return JsonResponse({
@@ -665,6 +741,60 @@ def catalog_cart(request, public_id):
     catalog, err = _resolve_catalog(public_id, require_enabled=request.method != 'GET')
     if err:
         return err
+    instagram_link = _instagram_checkout_link(request, catalog)
+    if instagram_link:
+        body = _parse_body(request) if request.method == 'POST' else {}
+        cart_key = _instagram_cart_key(catalog)
+        raw = dict(request.session.get(cart_key) or {})
+        if request.method == 'POST':
+            action = str(body.get('action') or 'set')
+            if action == 'clear':
+                raw = {}
+            else:
+                try:
+                    item_id = int(body.get('item_id') or 0)
+                    quantity = max(0, min(int(body.get('quantity') or 0), 99))
+                except (TypeError, ValueError):
+                    return _json_error('آیتم یا تعداد نامعتبر است')
+                item = CatalogItem.objects.filter(
+                    pk=item_id,
+                    workspace=catalog.workspace,
+                    platform=catalog.platform,
+                    is_active=True,
+                ).first()
+                if not item:
+                    return _json_error('محصول یافت نشد', 404)
+                if quantity:
+                    raw[str(item_id)] = quantity
+                else:
+                    raw.pop(str(item_id), None)
+            request.session[cart_key] = raw
+            request.session.modified = True
+        lines = _instagram_cart_lines(request, catalog)
+        items = []
+        subtotal = 0
+        for item, quantity in lines:
+            line_total = int(item.price or 0) * quantity
+            subtotal += line_total
+            items.append({
+                'item_id': item.pk,
+                'slug': item.slug,
+                'title': item.title,
+                'price': item.price,
+                'quantity': quantity,
+                'line_total': line_total,
+                'image': _first_item_image_url(item, request, catalog),
+            })
+        province = str(body.get('province') or request.GET.get('province') or '').strip()
+        summary = catalog_payment.compute_cart_summary(catalog, subtotal, province=province, subscriber=None)
+        return JsonResponse({
+            'ok': True,
+            'auth_mode': 'instagram_checkout_session',
+            'source_channel': 'instagram',
+            'items': items,
+            **summary,
+            'has_library': False,
+        })
     if request.method == 'GET':
         init_data = (request.GET.get('initData') or '').strip()
         sub = _resolve_subscriber(catalog, init_data)
@@ -767,6 +897,77 @@ def catalog_checkout(request, public_id):
     if err:
         return err
     body = _parse_body(request)
+    instagram_link = _instagram_checkout_link(request, catalog)
+    if instagram_link:
+        if not catalog.payment_card_to_card_ready():
+            return _json_error('پرداخت کارت به کارت برای این فروشگاه آماده نیست', 400)
+        requested_method = str(body.get('payment_method') or CatalogSettings.PaymentMethod.CARD_TO_CARD)
+        if requested_method != CatalogSettings.PaymentMethod.CARD_TO_CARD:
+            return _json_error('در خرید اینستاگرام فقط کارت به کارت مجاز است', 400)
+        customer_data, form_errors = validate_customer_data(catalog.checkout_form, body.get('customer_data'))
+        if form_errors:
+            return _json_error(form_errors[0], 400)
+        recipient_extra = {
+            'recipient_name': body.get('recipient_name'),
+            'recipient_phone': body.get('recipient_phone'),
+            'recipient_address': body.get('recipient_address'),
+            'recipient_postal_code': body.get('recipient_postal_code'),
+            'customer_note': body.get('customer_note'),
+        }
+        item_id = body.get('item_id')
+        if item_id:
+            try:
+                item = CatalogItem.objects.get(
+                    pk=int(item_id),
+                    workspace=catalog.workspace,
+                    platform=catalog.platform,
+                    is_active=True,
+                )
+                quantity = max(1, min(int(body.get('quantity') or 1), 99))
+                lines = [(item, quantity)]
+            except (CatalogItem.DoesNotExist, TypeError, ValueError):
+                return _json_error('محصول نامعتبر است', 404)
+        else:
+            lines = _instagram_cart_lines(request, catalog)
+        if not lines or any(item.stock == 0 for item, _ in lines):
+            return _json_error('سبد خالی است یا محصول ناموجود شده است', 400)
+        contact = instagram_link.contact
+        order = catalog_payment.create_checkout_order(
+            catalog=catalog,
+            subscriber=None,
+            lines=lines,
+            payment_method=CatalogSettings.PaymentMethod.CARD_TO_CARD,
+            customer_data=customer_data,
+            province=str(body.get('province') or customer_data.get('city') or '').strip(),
+            discount_code=str(body.get('discount_code') or '').strip(),
+            recipient_extra=recipient_extra,
+            customer=contact.customer if contact else None,
+            source_channel=CatalogOrder.SourceChannel.INSTAGRAM,
+            instagram_contact=contact,
+            instagram_tracked_link=instagram_link,
+        )
+        if not order or order.total_amount <= 0:
+            return _json_error('سبد خرید خالی است یا قیمت نامعتبر')
+        card_payload = catalog_payment.start_card_to_card_checkout(order, catalog)
+        request.session[_instagram_cart_key(catalog)] = {}
+        request.session.modified = True
+        return JsonResponse({
+            'ok': True,
+            'order_id': order.pk,
+            'auth_mode': 'instagram_checkout_session',
+            'source_channel': 'instagram',
+            'payment_method': CatalogSettings.PaymentMethod.CARD_TO_CARD,
+            'method': 'card_to_card',
+            'amount': order.total_amount,
+            'status': order.status,
+            'card': {
+                'number': card_payload['number'],
+                'number_display': card_payload['number_display'],
+                'sheba': card_payload['sheba'],
+                'sheba_display': card_payload['sheba_display'],
+                'holder': card_payload['holder'],
+            },
+        })
     init_data = (body.get('initData') or '').strip()
     sub = _resolve_subscriber(catalog, init_data)
     if not sub:
@@ -975,15 +1176,16 @@ def catalog_order_payment(request, public_id, order_id):
         return err
     init_data = (request.GET.get('initData') or '').strip()
     sub = _resolve_subscriber(catalog, init_data)
-    if not sub:
+    instagram_link = None if sub else _instagram_checkout_link(request, catalog)
+    if not sub and not instagram_link:
         return _json_error('احراز هویت لازم است', 401)
-    order = get_object_or_404(
-        CatalogOrder,
+    order_qs = CatalogOrder.objects.filter(
         pk=order_id,
         workspace=catalog.workspace,
         platform=catalog.platform,
-        subscriber=sub,
     )
+    order_qs = order_qs.filter(subscriber=sub) if sub else order_qs.filter(instagram_tracked_link=instagram_link)
+    order = get_object_or_404(order_qs)
     if order.payment_method != CatalogSettings.PaymentMethod.CARD_TO_CARD:
         return _json_error('این سفارش کارت به کارت نیست', 400)
     from balebot.services.card_to_card import build_card_to_card_payload
@@ -992,6 +1194,14 @@ def catalog_order_payment(request, public_id, order_id):
     receipt_url = ''
     if order.payment_receipt:
         receipt_url = absolute_media_url(request, order.payment_receipt.url, catalog=catalog)
+    delivery_links = []
+    if order.status == CatalogOrder.Status.PAID and order.source_channel == CatalogOrder.SourceChannel.INSTAGRAM:
+        from balebot.services.instagram_delivery import issue_delivery_link
+
+        for platform in (Platform.TELEGRAM, Platform.BALE):
+            delivery = issue_delivery_link(order, platform)
+            if delivery:
+                delivery_links.append(delivery)
     return JsonResponse({
         'ok': True,
         'order_id': order.pk,
@@ -1000,6 +1210,7 @@ def catalog_order_payment(request, public_id, order_id):
         'receipt_uploaded': bool(order.payment_receipt),
         'receipt_url': receipt_url,
         'card': card,
+        'delivery_links': delivery_links,
     })
 
 
@@ -1011,16 +1222,17 @@ def catalog_order_receipt(request, public_id, order_id):
         return err
     init_data = (request.POST.get('initData') or '').strip()
     sub = _resolve_subscriber(catalog, init_data)
-    if not sub:
+    instagram_link = None if sub else _instagram_checkout_link(request, catalog)
+    if not sub and not instagram_link:
         return _json_error('احراز هویت لازم است', 401)
-    order = get_object_or_404(
-        CatalogOrder,
+    order_qs = CatalogOrder.objects.filter(
         pk=order_id,
         workspace=catalog.workspace,
         platform=catalog.platform,
-        subscriber=sub,
         payment_method=CatalogSettings.PaymentMethod.CARD_TO_CARD,
     )
+    order_qs = order_qs.filter(subscriber=sub) if sub else order_qs.filter(instagram_tracked_link=instagram_link)
+    order = get_object_or_404(order_qs)
     upload = request.FILES.get('receipt')
     if not upload:
         return _json_error('فایل رسید انتخاب نشده است', 400)

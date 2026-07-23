@@ -1,0 +1,49 @@
+{% extends "balebot/base.html" %}
+{% load static %}
+{% block title %}پاسخ کامنت{% endblock %}
+{% block page_title %}پاسخ به کامنت پست/ریلز{% endblock %}
+{% block page_subtitle %}مثلاً زیر پست بنویسند «قیمت» → پاسخ عمومی کوتاه + در صورت تأیید Meta، دایرکت مجاز.{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'instagram/css/extractor.css' %}">{% endblock %}
+{% block content %}
+<div class="ig-panel">
+  {% include "instagram/_instagram_subnav.html" %}
+  <div class="panel-card p-3 mb-3">
+    <p class="mb-1">وضعیت API کامنت:
+      {% if capability_status == 'needs_meta_review' %}<span class="badge text-bg-warning">نیازمند تأیید Meta</span>
+      {% elif capability_status == 'enabled' %}<span class="badge text-bg-success">فعال</span>
+      {% else %}<span class="badge text-bg-secondary">غیرفعال</span>{% endif %}
+    </p>
+    <p class="small text-muted mb-0">شرط فالو پشتیبانی نمی‌شود (محدودیت رسمی Meta).</p>
+  </div>
+  <form method="post" class="panel-card p-3 mb-3">
+    {% csrf_token %}
+    <div class="mb-2">
+      <label class="form-label">حساب اینستاگرام</label>
+      <select class="form-select" name="connection_id" required>
+        <option value="">انتخاب کنید</option>
+        {% for c in connections %}
+        <option value="{{ c.id }}">@{{ c.username|default:c.instagram_account_id }}</option>
+        {% empty %}
+        <option value="" disabled>ابتدا حساب را متصل کنید</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-2"><label class="form-label">شناسه پست/ریلز (اختیاری — خالی = همه در صورت پشتیبانی)</label><input class="form-control" name="media_id" placeholder="از Meta یا لینک پست"></div>
+    <div class="mb-2"><label class="form-label">کلمات فعال‌کننده</label><input class="form-control" name="include_keywords" placeholder="قیمت, سفارش" required></div>
+    <div class="mb-2"><label class="form-label">کلمات ممنوع</label><input class="form-control" name="exclude_keywords"></div>
+    <div class="mb-2"><label class="form-label">پاسخ عمومی زیر کامنت</label><input class="form-control" name="public_reply" value="متشکریم! جزئیات در دایرکت."></div>
+    <div class="mb-2"><label class="form-label">پیام دایرکت (Private Reply — در صورت مجاز بودن Meta)</label><textarea class="form-control" name="private_reply" rows="2" placeholder="لینک محصول یا راهنمای سفارش"></textarea></div>
+    <button class="btn-panel-primary" type="submit">ذخیره (تا تأیید، خاموش می‌ماند)</button>
+  </form>
+  <div class="table-responsive panel-card">
+    <table class="table panel-table mb-0">
+      <thead><tr><th>پست</th><th>کلمات</th><th>فعال</th></tr></thead>
+      <tbody>
+      {% for i in items %}
+        <tr><td>{{ i.media_id|default:"همه" }}</td><td>{{ i.include_keywords|join:", " }}</td><td>{% if i.is_active %}بله{% else %}خیر{% endif %}</td></tr>
+      {% empty %}<tr><td colspan="3" class="text-muted text-center p-3">هنوز پاسخی برای کامنت نساختی.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

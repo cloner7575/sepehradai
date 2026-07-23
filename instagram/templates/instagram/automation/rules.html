@@ -1,0 +1,71 @@
+{% extends "balebot/base.html" %}
+{% load static %}
+{% block title %}پاسخ خودکار{% endblock %}
+{% block page_title %}پاسخ خودکار دایرکت{% endblock %}
+{% block page_subtitle %}کلمه کلیدی بگو → همان متن و لینک فروشگاه/محصول ارسال شود. نیازی به طراحی فلو نیست.{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'instagram/css/extractor.css' %}">
+<link rel="stylesheet" href="{% static 'instagram/css/automation.css' %}">
+{% endblock %}
+{% block page_actions %}<a href="{% url 'instagram:rule_create' %}" class="btn-panel-primary">پاسخ جدید</a>{% endblock %}
+{% block content %}
+<div class="ig-panel">
+  {% include "instagram/_instagram_subnav.html" %}
+
+  {% if not rules %}
+  <div class="panel-card p-4 text-center mb-3">
+    <p class="mb-3">هنوز پاسخی نساختی. یکی از سناریوهای آماده را بزن یا خودت بساز.</p>
+    <a href="{% url 'instagram:rule_create' %}" class="btn-panel-primary">ساخت پاسخ</a>
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mb-3">
+    {% for p in presets %}
+    <div class="col-md-6 col-xl-3">
+      <div class="panel-card p-3 h-100">
+        <strong>{{ p.title }}</strong>
+        <p class="small text-muted mb-2">{{ p.description }}</p>
+        <form method="post" action="{% url 'instagram:rule_preset' p.key %}">{% csrf_token %}
+          <button class="btn btn-sm btn-panel-ghost" type="submit">استفاده</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if rules %}
+  <div class="table-responsive panel-card">
+    <table class="table panel-table mb-0">
+      <thead>
+        <tr>
+          <th>نام</th>
+          <th>کلمات</th>
+          <th>پاسخ</th>
+          <th>وضعیت</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in rules %}
+        <tr>
+          <td><a href="{% url 'instagram:rule_edit' r.pk %}">{{ r.name }}</a></td>
+          <td class="small">{{ r.schedule.keywords|join:"، "|default:"—" }}</td>
+          <td class="small text-muted">{{ r.schedule.reply_text|truncatechars:60|default:"—" }}</td>
+          <td>{% if r.is_active %}<span class="badge text-bg-success">فعال</span>{% else %}<span class="badge text-bg-secondary">خاموش</span>{% endif %}</td>
+          <td>
+            <form method="post" action="{% url 'instagram:rule_toggle' r.pk %}">{% csrf_token %}
+              <button class="btn btn-sm btn-panel-ghost">{% if r.is_active %}خاموش کن{% else %}روشن کن{% endif %}</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {% if shop_url %}
+  <p class="small text-muted mt-3 mb-0">لینک فروشگاه فعلی: <code>{{ shop_url }}</code></p>
+  {% endif %}
+</div>
+{% endblock %}

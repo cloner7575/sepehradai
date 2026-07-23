@@ -1,0 +1,59 @@
+{% extends "balebot/base.html" %}
+{% load static jalali_extras %}
+
+{% block title %}صندوق پیام اینستاگرام{% endblock %}
+{% block page_title %}صندوق پیام‌ها{% endblock %}
+{% block page_subtitle %}هنوز گفت‌وگویی دریافت نشده است — پس از اتصال و وب‌هوک، پیام‌ها اینجا می‌آیند.{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'instagram/css/extractor.css' %}">
+<link rel="stylesheet" href="{% static 'instagram/css/automation.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="ig-panel">
+  {% include "instagram/_instagram_subnav.html" %}
+  <form class="panel-card p-3 mb-3 row g-2" method="get">
+    <div class="col-md-3"><input class="form-control" name="q" value="{{ filters.q }}" placeholder="جستجو"></div>
+    <div class="col-md-2">
+      <select class="form-select" name="status">
+        <option value="">وضعیت</option>
+        <option value="open" {% if filters.status == 'open' %}selected{% endif %}>باز</option>
+        <option value="pending" {% if filters.status == 'pending' %}selected{% endif %}>در انتظار</option>
+        <option value="closed" {% if filters.status == 'closed' %}selected{% endif %}>بسته</option>
+        <option value="spam" {% if filters.status == 'spam' %}selected{% endif %}>اسپم</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <select class="form-select" name="mode">
+        <option value="">حالت</option>
+        <option value="automation" {% if filters.mode == 'automation' %}selected{% endif %}>اتوماسیون</option>
+        <option value="human" {% if filters.mode == 'human' %}selected{% endif %}>انسانی</option>
+      </select>
+    </div>
+    <div class="col-md-2 form-check d-flex align-items-center">
+      <input class="form-check-input ms-2" type="checkbox" name="unread" value="1" id="unread" {% if filters.unread == '1' %}checked{% endif %}>
+      <label for="unread" class="form-check-label">خوانده‌نشده</label>
+    </div>
+    <div class="col-md-2"><button class="btn-panel-primary w-100">فیلتر</button></div>
+  </form>
+  {% if not conversations %}
+  <div class="panel-card p-4 text-center text-muted">هنوز گفت‌وگویی دریافت نشده است.</div>
+  {% else %}
+  <div class="list-group panel-card">
+    {% for c in conversations %}
+    <a href="{% url 'instagram:inbox_detail' c.pk %}" class="list-group-item list-group-item-action d-flex justify-content-between">
+      <div>
+        <strong>{{ c.contact.display_name|default:c.contact.username|default:c.contact.instagram_scoped_user_id }}</strong>
+        <div class="small text-muted">{{ c.get_status_display }} · {{ c.get_mode_display }}</div>
+      </div>
+      <div class="text-end">
+        {% if c.unread_count %}<em class="badge text-bg-primary">{{ c.unread_count }}</em>{% endif %}
+        <div class="small">{% if c.last_message_at %}{{ c.last_message_at|jalali_datetime }}{% endif %}</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

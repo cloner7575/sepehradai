@@ -15,6 +15,46 @@ services:
       redis:
         condition: service_healthy
 
+
+  worker:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PROCESS_TYPE: worker
+    volumes:
+      - media_data:/app/public/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'celery -A core inspect ping --timeout 5 >/dev/null 2>&1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  beat:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PROCESS_TYPE: beat
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'test -f /tmp/celerybeat.pid || pgrep -f "celery.*beat" >/dev/null']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
   db:
     image: postgres:16-alpine
     restart: unless-stopped

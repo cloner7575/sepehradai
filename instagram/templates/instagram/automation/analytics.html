@@ -1,0 +1,38 @@
+{% extends "balebot/base.html" %}
+{% load static %}
+{% block title %}گزارش اینستاگرام{% endblock %}
+{% block page_title %}گزارش‌ها{% endblock %}
+{% block page_actions %}<a href="{% url 'instagram:analytics_export' %}" class="btn-panel-ghost">خروجی CSV</a>{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'instagram/css/extractor.css' %}">{% endblock %}
+{% block content %}
+<div class="ig-panel">
+  {% include "instagram/_instagram_subnav.html" %}
+  <div class="row g-3">
+    {% for k,v in summary.items %}
+    <div class="col-md-3"><div class="ig-metric"><span>{{ k }}</span><strong>{{ v }}</strong></div></div>
+    {% endfor %}
+  </div>
+  <div class="panel-card p-3 mt-3">
+    <h3 class="h6 mb-3">فروش منتسب‌شده به اینستاگرام</h3>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead><tr><th>قانون</th><th>محتوا</th><th>محصول</th><th>سفارش پرداخت‌شده</th><th>فروش (ریال)</th></tr></thead>
+        <tbody>
+          {% for row in sales_attribution.rows %}
+          <tr>
+            <td>{{ row.rule }}</td>
+            <td>{{ row.media_type }} / {{ row.media_id }}</td>
+            <td>{{ row.product }}</td>
+            <td>{{ row.order_count }}</td>
+            <td>{{ row.revenue_rial }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-muted">هنوز فروش پرداخت‌شده‌ای با لینک معتبر اینستاگرام ثبت نشده است.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p class="small text-muted mt-3">سفارش فقط با tracking معتبر به اتوماسیون منتسب می‌شود؛ ادعای افزایش فروش قطعی نمایش داده نمی‌شود.</p>
+</div>
+{% endblock %}

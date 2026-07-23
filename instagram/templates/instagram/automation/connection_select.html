@@ -1,0 +1,29 @@
+{% extends "balebot/base.html" %}
+{% load static %}
+
+{% block title %}انتخاب حساب اینستاگرام{% endblock %}
+{% block page_title %}انتخاب حساب حرفه‌ای{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'instagram/css/extractor.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="ig-panel">
+  {% include "instagram/_instagram_subnav.html" %}
+  {% if not pages %}
+  <div class="panel-card p-4">حساب حرفه‌ای قابل اتصال یافت نشد. صفحه فیسبوک باید به اینستاگرام Business/Creator متصل باشد.</div>
+  {% else %}
+  <form method="post" class="panel-card p-3">
+    {% csrf_token %}
+    {% for p in pages %}
+    <label class="d-flex align-items-center gap-2 mb-2">
+      <input type="radio" name="instagram_account_id" value="{{ p.instagram_account_id }}" required>
+      <span>@{{ p.username }} — {{ p.page_name }}</span>
+    </label>
+    {% endfor %}
+    <button class="btn-panel-primary mt-3" type="submit">تأیید اتصال</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

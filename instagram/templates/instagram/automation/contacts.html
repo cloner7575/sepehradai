@@ -1,0 +1,25 @@
+{% extends "balebot/base.html" %}
+{% load static jalali_extras %}
+{% block title %}مخاطبان اینستاگرام{% endblock %}
+{% block page_title %}مخاطبان اینستاگرام{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'instagram/css/extractor.css' %}">{% endblock %}
+{% block content %}
+<div class="ig-panel">
+  {% include "instagram/_instagram_subnav.html" %}
+  <div class="table-responsive panel-card">
+    <table class="table panel-table mb-0">
+      <thead><tr><th>نام</th><th>Scoped ID</th><th>CRM</th><th>آخرین تعامل</th></tr></thead>
+      <tbody>
+      {% for c in contacts %}
+        <tr>
+          <td>{{ c.display_name|default:c.username }}</td>
+          <td class="small">{{ c.instagram_scoped_user_id }}</td>
+          <td>{% if c.subscriber_id %}#{{ c.subscriber_id }}{% else %}—{% endif %}</td>
+          <td>{% if c.last_interaction_at %}{{ c.last_interaction_at|jalali_datetime }}{% else %}—{% endif %}</td>
+        </tr>
+      {% empty %}<tr><td colspan="4" class="text-muted text-center p-3">مخاطبی نیست.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -198,6 +198,33 @@ class Tag(models.Model):
     def __str__(self):
         return self.name
 
+class CustomerProfile(models.Model):
+    """Canonical customer identity shared by messenger and Instagram channels."""
+
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name='customers',
+        db_index=True,
+    )
+    display_name = models.CharField(max_length=255, blank=True, default='')
+    normalized_phone = models.CharField(max_length=16, blank=True, default='', db_index=True)
+    phone_verified_at = models.DateTimeField(null=True, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['workspace', 'normalized_phone'],
+                condition=models.Q(normalized_phone__gt='', phone_verified_at__isnull=False),
+                name='customer_verified_phone_workspace_uniq',
+            ),
+        ]
+
+
 
 class Subscriber(models.Model):
     """کاربرانی که با بازو تعامل دارند."""
@@ -208,6 +235,13 @@ class Subscriber(models.Model):
         related_name='subscribers',
         db_index=True,
     )
+    customer = models.ForeignKey(
+        CustomerProfile,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='subscribers',
+    )
     platform = models.CharField(
         max_length=16,
         choices=Platform.choices,
@@ -217,6 +251,7 @@ class Subscriber(models.Model):
     messenger_user_id = models.BigIntegerField(db_index=True)
     chat_id = models.BigIntegerField(db_index=True)
     phone_number = models.CharField(max_length=32, blank=True, default='')
+    phone_verified_at = models.DateTimeField(null=True, blank=True)
     first_name = models.CharField(max_length=255, blank=True, default='')
     last_name = models.CharField(max_length=255, blank=True, default='')
     username = models.CharField(max_length=255, blank=True, default='')
@@ -624,6 +659,12 @@ class BotSettings(models.Model):
         default='',
         verbose_name='توکن ربات',
         help_text='از BotFather دریافت می‌شود.',
+    )
+    bot_public_username = models.CharField(
+        max_length=128,
+        blank=True,
+        default='',
+        help_text='Public bot username used for one-time delivery deep links.',
     )
     webhook_secret = models.CharField(
         max_length=128,
@@ -1148,6 +1189,12 @@ class CatalogItem(models.Model):
         REQUEST_ONLY = 'request_only', 'فقط درخواست'
         BOTH = 'both', 'خرید و درخواست'
 
+    canonical_key = models.UUIDField(
+        default=uuid.uuid4,
+        db_index=True,
+        help_text='شناسه مشترک محصول در نسخه‌های بله و تلگرام',
+    )
+
     workspace = models.ForeignKey(
         Workspace,
         on_delete=models.CASCADE,
@@ -1474,10 +1521,29 @@ class CatalogOrder(models.Model):
         CANCELLED = 'cancelled', 'لغوشده'
         REQUEST = 'request', 'درخواست'
 
+    class SourceChannel(models.TextChoices):
+        BALE = 'bale', 'بله'
+        TELEGRAM = 'telegram', 'تلگرام'
+        INSTAGRAM = 'instagram', 'اینستاگرام'
+
     workspace = models.ForeignKey(
         Workspace,
         on_delete=models.CASCADE,
         related_name='catalog_orders',
+        db_index=True,
+    )
+    customer = models.ForeignKey(
+        CustomerProfile,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='catalog_orders',
+    )
+    source_channel = models.CharField(
+        max_length=16,
+        choices=SourceChannel.choices,
+        blank=True,
+        default='',
         db_index=True,
     )
     platform = models.CharField(
@@ -1488,6 +1554,20 @@ class CatalogOrder(models.Model):
     )
     subscriber = models.ForeignKey(
         'Subscriber',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='catalog_orders',
+    )
+    instagram_contact = models.ForeignKey(
+        'instagram.InstagramContact',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='catalog_orders',
+    )
+    instagram_tracked_link = models.ForeignKey(
+        'instagram.InstagramTrackedLink',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -1577,6 +1657,33 @@ class CatalogOrderLine(models.Model):
     def line_total(self) -> int:
         return self.price_snapshot * self.quantity
 
+
+class CatalogDeliveryToken(models.Model):
+    order = models.ForeignKey(
+        CatalogOrder,
+        on_delete=models.CASCADE,
+        related_name='delivery_tokens',
+    )
+    platform = models.CharField(max_length=16, choices=Platform.choices, db_index=True)
+    token_digest = models.CharField(max_length=64, unique=True, db_index=True)
+    expires_at = models.DateTimeField(db_index=True)
+    consumed_at = models.DateTimeField(null=True, blank=True)
+    consumed_by = models.ForeignKey(
+        Subscriber,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='consumed_delivery_tokens',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['order', 'platform', 'created_at'])]
+
+    def is_usable(self):
+        if self.consumed_at:
+            return False
+        return timezone.now() < self.expires_at
 
 class CatalogCart(models.Model):
     workspace = models.ForeignKey(

@@ -109,20 +109,23 @@
           <span class="app-sidebar-section-tag">ابزارها</span>
         </div>
         <nav class="app-sidebar-nav">
-          <a href="{% url 'instagram:dashboard' %}" class="app-nav-link {% if name == 'dashboard' %}is-active{% endif %}">
-            <i class="bi bi-grid-1x2 app-nav-icon"></i><span>داشبورد</span>
+          <a href="{% url 'instagram:overview' %}" class="app-nav-link {% if name == 'overview' %}is-active{% endif %}">
+            <i class="bi bi-lightning-charge app-nav-icon"></i><span>دایرکت و فروش</span>
+          </a>
+          <a href="{% url 'instagram:rules' %}" class="app-nav-link {% if name == 'rules' or name == 'rule_edit' or name == 'rule_create' %}is-active{% endif %}">
+            <i class="bi bi-reply-all app-nav-icon"></i><span>پاسخ خودکار</span>
+          </a>
+          <a href="{% url 'instagram:inbox' %}" class="app-nav-link {% if name == 'inbox' or name == 'inbox_detail' %}is-active{% endif %}">
+            <i class="bi bi-chat-dots app-nav-icon"></i><span>صندوق پیام</span>
+          </a>
+          <a href="{% url 'instagram:connection' %}" class="app-nav-link {% if name == 'connection' or name == 'connection_select' %}is-active{% endif %}">
+            <i class="bi bi-link-45deg app-nav-icon"></i><span>اتصال حساب</span>
           </a>
           <a href="{% url 'instagram:phone_extractor' %}" class="app-nav-link {% if name == 'phone_extractor' %}is-active{% endif %}">
             <i class="bi bi-telephone-plus app-nav-icon"></i><span>استخراج شماره</span>
           </a>
           <a href="{% url 'instagram:phone_list' %}" class="app-nav-link {% if name == 'phone_list' %}is-active{% endif %}">
             <i class="bi bi-database app-nav-icon"></i><span>بانک شماره</span>
-          </a>
-          <a href="{% url 'instagram:history' %}" class="app-nav-link {% if name == 'history' or name == 'extraction_detail' %}is-active{% endif %}">
-            <i class="bi bi-clock-history app-nav-icon"></i><span>تاریخچه</span>
-          </a>
-          <a href="{% url 'instagram:backup_guide' %}" class="app-nav-link {% if name == 'backup_guide' %}is-active{% endif %}">
-            <i class="bi bi-play-circle app-nav-icon"></i><span>آموزش بکاپ</span>
           </a>
         </nav>
       </div>

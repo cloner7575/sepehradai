@@ -120,3 +120,28 @@ class ExtractedPhone(models.Model):
 
     def __str__(self):
         return self.phone_number
+
+
+# مدل‌های دایرکت هوشمند (Meta Graph API)
+from instagram.automation.models import (  # noqa: E402,F401
+    InstagramAuditLog,
+    InstagramAutomationRule,
+    InstagramBusinessHours,
+    InstagramCommentAutomation,
+    InstagramConnection,
+    InstagramContact,
+    InstagramConversation,
+    InstagramFlow,
+    InstagramFlowEdge,
+    InstagramFlowExecution,
+    InstagramFlowNode,
+    InstagramMessage,
+    InstagramQuickReply,
+    InstagramMedia,
+    InstagramStorefrontConfig,
+    InstagramAutomationActionRun,
+    InstagramRuleCondition,
+    InstagramTrackedLink,
+    InstagramWebhookEvent,
+    WorkspaceInstagramEntitlement,
+)

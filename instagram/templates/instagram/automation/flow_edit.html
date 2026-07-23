@@ -1,0 +1,56 @@
+{% extends "balebot/base.html" %}
+{% load static %}
+{% block title %}سناریوی چندمرحله‌ای{% endblock %}
+{% block page_title %}{% if flow %}{{ flow.name }}{% else %}سناریوی چندمرحله‌ای{% endif %}{% endblock %}
+{% block page_subtitle %}این بخش پیشرفته است. برای پاسخ کلمه کلیدی از «پاسخ خودکار» استفاده کنید.{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'instagram/css/extractor.css' %}">
+<link rel="stylesheet" href="{% static 'instagram/css/automation.css' %}">
+{% endblock %}
+{% block content %}
+<div class="ig-panel">
+  {% include "instagram/_instagram_subnav.html" %}
+  <form method="post" id="ig-flow-form" class="panel-card p-3" data-unsaved-warn="1">
+    {% csrf_token %}
+    <div class="row g-2 mb-3">
+      <div class="col-md-6"><input class="form-control" name="name" id="flow-name" value="{{ flow.name|default:'فلو جدید' }}" required></div>
+      <div class="col-md-6 text-start">
+        <button type="submit" class="btn-panel-primary">ذخیره</button>
+        {% if flow %}
+        <button type="button" class="btn-panel-ghost" id="btn-publish">انتشار</button>
+        <button type="button" class="btn-panel-ghost" id="btn-test">تست بدون ارسال واقعی</button>
+        {% endif %}
+      </div>
+    </div>
+    <textarea class="form-control mb-2" name="description" rows="2">{{ flow.description|default:'' }}</textarea>
+    <input type="hidden" name="definition" id="flow-definition" value="">
+    <div id="ig-flow-canvas" class="ig-flow-canvas" tabindex="0">
+      <div class="ig-flow-toolbar">
+        <button type="button" data-add="send_text" class="btn btn-sm btn-panel-ghost">متن</button>
+        <button type="button" data-add="add_tag" class="btn btn-sm btn-panel-ghost">تگ</button>
+        <button type="button" data-add="send_product" class="btn btn-sm btn-panel-ghost">محصول</button>
+        <button type="button" data-add="condition" class="btn btn-sm btn-panel-ghost">شرط</button>
+        <button type="button" data-add="assign_agent" class="btn btn-sm btn-panel-ghost">کارشناس</button>
+        <button type="button" data-add="stop" class="btn btn-sm btn-panel-ghost">پایان</button>
+      </div>
+      <div class="ig-flow-stage" id="ig-flow-stage"></div>
+    </div>
+  </form>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>window.IG_FLOW_INITIAL = {{ definition_json|safe }};</script>
+<script src="{% static 'instagram/js/flow_builder.js' %}"></script>
+{% if flow %}
+<script>
+document.getElementById('btn-publish')?.addEventListener('click', function() {
+  const f = document.createElement('form'); f.method='post'; f.action="{% url 'instagram:flow_publish' flow.pk %}";
+  f.innerHTML = '{% csrf_token %}'; document.body.appendChild(f); f.submit();
+});
+document.getElementById('btn-test')?.addEventListener('click', async function() {
+  const r = await fetch("{% url 'instagram:flow_test' flow.pk %}", {method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}','X-Requested-With':'XMLHttpRequest'}});
+  const j = await r.json(); alert(j.ok ? ('وضعیت: '+j.status) : (j.error||'خطا'));
+});
+</script>
+{% endif %}
+{% endblock %}

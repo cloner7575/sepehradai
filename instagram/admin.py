@@ -1,6 +1,17 @@
 from django.contrib import admin
 
-from instagram.models import ActivityDomain, ExtractedPhone, ExtractionJob
+from instagram.models import (
+    ActivityDomain,
+    ExtractedPhone,
+    ExtractionJob,
+    InstagramConnection,
+    InstagramConversation,
+    InstagramWebhookEvent,
+    InstagramAuditLog,
+    InstagramFlow,
+    InstagramAutomationRule,
+    WorkspaceInstagramEntitlement,
+)
 
 
 class ExtractedPhoneInline(admin.TabularInline):
@@ -46,3 +57,30 @@ class ExtractedPhoneAdmin(admin.ModelAdmin):
     list_display = ('phone_number', 'activity_domain_label', 'workspace', 'job', 'created_at')
     list_filter = ('workspace', 'activity_domain_label')
     search_fields = ('phone_number',)
+
+
+@admin.register(InstagramConnection)
+class InstagramConnectionAdmin(admin.ModelAdmin):
+    list_display = ('username', 'workspace', 'connection_status', 'webhook_status', 'updated_at')
+    list_filter = ('connection_status', 'workspace')
+    search_fields = ('username', 'instagram_account_id')
+    readonly_fields = ('encrypted_access_token',)
+
+
+@admin.register(InstagramConversation)
+class InstagramConversationAdmin(admin.ModelAdmin):
+    list_display = ('id', 'workspace', 'status', 'mode', 'unread_count', 'last_message_at')
+    list_filter = ('status', 'mode', 'workspace')
+
+
+@admin.register(InstagramWebhookEvent)
+class InstagramWebhookEventAdmin(admin.ModelAdmin):
+    list_display = ('event_type', 'processing_status', 'attempts', 'received_at', 'workspace')
+    list_filter = ('processing_status', 'event_type')
+    search_fields = ('fingerprint', 'correlation_id')
+
+
+admin.site.register(InstagramAuditLog)
+admin.site.register(InstagramFlow)
+admin.site.register(InstagramAutomationRule)
+admin.site.register(WorkspaceInstagramEntitlement)

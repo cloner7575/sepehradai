@@ -1,0 +1,35 @@
+{% extends "balebot/base.html" %}
+{% load static %}
+{% block title %}سناریوی چندمرحله‌ای{% endblock %}
+{% block page_title %}پیشرفته — سناریوی چندمرحله‌ای{% endblock %}
+{% block page_subtitle %}برای اکثر فروشگاه‌ها لازم نیست. اول از «پاسخ خودکار» استفاده کنید؛ اینجا فقط برای مسیرهای خاص است.{% endblock %}
+{% block page_actions %}<a href="{% url 'instagram:rules' %}" class="btn-panel-ghost">برگشت به پاسخ خودکار</a> <a href="{% url 'instagram:flow_create' %}" class="btn-panel-primary">سناریوی جدید</a>{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'instagram/css/extractor.css' %}">{% endblock %}
+{% block content %}
+<div class="ig-panel">
+  {% include "instagram/_instagram_subnav.html" %}
+  <div class="alert alert-info">
+    پاسخ‌های روزمره (قیمت، سفارش، پشتیبانی) را از بخش <a href="{% url 'instagram:rules' %}">پاسخ خودکار</a> بسازید.
+    این صفحه مثل طراحی منوی پیچیدهٔ ربات است و برای تیم‌های پیشرفته نگه داشته شده.
+  </div>
+  <div class="table-responsive panel-card">
+    <table class="table panel-table mb-0">
+      <thead><tr><th>نام</th><th>نسخه</th><th>وضعیت</th><th></th></tr></thead>
+      <tbody>
+      {% for f in flows %}
+        <tr>
+          <td><a href="{% url 'instagram:flow_edit' f.pk %}">{{ f.name }}</a></td>
+          <td>{{ f.version }}</td>
+          <td>{{ f.get_status_display }}</td>
+          <td>
+            <form method="post" action="{% url 'instagram:flow_duplicate' f.pk %}" class="d-inline">{% csrf_token %}<button class="btn btn-sm btn-panel-ghost">کپی</button></form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="text-muted text-center p-4">سناریوی چندمرحله‌ای دستی ندارید — و معمولاً لازم هم نیست.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "balebot/base.html" %}
+{% load static jalali_extras %}
+
+{% block title %}اینستاگرام{% endblock %}
+{% block page_title %}دایرکت و فروش از اینستاگرام{% endblock %}
+{% block page_subtitle %}مثل ربات و مینی‌اپ: مشتری سؤال می‌پرسد، پاسخ و لینک فروشگاه را خودکار می‌گیرد.{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'instagram/css/extractor.css' %}">
+<link rel="stylesheet" href="{% static 'instagram/css/automation.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="ig-panel">
+  {% include "instagram/_instagram_subnav.html" %}
+
+  <div class="panel-card p-3 mb-3">
+    <h6 class="mb-3">مسیر سه‌مرحله‌ای</h6>
+    <ol class="ig-steps mb-0">
+      <li class="{% if has_connection %}is-done{% endif %}">
+        <strong>۱. اتصال حساب</strong>
+        <span>{% if has_connection %}متصل است{% else %}هنوز وصل نشده{% endif %}</span>
+        {% if not has_connection %}<a href="{% url 'instagram:connection' %}" class="btn btn-sm btn-panel-primary mt-1">اتصال امن</a>{% endif %}
+      </li>
+      <li class="{% if active_rules %}is-done{% endif %}">
+        <strong>۲. پاسخ خودکار</strong>
+        <span>{% if active_rules %}{{ active_rules }} پاسخ فعال{% else %}کلمه کلیدی بساز{% endif %}</span>
+        <a href="{% url 'instagram:rules' %}" class="btn btn-sm btn-panel-ghost mt-1">مدیریت پاسخ‌ها</a>
+      </li>
+      <li>
+        <strong>۳. صندوق پیام</strong>
+        <span>سؤال‌های خاص را خودت جواب بده</span>
+        <a href="{% url 'instagram:inbox' %}" class="btn btn-sm btn-panel-ghost mt-1">باز کردن صندوق</a>
+      </li>
+    </ol>
+    {% if shop_url %}
+    <p class="small text-muted mt-3 mb-0">لینک فروشگاه مینی‌اپ شما: <code>{{ shop_url }}</code> — در پاسخ‌های آماده می‌تواند ارسال شود.</p>
+    {% else %}
+    <p class="small text-warning mt-3 mb-0">هنوز فروشگاه مینی‌اپ فعالی ندارید. از بخش مینی‌اپ یک ویترین بسازید تا لینک در پاسخ‌ها بیاید.</p>
+    {% endif %}
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="ig-metric"><span>گفتگوی جدید</span><strong>{{ summary.new_conversations }}</strong></div></div>
+    <div class="col-md-3"><div class="ig-metric"><span>پیام ورودی</span><strong>{{ summary.inbound_messages }}</strong></div></div>
+    <div class="col-md-3"><div class="ig-metric"><span>پاسخ خودکار</span><strong>{{ summary.automation_replies }}</strong></div></div>
+    <div class="col-md-3"><div class="ig-metric"><span>پاسخ کارشناس</span><strong>{{ summary.agent_replies }}</strong></div></div>
+  </div>
+
+  <h6 class="mb-2">شروع سریع با سناریوی آماده</h6>
+  <div class="row g-3">
+    {% for p in presets %}
+    <div class="col-md-6 col-lg-3">
+      <div class="panel-card p-3 h-100 ig-preset-card">
+        <strong>{{ p.title }}</strong>
+        <p class="small text-muted mt-1">{{ p.description }}</p>
+        <form method="post" action="{% url 'instagram:rule_preset' p.key %}">
+          {% csrf_token %}
+          <button class="btn-panel-primary btn-sm" type="submit">فعال‌سازی</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if messaging_status != 'enabled' %}
+  <div class="alert alert-warning mt-3 mb-0">
+    ارسال واقعی دایرکت تا تأیید مجوز Meta ممکن است محدود باشد. زیرساخت آماده است؛ وضعیت فعلی:
+    {% if messaging_status == 'needs_meta_review' %}نیازمند تأیید Meta{% else %}خاموش در پلن{% endif %}.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

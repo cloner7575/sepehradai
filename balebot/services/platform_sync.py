@@ -260,6 +260,7 @@ def _copy_catalog_tree(
     for item in CatalogItem.objects.filter(workspace=workspace, platform=source).prefetch_related('media'):
         new_item = CatalogItem(
             workspace=workspace,
+            canonical_key=item.canonical_key,
             platform=target,
             category_id=cat_map.get(item.category_id) if item.category_id else None,
             title=item.title,

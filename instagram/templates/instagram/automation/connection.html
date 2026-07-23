@@ -1,0 +1,65 @@
+{% extends "balebot/base.html" %}
+{% load static jalali_extras %}
+
+{% block title %}اتصال اینستاگرام{% endblock %}
+{% block page_title %}اتصال اینستاگرام{% endblock %}
+{% block page_subtitle %}اتصال از مسیر رسمی Meta انجام می‌شود و رمز اینستاگرام از شما دریافت نمی‌شود.{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'instagram/css/extractor.css' %}">
+<link rel="stylesheet" href="{% static 'instagram/css/automation.css' %}">
+{% endblock %}
+
+{% block page_actions %}
+{% if can_connect %}
+<a href="{% url 'instagram:oauth_start' %}" class="btn-panel-primary">اتصال امن اینستاگرام</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="ig-panel">
+  {% include "instagram/_instagram_subnav.html" %}
+  <div class="panel-card p-3 mb-3">
+    <p class="small text-muted mb-2">وضعیت مجوزها:
+      پیام‌رسانی:
+      {% if messaging_status == 'needs_meta_review' %}<span class="badge text-bg-warning">نیازمند تأیید Meta</span>
+      {% elif messaging_status == 'enabled' %}<span class="badge text-bg-success">تأییدشده</span>
+      {% else %}<span class="badge text-bg-secondary">خاموش</span>{% endif %}
+      · کامنت:
+      {% if comments_status == 'needs_meta_review' %}<span class="badge text-bg-warning">نیازمند تأیید Meta</span>
+      {% elif comments_status == 'enabled' %}<span class="badge text-bg-success">تأییدشده</span>
+      {% else %}<span class="badge text-bg-secondary">خاموش</span>{% endif %}
+    </p>
+  </div>
+  {% if not connections %}
+  <div class="panel-card p-4 text-center">
+    <p class="mb-3">هنوز حسابی متصل نشده است.</p>
+    {% if can_connect %}<a href="{% url 'instagram:oauth_start' %}" class="btn-panel-primary">اتصال امن اینستاگرام</a>{% endif %}
+  </div>
+  {% else %}
+  <div class="table-responsive panel-card">
+    <table class="table panel-table mb-0">
+      <thead><tr><th>حساب</th><th>شناسه</th><th>وضعیت</th><th>وب‌هوک</th><th>آخرین Sync</th><th></th></tr></thead>
+      <tbody>
+      {% for c in connections %}
+        <tr>
+          <td>@{{ c.username|default:"—" }} <div class="small text-muted">{{ c.profile_name }}</div></td>
+          <td class="small">{{ c.instagram_account_id }}</td>
+          <td>{{ c.get_connection_status_display }}</td>
+          <td>{{ c.get_webhook_status_display }}</td>
+          <td>{% if c.last_sync_at %}{{ c.last_sync_at|jalali_datetime }}{% else %}—{% endif %}</td>
+          <td class="text-nowrap">
+            <form method="post" action="{% url 'instagram:connection_test' c.pk %}" class="d-inline">{% csrf_token %}<button class="btn btn-sm btn-panel-ghost">تست</button></form>
+            <form method="post" action="{% url 'instagram:connection_disconnect' c.pk %}" class="d-inline" onsubmit="return confirm('قطع اتصال؟');">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">قطع</button></form>
+          </td>
+        </tr>
+        {% if c.last_error_message_sanitized %}
+        <tr><td colspan="6" class="small text-danger">{{ c.last_error_code }}: {{ c.last_error_message_sanitized }}</td></tr>
+        {% endif %}
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

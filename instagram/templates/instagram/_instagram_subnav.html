@@ -1,24 +1,34 @@
 {% with name=request.resolver_match.url_name %}
 <nav class="ig-subnav app-subnav-scroll" aria-label="ناوبری اینستاگرام">
-  <a href="{% url 'instagram:dashboard' %}" class="ig-subnav-link{% if name == 'dashboard' %} is-active{% endif %}">
-    <i class="bi bi-grid-1x2"></i><span>داشبورد</span>
+  <a href="{% url 'instagram:overview' %}" class="ig-subnav-link{% if name == 'overview' %} is-active{% endif %}">
+    <i class="bi bi-house"></i><span>شروع</span>
   </a>
-  <a href="{% url 'instagram:phone_extractor' %}" class="ig-subnav-link{% if name == 'phone_extractor' %} is-active{% endif %}">
-    <i class="bi bi-telephone-plus"></i><span>استخراج</span>
+  <a href="{% url 'instagram:connection' %}" class="ig-subnav-link{% if name == 'connection' or name == 'connection_select' %} is-active{% endif %}">
+    <i class="bi bi-link-45deg"></i><span>اتصال حساب</span>
   </a>
-  <a href="{% url 'instagram:backup_guide' %}" class="ig-subnav-link{% if name == 'backup_guide' %} is-active{% endif %}">
-    <i class="bi bi-play-circle"></i><span>آموزش بکاپ</span>
+  <a href="{% url 'instagram:rules' %}" class="ig-subnav-link{% if name == 'rules' or name == 'rule_edit' or name == 'rule_create' %} is-active{% endif %}">
+    <i class="bi bi-reply-all"></i><span>پاسخ خودکار</span>
   </a>
-  <a href="{% url 'instagram:phone_list' %}" class="ig-subnav-link{% if name == 'phone_list' %} is-active{% endif %}">
-    <i class="bi bi-telephone"></i><span>شماره‌ها</span>
+  <a href="{% url 'instagram:inbox' %}" class="ig-subnav-link{% if name == 'inbox' or name == 'inbox_detail' %} is-active{% endif %}">
+    <i class="bi bi-chat-dots"></i><span>صندوق پیام</span>
   </a>
-  <a href="{% url 'instagram:history' %}" class="ig-subnav-link{% if name == 'history' or name == 'extraction_detail' %} is-active{% endif %}">
-    <i class="bi bi-clock-history"></i><span>تاریخچه</span>
+  <a href="{% url 'instagram:comments' %}" class="ig-subnav-link{% if name == 'comments' %} is-active{% endif %}">
+    <i class="bi bi-chat-square-text"></i><span>پاسخ کامنت</span>
   </a>
-  {% if user.is_superuser %}
-  <a href="{% url 'instagram:activity_domain_list' %}" class="ig-subnav-link{% if name == 'activity_domain_list' %} is-active{% endif %}">
-    <i class="bi bi-tags"></i><span>حوزه‌ها</span>
+  <a href="{% url 'instagram:quick_replies' %}" class="ig-subnav-link{% if name == 'quick_replies' %} is-active{% endif %}">
+    <i class="bi bi-sticky"></i><span>متن آماده کارشناس</span>
   </a>
-  {% endif %}
+  <a href="{% url 'instagram:catalog_media' %}" class="ig-subnav-link{% if name == 'catalog_media' or name == 'media_sync' or name == 'media_bind' %} is-active{% endif %}">
+    <i class="bi bi-bag"></i><span>کاتالوگ و محتوا</span>
+  </a>
+  <a href="{% url 'instagram:analytics' %}" class="ig-subnav-link{% if name == 'analytics' %} is-active{% endif %}">
+    <i class="bi bi-bar-chart"></i><span>گزارش</span>
+  </a>
+  <a href="{% url 'instagram:flows' %}" class="ig-subnav-link{% if name == 'flows' or name == 'flow_edit' or name == 'flow_create' %} is-active{% endif %}">
+    <i class="bi bi-diagram-3"></i><span>پیشرفته</span>
+  </a>
+  <a href="{% url 'instagram:dashboard' %}" class="ig-subnav-link{% if name == 'dashboard' or name == 'phone_extractor' or name == 'phone_list' or name == 'history' or name == 'backup_guide' %} is-active{% endif %}">
+    <i class="bi bi-telephone"></i><span>استخراج شماره</span>
+  </a>
 </nav>
 {% endwith %}

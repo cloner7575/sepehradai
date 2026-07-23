@@ -151,13 +151,17 @@ def create_order_from_lines(
     *,
     workspace,
     platform: str,
-    subscriber: Subscriber,
+    subscriber: Subscriber | None,
     lines: list[tuple[CatalogItem, int]],
     status: str = CatalogOrder.Status.PENDING,
     note: str = '',
     payment_method: str = '',
     customer_data: dict | None = None,
     recipient_extra: dict | None = None,
+    customer=None,
+    source_channel: str = '',
+    instagram_contact=None,
+    instagram_tracked_link=None,
 ) -> CatalogOrder | None:
     if not lines:
         return None
@@ -168,6 +172,10 @@ def create_order_from_lines(
             workspace=workspace,
             platform=platform,
             subscriber=subscriber,
+            customer=customer,
+            source_channel=source_channel,
+            instagram_contact=instagram_contact,
+            instagram_tracked_link=instagram_tracked_link,
             status=status,
             total_amount=0,
             note=note[:2000],
@@ -193,17 +201,24 @@ def create_order_from_lines(
 def create_checkout_order(
     *,
     catalog: CatalogSettings,
-    subscriber: Subscriber,
+    subscriber: Subscriber | None,
     cart: CatalogCart | None = None,
     item: CatalogItem | None = None,
+    lines: list[tuple[CatalogItem, int]] | None = None,
     quantity: int = 1,
     payment_method: str = '',
     customer_data: dict | None = None,
     province: str = '',
     discount_code: str = '',
     recipient_extra: dict | None = None,
+    customer=None,
+    source_channel: str = '',
+    instagram_contact=None,
+    instagram_tracked_link=None,
 ) -> CatalogOrder | None:
-    if cart:
+    if lines is not None:
+        lines = [(line_item, max(1, int(qty))) for line_item, qty in lines if line_item.is_active]
+    elif cart:
         lines = _line_items_from_cart(cart, subscriber=subscriber)
     elif item:
         lines = _line_items_from_single(item, quantity)
@@ -221,6 +236,10 @@ def create_checkout_order(
         payment_method=payment_method,
         customer_data=customer_data,
         recipient_extra=recipient_extra,
+        customer=customer,
+        source_channel=source_channel,
+        instagram_contact=instagram_contact,
+        instagram_tracked_link=instagram_tracked_link,
     )
     if not order:
         return None

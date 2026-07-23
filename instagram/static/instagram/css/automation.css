@@ -1,0 +1,132 @@
+/* دایرکت هوشمند — برند راحت‌سل */
+:root {
+  --ig-smart-primary: #6338D9;
+  --ig-smart-teal: #14B8A6;
+  --ig-smart-sky: #38BDF8;
+  --ig-smart-text: #1F2937;
+}
+
+.ig-chat {
+  min-height: 360px;
+  max-height: 520px;
+  overflow-y: auto;
+  background: linear-gradient(160deg, #f8f7ff 0%, #eefcf9 55%, #f0f9ff 100%);
+}
+
+.ig-bubble {
+  max-width: 80%;
+  margin-bottom: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ig-smart-text);
+  border: 1px solid rgba(99, 56, 217, 0.12);
+}
+
+.ig-bubble--inbound {
+  margin-inline-end: auto;
+  border-inline-start: 3px solid var(--ig-smart-teal);
+}
+
+.ig-bubble--outbound {
+  margin-inline-start: auto;
+  background: #f3efff;
+  border-inline-start: 3px solid var(--ig-smart-primary);
+}
+
+.ig-flow-canvas {
+  border: 1px solid rgba(99, 56, 217, 0.15);
+  border-radius: 12px;
+  min-height: 420px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.12), transparent 40%),
+    radial-gradient(circle at 80% 0%, rgba(20, 184, 166, 0.1), transparent 35%),
+    #fafafa;
+  position: relative;
+  overflow: auto;
+}
+
+.ig-flow-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid rgba(31, 41, 55, 0.08);
+}
+
+.ig-flow-stage {
+  position: relative;
+  min-height: 360px;
+  min-width: 900px;
+}
+
+.ig-flow-node {
+  position: absolute;
+  width: 180px;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid rgba(99, 56, 217, 0.25);
+  box-shadow: 0 4px 14px rgba(31, 41, 55, 0.06);
+  cursor: grab;
+  user-select: none;
+}
+
+.ig-flow-node.is-selected {
+  border-color: var(--ig-smart-primary);
+  box-shadow: 0 0 0 2px rgba(99, 56, 217, 0.2);
+}
+
+.ig-flow-node__type {
+  font-size: 0.72rem;
+  color: var(--ig-smart-teal);
+  font-weight: 600;
+}
+
+.ig-flow-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.ig-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.ig-steps li {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid rgba(99, 56, 217, 0.12);
+}
+
+.ig-steps li.is-done {
+  border-color: rgba(20, 184, 166, 0.35);
+  background: rgba(20, 184, 166, 0.06);
+}
+
+.ig-steps li span {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.ig-preset-card {
+  border-top: 3px solid var(--ig-smart-primary, #6338D9);
+}
+
+.ig-dm-preview {
+  background: linear-gradient(160deg, #f8f7ff 0%, #eefcf9 100%);
+  min-height: 280px;
+}

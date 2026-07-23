@@ -1,0 +1,57 @@
+{% extends "balebot/base.html" %}
+{% load static %}
+{% block title %}کاتالوگ و محتوای اینستاگرام{% endblock %}
+{% block content %}
+<div class="container py-4" dir="rtl">
+  {% include "instagram/_instagram_subnav.html" %}
+  <h1 class="h4 mt-4">کاتالوگ مبدا و اتصال محتوا</h1>
+  <p class="text-muted">قیمت و موجودی پاسخ‌های دایرکت همیشه از کاتالوگ انتخاب‌شده خوانده می‌شود.</p>
+
+  <div class="card p-3 mb-4">
+    <form method="post" class="row g-2 align-items-end">
+      {% csrf_token %}
+      <div class="col-md-8">
+        <label class="form-label">کاتالوگ مبدا</label>
+        <select class="form-select" name="catalog_id" required>
+          <option value="">انتخاب کنید</option>
+          {% for catalog in catalogs %}
+          <option value="{{ catalog.pk }}" {% if storefront.catalog_id == catalog.pk %}selected{% endif %}>{{ catalog.get_platform_display }} — {{ catalog.public_id }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4"><button class="btn btn-primary w-100">ذخیره کاتالوگ</button></div>
+    </form>
+  </div>
+
+  <div class="card p-3 mb-4">
+    <h2 class="h6">همگام‌سازی پست، ریلز و استوری فعال</h2>
+    {% for connection in connections %}
+    <form method="post" action="{% url 'instagram:media_sync' %}" class="d-inline-block me-2">
+      {% csrf_token %}<input type="hidden" name="connection_id" value="{{ connection.pk }}">
+      <button class="btn btn-outline-primary btn-sm">همگام‌سازی @{{ connection.username }}</button>
+    </form>
+    {% empty %}<p class="text-muted mb-0">ابتدا حساب حرفه‌ای اینستاگرام را متصل کنید.</p>{% endfor %}
+  </div>
+
+  <div class="card p-3">
+    <h2 class="h6">اتصال محتوا به محصول</h2>
+    <div class="table-responsive"><table class="table align-middle">
+      <thead><tr><th>محتوا</th><th>نوع</th><th>محصول</th><th></th></tr></thead>
+      <tbody>
+      {% for media in media_items %}
+      <tr>
+        <td><a href="{{ media.permalink }}" target="_blank" rel="noopener">{{ media.caption|truncatechars:60|default:media.external_media_id }}</a></td>
+        <td>{{ media.get_media_type_display }}</td>
+        <td colspan="2"><form method="post" action="{% url 'instagram:media_bind' media.pk %}" class="d-flex gap-2">
+          {% csrf_token %}
+          <select name="product_id" class="form-select form-select-sm"><option value="">بدون محصول</option>
+            {% for product in products %}<option value="{{ product.pk }}" {% if media.product_id == product.pk %}selected{% endif %}>{{ product.title }}</option>{% endfor %}
+          </select><button class="btn btn-sm btn-success">ذخیره</button>
+        </form></td>
+      </tr>
+      {% empty %}<tr><td colspan="4" class="text-muted">هنوز محتوایی همگام نشده است.</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+{% endblock %}

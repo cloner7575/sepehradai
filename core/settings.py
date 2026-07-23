@@ -203,6 +203,29 @@ INSTAGRAM_BACKUP_TUTORIAL_VIDEO_URL = config(
     default='',
 ).strip()
 
+# Meta / Instagram Graph API (دایرکت هوشمند)
+INSTAGRAM_APP_ID = config('INSTAGRAM_APP_ID', default=config('META_APP_ID', default='')).strip()
+INSTAGRAM_APP_SECRET = config(
+    'INSTAGRAM_APP_SECRET',
+    default=config('META_APP_SECRET', default=''),
+).strip()
+INSTAGRAM_WEBHOOK_VERIFY_TOKEN = config(
+    'INSTAGRAM_WEBHOOK_VERIFY_TOKEN',
+    default=config('META_WEBHOOK_VERIFY_TOKEN', default=''),
+).strip()
+INSTAGRAM_REDIRECT_URI = config(
+    'INSTAGRAM_REDIRECT_URI',
+    default=config('META_REDIRECT_URI', default=''),
+).strip()
+INSTAGRAM_GRAPH_API_VERSION = config('INSTAGRAM_GRAPH_API_VERSION', default='').strip()
+META_TOKEN_ENCRYPTION_KEY = config('META_TOKEN_ENCRYPTION_KEY', default='').strip()
+INSTAGRAM_LINK_ALLOWLIST = config('INSTAGRAM_LINK_ALLOWLIST', default='').strip()
+META_APP_ID = INSTAGRAM_APP_ID
+META_APP_SECRET = INSTAGRAM_APP_SECRET
+META_WEBHOOK_VERIFY_TOKEN = INSTAGRAM_WEBHOOK_VERIFY_TOKEN
+META_REDIRECT_URI = INSTAGRAM_REDIRECT_URI
+META_GRAPH_API_VERSION = INSTAGRAM_GRAPH_API_VERSION
+
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/'
@@ -235,12 +258,34 @@ CELERY_TASK_EAGER_PROPAGATES = True
 CELERY_TASK_ROUTES = {
     'balebot.tasks.process_webhook_update': {'queue': 'webhooks'},
     'balebot.tasks.run_due_campaigns': {'queue': 'campaigns'},
+    'instagram.automation.tasks.process_instagram_webhook': {'queue': 'instagram'},
+    'instagram.automation.tasks.retry_failed_instagram_event': {'queue': 'instagram'},
+    'instagram.automation.tasks.retry_due_instagram_events': {'queue': 'instagram'},
+    'instagram.automation.tasks.refresh_instagram_token': {'queue': 'instagram'},
+    'instagram.automation.tasks.refresh_due_instagram_tokens': {'queue': 'instagram'},
+    'instagram.automation.tasks.sync_instagram_media': {'queue': 'instagram'},
+    'instagram.automation.tasks.cleanup_instagram_data': {'queue': 'instagram'},
+    'instagram.automation.tasks.notify_instagram_connection_error': {'queue': 'instagram'},
+    'instagram.automation.tasks.execute_instagram_flow': {'queue': 'instagram'},
+    'instagram.automation.tasks.calculate_instagram_analytics': {'queue': 'instagram'},
 }
 
 CELERY_BEAT_SCHEDULE = {
     'process-campaigns': {
         'task': 'balebot.tasks.run_due_campaigns',
         'schedule': 120.0,
+    },
+    'retry-instagram-events': {
+        'task': 'instagram.automation.tasks.retry_due_instagram_events',
+        'schedule': 60.0,
+    },
+    'sync-instagram-media': {
+        'task': 'instagram.automation.tasks.sync_instagram_media',
+        'schedule': 900.0,
+    },
+    'refresh-instagram-tokens': {
+        'task': 'instagram.automation.tasks.refresh_due_instagram_tokens',
+        'schedule': 21600.0,
     },
 }
 

@@ -1,0 +1,76 @@
+{% extends "balebot/base.html" %}
+{% load static jalali_extras %}
+
+{% block title %}گفتگو{% endblock %}
+{% block page_title %}گفتگو با {{ contact.display_name|default:contact.username }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'instagram/css/extractor.css' %}">
+<link rel="stylesheet" href="{% static 'instagram/css/automation.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="ig-panel">
+  {% include "instagram/_instagram_subnav.html" %}
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="panel-card p-3 ig-chat" id="ig-chat" data-poll-url="{% url 'instagram:inbox_poll' conversation.pk %}">
+        {% for m in chat_messages %}
+        <div class="ig-bubble ig-bubble--{{ m.direction }}" data-id="{{ m.id }}">
+          <div class="small text-muted">{{ m.get_sender_type_display }} · {{ m.created_at|jalali_datetime }}</div>
+          <div>{{ m.text }}</div>
+        </div>
+        {% empty %}
+        <p class="text-muted">پیامی نیست.</p>
+        {% endfor %}
+      </div>
+      <form method="post" action="{% url 'instagram:inbox_reply' conversation.pk %}" class="panel-card p-3 mt-3">
+        {% csrf_token %}
+        <textarea name="text" class="form-control mb-2" rows="3" required placeholder="پاسخ..."></textarea>
+        <label class="form-check mb-2"><input type="checkbox" name="pause_automation" value="1" checked class="form-check-input"> توقف اتوماسیون پس از پاسخ</label>
+        <button class="btn-panel-primary" type="submit">ارسال</button>
+      </form>
+    </div>
+    <div class="col-lg-4">
+      <div class="panel-card p-3 mb-3">
+        <p class="mb-1"><strong>وضعیت:</strong> {{ conversation.get_status_display }}</p>
+        <p class="mb-1"><strong>حالت:</strong> {{ conversation.get_mode_display }}</p>
+        <p class="mb-3 small text-muted">Scoped ID: {{ contact.instagram_scoped_user_id }}</p>
+        <form method="post" action="{% url 'instagram:inbox_automation' conversation.pk %}" class="d-flex flex-wrap gap-2 mb-2">
+          {% csrf_token %}
+          <button name="action" value="pause" class="btn btn-sm btn-panel-ghost">توقف اتوماسیون</button>
+          <button name="action" value="resume" class="btn btn-sm btn-panel-ghost">ازسرگیری</button>
+          <button name="action" value="close" class="btn btn-sm btn-outline-secondary">بستن</button>
+          <button name="action" value="spam" class="btn btn-sm btn-outline-danger">اسپم</button>
+        </form>
+        <form method="post" action="{% url 'instagram:inbox_assign' conversation.pk %}">
+          {% csrf_token %}
+          <button name="action" value="me" class="btn btn-sm btn-panel-primary">اختصاص به من</button>
+          <button name="action" value="clear" class="btn btn-sm btn-panel-ghost">حذف مسئول</button>
+        </form>
+      </div>
+      <div class="panel-card p-3 mb-3">
+        <h6>یادداشت داخلی</h6>
+        <form method="post" action="{% url 'instagram:inbox_note' conversation.pk %}">
+          {% csrf_token %}
+          <textarea name="text" class="form-control mb-2" rows="2"></textarea>
+          <button class="btn btn-sm btn-panel-ghost">ثبت</button>
+        </form>
+        <ul class="small mt-2 mb-0">
+          {% for n in notes %}<li>{{ n.text }}</li>{% empty %}<li class="text-muted">—</li>{% endfor %}
+        </ul>
+      </div>
+      <div class="panel-card p-3">
+        <h6>فلوهای اخیر</h6>
+        <ul class="small mb-0">
+          {% for e in executions %}<li>{{ e.flow.name }} — {{ e.get_status_display }}</li>{% empty %}<li class="text-muted">—</li>{% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'instagram/js/inbox_poll.js' %}"></script>
+{% endblock %}
